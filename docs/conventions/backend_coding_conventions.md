@@ -76,7 +76,13 @@
 ## 6. Serverless 与后台任务合规规范
 
 - **禁止业务中使用裸定时器**：严禁在业务逻辑中使用 `setTimeout` / `setInterval` 处理异步延时。
-- **耗时任务解耦**：耗时任务（如周结单生成、批量邮件通知）交由 `dream-worker` 或异步队列表执行。
+- **耗时任务解耦与 TaskRelay 集成**：跨服务异步触发、延时执行或耗时任务（如周结单生成、批量邮件通知）优先通过 `@topeetop/task-relay-client` 或异步队列表执行。
+  - Payload 必须 Base64 编码：`Buffer.from(JSON.stringify(payload)).toString("base64")`。
+  - Worker 执行控制器遵循状态码驱动规范：返回 `200` 即刻成功归档；返回 `202 Accepted` 进入 `PENDING_CALLBACK` 状态（须在 30 分钟内调用 `completeTask` 终结任务）；`4xx/5xx` 自动触发退避重试。详见 [遥测与异步中转规范](./telemetry_and_task_relay_conventions.md)。
+- **全链路遥测与结构化日志 (`@topeetop/telemetry-core`)**：
+  - 遵循 100% 云原生标准输出（stdout JSON）规约，严禁在业务代码中集成第三方 HTTP 采集 SDK。
+  - 全链路透传 W3C 32 位 Hex `trace_id`（通过 Fastify Hook `telemetryContext.run({ traceId }, ...)` 绑定，并跨 HTTP 调用透传 `x-trace-id` 请求头）。
+  - 日志记录必须执行 PII 敏感脱敏（密码、Token、手机号、邮箱掩码），严禁记录明文凭证。详见 [遥测与异步中转规范](./telemetry_and_task_relay_conventions.md)。
 - **无状态请求**：服务实例必须保持无状态，严禁使用本地内存缓存跨请求的业务状态。
 - **TypeScript 强约束**：严格模式，严禁使用 `any`，函数长度尽量控制在 50 行内，优先使用 `Early Return`。
 

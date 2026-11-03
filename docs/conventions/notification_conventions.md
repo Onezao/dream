@@ -28,8 +28,58 @@
 
 ---
 
-## 3. 技术实现标准
+## 3. 技术实现与架构规约 (@topeetop/notification-core)
 
-- 统一采用 `@topeetop/notification-client` 客户端进行投递。
-- 所有邮件发送任务记录于 `dream.notice_logs` 表，以便追踪发送状态与失败重试。
-- 邮件模版采用响应式 HTML 模版，支持大陆主流邮箱（QQ 邮箱、163 邮箱）与国际邮箱客户端。
+统一采用 `@topeetop/notification-core` 作为通知底层管理系统，严格遵循依赖注入 (DI) 与任务委托规范：
+
+### 3.1 统一管理层与依赖注入 (Manager & DI)
+在服务装配层（如 `loaders/`）通过工厂函数集中构建 `NotificationManager` 单例并注入业务服务：
+```typescript
+import { createNotificationManager, NotificationConfig } from '@topeetop/notification-core';
+
+const notificationConfig: NotificationConfig = {
+  sms: {
+    provider: 'aliyun',
+    accessKeyId: config.sms.accessKeyId,
+    accessKeySecret: config.sms.accessKeySecret,
+    signName: config.sms.signName,
+    templateCode: config.sms.templateCode,
+  },
+  email: {
+    provider: 'brevo', // 或 'smtp'
+    apiKey: config.email.apiKey,
+    from: config.email.senderEmail,
+  },
+  relay: {
+    // 异步任务中转委托，保障大批量并发邮件不卡主业务线程
+    baseUrl: config.taskRelay.endpoint,
+    psk: config.taskRelay.token,
+    enabled: true,
+  },
+};
+
+const notificationManager = createNotificationManager(notificationConfig, db);
+```
+
+### 3.2 邮件与短信标准接口
+- **发送邮件**：
+  ```typescript
+  await notificationManager.sendEmail(receiverEmail, subject, htmlContent, plainTextContent);
+  ```
+- **发送短信验证码**：
+  ```typescript
+  await notificationManager.sendSmsVerificationCode(phone, code, expireMinutes);
+  ```
+- **特定业务短信模版**：
+  ```typescript
+  await notificationManager.sendSmsTemplate(phone, templateId, templateParams);
+  ```
+
+### 3.3 实时通知总线 (SSE Integration)
+系统内置服务器发送事件 (SSE) 实时通道，前端通过 `/api/notification/v1` 长连接实时接收站内信提醒：
+- 采用 `DbPollerManager` 与 `SseHub` 定期拉取活跃通知并广播给指定用户。
+- 站内信产生后在 5 秒内经由 SSE 流式推送到前端工作台通知铃铛，实现无刷新即时感知。
+
+### 3.4 邮件任务归档与重试机制
+- 所有二级和三级邮件派发任务统一落盘记录于 `dream.notice_logs` 表，记录发送渠道、接收人、状态（`PENDING`, `SENT`, `FAILED`）与关联业务实体 ID。
+- 邮件模版采用响应式 HTML 模版，支持大陆主流邮箱（QQ 邮箱、网易 163 邮箱）与国际常用邮箱客户端。

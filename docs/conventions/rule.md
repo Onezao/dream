@@ -61,8 +61,9 @@
 | **前端开发** | [UI 架构与视觉标准](./tech_ui_architecture_standard.md) | 工作台物理隔离、TDesign 选型、100% Tailwind CSS、零手写 CSS |
 | **日历视觉** | [7 色日历规范](./tech_calendar_7color_standard.md) | 固定位🟠、临时课🟡、被代课🔵、代上课🟣、不可约⚪、空闲🟢、已请假🔴 |
 | **财务分账** | [财务单据与分账核算](./finance_settlement_conventions.md) | 五大单据体系、资金持有人锁定、小班自负盈亏与预留盈余、双周结单 |
-| **消息通知** | [三级通知分发规约](./notification_conventions.md) | 站内信 + 家长 Email 兜底超时升级与紧急并发派发 |
 | **文件存储** | [文件上传与存储规范](./file_upload_conventions.md) | 教师多媒体资料预签名直传、S3/R2 路径归档 |
+| **消息通知** | [三级通知分发规约](./notification_conventions.md) | 站内信 + 家长 Email 兜底超时升级与紧急并发派发 |
+| **遥测与异步** | [遥测与异步中转规范](./telemetry_and_task_relay_conventions.md) | 云原生 stdout 结构化日志、W3C 链路追踪透传、TaskRelay 异步任务生命周期 |
 | **运维部署** | [运维与部署规范](./ops_conventions.md) | 本地端口、Cloud Build 零安装、Docker 精简镜像、topee.top 生态 |
 
 ---

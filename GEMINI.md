@@ -15,7 +15,7 @@
   - `dream-worker`：独立后台批处理与异步任务服务（承担次日凌晨 02:00 自动结课跑批、周末周结单生成、站内信超时兜底邮件派发等）。
   - `dream-core`：领域与数据共享核心库（`@topeetop/dream-core`）。统一收敛所有数据库 Mapper（一表一 Mapper 唯一真相源）、五大业务模块领域 Services、状态机与分账计算公式，供 `dream-backend` 与 `dream-worker` 共同依赖。
   - `db-schema`：PostgreSQL 结构定义与版本化迁移脚本 (`migration_vxxx.sql`)。
-  - **跨包引用准则**：**严禁**使用 `../../packages/...` 这种深层相对路径跨包引用源码。所有外部或底层工具引用必须统一使用 `@topeetop/` 作用域下的标准包名（如 `@topeetop/dream-core`, `@topeetop/shared-core`, `@topeetop/security-core`, `@topeetop/auth-core`, `@topeetop/notification-client`, `@topeetop/env-secure-conf`）。
+  - **跨包引用准则**：**严禁**使用 `../../packages/...` 这种深层相对路径跨包引用源码。所有外部或底层工具引用必须统一使用 `@topeetop/` 作用域下的标准包名（如 `@topeetop/dream-core`, `@topeetop/shared-core`, `@topeetop/security-core`, `@topeetop/auth-core`, `@topeetop/notification-core`, `@topeetop/task-relay-client`, `@topeetop/telemetry-core`, `@topeetop/env-secure-conf`）。
 
 - **核心技术栈 (Tech Stack)**:
   - _Frontend_: **Vue 3**, **Pinia**, **Vue Router**, **Vite**, **TDesign Mobile (`tdesign-mobile-vue`) / TDesign Web (`tdesign-vue-next`)**, **Tailwind CSS**.
@@ -152,4 +152,5 @@
 | **财务分账** | **[单据与分账核算](./docs/conventions/finance_settlement_conventions.md)** | 资金持有人锁定、小班课自负盈亏与班长预留盈余、双周结单 |
 | **运维部署** | **[运维与部署规范](./docs/conventions/ops_conventions.md)** | Cloud Build 零安装、Docker 精简镜像、Git 提交规范、端口隔离 |
 | **消息通知** | **[三级分发规约](./docs/conventions/notification_conventions.md)** | 站内信 + 家长 Email 兜底超时升级与紧急并发派发 |
+| **遥测与异步** | **[遥测与异步中转](./docs/conventions/telemetry_and_task_relay_conventions.md)** | 云原生 stdout 结构化日志、W3C 链路追踪透传、TaskRelay 异步任务生命周期 |
 | **文件存储** | **[文件上传规范](./docs/conventions/file_upload_conventions.md)** | 教师多媒体资料预签名直传、S3/R2 路径归档 |
