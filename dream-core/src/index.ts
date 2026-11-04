@@ -4,3 +4,4 @@ export * from './types/index.js';
 export * from './db/index.js';
 export * from './modules/profile/index.js';
 export * from './modules/file/index.js';
+export * from './modules/classes/index.js';

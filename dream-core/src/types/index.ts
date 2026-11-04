@@ -17,3 +17,4 @@ export interface BaseEntity {
 
 export * from './studentProfile.types.js';
 export * from './teacherProfile.types.js';
+export * from './class.types.js';

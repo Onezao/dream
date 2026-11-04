@@ -304,6 +304,74 @@ ON dream.class_students (student_profile_id);
 | **Phase 3: 接口与路由集成** | Fastify 路由与 Zod 校验 | 公开招募接口、班长看板接口、管理员统一接口；E2E 接口测试 | 0.5 天 |
 | **Phase 4: 前端看板与状态流转** | 小班课卡片与二次确认弹窗 | `ClassRecruitCard.vue`、`MonitorClassBoard.vue`、双语集成 | 1 天 |
 
+### Task 1: 班级与成员表迁移 (Database & DAL)
+- **目标**：完成 `m1c` 班级实体与成员关系表的 PostgreSQL 数据库迁移及 DAL Mapper 层实现。
+- **产出文件**：
+  - `db-schema/migration_v004_module1c_classes.sql`（定义 `dream.classes` 与 `dream.class_students`，包含状态/容量/抽佣约束与索引）
+  - `db-schema/schema.sql`（同步更新全量 DDL 镜像）
+  - `dream-core/src/types/class.types.ts`（定义 Row, Record, DbInput 等强类型）
+  - `dream-core/src/db/ClassMapper.ts`（继承 `BaseMapper<ClassRow>`，支持基础 CRUD、`findByIdForUpdate` 原生行级锁、按班长分页查、公开小班课列表 JOIN 查）
+  - `dream-core/src/db/ClassStudentMapper.ts`（继承 `BaseMapper<ClassStudentRow>`，支持添加学员、退班、统计在读学员数 `countEnrolled`、查询班级学员列表）
+  - `dream-core/src/db/index.ts`（导出新 Mapper）
+  - `dream-core/tests/ClassMapper.test.ts`（白盒单测，覆盖 CRUD、行级排他锁、学员计数与软删除）
+- **约束要求**：
+  - 12 位 Short UUID (`generateShortUuid()`)；
+  - 显式 `dream.` 前缀；
+  - 继承 `BaseMapper`，构造函数注入 `DatabaseService`，方法穿透 `PoolClient`。
+
+### Task 2: 领域服务与并发锁验证 (Domain Service & Tests)
+- **目标**：实现统一班级与招生控流服务 `ClassService`，编写完整的白盒单测与并发防超卖测试用例。
+- **产出文件**：
+  - `dream-core/src/modules/classes/class.types.ts`（定义 Zod schemas 与 DTOs）
+  - `dream-core/src/modules/classes/ClassService.ts`：
+    - `ensureOneToOneClass(client, params)`：1v1 静默建班/获取现有班级；
+    - `createSmallGroupClass(monitorAccountId, dto)`：班长录入小班课；
+    - `enrollStudent(classId, studentProfileId, client?)`：事务内 `SELECT ... FOR UPDATE` 排他锁控流，满员抛出 `CLASS_FULL`，已在班抛出 `ALREADY_ENROLLED`；
+    - `forceStartClass(classId, monitorAccountId)`：班长二次确认强制开班；
+    - `cancelClass(classId, monitorAccountId, reason)`：班长取消班级；
+    - `listPublicSmallGroupClasses(filter)`：招募中公开小班列表；
+    - `listMonitorClasses(monitorAccountId, status?)`：班长端看板列表；
+  - `dream-core/src/modules/classes/index.ts` 与 `dream-core/src/index.ts`（重导出服务）；
+  - `dream-core/tests/ClassService.test.ts`（单测覆盖率 > 95%，重点验证行级排他锁、满员超卖阻断、1v1 静默建班幂等性）。
+- **约束要求**：
+  - 并发排他锁必须在事务内执行；
+  - 班长端操作严格 IDOR 防御；
+  - 零自建连接池，通过 `DatabaseService.executeTx` 编排。
+
+### Task 3: 接口与路由集成 (Fastify Controller & Routes)
+- **目标**：在 `dream-backend` 中挂载 Fastify 控制器与路由，实现权限拦截、Zod 校验与集成测试。
+- **产出文件**：
+  - `dream-backend/src/controllers/ClassController.ts`
+  - `dream-backend/src/routes/class.routes.ts`
+  - `dream-backend/src/app.ts`（挂载路由到 `/api/dream/v1`）
+  - `dream-backend/tests/class.integration.test.ts`（集成测试套件覆盖公开、班长与管理员接口）
+- **接口列表**：
+  - `GET /api/dream/v1/public/classes/small-group` (公开只读)
+  - `GET /api/dream/v1/monitor/classes` (班长权限)
+  - `POST /api/dream/v1/monitor/classes` (班长权限)
+  - `POST /api/dream/v1/monitor/classes/:id/force-start` (班长权限)
+  - `POST /api/dream/v1/monitor/classes/:id/cancel` (班长权限)
+  - `GET /api/dream/v1/admin/classes` (管理员权限)
+  - `PATCH /api/dream/v1/admin/classes/:id` (管理员权限)
+- **约束要求**：
+  - 角色守卫 `requireRole('monitor')`, `requireRole('admin')`；
+  - Zod Schema 强校验入参。
+
+### Task 4: 前端看板与状态流转 (Frontend Cards & Board)
+- **目标**：在 `dream-frontend` 中实现小班课选班卡片、班长端小班课看板、强制开班/取消确认弹窗及 Pinia 状态管理。
+- **产出文件**：
+  - `dream-frontend/src/api/class.ts`（封装 REST 请求）
+  - `dream-frontend/src/stores/class.ts`（Pinia Store 管理小班列表与选课状态）
+  - `dream-frontend/src/components/ClassRecruitCard.vue`（移动端选班卡片，展示已报人数与满员状态）
+  - `dream-frontend/src/components/ClassCreateModal.vue`（班长端新建小班课弹窗）
+  - `dream-frontend/src/components/ClassActionConfirmModal.vue`（强制开班/取消班级确认弹窗）
+  - `dream-frontend/src/i18n/`（中英双语扩展）
+  - `dream-frontend/tests/classStore.test.ts`（单测套件）
+- **约束要求**：
+  - 100% Tailwind CSS，**严禁手写 CSS / `<style>` 块**；
+  - 触控热区 $\ge 44px$；
+  - L4 强制在线策略（离线置灰阻断）。
+
 ---
 
 ## 7. 架构规范自检表 (Local Compliance Checklist)

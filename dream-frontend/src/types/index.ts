@@ -138,3 +138,78 @@ export interface PresignedUploadResult {
   key: string;
   expiresIn: number;
 }
+
+export type ClassStatus = 'recruiting' | 'active' | 'completed' | 'cancelled';
+export type ClassType = '1v1' | 'small_group';
+
+export interface PublicSmallGroupClassDto {
+  id: string;
+  name: string;
+  courseTypeName: string;
+  teacherDisplayName: string;
+  teacherPhotoUrl: string | null;
+  minStudents: number;
+  maxStudents: number;
+  enrolledCount: number;
+  isFull: boolean;
+  plannedStartDate: string | null;
+  status: ClassStatus;
+}
+
+export interface EnrolledStudentSummaryDto {
+  studentProfileId: string;
+  nickname: string;
+  avatarUrl: string | null;
+  enrolledAt: string;
+}
+
+export interface MonitorClassDto extends PublicSmallGroupClassDto {
+  ownerMonitorProfileId: string;
+  teacherSalaryPoints: number;
+  platformCommissionRate: number;
+  forceStartedAt: string | null;
+  createdAt: string;
+  enrolledStudents: EnrolledStudentSummaryDto[];
+}
+
+export interface AdminClassDto extends MonitorClassDto {
+  classType: ClassType;
+  updatedAt: string;
+}
+
+export interface CreateSmallGroupClassInput {
+  name: string;
+  courseTypeId: string;
+  teacherProfileId: string;
+  minStudents?: number;
+  maxStudents?: number;
+  teacherSalaryPoints?: number;
+  platformCommissionRate?: number;
+  plannedStartDate: string;
+}
+
+export interface CancelClassInput {
+  confirm: true;
+  reason: string;
+}
+
+export interface AdminClassQueryInput {
+  page?: number;
+  pageSize?: number;
+  status?: ClassStatus;
+  classType?: ClassType;
+  ownerMonitorProfileId?: string;
+  teacherProfileId?: string;
+  courseTypeId?: string;
+}
+
+export interface AdminUpdateClassInput {
+  name?: string;
+  teacherProfileId?: string;
+  minStudents?: number;
+  maxStudents?: number;
+  teacherSalaryPoints?: number;
+  platformCommissionRate?: number;
+  status?: ClassStatus;
+  plannedStartDate?: string | null;
+}

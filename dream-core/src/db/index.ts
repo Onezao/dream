@@ -6,3 +6,5 @@ export * from './CourseTypeMapper.js';
 export * from './TeacherLevelMapper.js';
 export * from './MonitorProfileMapper.js';
 export * from './TeacherProfileMapper.js';
+export * from './ClassMapper.js';
+export * from './ClassStudentMapper.js';

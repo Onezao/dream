@@ -8,16 +8,19 @@ import {
   StudentProfileService,
   TeacherProfileService,
   FileUploadService,
+  ClassService,
 } from '@topeetop/dream-core';
 import { loadConfig } from './config/env.config.js';
 import { studentProfileRoutes } from './routes/studentProfile.routes.js';
 import { fileUploadRoutes } from './routes/fileUpload.routes.js';
 import { teacherProfileRoutes } from './routes/teacherProfile.routes.js';
+import { classRoutes } from './routes/class.routes.js';
 
 export interface BuildAppOptions {
   service?: StudentProfileService;
   teacherService?: TeacherProfileService;
   fileUploadService?: FileUploadService;
+  classService?: ClassService;
   skipDbInit?: boolean;
 }
 
@@ -99,6 +102,11 @@ export async function buildApp(options?: BuildAppOptions) {
   await app.register(teacherProfileRoutes, {
     prefix: '/api/dream/v1',
     service: options?.teacherService,
+  });
+
+  await app.register(classRoutes, {
+    prefix: '/api/dream/v1',
+    service: options?.classService,
   });
 
   return app;
