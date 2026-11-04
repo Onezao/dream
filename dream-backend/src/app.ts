@@ -4,12 +4,20 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
 import { ApiError, initializeDatabase, closePool } from '@topeetop/shared-core';
-import { StudentProfileService } from '@topeetop/dream-core';
+import {
+  StudentProfileService,
+  TeacherProfileService,
+  FileUploadService,
+} from '@topeetop/dream-core';
 import { loadConfig } from './config/env.config.js';
 import { studentProfileRoutes } from './routes/studentProfile.routes.js';
+import { fileUploadRoutes } from './routes/fileUpload.routes.js';
+import { teacherProfileRoutes } from './routes/teacherProfile.routes.js';
 
 export interface BuildAppOptions {
   service?: StudentProfileService;
+  teacherService?: TeacherProfileService;
+  fileUploadService?: FileUploadService;
   skipDbInit?: boolean;
 }
 
@@ -81,6 +89,16 @@ export async function buildApp(options?: BuildAppOptions) {
   await app.register(studentProfileRoutes, {
     prefix: '/api/dream/v1',
     service: options?.service,
+  });
+
+  await app.register(fileUploadRoutes, {
+    prefix: '/api/dream/v1',
+    service: options?.fileUploadService,
+  });
+
+  await app.register(teacherProfileRoutes, {
+    prefix: '/api/dream/v1',
+    service: options?.teacherService,
   });
 
   return app;

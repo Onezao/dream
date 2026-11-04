@@ -96,6 +96,18 @@ export const messages = {
         UNAUTHORIZED: '登录态失效，请重新登录',
       },
     },
+    teacher: {
+      title: '外教团队',
+      filterAll: '全部定级',
+      filterAllCourses: '全部课程',
+      noTeachers: '暂无外教介绍',
+      offlineSnapshot: '弱网只读快照',
+      viewBio: '查看详情',
+      switchLang: '中英切换',
+      classinQr: 'ClassIn 二维码',
+      addTeacher: '录入新外教',
+      editTeacher: '编辑外教档案',
+    },
   },
   'en-US': {
     common: {
@@ -185,6 +197,18 @@ export const messages = {
         PROFILE_NOT_FOUND: 'Student profile not found',
         UNAUTHORIZED: 'Session expired. Please log in again',
       },
+    },
+    teacher: {
+      title: 'Teacher Team',
+      filterAll: 'All Levels',
+      filterAllCourses: 'All Courses',
+      noTeachers: 'No teachers available',
+      offlineSnapshot: 'Offline Snapshot',
+      viewBio: 'View Bio',
+      switchLang: 'Switch Lang',
+      classinQr: 'ClassIn QR',
+      addTeacher: 'Add New Teacher',
+      editTeacher: 'Edit Teacher',
     },
   },
 };

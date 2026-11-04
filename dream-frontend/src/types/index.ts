@@ -69,3 +69,72 @@ export interface UserSession {
   currentWorkspace: WorkspaceMode;
   currentProfileId?: string;
 }
+
+export interface CourseTypeDto {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface TeacherLevelDto {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface TeacherCardDto {
+  id: string;
+  displayName: string;
+  levelName: string;
+  monitorDisplayName: string;
+  skillCourseTypes: Array<{ id: string; name: string }>;
+  introZh: string;
+  introEn: string;
+  photoUrl: string | null;
+  videoUrl: string | null;
+  classinQrUrl: string | null;
+}
+
+export interface TeacherDetailDto {
+  id: string;
+  accountId: string | null;
+  displayName: string;
+  levelId: string;
+  levelName?: string;
+  monitorProfileId: string;
+  monitorDisplayName?: string;
+  skillCourseTypeIds: string[];
+  skillCourseTypes?: Array<{ id: string; name: string }>;
+  introZh: string;
+  introEn: string;
+  photoKey: string | null;
+  photoUrl: string | null;
+  videoKey: string | null;
+  videoUrl: string | null;
+  classinQrKey: string | null;
+  classinQrUrl: string | null;
+  resignedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTeacherProfileInput {
+  displayName: string;
+  levelId: string;
+  skillCourseTypeIds: string[];
+  introZh: string;
+  introEn: string;
+  photoKey?: string;
+  videoKey?: string;
+  classinQrKey?: string;
+}
+
+export type UpdateTeacherProfileInput = Partial<CreateTeacherProfileInput>;
+
+export interface PresignedUploadResult {
+  uploadUrl: string;
+  key: string;
+  expiresIn: number;
+}

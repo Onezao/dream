@@ -36,10 +36,15 @@ export async function authenticateAndResolveProfile(
   }
 
   // 模拟/轻量提取（实际对接 JWT 解密）
+  const rolesHeader = request.headers['x-roles'] as string | undefined;
+  const roles = rolesHeader
+    ? rolesHeader.split(',').map((r) => r.trim())
+    : ['parent'];
+
   request.user = {
-    id: request.headers['x-account-id'] as string || 'test_account',
+    id: (request.headers['x-account-id'] as string) || 'test_account',
     email: 'user@topee.top',
-    roles: ['parent'],
+    roles,
   };
 
   // 检查 Header 穿透的 X-Profile-Id
@@ -65,4 +70,22 @@ export async function authenticateAndResolveProfile(
 
     request.currentProfileId = profileId;
   }
+}
+
+/**
+ * 校验当前登录用户是否具备指定角色权限
+ */
+export function requireRole(allowedRoles: string | string[]) {
+  const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  return async (request: FastifyRequest, _reply: FastifyReply): Promise<void> => {
+    if (!request.user) {
+      throw new ApiError('Authentication token is required', 401, 'UNAUTHORIZED');
+    }
+    const hasRole = ((request.user as any)?.roles || []).some((r: string) =>
+      allowed.includes(r)
+    );
+    if (!hasRole) {
+      throw new ApiError('Forbidden: Insufficient permissions', 403, 'FORBIDDEN');
+    }
+  };
 }
