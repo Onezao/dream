@@ -3,19 +3,27 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
-import { ApiError } from '@topeetop/shared-core';
-import { initDb, closeDb } from '@topeetop/dream-core';
+import { ApiError, initializeDatabase, closePool } from '@topeetop/shared-core';
+import { StudentProfileService } from '@topeetop/dream-core';
 import { loadConfig } from './config/env.config.js';
+import { studentProfileRoutes } from './routes/studentProfile.routes.js';
 
-export async function buildApp() {
+export interface BuildAppOptions {
+  service?: StudentProfileService;
+  skipDbInit?: boolean;
+}
+
+export async function buildApp(options?: BuildAppOptions) {
   const config = loadConfig();
 
-  // 1. 初始化数据库连接池 (单 Schema dream)
-  initDb({
-    connectionString: config.DB_URL,
-    max: config.DB_POOL_MAX,
-    ssl: config.DB_USE_SSL,
-  });
+  // 1. 初始化数据库连接池 (委托至 @topeetop/shared-core，单 Schema dream)
+  if (!options?.skipDbInit && config.NODE_ENV !== 'test') {
+    initializeDatabase({
+      connectionString: config.DB_URL,
+      max: config.DB_POOL_MAX,
+      ssl: config.DB_USE_SSL,
+    });
+  }
 
   // 2. 初始化 Fastify 实例并挂载 Zod Type Provider
   const app = Fastify({
@@ -41,12 +49,13 @@ export async function buildApp() {
     };
   });
 
-  // 5. 全局异常拦截器 (统合 ApiError 标准格式)
+  // 5. 全局异常拦截器 (统合 ApiError 标准格式，必须在路由注册前挂载以使插件上下文继承)
   app.setErrorHandler((error, _request, reply) => {
-    if (error instanceof ApiError) {
-      return reply.status(error.statusCode).send({
-        error: error.message,
-        code: (error as any).code || 'BUSINESS_ERROR',
+    if (ApiError.isApiError(error) || error instanceof ApiError) {
+      const apiErr = error as ApiError;
+      return reply.status(apiErr.statusCode).send({
+        error: apiErr.message,
+        code: (apiErr as any).code || apiErr.errorCode || 'BUSINESS_ERROR',
         timestamp: new Date().toISOString(),
       });
     }
@@ -68,6 +77,12 @@ export async function buildApp() {
     });
   });
 
+  // 6. 挂载业务路由
+  await app.register(studentProfileRoutes, {
+    prefix: '/api/dream/v1',
+    service: options?.service,
+  });
+
   return app;
 }
 
@@ -82,7 +97,7 @@ if (process.env.NODE_ENV !== 'test') {
       console.log(`🚀 dream-backend running at http://${config.HOST}:${config.PORT}`);
     } catch (err) {
       app.log.error(err);
-      await closeDb();
+      await closePool();
       process.exit(1);
     }
   };

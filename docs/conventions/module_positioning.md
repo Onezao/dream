@@ -68,8 +68,8 @@
 ### 2.1 跨包引用准则 (Cross-Package Imports)
 1. **严禁深层相对路径**：严禁在代码中使用类似 `import ... from '../../packages/...'`。
 2. **强制统一 @topeetop 作用域**：所有内部共享与外部公共能力必须通过 `@topeetop/` 作用域包名引入：
-   - `@topeetop/dream-core`：本项目专属的领域服务、Mappers 数据访问与分账计算核心库。
-   - `@topeetop/shared-core`：12位短 ID 生成器 (`generateShortUuid`)、JwtAuthHook、ApiError 等。
+   - `@topeetop/dream-core`：本项目专属的领域服务、Mappers 数据访问与分账计算核心库（严禁在内部自建连接池，统一依赖 shared-core 的 DatabaseService）。
+   - `@topeetop/shared-core`：数据库服务 (`DatabaseService`、连接池管理与事务助手)、12位短 ID 生成器 (`generateShortUuid`)、JwtAuthHook、ApiError 等。参考 `/Users/shanzao/ravll-workspace/packages/shared-core/README.md`。
    - `@topeetop/security-core`：敏感数据加解密、防篡改签名。
    - `@topeetop/auth-core`：JWT 鉴权核心。
    - `@topeetop/notification-client`：站内信与邮件分发客户端。

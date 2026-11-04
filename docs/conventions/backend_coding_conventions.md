@@ -43,6 +43,19 @@
 - 跨 Mapper 事务控制（通过传递 `PoolClient` 保证原子性）。
 - **IDOR 纵深防越权**：强制校验数据所属的 `account_id` 或 `student_profile_id`。
 
+### 2.3 数据库接入与 Mapper DI 规约 (DatabaseService & BaseMapper)
+- **零自建连接池铁律 (Zero Pool Implementation)**：
+  - 严禁在 `dream-core` 或业务接入层中编写 `new Pool(...)`、连接监听或维护连接池生命周期。
+  - 必须统一复用 `@topeetop/shared-core` 的 `DatabaseService` 及辅助工具（`initializeDatabase`, `closePool`, `executeTx`）。参考 `/Users/shanzao/ravll-workspace/packages/shared-core/README.md`。
+- **Mapper 继承与构造函数注入 (Constructor Injection)**：
+  - 所有表 Mapper 必须继承 `BaseMapper<RowType>`，并提供 `constructor(db?: DatabaseService) { super(db); }` 接口。
+  - **查询与事务分流**：
+    - **事务分支**：若传入 `client: PoolClient`，直接通过 `client.query(...)` 执行，确保原子性与行级锁（`SELECT ... FOR UPDATE` / `pg_advisory_xact_lock`）。
+    - **独立查询分支**：优先通过注入的 `this.db.executeQuery` / `this.db.getOne` 执行；若未注入实例则平滑回退至 `@topeetop/shared-core` 全局单例。
+- **DAL 单测标准 (Mapper Testing Standard)**：
+  - 必须通过构造函数直接传入 `mockDb: jest.Mocked<DatabaseService>` 进行测试（如 `new StudentProfileMapper(mockDb)`）。
+  - 严禁使用 Jest 模块劫持（`jest.mock('../src/db/connection.js')`）等全局 monkey patch 方式。
+
 ---
 
 ## 3. 依赖注入规范 (Dependency Injection)

@@ -2,15 +2,15 @@
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { initDb, closeDb } from '@topeetop/dream-core';
+import { initializeDatabase, closePool } from '@topeetop/shared-core';
 import { getWorkerConfig } from './config/env.config';
 import { createScheduler } from './scheduler';
 
 async function bootstrap() {
   const config = getWorkerConfig();
 
-  // Initialize DB pool
-  initDb({
+  // Initialize DB pool (delegated to @topeetop/shared-core)
+  initializeDatabase({
     connectionString: config.DB_URL,
     max: config.DB_POOL_MAX,
     ssl: config.DB_SSL ? { rejectUnauthorized: false } : false,
@@ -38,7 +38,7 @@ async function bootstrap() {
     console.info(`[dream-worker] Received ${signal}. Gracefully terminating...`);
     scheduler.stop();
     await app.close();
-    await closeDb();
+    await closePool();
     process.exit(0);
   };
 

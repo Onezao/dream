@@ -19,6 +19,9 @@
   - 在 Service 层鉴权的基础上，SQL 层强制物理包含 `account_id` 或 `student_profile_id` 过滤是防御 IDOR（越权）的不可逾越红线。
 - **异常未上课回退补生兜底 (Safe Rollback with Compensation)**：
   - 针对教师实际未上课但次日凌晨已被系统自动结课的异常 TS，允许班长/管理员修改为“已取消”，记录严格审计日志，并由系统在原单下自动补生 1 节全新“待排期 TS”，课酬统计物理剔除。
+- **底层基建复用原则 (Shared Infrastructure Reuse)**：
+  - 严禁在业务项目中重复造轮子（如手写 `new Pool(...)` 自建数据库连接池、自建连接生命周期逻辑）。
+  - 数据库必须且只能通过 `@topeetop/shared-core` 的 `DatabaseService` 接入，Mapper 层全面推行构造函数注入 (DI)，单测严禁使用全局 monkey patch 劫持连接文件。参考 `/Users/shanzao/ravll-workspace/packages/shared-core/README.md`。
 
 ---
 

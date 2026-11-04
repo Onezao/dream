@@ -44,3 +44,43 @@
   - 底部移动端导航栏：`z-40`
   - 抽屉与遮罩 Modal：`z-50`
   - 消息 Toast / 告警提示：`z-[100]`
+
+---
+
+## 4. PWA 与设备适配规范 (Mobile & Tablet Responsive)
+
+系统以 **PWA (Progressive Web App)** 为标准交付形态，兼顾手机端触摸敏捷性与平板端大屏生产力：
+- **Web App Manifest & Service Worker**：
+  - 集成 `vite-plugin-pwa`，配置独立应用模式（`display: standalone`）、启动图标（192x192, 512x512）与应用背景色。
+  - 支持手机与平板端浏览器“添加到主屏幕 (Add to Home Screen)”。
+- **全响应式断点规范 (Tailwind Breakpoints)**：
+  - **手机端 (`< 768px`)**：默认视口，单列流式排版，底部常驻移动导航栏，抽屉式浮层交互。
+  - **平板端 (`md: >= 768px`)**：自适应切换为双列/卡片网格布局，课表支持按周多列平铺，侧边栏折叠收起。
+  - **桌面端 (`lg: >= 1024px`)**：全功能管理工作台、固定左侧侧边栏、复杂对账看板完整展开。
+
+---
+
+## 5. 端侧数据缓存分级策略 (Client-side Caching Hierarchy)
+
+为保障弱网可用与高一致性，浏览器端数据实施四级缓存架构：
+
+| 缓存级别 | 适用数据对象 | 缓存介质与策略 | 失效与更新机制 |
+| :--- | :--- | :--- | :--- |
+| **L1: 强缓存 (App Shell)** | 静态资源、HTML 离线壳、Web Fonts、图标 | CacheStorage (`CacheFirst`) | 随应用发版更新（hash 指纹驱动） |
+| **L2: 静态字典与会话上下文** | 课程类型字典 (`course_types`)、教师定级标准、当前账号信息、名下学生档案、`activeProfileId` | LocalStorage + Pinia (`StaleWhileRevalidate`) | 24小时 TTL，或在用户切换档案/修改偏好时主动广播失效 |
+| **L3: 业务只读快照** | 教师公开脱敏列表、当周 7 色已排课表快照 | IndexedDB (`NetworkFirst with Cache Fallback`) | 优先网络拉取，弱网/断网自动降级读取本地缓存并标记“离线只读” |
+| **L4: 绝对零离线 (强制在线)** | 购课单支付、退款单、向平台转账单、排班并发抢位 (`SELECT FOR UPDATE`) | **严禁缓存 (NetworkOnly)** | 断网状态下操作按钮强制置灰禁用，Toast 提示“离线模式不可用” |
+
+---
+
+## 6. 全站中英文双语规范 (i18n Standards)
+
+- **核心架构**：基于 `vue-i18n` (Composition API 驱动)，提供 `zh-CN` 与 `en-US` 语言包。
+- **覆盖深度**：
+  - 页面导航、工作台标题、角色标签。
+  - 表单 Label、Placeholder、校验错误提示。
+  - 7 色日历状态枚举（如：`固定位 / Fixed Slot`、`被代课 / Substituted`）。
+  - 后端 API 业务错误码（如 `NICKNAME_ALREADY_EXISTS` 国际化文案映射）。
+- **无刷新切换与持久化**：
+  - 顶部导航栏提供全局语言切换下拉框。
+  - 语言首选项持久化存入 `localStorage.getItem('dream_locale')`，初次访问自动匹配 `navigator.language`。

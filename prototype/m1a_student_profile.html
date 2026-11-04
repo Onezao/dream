@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
+<!-- 即抛型原型：m1a 学员与多孩档案中心。纯前端 Mock，不连接后端，不纳入生产代码。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>原型 · m1a 学员与多孩档案中心</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-stone-100 text-slate-800 min-h-screen antialiased">
+
+  <!-- 原型控制台（不属于产品界面） -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-[60]">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs">
+      <span class="font-semibold text-slate-900 text-sm">m1a 原型</span>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500">切换器</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="variant" data-value="A" class="ctl px-3 py-1.5 rounded-lg font-medium">A 下拉菜单</button>
+          <button data-group="variant" data-value="B" class="ctl px-3 py-1.5 rounded-lg font-medium">B 头像横条</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500">档案数据</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="dataset" data-value="empty" class="ctl px-3 py-1.5 rounded-lg font-medium">无档案</button>
+          <button data-group="dataset" data-value="two" class="ctl px-3 py-1.5 rounded-lg font-medium">2 个孩子</button>
+          <button data-group="dataset" data-value="full" class="ctl px-3 py-1.5 rounded-lg font-medium">已满 10 个</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500">设备</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="device" data-value="mobile" class="ctl px-3 py-1.5 rounded-lg font-medium">手机</button>
+          <button data-group="device" data-value="tablet" class="ctl px-3 py-1.5 rounded-lg font-medium">平板</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500">网络</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="online" data-value="on" class="ctl px-3 py-1.5 rounded-lg font-medium">在线</button>
+          <button data-group="online" data-value="off" class="ctl px-3 py-1.5 rounded-lg font-medium">离线</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="py-8 px-4 flex justify-center">
+    <!-- 设备画框 -->
+    <div id="frame" class="relative bg-slate-50 rounded-2xl ring-1 ring-slate-200 shadow-xl overflow-hidden flex flex-col w-[390px] h-[780px]">
+
+      <!-- 顶部栏：单角色仅显示工作台名称，无切换控件 (AC-01) -->
+      <div class="h-14 px-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-teal-600 text-white grid place-items-center text-xs font-bold">D</div>
+          <span class="font-semibold text-slate-900">Dream</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-slate-500">家长工作台</span>
+          <button class="h-8 px-2 rounded-lg text-xs text-slate-600 ring-1 ring-slate-200">中 / EN</button>
+          <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 grid place-items-center text-xs font-semibold">Amy</div>
+        </div>
+      </div>
+
+      <!-- 多孩档案切换器（由脚本按变体渲染） -->
+      <div id="switcher" class="bg-white border-b border-slate-200 shrink-0 relative z-30"></div>
+
+      <div id="offlineBanner" class="hidden shrink-0 px-4 py-2 bg-amber-50 text-amber-800 text-xs flex items-center gap-2 border-b border-amber-200">
+        <i data-lucide="wifi-off" class="w-3.5 h-3.5"></i>离线模式：可切换孩子与浏览缓存，创建档案不可用
+      </div>
+
+      <div id="content" class="flex-1 overflow-y-auto"></div>
+
+      <!-- 创建学生档案弹窗 -->
+      <div id="modal" class="absolute inset-0 z-50 hidden bg-slate-900/40 flex">
+        <div id="sheet" class="bg-white w-full flex flex-col">
+          <div class="px-5 pt-4 pb-3 flex items-start justify-between border-b border-slate-100 shrink-0">
+            <div>
+              <h2 class="text-base font-semibold text-slate-900">添加新学员档案</h2>
+              <p id="modalReason" class="text-xs text-slate-500 mt-0.5 hidden">预约前需要先添加孩子档案</p>
+            </div>
+            <button onclick="closeCreate()" class="w-9 h-9 -mr-2 rounded-xl grid place-items-center text-slate-500 hover:bg-slate-100">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+            <!-- 头像：本地裁剪 1:1 + WebP 压缩 -->
+            <div class="flex items-center gap-4">
+              <label class="relative w-[72px] h-[72px] rounded-full bg-slate-100 ring-1 ring-slate-200 grid place-items-center overflow-hidden cursor-pointer shrink-0">
+                <img id="avatarPreview" class="hidden w-full h-full object-cover" alt="">
+                <i id="avatarIcon" data-lucide="camera" class="w-6 h-6 text-slate-400"></i>
+                <input id="avatarInput" type="file" accept="image/*" class="hidden">
+              </label>
+              <div class="text-xs">
+                <label for="avatarInput" class="inline-flex h-9 items-center px-3 rounded-xl ring-1 ring-slate-200 text-slate-700 font-medium cursor-pointer hover:bg-slate-50">选择照片</label>
+                <p id="avatarInfo" class="text-slate-500 mt-1.5">本地裁剪为正方形并压缩为 WebP</p>
+              </div>
+            </div>
+
+            <div>
+              <label for="fRealName" class="block text-sm font-medium text-slate-700 mb-1.5">宝贝真实姓名</label>
+              <input id="fRealName" class="w-full h-11 px-3 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-teal-600 outline-none text-sm" placeholder="张小丽">
+            </div>
+
+            <div class="grid grid-cols-[1fr_72px_72px] gap-3">
+              <div>
+                <label for="fEnglish" class="block text-sm font-medium text-slate-700 mb-1.5">英文名</label>
+                <input id="fEnglish" class="w-full h-11 px-3 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-teal-600 outline-none text-sm" placeholder="Alice" maxlength="24">
+              </div>
+              <div>
+                <label for="fInitial" class="block text-sm font-medium text-slate-700 mb-1.5">姓首字母</label>
+                <input id="fInitial" class="w-full h-11 px-3 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-teal-600 outline-none text-sm text-center uppercase" placeholder="Z" maxlength="1">
+              </div>
+              <div>
+                <label for="fAge" class="block text-sm font-medium text-slate-700 mb-1.5">年龄</label>
+                <input id="fAge" type="number" min="1" max="99" class="w-full h-11 px-3 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-teal-600 outline-none text-sm text-center" placeholder="12">
+              </div>
+            </div>
+            <p id="fieldError" class="hidden -mt-3 text-xs text-rose-600"></p>
+
+            <!-- 规范昵称实时预览 -->
+            <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 px-4 py-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500">系统生成昵称</span>
+                <span class="text-[11px] text-slate-400 flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i>全平台唯一，用于转课精准识别</span>
+              </div>
+              <div id="nickPreview" class="mt-1 font-mono text-xl font-semibold text-slate-300">英文名+首字母+年龄</div>
+              <div id="nickStatus" class="mt-1.5 text-xs text-slate-500 min-h-[20px]">填写后自动生成</div>
+            </div>
+
+            <div>
+              <label for="fSuffix" class="block text-sm font-medium text-slate-700 mb-1.5">微调后缀 <span class="font-normal text-slate-400">（可选，重名时使用）</span></label>
+              <input id="fSuffix" class="w-32 h-11 px-3 rounded-xl ring-1 ring-slate-200 focus:ring-2 focus:ring-teal-600 outline-none text-sm lowercase" placeholder="b" maxlength="3">
+            </div>
+
+            <div>
+              <span class="block text-sm font-medium text-slate-700 mb-1.5">性别</span>
+              <div id="genderGroup" class="inline-flex rounded-xl bg-slate-100 p-1 text-sm">
+                <button type="button" data-gender="male" class="px-4 h-9 rounded-lg">男孩</button>
+                <button type="button" data-gender="female" class="px-4 h-9 rounded-lg">女孩</button>
+                <button type="button" data-gender="undisclosed" class="px-4 h-9 rounded-lg">保密</button>
+              </div>
+            </div>
+
+            <div>
+              <span class="block text-sm font-medium text-slate-700 mb-1.5">选课偏好 <span class="font-normal text-slate-400">（不选即不限）</span></span>
+              <div id="prefGroup" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+
+          <div class="px-5 py-3 border-t border-slate-100 flex gap-3 shrink-0">
+            <button onclick="closeCreate()" class="flex-1 h-11 rounded-xl ring-1 ring-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50">取消</button>
+            <button id="btnSubmit" onclick="submitCreate()" class="flex-[2] h-11 rounded-xl bg-teal-600 text-white text-sm font-medium disabled:bg-slate-200 disabled:text-slate-400">确认创建</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="toast" class="absolute left-1/2 -translate-x-1/2 bottom-6 z-[100] hidden px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm shadow-lg whitespace-nowrap"></div>
+    </div>
+  </main>
+
+  <script>
+    // 假数据定义
+    const mockDatasets = {
+      empty: [],
+      two: [
+        {
+          id: 'sp_alice00001',
+          nickname: 'AliceZ12',
+          realName: '张小丽',
+          englishName: 'Alice',
+          surnameInitial: 'Z',
+          age: 12,
+          gender: 'female',
+          tag: '大宝',
+          avatarUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80',
+          prefs: ['少儿英语', 'KET备考'],
+          lessons: [
+            { type: 'fixed', color: 'bg-amber-500', name: '周二 19:00 - 19:45 (KET冲刺)', teacher: 'David Miller' },
+            { type: 'temp', color: 'bg-yellow-400', name: '周六 10:00 - 10:45 (生活口语)', teacher: 'Sarah Jenkins' }
+          ]
+        },
+        {
+          id: 'sp_bob0000002',
+          nickname: 'BobZ10',
+          realName: '张小博',
+          englishName: 'Bob',
+          surnameInitial: 'Z',
+          age: 10,
+          gender: 'male',
+          tag: '二宝',
+          avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+          prefs: ['自然拼读', '生活口语'],
+          lessons: [
+            { type: 'fixed', color: 'bg-amber-500', name: '周三 18:30 - 19:15 (自然拼读)', teacher: 'Leo Zhang' }
+          ]
+        }
+      ],
+      full: Array.from({ length: 10 }).map((_, i) => ({
+        id: `sp_kid00000${i + 1}`,
+        nickname: `Child${String.fromCharCode(65 + i)}0${i + 1}`,
+        realName: `孩子 ${i + 1} 号`,
+        englishName: `Child${String.fromCharCode(65 + i)}`,
+        surnameInitial: 'Z',
+        age: 8 + (i % 5),
+        gender: i % 2 === 0 ? 'female' : 'male',
+        tag: `宝贝 ${i + 1}`,
+        avatarUrl: `https://images.unsplash.com/photo-${1534528741775 + i * 100}?w=150&auto=format&fit=crop&q=80`,
+        prefs: ['少儿英语'],
+        lessons: []
+      }))
+    };
+
+    const courseTypes = ['少儿英语', '生活口语', 'KET备考', 'PET冲刺', '自然拼读'];
+
+    // 状态机
+    const state = {
+      variant: 'A', // A: 下拉菜单, B: 头像横条
+      dataset: 'two',
+      device: 'mobile',
+      online: 'on',
+      activeProfileId: 'sp_alice00001',
+      profiles: JSON.parse(JSON.stringify(mockDatasets.two)),
+      dropdownOpen: false,
+      form: {
+        avatarDataUrl: '',
+        gender: 'female',
+        prefs: ['少儿英语']
+      }
+    };
+
+    // 初始化控制台事件
+    document.querySelectorAll('.ctl').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const val = btn.dataset.value;
+        if (group === 'variant') state.variant = val;
+        if (group === 'dataset') {
+          state.dataset = val;
+          state.profiles = JSON.parse(JSON.stringify(mockDatasets[val]));
+          state.activeProfileId = state.profiles[0]?.id || '';
+        }
+        if (group === 'device') state.device = val;
+        if (group === 'online') state.online = val;
+        syncControls();
+        render();
+      });
+    });
+
+    function syncControls() {
+      document.querySelectorAll('.ctl').forEach(b => {
+        const active = state[b.dataset.group] === b.dataset.value;
+        b.className = active
+          ? 'ctl px-3 py-1.5 rounded-lg font-medium bg-white text-slate-900 shadow-sm transition'
+          : 'ctl px-3 py-1.5 rounded-lg font-medium text-slate-500 hover:text-slate-800 transition';
+      });
+
+      // 画框尺寸
+      const frame = document.getElementById('frame');
+      if (state.device === 'tablet') {
+        frame.className = 'relative bg-slate-50 rounded-2xl ring-1 ring-slate-200 shadow-xl overflow-hidden flex flex-col w-[768px] h-[860px] transition-all';
+      } else {
+        frame.className = 'relative bg-slate-50 rounded-2xl ring-1 ring-slate-200 shadow-xl overflow-hidden flex flex-col w-[390px] h-[780px] transition-all';
+      }
+
+      // 离线 Banner
+      const banner = document.getElementById('offlineBanner');
+      if (state.online === 'off') {
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    // 渲染多孩切换器
+    function renderSwitcher() {
+      const el = document.getElementById('switcher');
+      const count = state.profiles.length;
+      const isFull = count >= 10;
+      const active = state.profiles.find(p => p.id === state.activeProfileId) || state.profiles[0];
+
+      if (count === 0) {
+        el.innerHTML = `
+          <div class="px-4 py-2.5 flex items-center justify-between bg-amber-50/50">
+            <span class="text-xs text-amber-800 font-medium">暂未绑定学员</span>
+            <button onclick="openCreate('weak')" class="h-8 px-3 rounded-lg bg-teal-600 text-white text-xs font-medium hover:bg-teal-700 transition">立即添加孩子</button>
+          </div>
+        `;
+        return;
+      }
+
+      if (state.variant === 'A') {
+        // 变体 A：经典吸顶下拉菜单
+        el.innerHTML = `
+          <div class="px-4 py-2 flex items-center justify-between">
+            <button onclick="toggleDropdown()" class="flex items-center gap-2.5 text-left py-1 px-2 -ml-2 rounded-xl hover:bg-slate-100 transition">
+              <img src="${active.avatarUrl}" class="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200" alt="">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm font-semibold text-slate-900">${active.nickname}</span>
+                  <span class="text-[11px] text-slate-500 font-normal">(${active.age}岁)</span>
+                  <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform ${state.dropdownOpen ? 'rotate-180' : ''}"></i>
+                </div>
+                <div class="text-[11px] text-slate-400">${active.realName} · ${active.tag || '宝贝'}</div>
+              </div>
+            </button>
+            <div class="text-[11px] text-slate-400 font-mono">${count}/10</div>
+          </div>
+
+          <!-- 下拉浮层 -->
+          <div id="dropMenu" class="${state.dropdownOpen ? '' : 'hidden'} absolute left-0 right-0 top-full bg-white border-b border-slate-200 shadow-xl py-2 px-3 space-y-1">
+            ${state.profiles.map(p => `
+              <div onclick="selectChild('${p.id}')" class="flex items-center justify-between p-2 rounded-xl cursor-pointer ${p.id === active.id ? 'bg-teal-50 text-teal-900' : 'hover:bg-slate-50 text-slate-700'}">
+                <div class="flex items-center gap-2.5">
+                  <img src="${p.avatarUrl}" class="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200">
+                  <span class="text-xs font-semibold">${p.nickname}</span>
+                  <span class="text-[11px] text-slate-500">(${p.age}岁 · ${p.realName})</span>
+                </div>
+                ${p.id === active.id ? '<i data-lucide="check" class="w-4 h-4 text-teal-600"></i>' : ''}
+              </div>
+            `).join('')}
+            <div class="pt-2 mt-1 border-t border-slate-100">
+              <button onclick="openCreate()" ${isFull || state.online === 'off' ? 'disabled' : ''} class="w-full h-9 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 ${isFull ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-50 text-teal-700 hover:bg-slate-100'}">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                ${isFull ? '名下档案已达上限 (10/10)' : `添加新宝贝 (${count}/10)`}
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        // 变体 B：横向头像滑动条
+        el.innerHTML = `
+          <div class="px-4 py-2.5 flex items-center gap-3 overflow-x-auto no-scrollbar">
+            ${state.profiles.map(p => `
+              <button onclick="selectChild('${p.id}')" class="flex flex-col items-center gap-1 shrink-0 group">
+                <div class="relative w-11 h-11 rounded-full p-0.5 transition ${p.id === active.id ? 'ring-2 ring-teal-600 bg-teal-50' : 'ring-1 ring-slate-200 hover:ring-slate-300'}">
+                  <img src="${p.avatarUrl}" class="w-full h-full rounded-full object-cover">
+                  ${p.id === active.id ? '<span class="absolute -bottom-1 left-1/2 -translate-x-1/2 px-1 py-0.2 bg-teal-600 text-white text-[9px] rounded-full">当前</span>' : ''}
+                </div>
+                <span class="text-[11px] font-medium ${p.id === active.id ? 'text-teal-700 font-semibold' : 'text-slate-600'}">${p.nickname}</span>
+              </button>
+            `).join('')}
+            <button onclick="openCreate()" ${isFull || state.online === 'off' ? 'disabled' : ''} class="flex flex-col items-center gap-1 shrink-0 ${isFull ? 'opacity-40 cursor-not-allowed' : 'hover:opacity-80'}">
+              <div class="w-11 h-11 rounded-full border border-dashed border-slate-300 text-slate-400 grid place-items-center bg-slate-50">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+              </div>
+              <span class="text-[11px] text-slate-400">${count}/10</span>
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    // 渲染主内容区
+    function renderContent() {
+      const el = document.getElementById('content');
+      const count = state.profiles.length;
+      const active = state.profiles.find(p => p.id === state.activeProfileId) || state.profiles[0];
+
+      if (count === 0) {
+        // 弱引导模式
+        el.innerHTML = `
+          <div class="p-4 space-y-4">
+            <div class="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/70 text-amber-900 text-xs flex items-start gap-3">
+              <i data-lucide="info" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+              <div>
+                <span class="font-semibold block mb-0.5">您好，欢迎来到 Dream 少儿教务</span>
+                当前账号暂未绑定任何学员，您可以自由浏览名师团队与排期空位。选课或排课时系统将引导添加宝贝档案。
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-slate-900">推荐授课老师</span>
+                <span class="text-xs text-slate-400">公开试听中</span>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" class="w-10 h-10 rounded-full object-cover">
+                  <div>
+                    <div class="text-xs font-semibold text-slate-900">Teacher David Miller</div>
+                    <div class="text-[11px] text-slate-400">Senior 资深外教 · 少儿英语/KET</div>
+                  </div>
+                </div>
+                <button onclick="handleWeakAction()" class="h-8 px-3 rounded-lg bg-teal-600 text-white text-xs font-medium hover:bg-teal-700">立即预约</button>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // 正常学员数据看板
+      el.innerHTML = `
+        <div class="p-4 space-y-4">
+          <!-- 学员主档案卡 -->
+          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <img src="${active.avatarUrl}" class="w-12 h-12 rounded-full object-cover ring-2 ring-teal-500/30">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-900 text-base">${active.nickname}</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${active.gender === 'female' ? '女孩' : '男孩'} · ${active.age}岁</span>
+                  </div>
+                  <div class="text-xs text-slate-500 mt-0.5">真实姓名: ${active.realName} · 档案ID: <span class="font-mono">${active.id}</span></div>
+                </div>
+              </div>
+              <button onclick="showToast('转让时直接提供该昵称给对方即可精准匹配')" class="h-8 px-2.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 flex items-center gap-1">
+                <i data-lucide="share-2" class="w-3.5 h-3.5 text-slate-400"></i>转让代码
+              </button>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 flex items-center gap-2">
+              <span class="text-xs text-slate-400 shrink-0">选课偏好:</span>
+              <div class="flex flex-wrap gap-1.5">
+                ${active.prefs.map(pr => `<span class="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 text-[11px]">${pr}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- 7 色日历课表联动演示 -->
+          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-semibold text-slate-900">${active.nickname} 的当周课表</span>
+              <span class="text-xs text-teal-600 font-medium cursor-pointer">完整日历 &rarr;</span>
+            </div>
+            ${active.lessons.length > 0 ? `
+              <div class="space-y-2">
+                ${active.lessons.map(ls => `
+                  <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full ${ls.color}"></span>
+                      <span class="font-medium text-slate-800">${ls.name}</span>
+                    </div>
+                    <span class="text-slate-400">${ls.teacher}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `
+              <div class="py-6 text-center text-xs text-slate-400">本周暂无已排课次，快去约课吧</div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleDropdown() {
+      state.dropdownOpen = !state.dropdownOpen;
+      renderSwitcher();
+      lucide.createIcons();
+    }
+
+    function selectChild(id) {
+      state.activeProfileId = id;
+      state.dropdownOpen = false;
+      renderSwitcher();
+      renderContent();
+      lucide.createIcons();
+      showToast(`已切换至 ${state.profiles.find(p => p.id === id)?.nickname}`);
+    }
+
+    function handleWeakAction() {
+      openCreate('预约排课前，请先创建宝贝档案');
+    }
+
+    // 模态弹窗与表单
+    function openCreate(reason) {
+      if (state.online === 'off') {
+        showToast('离线模式下无法创建档案');
+        return;
+      }
+      if (state.profiles.length >= 10) {
+        showToast('当前名下档案已达 10 个上限');
+        return;
+      }
+      const modal = document.getElementById('modal');
+      const reasonEl = document.getElementById('modalReason');
+      if (reason) {
+        reasonEl.innerText = reason;
+        reasonEl.classList.remove('hidden');
+      } else {
+        reasonEl.classList.add('hidden');
+      }
+      modal.classList.remove('hidden');
+      state.dropdownOpen = false;
+      renderSwitcher();
+      initForm();
+      lucide.createIcons();
+    }
+
+    function closeCreate() {
+      document.getElementById('modal').classList.add('hidden');
+    }
+
+    function initForm() {
+      document.getElementById('fRealName').value = '';
+      document.getElementById('fEnglish').value = '';
+      document.getElementById('fInitial').value = '';
+      document.getElementById('fAge').value = '';
+      document.getElementById('fSuffix').value = '';
+      document.getElementById('avatarPreview').classList.add('hidden');
+      document.getElementById('avatarIcon').classList.remove('hidden');
+      document.getElementById('avatarInfo').innerText = '本地裁剪为正方形并压缩为 WebP';
+      state.form.avatarDataUrl = '';
+      state.form.gender = 'female';
+      state.form.prefs = ['少儿英语'];
+      renderGender();
+      renderPrefGroup();
+      updateNickPreview();
+    }
+
+    // 昵称实时计算与唯一性模拟
+    ['fEnglish', 'fInitial', 'fAge', 'fSuffix'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        if (id === 'fInitial') {
+          document.getElementById('fInitial').value = document.getElementById('fInitial').value.toUpperCase();
+        }
+        updateNickPreview();
+      });
+    });
+
+    function updateNickPreview() {
+      const en = document.getElementById('fEnglish').value.trim();
+      const ini = document.getElementById('fInitial').value.trim();
+      const age = document.getElementById('fAge').value.trim();
+      const sfx = document.getElementById('fSuffix').value.trim();
+
+      const nickEl = document.getElementById('nickPreview');
+      const statusEl = document.getElementById('nickStatus');
+      const btn = document.getElementById('btnSubmit');
+
+      if (!en || !ini || !age) {
+        nickEl.innerText = '英文名+首字母+年龄';
+        nickEl.className = 'mt-1 font-mono text-xl font-semibold text-slate-300';
+        statusEl.innerHTML = '<span class="text-slate-400">请完整填写上方信息以生成规范昵称</span>';
+        btn.disabled = true;
+        return;
+      }
+
+      const nickname = `${en}${ini}${age}${sfx}`;
+      nickEl.innerText = nickname;
+      nickEl.className = 'mt-1 font-mono text-xl font-bold text-slate-900';
+
+      // 规则正则：^[A-Za-z]{1,24}[A-Z]\d{1,2}[a-z0-9]{0,3}$
+      const regex = /^[A-Za-z]{1,24}[A-Z]\d{1,2}[a-z0-9]{0,3}$/;
+      if (!regex.test(nickname)) {
+        statusEl.innerHTML = '<span class="text-rose-600 font-medium">格式不合法：首字母必须为单英文字母，年龄为数字</span>';
+        btn.disabled = true;
+        return;
+      }
+
+      // 模拟重名碰撞库（例如 AliceZ12 已被占用）
+      const conflictList = ['AliceZ12', 'TomB08', 'LeoW10'];
+      const existsInCurrent = state.profiles.some(p => p.nickname.toLowerCase() === nickname.toLowerCase());
+
+      if (conflictList.includes(nickname) || existsInCurrent) {
+        statusEl.innerHTML = `<span class="text-rose-600 font-medium flex items-center gap-1"><i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>该昵称已被占用，建议添加后缀微调（如 ${nickname}b）</span>`;
+        btn.disabled = true;
+      } else {
+        statusEl.innerHTML = '<span class="text-emerald-600 font-medium flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>该昵称全局唯一，可使用</span>';
+        btn.disabled = false;
+      }
+      lucide.createIcons();
+    }
+
+    // 头像 Canvas 本地正方形裁剪压缩至 WebP
+    document.getElementById('avatarInput').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = evt => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 200; // 标准正方形尺寸
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          // 居中裁剪
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+
+          // 导出为轻量级 WebP
+          const webpDataUrl = canvas.toDataURL('image/webp', 0.85);
+          state.form.avatarDataUrl = webpDataUrl;
+
+          const preview = document.getElementById('avatarPreview');
+          preview.src = webpDataUrl;
+          preview.classList.remove('hidden');
+          document.getElementById('avatarIcon').classList.add('hidden');
+          document.getElementById('avatarInfo').innerHTML = `<span class="text-emerald-600 font-medium">已就地裁剪为 200×200 WebP (约 ${Math.round(webpDataUrl.length * 0.75 / 1024)} KB)</span>`;
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // 性别与偏好标签
+    function renderGender() {
+      document.querySelectorAll('#genderGroup button').forEach(b => {
+        b.className = b.dataset.gender === state.form.gender
+          ? 'px-4 h-9 rounded-lg font-medium bg-white text-slate-900 shadow-sm'
+          : 'px-4 h-9 rounded-lg text-slate-600';
+        b.onclick = () => {
+          state.form.gender = b.dataset.gender;
+          renderGender();
+        };
+      });
+    }
+
+    function renderPrefGroup() {
+      const container = document.getElementById('prefGroup');
+      container.innerHTML = courseTypes.map(t => {
+        const checked = state.form.prefs.includes(t);
+        return `
+          <button type="button" onclick="togglePref('${t}')" class="px-3 h-8 rounded-lg text-xs font-medium transition ${checked ? 'bg-teal-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+            ${t}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function togglePref(t) {
+      if (state.form.prefs.includes(t)) {
+        state.form.prefs = state.form.prefs.filter(p => p !== t);
+      } else {
+        state.form.prefs.push(t);
+      }
+      renderPrefGroup();
+    }
+
+    function submitCreate() {
+      const real = document.getElementById('fRealName').value.trim();
+      const nickname = document.getElementById('nickPreview').innerText;
+      if (!real) {
+        showToast('请填写宝贝真实姓名');
+        return;
+      }
+      const newChild = {
+        id: 'sp_' + Math.random().toString(36).substring(2, 10),
+        nickname: nickname,
+        realName: real,
+        englishName: document.getElementById('fEnglish').value.trim(),
+        surnameInitial: document.getElementById('fInitial').value.trim(),
+        age: parseInt(document.getElementById('fAge').value, 10),
+        gender: state.form.gender,
+        tag: `宝贝 ${state.profiles.length + 1}`,
+        avatarUrl: state.form.avatarDataUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150&auto=format&fit=crop&q=80',
+        prefs: state.form.prefs.length ? state.form.prefs : ['不限'],
+        lessons: []
+      };
+
+      state.profiles.push(newChild);
+      state.activeProfileId = newChild.id;
+      closeCreate();
+      renderSwitcher();
+      renderContent();
+      lucide.createIcons();
+      showToast(`学员 ${nickname} 创建成功并已激活`);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2600);
+    }
+
+    function render() {
+      renderSwitcher();
+      renderContent();
+      lucide.createIcons();
+    }
+
+    // 首次启动
+    syncControls();
+    render();
+  </script>
+</body>
+</html>

@@ -4,13 +4,62 @@ export type WorkspaceMode = 'admin' | 'monitor' | 'parent' | 'teacher';
 
 export type UserRole = 'ADMIN' | 'MONITOR' | 'PARENT' | 'TEACHER';
 
-export interface StudentProfile {
+export type StudentGender = 'male' | 'female' | 'undisclosed';
+
+export interface StudentProfileDto {
   id: string;
   accountId: string;
-  nickname: string; // e.g. AliceZ12
+  realName: string;
+  englishName: string;
+  surnameInitial: string;
+  age: number;
+  nickname: string;
+  gender: StudentGender;
+  birthDate: string | null;
+  avatarKey: string | null;
+  avatarUrl: string | null;
+  preferredCourseTypeIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Backward compatibility alias
+export type StudentProfile = StudentProfileDto;
+
+export interface CreateStudentProfileInput {
+  realName: string;
+  englishName: string;
+  surnameInitial: string;
+  age: number;
+  nicknameSuffix?: string;
+  gender?: StudentGender;
+  birthDate?: string;
+  avatarKey?: string;
+  avatarDataUrl?: string;
+  preferredCourseTypeIds?: string[];
+}
+
+export interface UpdateStudentProfileInput {
   realName?: string;
-  birthYearMonth?: string;
-  notes?: string;
+  age?: number;
+  nicknameSuffix?: string;
+  gender?: StudentGender;
+  birthDate?: string;
+  avatarKey?: string;
+  avatarDataUrl?: string;
+  preferredCourseTypeIds?: string[];
+}
+
+export interface NicknameAvailabilityResult {
+  available: boolean;
+  nickname: string;
+  reason?: string;
+}
+
+export interface StudentLookupResult {
+  id: string;
+  nickname: string;
+  avatarUrl: string | null;
 }
 
 export interface UserSession {

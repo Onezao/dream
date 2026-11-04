@@ -1,10 +1,19 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
-import { PoolClient, QueryResultRow } from 'pg';
-import { query as defaultQuery } from './connection.js';
+import type { PoolClient, QueryResultRow } from 'pg';
+import {
+  DatabaseService,
+  executeQuery as defaultExecuteQuery,
+  getOne as defaultGetOne,
+} from '@topeetop/shared-core';
 
 export abstract class BaseMapper<T extends QueryResultRow> {
   protected abstract readonly tableName: string;
+  protected readonly db?: DatabaseService;
+
+  constructor(db?: DatabaseService) {
+    this.db = db;
+  }
 
   /**
    * 规范表名：强制 dream. 单 Schema 前缀
@@ -18,15 +27,17 @@ export abstract class BaseMapper<T extends QueryResultRow> {
    */
   protected async executeQuery<R extends QueryResultRow = T>(
     sql: string,
-    params: any[] = [],
+    params: unknown[] = [],
     client?: PoolClient
   ): Promise<R[]> {
     if (client) {
-      const result = await client.query<R>(sql, params);
+      const result = await client.query<R>(sql, params as unknown as any[]);
       return result.rows;
     }
-    const result = await defaultQuery<R>(sql, params);
-    return result.rows;
+    if (this.db) {
+      return this.db.executeQuery<R>(sql, params as unknown as any[]);
+    }
+    return defaultExecuteQuery<R>(sql, params as unknown as any[]);
   }
 
   /**
@@ -34,11 +45,17 @@ export abstract class BaseMapper<T extends QueryResultRow> {
    */
   protected async executeQuerySingle<R extends QueryResultRow = T>(
     sql: string,
-    params: any[] = [],
+    params: unknown[] = [],
     client?: PoolClient
   ): Promise<R | null> {
-    const rows = await this.executeQuery<R>(sql, params, client);
-    return rows.length > 0 ? rows[0] : null;
+    if (client) {
+      const rows = await this.executeQuery<R>(sql, params, client);
+      return rows.length > 0 ? rows[0] : null;
+    }
+    if (this.db) {
+      return this.db.getOne<R>(sql, params as unknown as any[]);
+    }
+    return defaultGetOne<R>(sql, params as unknown as any[]);
   }
 
   /**

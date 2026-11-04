@@ -2,14 +2,6 @@
 
 export type UserRole = 'admin' | 'monitor' | 'teacher' | 'parent';
 
-export interface DatabaseConfig {
-  connectionString: string;
-  max?: number;
-  idleTimeoutMillis?: number;
-  connectionTimeoutMillis?: number;
-  ssl?: boolean | { rejectUnauthorized?: boolean };
-}
-
 export interface ContextUser {
   id: string; // 12-char account_id
   email: string;
@@ -22,3 +14,5 @@ export interface BaseEntity {
   updatedAt: Date;
   deletedAt?: Date | null;
 }
+
+export * from './studentProfile.types.js';

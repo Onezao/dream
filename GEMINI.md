@@ -18,7 +18,7 @@
   - **跨包引用准则**：**严禁**使用 `../../packages/...` 这种深层相对路径跨包引用源码。所有外部或底层工具引用必须统一使用 `@topeetop/` 作用域下的标准包名（如 `@topeetop/dream-core`, `@topeetop/shared-core`, `@topeetop/security-core`, `@topeetop/auth-core`, `@topeetop/notification-core`, `@topeetop/task-relay-client`, `@topeetop/telemetry-core`, `@topeetop/env-secure-conf`）。
 
 - **核心技术栈 (Tech Stack)**:
-  - _Frontend_: **Vue 3**, **Pinia**, **Vue Router**, **Vite**, **TDesign Mobile (`tdesign-mobile-vue`) / TDesign Web (`tdesign-vue-next`)**, **Tailwind CSS**.
+  - _Frontend_: **Vue 3**, **Pinia**, **Vue Router**, **Vite**, **vite-plugin-pwa (PWA)**, **vue-i18n (中英双语)**, **TDesign Mobile (`tdesign-mobile-vue`) / TDesign Web (`tdesign-vue-next`)**, **Tailwind CSS**.
   - _Backend_: **Fastify** Node.js.
   - _Languages_: **TypeScript**（开启严格模式，严禁使用 `any`，严格使用 `interface`/`type` 约束）.
   - _Database_: **PostgreSQL** (pg pool 驱动，利用事务与 `SELECT FOR UPDATE` 原生行级锁实现并发防超卖，初期不引入 Redis).
@@ -27,6 +27,18 @@
   - _Build/Infra_: **tsup**, **esbuild**, **Docker**, **Google Cloud Build**, **Artifact Registry**。基础设施与域名生态全面复用 **topee.top**。
 
 - **前端开发规范 (Frontend Standards)**:
+  - **PWA 与设备适配 (PWA, Mobile & Tablet Responsive)**:
+    - 系统以 **PWA (Progressive Web App)** 架构驱动，内置 Web App Manifest 与 Service Worker (`vite-plugin-pwa`)，支持“添加到主屏幕 (A2HS)”独立应用体验。
+    - **手机与平板全覆盖**: 移动端触控优先采用 `tdesign-mobile-vue`；基于 Tailwind CSS 断点（`sm:`, `md:`, `lg:`）实现手机和平板（iPad）自适应响应式布局（平板端优先展示多栏/网格并列排版）。
+  - **端侧数据缓存分级策略 (Client-side Data Caching Strategy)**:
+    - **强缓存 (CacheFirst / App Shell)**: 静态资源、离线 HTML 壳、字体、图标。
+    - **基础字典与上下文 (StaleWhileRevalidate / Pinia + LocalStorage)**: 课程类型与技能字典 (`course_types`)、教师定级字典、当前账号身份、名下学生档案列表与最后选中的 `activeProfileId`。
+    - **脱敏业务快照 (NetworkFirst with Offline Fallback / IndexedDB)**: 教师列表履历脱敏数据、当周已排 7 色日历视图快照（支持弱网/离线查看课表）。
+    - **强制在线与零离线缓存 (NetworkOnly - 强一致性)**: 所有财务与资金流单据（购课单支付、退款单、转账单、周结单）；抢位与排班落盘接口（`SELECT ... FOR UPDATE`）严禁离线操作，离线状态下置灰阻断并 Toast 提示“离线模式不可用”。
+  - **全站中英文双语规范 (i18n Standards)**:
+    - 采用 **`vue-i18n`**（Composition API 模式），覆盖中文简体 (`zh-CN`) 与英文 (`en-US`)。
+    - 国际化范围：顶部与侧边导航、表单字段与校验错误提示、系统弹窗、通用状态标签（7色日历状态、单据状态）、错误码文本（如 `NICKNAME_ALREADY_EXISTS`）。
+    - 语言切换与持久化：支持在设置/顶部栏即时无刷新切换，持久化存入 `localStorage.getItem('dream_locale')`，默认根据 `navigator.language` 智能回退。
   - **样式驱动**: 必须且仅允许使用 **Tailwind CSS** 处理组件样式。
   - **UI 组件库搭配**: 移动端界面（家长端约课、个人档案、课表）统一采用 **`tdesign-mobile-vue`**；管理看板与财务报表（管理员后台、班长工作台排课网格、周结单看板）搭配 **`tdesign-vue-next`**。
   - **严禁手写 CSS**: **严禁在前端代码中编写任何形式的手写 CSS（包括 `<style>` 块或外部 `.css` 文件）**，确保样式高度原子化、易维护与系统级一致。
@@ -36,6 +48,7 @@
   - 严格执行 `Controller -> Service -> Mapper (Data Access)` 三层架构。
   - **Mapper 绝对隔离**: **所有 SQL 查询（SELECT/INSERT/UPDATE/DELETE）必须且只能写在 `dream-core` 的 `*Mapper` 文件中**。严禁在 Service 或 Controller 中直接编写 SQL 语句。
   - **一表一 Mapper**: 单表的写操作（Create, Update, Delete）必须且只能归属于对应的表 Mapper。
+  - **BaseMapper 与 DI 约束**: 所有 Mapper 必须继承 `BaseMapper`，构造函数必须支持注入 `DatabaseService` (`constructor(db?: DatabaseService)`)。单测必须使用 DI 传入 `mockDb` 进行白盒测试，严禁模块级劫持连接。
   - **Service 职责**: 负责业务编排、跨表事务（`PoolClient` 传递）、纵深防越权（IDOR）校验及跨 Mapper 调用。
   - **Controller 职责**: 仅负责 HTTP 参数校验与结果分发，严禁直接越级调用 Mapper。
 
@@ -43,6 +56,9 @@
 
 ## 2. 数据库与迁移 (Database & Migration)
 
+- **数据库接入与连接池底线 (DatabaseService Integration)**:
+  - **零自建连接池**: 严禁在 `dream-core` 或各业务应用中手写 `new Pool(...)`、连接事件监听或重写连接池生命周期逻辑。
+  - **必须复用 shared-core**: 数据库连接池、SSL 自适应、事务管理 (`executeTx`) 与查询执行必须且只能委托使用 `@topeetop/shared-core` 的 `DatabaseService`。参考 `/Users/shanzao/ravll-workspace/packages/shared-core/README.md`。
 - **Schema 强制前缀**：所有 SQL 查询必须显式声明 `dream.` 前缀（核心教务实体与业务单据统一收敛于 `dream` 单 Schema）。
 - **主键规范 (Primary Keys)**：
   - **通用主键**: 所有表主键必须使用 `@topeetop/shared-core` 提供的 `generateShortUuid()` 生成 **12 位** 短 ID (`VARCHAR(12)`)。
@@ -57,9 +73,17 @@
 
 ## 3. 业务架构、批处理与配置规范 (Business Architecture, Worker & Config)
 
-- **账号与档案解耦 (Account vs. Profile)**：
-  - 账号代表自然人操作主体（唯一 Email 注册鉴权，支持挂载多角色标签）。
-  - 学生档案代表实际上课与课时消耗实体（1个家长账号可挂载多个学生档案，支持二胎/多孩共管）。
+- **账号与档案解耦 (Account vs. Profile) 与 topee-auth 对接**：
+  - **账号体系归属**: 统一由 `@topeetop/auth-core`（即 topee-auth）承载登录、注册、找回密码与 Token 刷新，业务库严禁重复自建账号与密码表。
+  - **获取登录态与基本信息**:
+    - 前端携带 `Authorization: Bearer <access_token>` 调用 `GET /api/auth/v1/user` 获取当前登录账号信息：
+      - **账号唯一 ID (`user.id`)**: 对应教务系统中的自然人操作主体 `account_id`；
+      - **用户头像 (`user.avatar`)**: 自然人账号头像，用于顶部导航栏及个人中心展示；
+      - **用户昵称 (`user.username`)**: 自然人账号昵称，用于操作者显示（注：区别于名下孩子的 `student_profile.nickname`）；
+      - **通知 Email (`user.email`)**: 唯一官方通知邮箱，用于接收排课、请假代课、转账及周结单等全量系统通知邮件；
+      - **角色列表 (`roles: [{ name }]`)**: 动态挂载的角色标签（`admin`, `monitor`, `teacher`, `user`），用于驱动顶部工作台切换器权限。
+    - **Token 轮换与拦截**: 前端全局拦截器监听 `401 Unauthorized`，使用本地存储的 `refresh_token` 请求 `POST /api/auth/v1/token?grant_type=refresh_token` 无感换取新令牌；失败则跳转登录页。
+  - **学生档案解耦**: 学生档案代表实际上课与课时消耗实体（1个家长账号可挂载多个学生档案，支持二胎/多孩共管）。
 - **工作台物理隔离 (Workspace Isolation)**：
   - 前端顶部常驻工作台切换器（管理员后台、班长工作台、家长工作台、教师课表），导航与主题物理隔离，防止跨角色误操作。
   - 家长工作台常驻多孩全局档案切换器（Profile Switcher），联动刷新底层单据与课表。
@@ -120,6 +144,7 @@
 - **deploy**：激活 `deployment-ops`，执行本地组装、容器验证或云端部署。
 - **auth**：激活 `npm-auth-handler`，自动刷新 GCP 私有仓库认证。
 - **copyright**：激活 `copyright-guard`，对全项目源码进行版权头审计与补全。
+- **prd / write-prd**：激活 `write-prd`，按照标准化流程撰写功能与产品需求规格说明书。
 
 ---
 
@@ -127,8 +152,9 @@
 
 以下指令跨项目通用：
 - **brainstorm**：触发 `brainstorm-master` 进行创意与需求收敛。
-- **design**：触发 `design-master` 技能进行 Mermaid 驱动的方案设计。
-- **implement**：触发 `implement-master` 开始 TDD 代码实现。
+- **design / tdd**：触发 `technical-design-doc-creator` 技能进行符合工程规范的高合规技术方案设计。
+- **prototype**：触发 `prototype` 技能，快速生成纯独立单文件即抛型 HTML 交互原型。
+- **implement**：触发 `subagent-driven-development` 进行多子代理隔离 TDD 代码与单测实现。**[禁用约束] 本项目物理禁用 `implement-master`，由 `subagent-driven-development` 全面替代**（严禁删除或修改全局 `implement-master` 技能文件，确保其他工程正常复用）。
 - **fix / debug**：触发 `bug-hunter` 进行侦探式深度排障。
 - **test**：触发 `test-fixer` 运行并自动修复单元测试。
 - **sync**：触发 `dependency-sync` 同步 package.json 依赖。

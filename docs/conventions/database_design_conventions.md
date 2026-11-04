@@ -71,3 +71,11 @@
 - 所有本地及线上 DDL 变更必须统一写入 `db-schema/migration_vXXX.sql`。
 - 迁移脚本必须是幂等的（使用 `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS` 等）。
 - 严禁在未经版本化的情况下直接手动修改生产数据库结构。
+
+---
+
+## 5. 数据库驱动与连接池管理规约 (Database Driver & Pool Conventions)
+
+- **驱动与连接池唯一真相源**：全系统所有服务（`dream-backend`, `dream-worker` 及核心库 `dream-core`）必须统一通过 `@topeetop/shared-core` 的 `DatabaseService` 管理 PostgreSQL 连接池。
+- **零自建连接池铁律**：严禁在项目源码中手写 `new Pool(...)`、连接监听或维护自建连接池。详见 `/Users/shanzao/ravll-workspace/packages/shared-core/README.md`。
+- **事务与原子操作**：业务写操作与跨表事务统一通过 `executeTx(async (client) => { ... })` 驱动，并将 `client: PoolClient` 显式透传给领域 Mapper 以支持行级排他锁（`SELECT ... FOR UPDATE`）与咨询锁（`pg_advisory_xact_lock`）。

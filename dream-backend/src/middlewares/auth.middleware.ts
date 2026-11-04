@@ -1,16 +1,16 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { ApiError } from '@topeetop/shared-core';
-import { query } from '@topeetop/dream-core';
+import { ApiError, executeQuery } from '@topeetop/shared-core';
+
+export interface AuthUser {
+  id: string; // 12-char account_id
+  email: string;
+  roles: string[];
+}
 
 declare module 'fastify' {
   interface FastifyRequest {
-    user?: {
-      id: string; // 12-char account_id
-      email: string;
-      roles: string[];
-    };
     currentProfileId?: string; // 12-char student_profile_id
   }
 }
@@ -53,9 +53,9 @@ export async function authenticateAndResolveProfile(
       WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL 
       LIMIT 1;
     `;
-    const result = await query(checkSql, [profileId, request.user.id]);
+    const rows = await executeQuery(checkSql, [profileId, request.user.id]);
 
-    if (result.rows.length === 0) {
+    if (rows.length === 0) {
       throw new ApiError(
         'Forbidden: Student profile does not belong to your account',
         403,
