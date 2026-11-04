@@ -304,6 +304,85 @@ WHERE deleted_at IS NULL;
 | **Phase 3: 接口与权限挂载** | Fastify 路由、Zod 强校验 | 公开脱敏接口、班长专区接口、管理员维护接口；集成测试 | 0.5 天 |
 | **Phase 4: 前端卡片与多媒体交互** | 教师卡片、就地视频播放、双语切换 | `TeacherCard.vue`、PWA L3 IndexedDB 快照、双语语言包 | 1 天 |
 
+### Task 1: 字典与表结构迁移 (Database & DAL)
+- **目标**：完成 `m1b` 教师团队与定级字典的 PostgreSQL 数据库迁移及底层数据访问层（DAL）Mapper 实现。
+- **产出文件**：
+  - `db-schema/migration_v003_module1b_teacher_profile.sql`（可重复执行，DDL 幂等，定义 `dream.course_types`, `dream.teacher_levels`, `dream.monitor_profiles`, `dream.teacher_profiles`）
+  - `db-schema/schema.sql`（同步更新全量 DDL 镜像）
+  - `dream-core/src/types/teacherProfile.types.ts`（定义 Row, Record, DbInput 等强类型）
+  - `dream-core/src/db/CourseTypeMapper.ts`（继承 `BaseMapper<CourseTypeRow>`）
+  - `dream-core/src/db/TeacherLevelMapper.ts`（继承 `BaseMapper<TeacherLevelRow>`）
+  - `dream-core/src/db/MonitorProfileMapper.ts`（继承 `BaseMapper<MonitorProfileRow>`，按 account_id 查询、按 ID 查询、新增、软删除）
+  - `dream-core/src/db/TeacherProfileMapper.ts`（继承 `BaseMapper<TeacherProfileRow>`，实现增删改查、按班长过滤、公开列表 JOIN 课程与定级字典）
+  - `dream-core/src/db/index.ts`（导出新 Mapper）
+  - `dream-core/tests/TeacherProfileMapper.test.ts`（白盒单测，覆盖所有 Mapper 的增删改查、软删除与事务支持）
+- **约束要求**：
+  - 主键必须使用 12 位 Short UUID (`generateShortUuid()`)；
+  - 所有 SQL 显式带 `dream.` 单 Schema 前缀；
+  - 构造函数必须支持注入 `DatabaseService` (`constructor(db?: DatabaseService)`)；
+  - 严格 IDOR 隔离与软删除 `deleted_at IS NULL` 过滤。
+
+### Task 2: 直传服务与业务层 (Domain Services & Tests)
+- **目标**：实现对象存储预签名直传服务 `FileUploadService` 及教师/班长业务编排服务 `TeacherProfileService`，完成 100% 单元测试覆盖。
+- **产出文件**：
+  - `dream-core/src/modules/file/FileUploadService.ts`：
+    - 校验 MIME 类型、大小配额（MP4 <= 50MB, WebP <= 1MB）；
+    - 生成 300 秒有效期的 S3/R2 预签名 PUT URL 及标准存储相对 Key（`dream/teachers/photos/.../{uuid12}.webp`, `dream/teachers/videos/.../{uuid12}.mp4`）；
+    - 组装 CDN 加速访问 URL；
+  - `dream-core/src/modules/profile/TeacherProfileService.ts`：
+    - 公开只读查询：`listPublicTeachers`（物理脱敏，屏蔽内部 ID 与班长私密联系方式，拼接完整 CDN 多媒体 URL）、`getPublicTeacherById`；
+    - 班长端权限隔离：`listTeachersByMonitor(monitorAccountId)`、`createTeacher(monitorAccountId, dto)`（强制锁定 `monitor_profile_id` 为当前班长）、`updateTeacher(monitorAccountId, teacherId, dto)`（严格 IDOR 校验）；
+    - 管理员全局调配：`adminListTeachers`、`adminUpsertTeacher`（支持改绑负责班长）、`adminUpsertMonitor`；
+    - 字典服务：`listCourseTypes`、`listTeacherLevels`；
+  - `dream-core/src/modules/profile/index.ts` & `dream-core/src/index.ts`（重导出服务与 DTO）；
+  - `dream-core/tests/TeacherProfileService.test.ts` & `FileUploadService.test.ts`（覆盖率 > 95%）。
+- **约束要求**：
+  - 任何情况下严禁应用服务器直接接收并中转大文件，数据库绝对只持久化相对 Key；
+  - 班长越权操作非名下外教强制抛出 `ApiError.notFound` 或 `forbidden`；
+  - 无手写 `new Pool`，事务使用 `executeTx` 穿透传递。
+
+### Task 3: 接口与权限挂载 (Fastify Controller & Routes)
+- **目标**：在 `dream-backend` 中挂载 Fastify 控制器与路由，实现严格的角色权限守卫、Zod 校验与端到端接口测试。
+- **产出文件**：
+  - `dream-backend/src/controllers/FileUploadController.ts`；
+  - `dream-backend/src/controllers/TeacherProfileController.ts`；
+  - `dream-backend/src/routes/fileUpload.routes.ts`；
+  - `dream-backend/src/routes/teacherProfile.routes.ts`；
+  - `dream-backend/src/app.ts`（注册路由到 `/api/dream/v1`）；
+  - `dream-backend/tests/teacherProfile.integration.test.ts`（涵盖 12 个核心端点的权限与异常测试用例）。
+- **接口列表**：
+  - `POST /api/dream/v1/files/upload-url` (已登录账号)
+  - `GET /api/dream/v1/public/teachers` (公开只读)
+  - `GET /api/dream/v1/public/teachers/:id` (公开只读)
+  - `GET /api/dream/v1/public/dictionaries/course-types` (公开只读)
+  - `GET /api/dream/v1/public/dictionaries/teacher-levels` (公开只读)
+  - `GET /api/dream/v1/monitor/teachers` (班长权限)
+  - `POST /api/dream/v1/monitor/teachers` (班长权限)
+  - `PATCH /api/dream/v1/monitor/teachers/:id` (班长权限)
+  - `GET /api/dream/v1/admin/teachers` (管理员权限)
+  - `PATCH /api/dream/v1/admin/teachers/:id` (管理员权限)
+  - `GET /api/dream/v1/admin/monitors` (管理员权限)
+  - `POST /api/dream/v1/admin/monitors` (管理员权限)
+- **约束要求**：
+  - 严格利用 Fastify preHandler 校验身份角色（`monitor`, `admin`）；
+  - 入参与响应契约 100% 经由 Zod Schema 过滤与校验。
+
+### Task 4: 前端卡片与多媒体交互 (Frontend Cards, Uploader & L3 Cache)
+- **目标**：在 `dream-frontend` 中实现教师多媒体展示卡片、原位视频播放器、双语切换控件、班长端录入抽屉以及 PWA L3 弱网缓存。
+- **产出文件**：
+  - `dream-frontend/src/api/teacher.ts` & `file.ts`（封装 REST 请求）；
+  - `dream-frontend/src/stores/teacher.ts`（Pinia Store 驱动公开教师列表与班长专属团队）；
+  - `dream-frontend/src/components/TeacherCard.vue`（移动端卡片，HTML5 就地播放器带 `playsinline`、`preload="metadata"`，中英双语简介切换器，ClassIn 二维码放大查看）；
+  - `dream-frontend/src/components/ClassInQrModal.vue`（居中大图查看弹窗）；
+  - `dream-frontend/src/components/TeacherEditDrawer.vue`（班长端抽屉，支持本地 Canvas 裁剪 1:1 WebP 照片直传、MP4 视频直传及进度展示）；
+  - `dream-frontend/src/utils/l3Cache.ts`（基于 `idb-keyval` 实现公开教师列表与字典的 IndexedDB 弱网快照，断网提示“弱网只读快照”黄色徽标）；
+  - `dream-frontend/src/i18n/`（更新中英双语词条）；
+  - `dream-frontend/tests/teacherStore.test.ts`（单测验证数据拉取、双语切换与 L3 缓存交互）。
+- **约束要求**：
+  - 100% Tailwind CSS，**严禁手写 CSS / `<style>` 块**；
+  - 手机触控热区 $\ge 44px$，iPad 网格多列并列自适应；
+  - 视频原位展开播放，全屏时使用原生控制条。
+
 ---
 
 ## 7. 架构规范自检表 (Local Compliance Checklist)

@@ -2,3 +2,7 @@
 
 export * from './BaseMapper.js';
 export * from './StudentProfileMapper.js';
+export * from './CourseTypeMapper.js';
+export * from './TeacherLevelMapper.js';
+export * from './MonitorProfileMapper.js';
+export * from './TeacherProfileMapper.js';
