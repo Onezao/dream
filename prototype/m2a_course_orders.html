@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
+<!-- 即抛型原型：m2a 子模块 购课录单、防呆校验与 TS 裂变引擎。移动端优先 (Mobile First) + 平板自适应 (Tablet)。不触碰生产代码。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>原型 · m2a 购课录单与 TS 裂变</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
+            monitor: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-stone-100 text-slate-800 min-h-screen antialiased">
+
+  <!-- 原型控制器 (顶部调试与决策工具栏) -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-[60]">
+    <div class="max-w-4xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-2 text-xs">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-600"></span>m2a 购课单原型
+        </span>
+        
+        <!-- 视角切换：班长工作台 vs 家长工作台 -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">视角：</span>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="role" data-value="monitor" class="ctl px-3 py-1.5 rounded-lg font-medium">班长端 (Leo)</button>
+            <button data-group="role" data-value="parent" class="ctl px-3 py-1.5 rounded-lg font-medium">家长端 (Amy)</button>
+          </div>
+        </div>
+
+        <!-- 布局变体切换 -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">版式：</span>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="variant" data-value="A" class="ctl px-2.5 py-1.5 rounded-lg font-medium">方案 A：订单流式卡</button>
+            <button data-group="variant" data-value="B" class="ctl px-2.5 py-1.5 rounded-lg font-medium">方案 B：课次裂变明细</button>
+          </div>
+        </div>
+
+        <!-- 设备选择：移动端优先 (手机/平板) -->
+        <div class="flex items-center gap-1.5">
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="device" data-value="mobile" class="ctl px-2.5 py-1.5 rounded-lg font-medium">📱 手机</button>
+            <button data-group="device" data-value="tablet" class="ctl px-2.5 py-1.5 rounded-lg font-medium">📟 平板</button>
+          </div>
+        </div>
+      </div>
+
+      <span class="text-slate-400 text-[11px] hidden sm:inline">防呆测算 · 原子裂变 · 余数入末节</span>
+    </div>
+  </header>
+
+  <main class="py-6 px-4 flex justify-center">
+    <!-- 主画框容器：默认 390px 手机触控视口 -->
+    <div id="frame" class="relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[390px] h-[812px] transition-all duration-300">
+
+      <!-- 动态顶部 Header：由视角驱动 (班长深靛蓝 / 家长白底绿标) -->
+      <div id="appHeader" class="h-14 px-4 bg-slate-900 text-white flex items-center justify-between shrink-0 transition-colors">
+        <div class="flex items-center gap-2.5">
+          <div id="headerLogo" class="w-8 h-8 rounded-xl bg-indigo-500 text-white grid place-items-center text-xs font-bold shadow-inner">M</div>
+          <div>
+            <span id="headerTitle" class="font-bold text-xs tracking-tight block leading-tight">Dream 班长工作台</span>
+            <span id="headerSub" class="text-[10px] text-indigo-300 font-medium">线下收款录单与课次裂变</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="headerUserBadge" class="text-[11px] text-slate-300 bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-700">Leo (班长)</span>
+          <div id="headerUserAvatar" class="w-7 h-7 rounded-full bg-indigo-600 text-white grid place-items-center font-bold text-xs ring-1 ring-indigo-400">L</div>
+        </div>
+      </div>
+
+      <!-- 操作横幅 (班长端支持新建录单，家长端展示名下档案与统计) -->
+      <div id="roleBanner" class="px-4 py-2 bg-indigo-50 border-b border-indigo-100 text-indigo-900 text-[11px] flex items-center justify-between shrink-0">
+        <span class="flex items-center gap-1.5 truncate">
+          <i id="roleBannerIcon" data-lucide="receipt" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+          <span id="roleBannerText">收款单据与资金持有方归集 (Leo)</span>
+        </span>
+        <button id="btnOpenCreate" onclick="openCreateSheet()" class="h-7 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-semibold flex items-center gap-1 shadow-2xs shrink-0">
+          <i data-lucide="plus" class="w-3 h-3"></i>录入新购课单
+        </button>
+      </div>
+
+      <!-- 状态筛选胶囊条 -->
+      <div class="bg-white border-b border-slate-200 px-4 py-2 shrink-0 flex items-center gap-2 overflow-x-auto text-xs">
+        <button onclick="filterStatus('all')" id="filter-all" class="filter-btn px-2.5 py-1 rounded-full bg-slate-900 text-white font-medium shrink-0">全部单据</button>
+        <button onclick="filterStatus('PENDING_PAYMENT')" id="filter-PENDING_PAYMENT" class="filter-btn px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">待确认收款</button>
+        <button onclick="filterStatus('PAID')" id="filter-PAID" class="filter-btn px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">已购课 (已裂变)</button>
+        <button onclick="filterStatus('CANCELLED')" id="filter-CANCELLED" class="filter-btn px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">已作废</button>
+      </div>
+
+      <!-- 购课单卡片列表 (单列滚动，平板双列) -->
+      <div id="content" class="flex-1 overflow-y-auto p-3.5 space-y-3"></div>
+
+      <!-- 移动端抽屉：录入新购课单 (Bottom Sheet) -->
+      <div id="createSheet" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end">
+        <div class="bg-white rounded-t-3xl p-5 w-full max-h-[92%] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200">
+          <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto -mt-1 mb-2.5 shrink-0"></div>
+          
+          <div class="flex justify-between items-center pb-2.5 border-b border-slate-100 shrink-0">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">录入线下购课收款单</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">确认到账后原子化裂变 TS 课次单元</p>
+            </div>
+            <button onclick="closeCreateSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 grid place-items-center">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- 表单滚动区 -->
+          <div class="flex-1 overflow-y-auto py-3 space-y-3.5 text-xs">
+            <!-- 单据类型切换 (1v1固定位 / 1v1临时课 / 小班课) -->
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">购课单形态 *</label>
+              <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl">
+                <button type="button" onclick="setOrderType('1v1_fixed')" id="type-1v1_fixed" class="type-btn py-1.5 rounded-lg font-medium bg-white text-slate-900 shadow-2xs text-[11px]">1v1固定位</button>
+                <button type="button" onclick="setOrderType('1v1_temp')" id="type-1v1_temp" class="type-btn py-1.5 rounded-lg font-medium text-slate-600 text-[11px]">1v1临时课</button>
+                <button type="button" onclick="setOrderType('small_group')" id="type-small_group" class="type-btn py-1.5 rounded-lg font-medium text-slate-600 text-[11px]">小班整班课</button>
+              </div>
+            </div>
+
+            <!-- 学生档案 / 班级选择 -->
+            <div id="studentSelectRow">
+              <label class="block font-semibold text-slate-700 mb-1">上课学员档案 *</label>
+              <select id="fStudent" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs bg-white outline-none">
+                <option value="AliceZ12">AliceZ12 (大宝 · 12岁)</option>
+                <option value="BobZ10">BobZ10 (二宝 · 10岁)</option>
+                <option value="CharlieC09">CharlieC09 (9岁)</option>
+              </select>
+            </div>
+
+            <div id="classSelectRow" class="hidden">
+              <label class="block font-semibold text-slate-700 mb-1">关联班级实体 *</label>
+              <select id="fClass" onchange="recalculatePrice()" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs bg-white outline-none">
+                <option value="cls_ket001" data-teacher="David Miller" data-max="4" data-rate="40">KET 冲刺精讲小班 (4人班 · David)</option>
+                <option value="cls_phonics02" data-teacher="Sarah Jenkins" data-max="3" data-rate="30">自然拼读启蒙班 (3人班 · Sarah)</option>
+              </select>
+            </div>
+
+            <!-- 授课外教与定级 (自动带出标准课酬基线) -->
+            <div id="teacherSelectRow" class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">授课老师 *</label>
+                <select id="fTeacher" onchange="recalculatePrice()" class="w-full h-10 px-2.5 rounded-xl border border-slate-200 text-xs bg-white outline-none">
+                  <option value="David Miller" data-level="SENIOR" data-rate="40">David Miller (Senior 40分)</option>
+                  <option value="Sarah Jenkins" data-level="STANDARD" data-rate="30">Sarah Jenkins (Standard 30分)</option>
+                  <option value="Tom Brown" data-level="JUNIOR" data-rate="25">Tom Brown (Junior 25分)</option>
+                  <option value="Emma Watson" data-level="MASTER" data-rate="50">Emma Watson (Master 50分)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">课程类型 *</label>
+                <select id="fCourseType" class="w-full h-10 px-2.5 rounded-xl border border-slate-200 text-xs bg-white outline-none">
+                  <option value="KET备考">KET备考</option>
+                  <option value="少儿英语">少儿英语</option>
+                  <option value="自然拼读">自然拼读</option>
+                  <option value="生活口语">生活口语</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 课时数与额外备课费 -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">课时数 *</label>
+                <input id="fLessons" type="number" min="1" value="16" oninput="recalculatePrice()" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs outline-none font-bold text-slate-900">
+                <span id="lessonTip" class="text-[10px] text-amber-600 mt-0.5 block hidden">⚠️ 建议为 4 的倍数 (四周一轮排班)</span>
+              </div>
+              <div class="flex flex-col justify-end">
+                <label class="flex items-center gap-2 h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
+                  <input id="fExtraPrep" type="checkbox" onchange="recalculatePrice()" class="rounded text-indigo-600 w-4 h-4">
+                  <span class="text-[11px] font-medium text-slate-700">含额外备课费 (+10)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 系统自动测算基线展示区 (AC-2A-01, AC-2A-09) -->
+            <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-indigo-900 font-semibold flex items-center gap-1">
+                  <i data-lucide="calculator" class="w-3.5 h-3.5 text-indigo-600"></i>系统防呆自动测算
+                </span>
+                <span class="text-[10px] text-indigo-600 font-mono">300ms 实时刷新</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="bg-white p-2 rounded-lg border border-indigo-100/80">
+                  <span class="text-[10px] text-slate-400 block">系统期望总积分</span>
+                  <span id="expectedPointsDisplay" class="font-bold text-base text-indigo-700 font-mono">832</span>
+                  <span class="text-[10px] text-slate-400 block mt-0.5" id="formulaDetail">16 × (40 + 2 + 10)</span>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-indigo-100/80">
+                  <span class="text-[10px] text-slate-400 block">赠予请假配额 (12.5%)</span>
+                  <span id="leaveQuotaDisplay" class="font-bold text-base text-emerald-600 font-mono">2 节</span>
+                  <span class="text-[10px] text-slate-400 block mt-0.5">⌊16 × 0.125⌋ 向下取整</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 实收积分与防呆校验 (AC-2A-04, AC-2A-05) -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="font-semibold text-slate-700">线下实收积分 *</label>
+                <span id="diffAlert" class="text-[10px] font-semibold text-emerald-600 flex items-center gap-0.5">
+                  <i data-lucide="check" class="w-3 h-3"></i>与期望积分完全相符
+                </span>
+              </div>
+              <input id="fPaidPoints" type="number" value="832" oninput="checkPriceMatch()" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 outline-none">
+            </div>
+
+            <!-- 实收不一致时的强制提交区域 -->
+            <div id="forceSubmitBox" class="hidden p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-2">
+              <div class="flex items-center justify-between text-amber-900 text-[11px] font-semibold">
+                <span class="flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-600"></i>金额不符：触发防呆拦截</span>
+                <span id="mismatchDiffText" class="font-mono text-rose-600 font-bold">-32 积分</span>
+              </div>
+              <p class="text-[10px] text-amber-700 leading-tight">
+                实收金额与系统测算不一致。如属双十一优惠返券或多课时折扣，请勾选强制提交并填写理由留痕。
+              </p>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-1">强制录单理由 (1-200字) *</label>
+                <input id="fForceReason" class="w-full h-8 px-2.5 rounded-lg border border-amber-300 text-xs outline-none bg-white" placeholder="如：老学员续费活动直减优惠">
+              </div>
+            </div>
+
+            <!-- 支付凭证上传预览 -->
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-semibold text-slate-800">微信/转账支付凭证 (最多5张, ≤10MB)</span>
+                <span class="text-[10px] text-emerald-600 font-medium">已模拟上传 1 张</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-14 h-14 rounded-xl border border-slate-200 bg-white p-1 relative group">
+                  <img src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=100&auto=format&fit=crop&q=80" class="w-full h-full object-cover rounded-lg" alt="Voucher">
+                  <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-slate-800 text-white text-[9px] grid place-items-center">✓</span>
+                </div>
+                <div class="text-[11px] text-slate-400">
+                  <span>微信转账电子回单_832.png</span>
+                  <span class="block text-[10px] text-slate-400">240 KB · 支持核验</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 抽屉底部操作栏 -->
+          <div class="pt-3 border-t border-slate-100 flex gap-2.5 shrink-0">
+            <button onclick="closeCreateSheet()" class="w-24 h-10 rounded-xl border border-slate-200 text-slate-600 font-medium">取消</button>
+            <button id="btnSubmitOrder" onclick="submitNewOrder()" class="flex-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs">
+              提交生成待确认单据
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 确认收款弹窗 (AC-2A-12, AC-2A-13) -->
+      <div id="confirmPayModal" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-5">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl space-y-3.5 text-center">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 mx-auto grid place-items-center">
+            <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">核实到账并确认收款？</h4>
+            <p id="confirmPayDesc" class="text-xs text-slate-500 mt-1 leading-relaxed">
+              确认收到实收 832 积分后，系统将原子化裂变生成 16 个可排课 TS 单元，资金持有方将永久锁定为班长 Leo！
+            </p>
+          </div>
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-left text-slate-600 space-y-1">
+            <div class="flex justify-between"><span>单据编号：</span><span id="modalOrderId" class="font-mono text-slate-800">ord_xxx</span></div>
+            <div class="flex justify-between"><span>TS 裂变数量：</span><span id="modalLessonCount" class="font-bold text-indigo-600">16 个课次</span></div>
+            <div class="flex justify-between"><span>余数分配规则：</span><span class="text-emerald-700 font-medium">整除余数加至最后一节</span></div>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button onclick="closeConfirmModal()" class="flex-1 h-10 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">暂不确认</button>
+            <button onclick="executeConfirmPay()" class="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs">确认收款裂变</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 单据作废确认弹窗 (AC-2A-15) -->
+      <div id="cancelOrderModal" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-5">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl space-y-3 text-center">
+          <div class="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 mx-auto grid place-items-center">
+            <i data-lucide="trash-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">作废待收款购课单</h4>
+            <p class="text-xs text-slate-500 mt-1">作废后该单据状态变为已作废 (CANCELLED)，不产生任何 TS 课次。</p>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button onclick="closeCancelModal()" class="flex-1 h-10 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">取消</button>
+            <button onclick="executeCancelOrder()" class="flex-1 h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs">确认作废</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 课次裂变快照详情抽屉 (查看 TS 1~N 分布) -->
+      <div id="tsFissionSheet" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end">
+        <div class="bg-white rounded-t-3xl p-5 w-full max-h-[85%] flex flex-col shadow-2xl">
+          <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto -mt-1 mb-2 shrink-0"></div>
+          <div class="flex justify-between items-center pb-2 border-b border-slate-100 shrink-0">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900" id="fissionSheetTitle">TS 课次裂变积分快照</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">余数归集至末位 · 资金持有人永久锁定</p>
+            </div>
+            <button onclick="closeFissionSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 grid place-items-center">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div id="tsFissionList" class="flex-1 overflow-y-auto py-3 space-y-2 text-xs"></div>
+          <button onclick="closeFissionSheet()" class="w-full h-10 bg-slate-900 text-white rounded-xl text-xs font-medium shrink-0 mt-2">关闭</button>
+        </div>
+      </div>
+
+      <!-- 班长：修改自动续费预排课/金额抽屉 (AC-2A-01b, AC-2A-05) -->
+      <div id="editRenewalSheet" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end">
+        <div class="bg-white rounded-t-3xl p-5 w-full max-h-[92%] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200">
+          <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto -mt-1 mb-2.5 shrink-0"></div>
+          <div class="flex justify-between items-center pb-2.5 border-b border-slate-100 shrink-0">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">班长调整预排购课单</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">确认收款前可灵活调整课次、时段与金额</p>
+            </div>
+            <button onclick="closeEditRenewalSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 grid place-items-center">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto py-3 space-y-3.5 text-xs">
+            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex justify-between items-center">
+              <div>
+                <span class="text-slate-400 text-[10px]">续费学员</span>
+                <span class="font-bold text-slate-800 block text-xs" id="editRenewStudent">AliceZ12</span>
+              </div>
+              <div class="text-right">
+                <span class="text-slate-400 text-[10px]">授课外教 / 定级</span>
+                <span class="font-bold text-slate-800 block text-xs" id="editRenewTeacher">David Miller (Senior 40分)</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">调整排课课次 *</label>
+              <input id="editRenewLessons" type="number" min="1" value="8" oninput="recalculateEditRenewalPrice()" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 outline-none">
+              <span class="text-[10px] text-slate-400 mt-0.5 block">原系统根据本轮最后一周排课预估为 8 节</span>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">预排固定时段</label>
+              <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 text-[11px]">
+                <label class="flex items-center gap-2 text-slate-700">
+                  <input type="checkbox" id="editRenewSlotTue" checked class="rounded text-indigo-600">
+                  <span>每周二 19:00 - 19:30 (4次)</span>
+                </label>
+                <label class="flex items-center gap-2 text-slate-700">
+                  <input type="checkbox" id="editRenewSlotThu" checked class="rounded text-indigo-600">
+                  <span>每周四 19:00 - 19:30 (4次)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 系统测算 -->
+            <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <span class="text-indigo-900 font-semibold">测算基准: 40(Senior) + 2(工具费) = 42分/节</span>
+                <span class="font-bold font-mono text-indigo-700 text-sm" id="editRenewExpectedTotal">336 积分</span>
+              </div>
+              <div class="text-[10px] text-slate-400">请假额度同步更新为: <span id="editRenewLeaveQuota" class="font-bold text-emerald-600">1 节</span> (⌊8 × 0.125⌋)</div>
+            </div>
+
+            <!-- 实收调整 -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="font-semibold text-slate-700">实收收款积分 *</label>
+                <span id="editRenewDiffAlert" class="text-[10px] font-semibold text-emerald-600 flex items-center gap-0.5">
+                  <i data-lucide="check" class="w-3 h-3"></i>与期望积分相符
+                </span>
+              </div>
+              <input id="editRenewPaidPoints" type="number" value="336" oninput="checkEditRenewMismatch()" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 outline-none">
+            </div>
+
+            <div id="editRenewForceBox" class="hidden p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1.5">
+              <span class="text-amber-900 text-[11px] font-semibold flex items-center gap-1">
+                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-600"></i>金额不符：需填写修改理由留痕 (AC-2A-05)
+              </span>
+              <input id="editRenewForceReason" class="w-full h-8 px-2.5 rounded-lg border border-amber-300 text-xs outline-none bg-white" placeholder="如：老学员沟通换师补偿直减 10 积分">
+            </div>
+          </div>
+          <div class="pt-3 border-t border-slate-100 flex gap-2.5 shrink-0">
+            <button onclick="closeEditRenewalSheet()" class="w-24 h-10 rounded-xl border border-slate-200 text-slate-600 font-medium">取消</button>
+            <button onclick="saveEditRenewalOrder()" class="flex-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs">保存调整并同步家长</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 家长：查看调价与预排课次明细弹窗 -->
+      <div id="parentNoticeModal" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3.5 max-h-[90%] overflow-y-auto text-xs">
+          <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 grid place-items-center">
+                <i data-lucide="info" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900 text-sm">下轮续费与调价公示</h4>
+                <p class="text-[10px] text-slate-400">系统自动测算 · 规则公开透明</p>
+              </div>
+            </div>
+            <button onclick="closeParentNoticeModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <!-- 外教定级变动公报 -->
+          <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 space-y-1.5">
+            <div class="flex items-center justify-between text-amber-900 font-bold">
+              <span class="flex items-center gap-1"><i data-lucide="award" class="w-4 h-4 text-amber-600"></i>外教考核晋升升定级提示</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-semibold">+10分/节</span>
+            </div>
+            <p class="text-[11px] text-amber-800 leading-relaxed">
+              授课外教 <b>David Miller</b> 于本月完成平台教学质量考核，定级由 <b>Standard (30分)</b> 晋升为 <b>Senior (40分)</b>。下轮排课单价按新定级 40 + 平台工具费 2 = <b>42 积分/节</b> 计费。
+            </p>
+            <p class="text-[10px] text-amber-700 pt-1 border-t border-amber-200/60">
+              💡 若当前价格超出您的预期，您可以点击“联系班长协调换师”，无缝协调更换为其他 Standard 级优秀外教。
+            </p>
+          </div>
+
+          <!-- 预排班继承说明 -->
+          <div class="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+            <div class="text-slate-700 font-semibold flex items-center justify-between">
+              <span>预排班继承规则 (最后一周常规课表)</span>
+              <span class="text-emerald-600 font-medium text-[10px]">排他预占保护中</span>
+            </div>
+            <div class="text-slate-600 space-y-1 text-[11px]">
+              <div class="flex justify-between"><span>预占时段一：</span><span class="font-medium">每周二 19:00 - 19:30 (4节)</span></div>
+              <div class="flex justify-between"><span>预占时段二：</span><span class="font-medium">每周四 19:00 - 19:30 (4节)</span></div>
+              <div class="flex justify-between"><span>继承基准：</span><span>排除上轮临时请假，全量延续固定位</span></div>
+              <div class="flex justify-between font-bold pt-1 border-t border-slate-200 text-slate-800">
+                <span>合计应收：</span><span class="text-indigo-700 font-mono text-xs" id="parentNoticePoints">8 节 × 42 = 336 积分</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 线下汇款说明 -->
+          <div class="p-3 bg-indigo-50/70 rounded-2xl border border-indigo-100 text-[11px] text-slate-600 space-y-1">
+            <div class="font-bold text-indigo-950 flex items-center justify-between">
+              <span>线下收款经办人</span>
+              <span class="text-indigo-700 font-medium">班长 Leo</span>
+            </div>
+            <div>微信 / 支付宝账号：<span class="font-mono font-bold text-slate-800">dream_leo_admin</span></div>
+            <div class="text-[10px] text-slate-400">转账请备注：AliceZ12 续费 336 积分</div>
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="closeParentNoticeModal()" class="flex-1 h-9 rounded-xl border border-slate-200 text-slate-600 font-medium">关闭</button>
+            <button onclick="closeParentNoticeModal(); openUploadVoucherModal('ord_20261105_renew01')" class="flex-1 h-9 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs flex items-center justify-center gap-1">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i>上传支付凭证
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 家长：联系班长协调换师弹窗 -->
+      <div id="contactMonitorModal" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3.5 text-xs">
+          <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 grid place-items-center">
+                <i data-lucide="message-square" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900 text-sm">联系班长协调排课</h4>
+                <p class="text-[10px] text-slate-400">直连负责班长 Leo (2小时内响应)</p>
+              </div>
+            </div>
+            <button onclick="closeContactMonitorModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1.5">协调类型 *</label>
+            <div class="space-y-1.5">
+              <label class="flex items-center gap-2 p-2 rounded-xl border border-indigo-200 bg-indigo-50/50 cursor-pointer">
+                <input type="radio" name="coordType" value="teacher_price" checked class="text-indigo-600">
+                <span class="text-[11px] text-slate-800 font-medium">外教晋升涨价超预算，申请更换 Standard 级老师</span>
+              </label>
+              <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-white cursor-pointer">
+                <input type="radio" name="coordType" value="time_conflict" class="text-indigo-600">
+                <span class="text-[11px] text-slate-800">下轮固定时间冲突，申请调整预排时段</span>
+              </label>
+              <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-white cursor-pointer">
+                <input type="radio" name="coordType" value="pause_renewal" class="text-indigo-600">
+                <span class="text-[11px] text-slate-800">近期学业忙碌，申请下轮暂缓续费 (放弃固定位)</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">补充说明 (可选)</label>
+            <textarea id="contactMonitorMemo" rows="2" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs outline-none resize-none" placeholder="希望能换同等时间段有空的 Standard 级自然拼读外教..."></textarea>
+          </div>
+
+          <div class="flex gap-2 pt-1">
+            <button onclick="closeContactMonitorModal()" class="w-24 h-9 rounded-xl border border-slate-200 text-slate-600 font-medium">取消</button>
+            <button onclick="submitContactMonitorRequest()" class="flex-1 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs">提交协调申请</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 家长：上传付款凭证弹窗 -->
+      <div id="uploadVoucherModal" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3.5 text-xs">
+          <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 grid place-items-center">
+                <i data-lucide="receipt" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-900 text-sm">上传转账付款凭证</h4>
+                <p class="text-[10px] text-slate-400">单号：<span id="voucherOrderId">ord_xxx</span></p>
+              </div>
+            </div>
+            <button onclick="closeUploadVoucherModal()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-2">
+            <div class="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 text-teal-600 mx-auto grid place-items-center cursor-pointer hover:bg-teal-100 transition">
+              <i data-lucide="camera" class="w-6 h-6"></i>
+            </div>
+            <div class="text-[11px] text-slate-600">
+              <span class="font-semibold text-slate-800">点击上传微信/支付宝/银行电子转账回单</span>
+              <p class="text-[10px] text-slate-400 mt-0.5">支持 PNG、JPG、PDF，大小不超过 10MB</p>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">付款金额 (积分 / 人民币)</label>
+            <input id="voucherAmountInput" type="number" value="336" class="w-full h-9 px-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none">
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">转账单号 / 汇款人姓名备注</label>
+            <input id="voucherRemarkInput" value="微信支付尾号 9012 (Amy转Leo)" class="w-full h-9 px-3 rounded-xl border border-slate-200 text-xs text-slate-800 outline-none">
+          </div>
+
+          <div class="flex gap-2 pt-1">
+            <button onclick="closeUploadVoucherModal()" class="w-24 h-9 rounded-xl border border-slate-200 text-slate-600 font-medium">取消</button>
+            <button onclick="submitVoucherUpload()" class="flex-1 h-9 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-xs">确认上传凭证</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast 提示 -->
+      <div id="toast" class="absolute left-1/2 -translate-x-1/2 bottom-5 z-[100] hidden px-4 py-2 rounded-xl bg-slate-900/90 text-white text-xs shadow-lg whitespace-nowrap"></div>
+    </div>
+  </main>
+  <script>
+    // 假数据：完全对齐 AC-2A-01 ~ AC-2A-23 业务规范
+    const mockTeacherRates = {
+      'David Miller': { level: 'SENIOR', rate: 40 },
+      'Sarah Jenkins': { level: 'STANDARD', rate: 30 },
+      'Tom Brown': { level: 'JUNIOR', rate: 25 },
+      'Emma Watson': { level: 'MASTER', rate: 50 }
+    };
+
+    let mockOrders = [
+      {
+        id: 'ord_20261105_renew01',
+        orderType: '1v1_fixed',
+        sourceType: 'AUTO_RENEWAL', // 核心单据：下轮固定排班自动生成续费单
+        studentName: 'AliceZ12',
+        teacherName: 'David Miller',
+        teacherLevel: 'SENIOR',
+        previousTeacherLevel: 'STANDARD',
+        courseType: 'KET备考',
+        lessonCount: 8,
+        extraPrep: false,
+        expectedPoints: 336, // 8 * (40 + 2)
+        paidPoints: 336,
+        status: 'PENDING_PAYMENT', // 待确认收款
+        leaveQuota: 1,
+        createdAt: '2026-11-05 08:00 (下一轮提前3天自动生成)',
+        holderName: 'Leo',
+        isForced: false,
+        forceReason: '',
+        preScheduleSlots: '每周二、周四 19:00 - 19:30 (共 8 节)',
+        priceChangeReason: '外教考核晋升为 SENIOR 级 (由30升至40积分/节)，单节成本增加 10 积分',
+        expireCountdown: '距开课前24小时硬性失效还剩 68小时40分',
+        hasVoucher: false,
+        voucherStatus: 'NONE'
+      },
+      {
+        id: 'ord_20261105001',
+        orderType: '1v1_fixed',
+        sourceType: 'MANUAL',
+        studentName: 'AliceZ12',
+        teacherName: 'David Miller',
+        teacherLevel: 'SENIOR',
+        courseType: 'KET备考',
+        lessonCount: 16,
+        extraPrep: true,
+        expectedPoints: 832,
+        paidPoints: 832,
+        status: 'PENDING_PAYMENT', // 待确认收款
+        leaveQuota: 2,
+        createdAt: '2026-11-05 09:30',
+        holderName: 'Leo',
+        isForced: false,
+        forceReason: ''
+      },
+      {
+        id: 'ord_20261104002',
+        orderType: '1v1_temp',
+        studentName: 'BobZ10',
+        teacherName: 'Sarah Jenkins',
+        teacherLevel: 'STANDARD',
+        courseType: '生活口语',
+        lessonCount: 5,
+        extraPrep: false,
+        expectedPoints: 160,
+        paidPoints: 160,
+        status: 'PAID', // 已确认收款并裂变
+        leaveQuota: 0,
+        createdAt: '2026-11-04 14:15',
+        holderName: 'Leo',
+        isForced: false,
+        forceReason: ''
+      },
+      {
+        id: 'ord_20261103003',
+        orderType: '1v1_fixed',
+        studentName: 'CharlieC09',
+        teacherName: 'David Miller',
+        teacherLevel: 'SENIOR',
+        courseType: '少儿英语',
+        lessonCount: 4,
+        extraPrep: false,
+        expectedPoints: 168,
+        paidPoints: 150, // 强制提交案例
+        status: 'PAID',
+        leaveQuota: 0,
+        createdAt: '2026-11-03 16:40',
+        holderName: 'Leo',
+        isForced: true,
+        forceReason: '双十一老生续费直减18积分优惠'
+      },
+      {
+        id: 'ord_20261102004',
+        orderType: '1v1_fixed',
+        studentName: 'AliceZ12',
+        teacherName: 'Sarah Jenkins',
+        teacherLevel: 'STANDARD',
+        courseType: '绘本阅读',
+        lessonCount: 8,
+        extraPrep: false,
+        expectedPoints: 256,
+        paidPoints: 256,
+        status: 'CANCELLED', // 已作废
+        leaveQuota: 1,
+        createdAt: '2026-11-02 10:00',
+        holderName: 'Leo',
+        isForced: false,
+        forceReason: ''
+      }
+    ];
+
+    const state = {
+      role: 'monitor', // 'monitor' | 'parent'
+      variant: 'A', // 'A' (订单流式卡) | 'B' (课次裂变明细)
+      device: 'mobile', // 'mobile' (390px) | 'tablet' (768px)
+      statusFilter: 'all',
+      orderType: '1v1_fixed', // '1v1_fixed' | '1v1_temp' | 'small_group'
+      selectedOrderId: null
+    };
+
+    // 裂变算法：余数严格归集入末节 (AC-2A-16, AC-2A-17)
+    function generateTSFission(order) {
+      const n = order.lessonCount;
+      const total = order.paidPoints;
+      const base = Math.floor(total / n);
+      const remainder = total % n;
+      const list = [];
+
+      for (let i = 1; i <= n; i++) {
+        const points = (i === n) ? (base + remainder) : base;
+        list.push({
+          index: i,
+          tsId: `ts_${order.id.slice(-6)}_${String(i).padStart(2, '0')}`,
+          pointsSnapshot: points,
+          holderName: order.holderName,
+          status: 'PENDING_SCHEDULE' // 裂变初始为待排期
+        });
+      }
+      return list;
+    }
+
+    function syncControls() {
+      document.querySelectorAll('.ctl').forEach(btn => {
+        const group = btn.dataset.group;
+        const val = btn.dataset.value;
+        const isActive = (group === 'role' && state.role === val) ||
+                         (group === 'variant' && state.variant === val) ||
+                         (group === 'device' && state.device === val);
+        btn.className = isActive 
+          ? 'ctl px-3 py-1.5 rounded-lg font-medium bg-white text-slate-900 shadow-sm transition' 
+          : 'ctl px-3 py-1.5 rounded-lg font-medium text-slate-500 hover:text-slate-800 transition';
+      });
+
+      const frame = document.getElementById('frame');
+      const content = document.getElementById('content');
+      if (state.device === 'tablet') {
+        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[768px] h-[860px] transition-all duration-300';
+        content.className = 'flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3.5 space-y-0';
+      } else {
+        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[390px] h-[812px] transition-all duration-300';
+        content.className = 'flex-1 overflow-y-auto p-3.5 space-y-3';
+      }
+
+      // 切换头部与 Banner
+      const appHeader = document.getElementById('appHeader');
+      const headerLogo = document.getElementById('headerLogo');
+      const headerTitle = document.getElementById('headerTitle');
+      const headerSub = document.getElementById('headerSub');
+      const headerUserBadge = document.getElementById('headerUserBadge');
+      const headerUserAvatar = document.getElementById('headerUserAvatar');
+      const roleBanner = document.getElementById('roleBanner');
+      const roleBannerText = document.getElementById('roleBannerText');
+      const roleBannerIcon = document.getElementById('roleBannerIcon');
+      const btnOpenCreate = document.getElementById('btnOpenCreate');
+
+      const filterAllBtn = document.getElementById('filter-all');
+      const filterPendingBtn = document.getElementById('filter-PENDING_PAYMENT');
+
+      if (state.role === 'monitor') {
+        appHeader.className = 'h-14 px-4 bg-slate-900 text-white flex items-center justify-between shrink-0 transition-colors';
+        headerLogo.className = 'w-8 h-8 rounded-xl bg-indigo-500 text-white grid place-items-center text-xs font-bold shadow-inner';
+        headerLogo.textContent = 'M';
+        headerTitle.textContent = 'Dream 班长工作台';
+        headerSub.textContent = '线下收款录单与课次裂变';
+        headerUserBadge.textContent = 'Leo (班长)';
+        headerUserAvatar.className = 'w-7 h-7 rounded-full bg-indigo-600 text-white grid place-items-center font-bold text-xs ring-1 ring-indigo-400';
+        headerUserAvatar.textContent = 'L';
+        roleBanner.className = 'px-4 py-2 bg-indigo-50 border-b border-indigo-100 text-indigo-900 text-[11px] flex items-center justify-between shrink-0';
+        roleBannerIcon.setAttribute('data-lucide', 'receipt');
+        roleBannerIcon.className = 'w-3.5 h-3.5 text-indigo-600 shrink-0';
+        roleBannerText.textContent = '收款单据与资金持有方归集 (Leo)';
+        btnOpenCreate.classList.remove('hidden');
+        if (filterPendingBtn) {
+          filterPendingBtn.innerHTML = '待确认收款 <span class="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[9px] font-bold">2</span>';
+        }
+      } else {
+        appHeader.className = 'h-14 px-4 bg-white border-b border-slate-200 text-slate-800 flex items-center justify-between shrink-0 transition-colors';
+        headerLogo.className = 'w-8 h-8 rounded-xl bg-teal-600 text-white grid place-items-center text-xs font-bold shadow-sm';
+        headerLogo.textContent = 'D';
+        headerTitle.textContent = 'Dream 家长工作台';
+        headerSub.textContent = '待确认续费单与已到账课次';
+        headerUserBadge.textContent = 'Amy (家长)';
+        headerUserAvatar.className = 'w-7 h-7 rounded-full bg-teal-100 text-teal-800 grid place-items-center font-bold text-xs ring-1 ring-teal-200';
+        headerUserAvatar.textContent = 'A';
+        roleBanner.className = 'px-4 py-2 bg-teal-50 border-b border-teal-100 text-teal-900 text-[11px] flex items-center justify-between shrink-0';
+        roleBannerIcon.setAttribute('data-lucide', 'bell');
+        roleBannerIcon.className = 'w-3.5 h-3.5 text-teal-600 shrink-0';
+        roleBannerText.textContent = '名下学员待确认续费排期与课次明细 (Amy)';
+        btnOpenCreate.classList.add('hidden');
+        if (filterPendingBtn) {
+          filterPendingBtn.innerHTML = '待确认续费 <span class="ml-1 px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[9px] font-bold">1</span>';
+        }
+      }
+
+      lucide.createIcons();
+    }
+
+    // 动态算价引擎 (AC-2A-01, AC-2A-09)
+    function recalculatePrice() {
+      const lessons = parseInt(document.getElementById('fLessons').value) || 0;
+      const extraPrep = document.getElementById('fExtraPrep').checked;
+      const lessonTip = document.getElementById('lessonTip');
+
+      let rate = 40;
+      let toolFee = 2;
+
+      if (state.orderType === 'small_group') {
+        const clsSelect = document.getElementById('fClass');
+        const opt = clsSelect.options[clsSelect.selectedIndex];
+        rate = parseInt(opt.dataset.rate) || 40;
+        const maxStudents = parseInt(opt.dataset.max) || 4;
+        toolFee = maxStudents * 6; // AC-2A-03: 小班课工具费 = 最大人数 × 6
+      } else {
+        const tchSelect = document.getElementById('fTeacher');
+        const opt = tchSelect.options[tchSelect.selectedIndex];
+        rate = parseInt(opt.dataset.rate) || 40;
+        toolFee = 2; // 1v1 工具费为 2 积分
+      }
+
+      const prepFee = (extraPrep && state.orderType !== 'small_group') ? 10 : 0;
+      const unitExpected = rate + toolFee + prepFee;
+      const expectedTotal = lessons * unitExpected;
+      const leaveQuota = Math.floor(lessons * 0.125);
+
+      // 固定位非4倍数弱提示 (AC-2A-07)
+      if (state.orderType === '1v1_fixed') {
+        lessonTip.classList.toggle('hidden', lessons % 4 === 0 || lessons === 0);
+      } else {
+        lessonTip.classList.add('hidden');
+      }
+
+      document.getElementById('expectedPointsDisplay').textContent = expectedTotal;
+      document.getElementById('formulaDetail').textContent = `${lessons} × (${rate} + ${toolFee}${prepFee ? ' + 10' : ''})`;
+      document.getElementById('leaveQuotaDisplay').textContent = `${leaveQuota} 节`;
+
+      checkPriceMatch();
+    }
+
+    function checkPriceMatch() {
+      const expected = parseInt(document.getElementById('expectedPointsDisplay').textContent) || 0;
+      const paid = parseInt(document.getElementById('fPaidPoints').value) || 0;
+      const diffAlert = document.getElementById('diffAlert');
+      const forceBox = document.getElementById('forceSubmitBox');
+      const mismatchDiffText = document.getElementById('mismatchDiffText');
+
+      if (paid === expected) {
+        diffAlert.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>与期望积分完全相符';
+        diffAlert.className = 'text-[10px] font-semibold text-emerald-600 flex items-center gap-0.5';
+        forceBox.classList.add('hidden');
+      } else {
+        const diff = paid - expected;
+        diffAlert.innerHTML = '<i data-lucide="alert-triangle" class="w-3 h-3"></i>实收与测算不符';
+        diffAlert.className = 'text-[10px] font-semibold text-amber-600 flex items-center gap-0.5';
+        forceBox.classList.remove('hidden');
+        mismatchDiffText.textContent = `${diff > 0 ? '+' : ''}${diff} 积分`;
+      }
+      lucide.createIcons();
+    }
+
+    function setOrderType(type) {
+      state.orderType = type;
+      document.querySelectorAll('.type-btn').forEach(b => {
+        b.className = 'type-btn py-1.5 rounded-lg font-medium text-slate-600 text-[11px]';
+      });
+      document.getElementById(`type-${type}`).className = 'type-btn py-1.5 rounded-lg font-medium bg-white text-slate-900 shadow-2xs text-[11px]';
+
+      const stuRow = document.getElementById('studentSelectRow');
+      const clsRow = document.getElementById('classSelectRow');
+      const tchRow = document.getElementById('teacherSelectRow');
+      const fLessons = document.getElementById('fLessons');
+
+      if (type === 'small_group') {
+        stuRow.classList.add('hidden');
+        clsRow.classList.remove('hidden');
+        tchRow.classList.add('hidden');
+      } else {
+        stuRow.classList.remove('hidden');
+        clsRow.classList.add('hidden');
+        tchRow.classList.remove('hidden');
+        if (type === '1v1_temp') {
+          fLessons.max = 20; // 临时课上限 20
+        } else {
+          fLessons.removeAttribute('max');
+        }
+      }
+      recalculatePrice();
+    }
+
+    function filterStatus(status) {
+      state.statusFilter = status;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.className = 'filter-btn px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0';
+      });
+      document.getElementById(`filter-${status}`).className = 'filter-btn px-2.5 py-1 rounded-full bg-slate-900 text-white font-medium shrink-0';
+      render();
+    }
+
+    function render() {
+      const container = document.getElementById('content');
+      
+      let filtered = mockOrders;
+      if (state.statusFilter !== 'all') {
+        filtered = filtered.filter(o => o.status === state.statusFilter);
+      }
+      // 家长端物理隔离：仅展示 Amy 孩子的订单 (AC-2A-23)
+      if (state.role === 'parent') {
+        filtered = filtered.filter(o => o.studentName === 'AliceZ12' || o.studentName === 'BobZ10');
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 text-center py-16 text-slate-400">
+            <i data-lucide="receipt" class="w-10 h-10 mx-auto mb-2 text-slate-300"></i>
+            <p class="text-xs">暂无符合条件的购课单</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtered.map(o => {
+        const isPaid = o.status === 'PAID';
+        const isPending = o.status === 'PENDING_PAYMENT';
+        const isCancelled = o.status === 'CANCELLED';
+        const isMonitor = (state.role === 'monitor');
+        const isAutoRenewal = (o.sourceType === 'AUTO_RENEWAL');
+
+        const typeLabelMap = {
+          '1v1_fixed': '1v1 固定位',
+          '1v1_temp': '1v1 临时课',
+          'small_group': '小班整班课'
+        };
+
+        // 针对系统自动生成的固定排班续费单，呈现高信息量的双端定制视图
+        if (isAutoRenewal) {
+          if (!isMonitor) {
+            // 家长端待确认续费单卡片 (AC-2A-01a, AC-2A-09a)
+            return `
+              <div class="bg-linear-to-b from-amber-50/60 via-white to-amber-50/30 rounded-2xl border-2 border-amber-400 p-3.5 shadow-md ring-1 ring-amber-200/60 space-y-2.5 relative">
+                <!-- 头部：学员、自动续费徽标与待付款状态 -->
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span class="font-bold text-slate-900 text-sm">${o.studentName}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold border border-amber-300">
+                      系统预排续费单
+                    </span>
+                  </div>
+                  <div>
+                    ${isPaid ? `
+                      <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">已确认到账</span>
+                    ` : `
+                      <span class="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-amber-500 text-white shadow-2xs">待确认支付</span>
+                    `}
+                  </div>
+                </div>
+
+                <!-- 预排课次与时段明细 -->
+                <div class="p-2.5 bg-white/90 rounded-xl border border-amber-200 space-y-1.5 text-xs">
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500">授课教师 / 定级</span>
+                    <span class="font-semibold text-slate-800">${o.teacherName} · <span class="text-amber-700 font-bold">Senior (新晋)</span></span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-500">下轮预排时段</span>
+                    <span class="font-bold text-indigo-700">${o.preScheduleSlots}</span>
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-100">
+                    <span>继承基准: 本轮最后一周固定排班 (排除单日请假)</span>
+                    <span class="text-emerald-700 font-medium">排他预占保护中</span>
+                  </div>
+                </div>
+
+                <!-- 升定级调价提示条 -->
+                <div class="p-2.5 bg-amber-100/70 rounded-xl border border-amber-300 text-[11px] text-amber-950 space-y-1">
+                  <div class="flex items-center justify-between font-bold">
+                    <span class="flex items-center gap-1">
+                      <i data-lucide="award" class="w-3.5 h-3.5 text-amber-700"></i>外教升级调价说明
+                    </span>
+                    <span class="text-amber-800 font-mono text-[10px]">+10 积分/节</span>
+                  </div>
+                  <p class="text-[10px] text-amber-900 leading-relaxed">
+                    ${o.priceChangeReason}。合计 8 节需支付 <b>${o.paidPoints} 积分</b>。若超预算可申请调配其他外教。
+                  </p>
+                </div>
+
+                <!-- 支付凭证与超时倒计时状态 -->
+                <div class="p-2 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-[11px]">
+                  <span class="text-slate-500">
+                    凭证状态: ${o.hasVoucher ? '<strong class="text-emerald-700">已上传凭证 · 待班长点收</strong>' : '<strong class="text-amber-700">未上传转账凭证</strong>'}
+                  </span>
+                  <span class="text-[10px] text-rose-600 font-medium">${o.expireCountdown}</span>
+                </div>
+
+                <!-- 家长动作条：查看明细 / 换师协调 / 上传凭证 -->
+                <div class="pt-2 border-t border-amber-100 flex items-center justify-between gap-1.5">
+                  <button onclick="openParentNoticeModal('${o.id}')" class="h-8 px-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl text-xs font-semibold flex items-center gap-1 transition">
+                    <i data-lucide="info" class="w-3.5 h-3.5"></i>调价与排期明细
+                  </button>
+                  <button onclick="openContactMonitorModal('${o.id}')" class="h-8 px-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-medium flex items-center gap-1 transition">
+                    <i data-lucide="message-square" class="w-3.5 h-3.5"></i>协调换师
+                  </button>
+                  <button onclick="openUploadVoucherModal('${o.id}')" class="h-8 px-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1 transition">
+                    <i data-lucide="upload" class="w-3.5 h-3.5"></i>${o.hasVoucher ? '更新凭证' : '上传付款凭证'}
+                  </button>
+                </div>
+              </div>
+            `;
+          } else {
+            // 班长端待确认续费单卡片
+            return `
+              <div class="bg-white rounded-2xl border-2 border-indigo-200 p-3.5 shadow-xs space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full ${isPaid ? 'bg-emerald-500' : 'bg-indigo-600'}"></span>
+                    <span class="font-bold text-slate-900 text-sm">${o.studentName}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200">
+                      系统自动续费预排
+                    </span>
+                  </div>
+                  <div>
+                    ${isPaid ? `
+                      <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">已收款并裂变</span>
+                    ` : `
+                      <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-50 text-amber-800 border border-amber-200">待核验点收</span>
+                    `}
+                  </div>
+                </div>
+
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+                  <div>
+                    <span class="text-slate-400 text-[10px]">授课外教 / 继承预排</span>
+                    <span class="font-semibold text-slate-800 block">${o.teacherName} (Senior 40分)</span>
+                    <span class="text-[10px] text-indigo-600 mt-0.5 block">${o.preScheduleSlots}</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-slate-400 text-[10px]">应收 / 实收</span>
+                    <span class="font-bold text-sm text-indigo-700 block font-mono">${o.paidPoints} 积分</span>
+                    <span class="text-[10px] text-emerald-600 block mt-0.5">${o.lessonCount} 课时 · 配额 ${o.leaveQuota} 节</span>
+                  </div>
+                </div>
+
+                <div class="p-2 bg-indigo-50/60 rounded-xl border border-indigo-100 flex items-center justify-between text-[11px]">
+                  <span class="text-slate-600">
+                    凭证状态: ${o.hasVoucher ? '<span class="text-emerald-700 font-bold">● 家长已上传凭证 (微信转账尾号9012)</span>' : '<span class="text-slate-400">● 家长暂未上传凭证</span>'}
+                  </span>
+                  <span class="text-indigo-700 text-[10px]">资金持有人: Leo</span>
+                </div>
+
+                <!-- 班长动作条：作废 / 修改 / 确认收款 -->
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400 text-[10px]">${o.expireCountdown.slice(0, 15)}...</span>
+                  <div class="flex items-center gap-1.5">
+                    ${isPaid ? `
+                      <button onclick="viewFissionDetails('${o.id}')" class="h-7 px-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-semibold flex items-center gap-1">
+                        <i data-lucide="split" class="w-3 h-3"></i>裂变明细
+                      </button>
+                    ` : `
+                      <button onclick="openCancelRenewalModal('${o.id}')" class="h-7 px-2 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-medium">
+                        取消预占
+                      </button>
+                      <button onclick="openEditRenewalSheet('${o.id}')" class="h-7 px-2 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-lg text-xs font-semibold">
+                        修改排课/金额
+                      </button>
+                      <button onclick="openConfirmModal('${o.id}')" class="h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-2xs">
+                        确认收款
+                      </button>
+                    `}
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+        }
+
+        // 常规手动录入购课单
+        return `
+          <div class="bg-white rounded-2xl border ${isPending ? 'border-amber-300 ring-1 ring-amber-100' : 'border-slate-200'} p-3.5 shadow-xs space-y-2.5">
+            <!-- 头部：学员、类型与状态徽标 -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full ${isPaid ? 'bg-emerald-500' : isPending ? 'bg-amber-500' : 'bg-slate-400'}"></span>
+                <span class="font-bold text-slate-900 text-sm">${o.studentName}</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-medium">${typeLabelMap[o.orderType]}</span>
+              </div>
+              <div>
+                ${isPaid ? `
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">已购课 (已裂变)</span>
+                ` : isPending ? `
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-50 text-amber-800 border border-amber-200">待确认收款</span>
+                ` : `
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-500 border border-slate-200">已作废</span>
+                `}
+              </div>
+            </div>
+
+            <!-- 主详情：外教、课时数、实收积分与请假额度 -->
+            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs">
+              <div>
+                <span class="text-slate-400 text-[10px]">授课老师 / 类型</span>
+                <span class="font-semibold text-slate-800 block">${o.teacherName} · ${o.courseType}</span>
+                <span class="text-[10px] text-slate-400 mt-0.5 block">单据编号: ${o.id}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-slate-400 text-[10px]">实收积分 / 课时</span>
+                <span class="font-bold text-sm text-indigo-700 block font-mono">${o.paidPoints} 积分</span>
+                <span class="text-[10px] text-emerald-600 block mt-0.5">${o.lessonCount} 课时 · 配额 ${o.leaveQuota} 节</span>
+              </div>
+            </div>
+
+            <!-- 强制提交理由提示 (如有) -->
+            ${o.isForced ? `
+              <div class="p-2 bg-amber-50/70 rounded-xl border border-amber-200 text-[10px] text-amber-900 flex items-center gap-1.5">
+                <i data-lucide="tag" class="w-3 h-3 text-amber-600 shrink-0"></i>
+                <span><strong>强制提交留痕：</strong>${o.forceReason}</span>
+              </div>
+            ` : ''}
+
+            <!-- 底部动作条 -->
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+              <span class="text-slate-400">资金持有: <strong class="text-slate-700">${o.holderName}</strong> · ${o.createdAt.slice(5)}</span>
+              
+              <div class="flex items-center gap-1.5">
+                ${isPaid ? `
+                  <button onclick="viewFissionDetails('${o.id}')" class="h-7 px-2.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-semibold flex items-center gap-1">
+                    <i data-lucide="split" class="w-3 h-3"></i>裂变明细
+                  </button>
+                ` : isPending && isMonitor ? `
+                  <button onclick="openCancelModal('${o.id}')" class="h-7 px-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium">
+                    作废
+                  </button>
+                  <button onclick="openConfirmModal('${o.id}')" class="h-7 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-2xs">
+                    确认收款
+                  </button>
+                ` : `
+                  <span class="text-slate-400 text-[10px]">仅支持核对</span>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // 弹窗与抽屉控制
+    function openCreateSheet() {
+      document.getElementById('createSheet').classList.remove('hidden');
+      recalculatePrice();
+    }
+    function closeCreateSheet() {
+      document.getElementById('createSheet').classList.add('hidden');
+    }
+
+    function submitNewOrder() {
+      const student = (state.orderType === 'small_group') ? '整班学生' : document.getElementById('fStudent').value;
+      const lessons = parseInt(document.getElementById('fLessons').value) || 0;
+      const expected = parseInt(document.getElementById('expectedPointsDisplay').textContent) || 0;
+      const paid = parseInt(document.getElementById('fPaidPoints').value) || 0;
+      const forceReason = document.getElementById('fForceReason').value.trim();
+
+      if (lessons <= 0) {
+        alert('课时数必须为正整数');
+        return;
+      }
+      if (state.orderType === '1v1_temp' && lessons > 20) {
+        alert('1v1 临时课课时数上限为 20 节 (AC-2A-08)！');
+        return;
+      }
+
+      // 实收与期望防呆 (AC-2A-04, AC-2A-05)
+      let isForced = false;
+      if (paid !== expected) {
+        if (!forceReason) {
+          alert('【PRICE_CALCULATION_MISMATCH】实收积分与系统测算不符！必须填写强制录单理由方可提交 (AC-2A-05)。');
+          return;
+        }
+        isForced = true;
+      }
+
+      const tchSelect = document.getElementById('fTeacher');
+      const teacherName = (state.orderType === 'small_group') ? 'David Miller' : tchSelect.value;
+      const courseType = document.getElementById('fCourseType').value;
+      const extraPrep = document.getElementById('fExtraPrep').checked;
+
+      const newOrder = {
+        id: `ord_${Date.now().toString().slice(-8)}`,
+        orderType: state.orderType,
+        studentName: student,
+        teacherName: teacherName,
+        teacherLevel: 'SENIOR',
+        courseType: courseType,
+        lessonCount: lessons,
+        extraPrep: extraPrep,
+        expectedPoints: expected,
+        paidPoints: paid,
+        status: 'PENDING_PAYMENT', // 初始为待付款 (AC-2A-11)
+        leaveQuota: Math.floor(lessons * 0.125),
+        createdAt: '刚刚',
+        holderName: 'Leo',
+        isForced: isForced,
+        forceReason: forceReason
+      };
+
+      mockOrders.unshift(newOrder);
+      closeCreateSheet();
+      showToast('✅ 购课单已生成为待确认收款状态！核实到账后请点击确认收款。');
+      render();
+    }
+
+    function openConfirmModal(orderId) {
+      state.selectedOrderId = orderId;
+      const order = mockOrders.find(o => o.id === orderId);
+      document.getElementById('modalOrderId').textContent = order.id;
+      document.getElementById('modalLessonCount').textContent = `${order.lessonCount} 个课次`;
+      document.getElementById('confirmPayDesc').textContent = 
+        `确认收到实收 ${order.paidPoints} 积分后，系统将在同一事务内原子裂变生成 ${order.lessonCount} 个可排课 TS 单元，资金持有方将永久锁定为班长 Leo！`;
+      document.getElementById('confirmPayModal').classList.remove('hidden');
+    }
+    function closeConfirmModal() {
+      document.getElementById('confirmPayModal').classList.add('hidden');
+    }
+    function executeConfirmPay() {
+      const order = mockOrders.find(o => o.id === state.selectedOrderId);
+      if (order) {
+        order.status = 'PAID';
+        showToast(`🎉 收款确认成功！已原子裂变 ${order.lessonCount} 个 TS 课次，余数已补入末节。`);
+      }
+      closeConfirmModal();
+      render();
+    }
+
+    function openCancelModal(orderId) {
+      state.selectedOrderId = orderId;
+      document.getElementById('cancelOrderModal').classList.remove('hidden');
+    }
+    function closeCancelModal() {
+      document.getElementById('cancelOrderModal').classList.add('hidden');
+    }
+    function executeCancelOrder() {
+      const order = mockOrders.find(o => o.id === state.selectedOrderId);
+      if (order) {
+        order.status = 'CANCELLED';
+        showToast('已作废该购课单，不产生任何 TS 课次。');
+      }
+      closeCancelModal();
+      render();
+    }
+
+    // ===== 自动续费预排单专属交互处理 (AC-2A-01a, AC-2A-09a) =====
+    function openEditRenewalSheet(orderId) {
+      state.selectedOrderId = orderId;
+      const order = mockOrders.find(o => o.id === orderId);
+      if (!order) return;
+      document.getElementById('editRenewStudent').textContent = order.studentName;
+      document.getElementById('editRenewTeacher').textContent = `${order.teacherName} (Senior 40分)`;
+      document.getElementById('editRenewLessons').value = order.lessonCount;
+      document.getElementById('editRenewPaidPoints').value = order.paidPoints;
+      recalculateEditRenewalPrice();
+      document.getElementById('editRenewalSheet').classList.remove('hidden');
+    }
+
+    function closeEditRenewalSheet() {
+      document.getElementById('editRenewalSheet').classList.add('hidden');
+    }
+
+    function recalculateEditRenewalPrice() {
+      const lessons = parseInt(document.getElementById('editRenewLessons').value) || 0;
+      const expectedTotal = lessons * 42; // Senior 40 + toolFee 2 = 42
+      const leaveQuota = Math.floor(lessons * 0.125);
+      document.getElementById('editRenewExpectedTotal').textContent = `${expectedTotal} 积分`;
+      document.getElementById('editRenewLeaveQuota').textContent = `${leaveQuota} 节`;
+      checkEditRenewMismatch();
+    }
+
+    function checkEditRenewMismatch() {
+      const lessons = parseInt(document.getElementById('editRenewLessons').value) || 0;
+      const expected = lessons * 42;
+      const paid = parseInt(document.getElementById('editRenewPaidPoints').value) || 0;
+      const diffAlert = document.getElementById('editRenewDiffAlert');
+      const forceBox = document.getElementById('editRenewForceBox');
+
+      if (paid === expected) {
+        diffAlert.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i>与期望积分相符';
+        diffAlert.className = 'text-[10px] font-semibold text-emerald-600 flex items-center gap-0.5';
+        forceBox.classList.add('hidden');
+      } else {
+        diffAlert.innerHTML = '<i data-lucide="alert-triangle" class="w-3 h-3"></i>金额不符需强制留痕';
+        diffAlert.className = 'text-[10px] font-semibold text-amber-600 flex items-center gap-0.5';
+        forceBox.classList.remove('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    function saveEditRenewalOrder() {
+      const order = mockOrders.find(o => o.id === state.selectedOrderId);
+      if (!order) return;
+      const lessons = parseInt(document.getElementById('editRenewLessons').value) || 0;
+      const paid = parseInt(document.getElementById('editRenewPaidPoints').value) || 0;
+      const expected = lessons * 42;
+      const forceReason = document.getElementById('editRenewForceReason').value.trim();
+
+      if (lessons <= 0) {
+        alert('课时数必须大于 0！');
+        return;
+      }
+      if (paid !== expected && !forceReason) {
+        alert('实收金额与测算不符时，必须填写修改理由留痕！');
+        return;
+      }
+
+      order.lessonCount = lessons;
+      order.expectedPoints = expected;
+      order.paidPoints = paid;
+      order.leaveQuota = Math.floor(lessons * 0.125);
+      if (paid !== expected) {
+        order.isForced = true;
+        order.forceReason = forceReason;
+      } else {
+        order.isForced = false;
+        order.forceReason = '';
+      }
+
+      closeEditRenewalSheet();
+      showToast(`✅ 预排购课单已更新为 ${lessons} 节 / ${paid} 积分！已自动同步邮件与站内信提醒家长。`);
+      render();
+    }
+
+    function openParentNoticeModal(orderId) {
+      state.selectedOrderId = orderId;
+      const order = mockOrders.find(o => o.id === orderId);
+      if (order) {
+        document.getElementById('parentNoticePoints').textContent = `${order.lessonCount} 节 × 42 = ${order.paidPoints} 积分`;
+      }
+      document.getElementById('parentNoticeModal').classList.remove('hidden');
+    }
+
+    function closeParentNoticeModal() {
+      document.getElementById('parentNoticeModal').classList.add('hidden');
+    }
+
+    function openContactMonitorModal(orderId) {
+      state.selectedOrderId = orderId;
+      document.getElementById('contactMonitorModal').classList.remove('hidden');
+    }
+
+    function closeContactMonitorModal() {
+      document.getElementById('contactMonitorModal').classList.add('hidden');
+    }
+
+    function submitContactMonitorRequest() {
+      closeContactMonitorModal();
+      showToast('📨 换师与排课协调申请已发送给班长 Leo！班长将在 2 小时内与您微信沟通。');
+    }
+
+    function openUploadVoucherModal(orderId) {
+      state.selectedOrderId = orderId;
+      document.getElementById('voucherOrderId').textContent = orderId;
+      document.getElementById('uploadVoucherModal').classList.remove('hidden');
+    }
+
+    function closeUploadVoucherModal() {
+      document.getElementById('uploadVoucherModal').classList.add('hidden');
+    }
+
+    function submitVoucherUpload() {
+      const order = mockOrders.find(o => o.id === state.selectedOrderId);
+      if (order) {
+        order.hasVoucher = true;
+        order.voucherStatus = 'PENDING_AUDIT';
+      }
+      closeUploadVoucherModal();
+      showToast('📸 支付凭证上传成功！班长 Leo 将在核实到账后确认收款并为您锁定正式固定位。');
+      render();
+    }
+
+    function openCancelRenewalModal(orderId) {
+      state.selectedOrderId = orderId;
+      document.getElementById('cancelOrderModal').classList.remove('hidden');
+    }
+
+    function viewFissionDetails(orderId) {
+      const order = mockOrders.find(o => o.id === orderId);
+      const fissionList = generateTSFission(order);
+      const listContainer = document.getElementById('tsFissionList');
+      document.getElementById('fissionSheetTitle').textContent = `${order.studentName} · ${order.lessonCount}节 TS 裂变明细`;
+
+      listContainer.innerHTML = fissionList.map((ts, idx) => {
+        const isLast = (idx === fissionList.length - 1);
+        return `
+          <div class="p-2.5 rounded-xl border ${isLast ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 bg-slate-50/60'} flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-lg ${isLast ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'} grid place-items-center font-bold text-xs">${ts.index}</span>
+              <div>
+                <span class="font-mono text-slate-700 font-semibold text-[11px]">${ts.tsId}</span>
+                <span class="text-[10px] text-slate-400 block">资金持有人: ${ts.holderName} (已永久锁定)</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="font-bold text-indigo-700 font-mono text-xs">${ts.pointsSnapshot} 积分</span>
+              ${isLast ? `<span class="text-[9px] text-indigo-600 block font-medium">★ 含取整余数</span>` : `<span class="text-[9px] text-slate-400 block">基础快照</span>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('tsFissionSheet').classList.remove('hidden');
+    }
+    function closeFissionSheet() {
+      document.getElementById('tsFissionSheet').classList.add('hidden');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2400);
+    }
+
+    // 控制台事件绑定
+    document.querySelectorAll('.ctl').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const val = btn.dataset.value;
+        if (group === 'role') state.role = val;
+        if (group === 'variant') state.variant = val;
+        if (group === 'device') state.device = val;
+        syncControls();
+        render();
+      });
+    });
+
+    syncControls();
+    recalculatePrice();
+    render();
+  </script>
+</body>
+</html>

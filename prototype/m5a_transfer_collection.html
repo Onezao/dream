@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原型 - M5A 结课跑批与转账单归集</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-200 text-slate-800 min-h-screen">
+
+<header class="bg-white border-b border-slate-200 px-3 py-2 sticky top-0 z-50 flex flex-wrap gap-2 items-center justify-between text-xs shadow-sm">
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="font-bold text-slate-900 flex items-center gap-1.5">
+      <i data-lucide="landmark" class="w-4 h-4 text-emerald-700"></i>M5A 结课与转账单归集
+    </span>
+    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="roleSwitch"></div>
+    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="viewSwitch"></div>
+    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="deviceSwitch"></div>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="text-[11px] text-slate-400">单向归集 · 1 积分 = 1 元</span>
+    <button onclick="resetPrototype()" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] flex items-center gap-1 transition">
+      <i data-lucide="rotate-ccw" class="w-3 h-3"></i>重置
+    </button>
+  </div>
+</header>
+
+<main class="flex justify-center py-4">
+  <div id="frame" class="relative w-[390px] max-w-full bg-white rounded-2xl shadow-xl overflow-hidden h-[840px] flex flex-col border border-slate-300/60 transition-all">
+    <div id="appHeader" class="shrink-0"></div>
+    <div id="content" class="flex-1 overflow-y-auto"></div>
+    <div id="drawerRoot"></div>
+    <div id="modalRoot"></div>
+    <div id="toast" class="hidden absolute left-1/2 -translate-x-1/2 bottom-6 z-[100] bg-slate-900/95 text-white text-[11px] rounded-xl px-4 py-2.5 shadow-xl max-w-[86%] text-center flex items-center gap-2">
+      <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+      <span id="toastText"></span>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => n.toLocaleString('en-US');
+const clone = (v) => JSON.parse(JSON.stringify(v));
+
+const PLATFORM = {
+  bank: '招商银行 · 深圳科技园支行',
+  account: '7559 0213 8842 3021',
+  name: '深圳市拓皮教育科技有限公司',
+  note: 'LEO-20261105'
+};
+
+const USERS = {
+  leo: { title: 'Leo · 班长工作台', sub: '转账交割 · 资金归集', avatar: 'L', theme: 'bg-emerald-800', badge: '班长端' },
+  sarah: { title: 'Sarah · 管理员后台', sub: '财务中心 · 资金归集审核', avatar: 'S', theme: 'bg-slate-900', badge: '管理员' },
+  tom: { title: 'Tom · 班长工作台', sub: '离职交割 · 未结资产移交', avatar: 'T', theme: 'bg-amber-800', badge: '离职中' }
+};
+
+const TOTALS = { gross: 3160, retained: 79, subsidy: 12, transfer: 3093, count: 17 };
+
+const STUDENTS = [
+  { name: 'AliceZ12', parent: 'Amy', count: 4, amount: 880, kind: '1v1' },
+  { name: 'BobZ10', parent: 'Ben', count: 3, amount: 540, kind: '1v1' },
+  { name: 'CharlieZ08', parent: 'Amy', count: 3, amount: 480, kind: '小班课' },
+  { name: 'TomZ11', parent: 'Helen', count: 2, amount: 440, kind: '1v1', transfer: true },
+  { name: 'DaisyL09', parent: 'Ivy', count: 2, amount: 300, kind: '小班课' },
+  { name: 'EthanW12', parent: 'Nina', count: 2, amount: 400, kind: '1v1' },
+  { name: 'WendyY07', parent: 'Nina', count: 1, amount: 120, kind: '小班课' }
+];
+
+const TEACHERS = [
+  { name: 'David Miller', count: 6, amount: 1320, note: '母语外教', sub: 0 },
+  { name: 'Lily Chen', count: 6, amount: 1020, note: '中教', sub: 0 },
+  { name: 'Kevin Zhou', count: 5, amount: 820, note: '中教', sub: 2 }
+];
+
+const SMALL = [
+  { name: 'KET 冲刺班', max: 6, count: 3, unit: 160, pay: 96, tool: 36, net: 28, commission: 5, retained: 23, transfer: 411, gross: 480, retainedTotal: 69, loss: 0 },
+  { name: 'Daisy 口语班', max: 4, count: 2, unit: 150, pay: 120, tool: 24, net: 6, commission: 1, retained: 5, transfer: 290, gross: 300, retainedTotal: 10, loss: 0 },
+  { name: 'Starter 启蒙班', max: 6, count: 1, unit: 120, pay: 96, tool: 36, net: -12, commission: 0, retained: 0, transfer: 132, gross: 120, retainedTotal: 0, loss: 12 }
+];
+
+const INIT_TS = [
+  { id: 'ts1', date: '11-04', weekday: '周二', time: '16:00-16:50', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', kind: '1v1', points: 220, status: 'FINISHED', settled: false },
+  { id: 'ts2', date: '11-04', weekday: '周二', time: '17:00-17:50', student: 'CharlieZ08', parent: 'Amy', teacher: 'Lily Chen', kind: '小班课', points: 160, status: 'FINISHED', settled: false },
+  { id: 'ts3', date: '11-03', weekday: '周一', time: '18:00-18:50', student: 'BobZ10', parent: 'Ben', teacher: 'Lily Chen', kind: '1v1', points: 180, status: 'FINISHED', settled: true },
+  { id: 'ts4', date: '11-04', weekday: '周二', time: '19:00-19:50', student: 'TomZ11', parent: 'Helen', teacher: 'David Miller', kind: '1v1', points: 220, status: 'FINISHED', settled: false, transfer: true },
+  { id: 'ts5', date: '11-04', weekday: '周二', time: '20:00-20:50', student: 'DaisyL09', parent: 'Ivy', teacher: 'Kevin Zhou', kind: '小班课', points: 150, status: 'FINISHED', settled: false }
+];
+
+const INIT_ORDERS = [
+  { id: 'TR-20261105-03', type: 'WEEKLY', monitor: 'Leo', count: 17, gross: 3160, retained: 79, transfer: 3093, status: 'PENDING_TRANSFER', time: '11-05 09:42', voucher: true },
+  { id: 'TR-20261029-02', type: 'WEEKLY', monitor: 'Leo', count: 18, gross: 3920, retained: 120, transfer: 3800, status: 'COMPLETED', time: '10-29 10:05', voucher: true, confirmTime: '10-29 10:30' },
+  { id: 'TR-20261022-01', type: 'WEEKLY', monitor: 'Leo', count: 11, gross: 2480, retained: 45, transfer: 2435, status: 'CANCELLED', time: '10-22 09:20', voucher: true, reject: '到账 2,235 元，与单据差 200 元', rejectTime: '10-22 11:05' }
+];
+
+function initialState() {
+  return {
+    role: 'leo',
+    view: 'overview',
+    device: 'phone',
+    filter: 'ALL',
+    adminFilter: 'PENDING_TRANSFER',
+    drawer: false,
+    tab: 'student',
+    voucher: false,
+    tomVoucher: false,
+    handover: 'draft',
+    modal: null,
+    rollId: null,
+    rollReason: '',
+    rejectId: null,
+    rejectReason: '',
+    seq: 8,
+    ts: clone(INIT_TS),
+    orders: clone(INIT_ORDERS)
+  };
+}
+
+let S = initialState();
+
+function refreshIcons() {
+  if (window.lucide) lucide.createIcons();
+}
+
+function statusChip(status) {
+  const map = {
+    PENDING_TRANSFER: ['待平台确认', 'bg-amber-50 text-amber-700 border-amber-200'],
+    COMPLETED: ['已完成', 'bg-emerald-50 text-emerald-700 border-emerald-200'],
+    CANCELLED: ['已驳回', 'bg-rose-50 text-rose-700 border-rose-200']
+  };
+  const item = map[status] || ['未知', 'bg-slate-50 text-slate-600 border-slate-200'];
+  return { label: item[0], cls: item[1] };
+}
+
+function typeLabel(type) {
+  return type === 'RESIGNATION_HANDOVER' ? '离职移交' : '周结上交';
+}
+
+function emptyState(title, sub) {
+  return `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-10 text-center">
+    <i data-lucide="inbox" class="w-6 h-6 mx-auto text-slate-300"></i>
+    <p class="mt-2 text-xs text-slate-600">${title}</p>
+    ${sub ? `<p class="mt-1 text-[10px] text-slate-400">${sub}</p>` : ''}
+  </div>`;
+}
+
+function miniReceipt() {
+  return `<div class="h-1.5 bg-emerald-700"></div><div class="grid place-items-center py-1 text-[8px] font-bold text-slate-500">¥</div>`;
+}
+
+function renderControls() {
+  const roles = [['leo', 'Leo 班长'], ['sarah', 'Sarah 管理员'], ['tom', 'Tom 离职']];
+  $('roleSwitch').innerHTML = roles.map(([key, label]) => (
+    `<button onclick="setRole('${key}')" class="px-2 py-1 rounded-md transition ${S.role === key ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}">${label}</button>`
+  )).join('');
+
+  const views = S.role === 'leo'
+    ? [['overview', '交割总览'], ['ts', '待结算课次']]
+    : S.role === 'sarah'
+      ? [['audit', '资金归集审核'], ['handover', '离职移交']]
+      : [['handover', '离职移交']];
+  $('viewSwitch').innerHTML = views.map(([key, label]) => (
+    `<button onclick="setView('${key}')" class="px-2 py-1 rounded-md transition ${S.view === key ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'}">${label}</button>`
+  )).join('');
+
+  $('deviceSwitch').innerHTML = [['phone', '手机'], ['tablet', '平板']].map(([key, label]) => (
+    `<button onclick="setDevice('${key}')" class="px-2 py-1 rounded-md transition ${S.device === key ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'}">${label}</button>`
+  )).join('');
+}
+
+function renderHeader() {
+  const user = USERS[S.role];
+  const header = $('appHeader');
+  header.className = `${user.theme} text-white px-4 py-2.5 flex items-center justify-between shrink-0`;
+  header.innerHTML = `
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-white/20 grid place-items-center font-bold text-sm">${user.avatar}</div>
+      <div>
+        <div class="text-xs font-semibold leading-tight">${user.title}</div>
+        <div class="text-[10px] text-white/60">${user.sub}</div>
+      </div>
+    </div>
+    <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/20 font-medium">${user.badge}</span>`;
+}
+
+function applyFrameSize() {
+  $('frame').className = `relative ${S.device === 'tablet' ? 'w-[760px]' : 'w-[390px]'} max-w-full bg-white rounded-2xl shadow-xl overflow-hidden h-[840px] flex flex-col border border-slate-300/60 transition-all`;
+}
+
+function renderAll() {
+  applyFrameSize();
+  const contentEl = $('content');
+  const contentScroll = contentEl ? contentEl.scrollTop : 0;
+  const drawerBody = $('drawerBody');
+  const drawerScroll = drawerBody ? drawerBody.scrollTop : 0;
+
+  renderControls();
+  renderHeader();
+  renderContent();
+  renderDrawer();
+  renderOverlay();
+
+  const nextContent = $('content');
+  if (nextContent) nextContent.scrollTop = contentScroll;
+  const nextDrawer = $('drawerBody');
+  if (nextDrawer) nextDrawer.scrollTop = drawerScroll;
+
+  refreshIcons();
+}
+
+function setRole(role) {
+  S.role = role;
+  S.view = role === 'leo' ? 'overview' : role === 'sarah' ? 'audit' : 'handover';
+  S.device = role === 'sarah' ? 'tablet' : 'phone';
+  S.drawer = false;
+  S.modal = null;
+  resetScroll();
+  renderAll();
+}
+
+function setView(view) {
+  S.view = view;
+  resetScroll();
+  renderAll();
+}
+
+function resetScroll() {
+  const el = $('content');
+  if (el) el.scrollTop = 0;
+}
+
+function setDevice(device) {
+  S.device = device;
+  renderAll();
+}
+
+function resetPrototype() {
+  S = initialState();
+  renderAll();
+}
+
+function toast(message) {
+  const el = $('toast');
+  $('toastText').textContent = message;
+  el.classList.remove('hidden');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => el.classList.add('hidden'), 2600);
+}
+
+function renderContent() {
+  const el = $('content');
+  if (S.role === 'leo') {
+    el.innerHTML = S.view === 'overview' ? leoOverview() : leoTimeSlots();
+  } else if (S.role === 'sarah') {
+    el.innerHTML = S.view === 'audit' ? adminAudit() : adminHandover();
+  } else {
+    el.innerHTML = monitorHandover();
+  }
+}
+
+function leoOverview() {
+  const mine = S.orders.filter((o) => o.monitor === 'Leo');
+  const list = S.filter === 'ALL' ? mine : mine.filter((o) => o.status === S.filter);
+  const filterChips = [['ALL', '全部'], ['PENDING_TRANSFER', '待平台确认'], ['COMPLETED', '已完成'], ['CANCELLED', '已驳回']]
+    .map(([key, label]) => `<button onclick="setFilter('${key}')" class="shrink-0 px-2.5 py-1 rounded-lg text-[10px] border transition ${S.filter === key ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}">${label}</button>`).join('');
+
+  return `
+  <div class="px-3.5 py-2 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between text-[11px] text-emerald-900">
+    <span class="flex items-center gap-1.5"><i data-lucide="bot" class="w-3.5 h-3.5"></i>11-05 02:00 自动结课 17 节</span>
+    <span class="font-mono text-[10px] text-emerald-700">FB-20261105</span>
+  </div>
+  <div class="p-3.5 space-y-3">
+    <section class="rounded-2xl bg-emerald-900 p-4">
+      <div class="flex items-center justify-between text-[11px] text-emerald-200">
+        <span>待上交账面总额</span>
+        <span>17 节 · 7 位学员</span>
+      </div>
+      <div class="mt-2 flex items-end gap-2">
+        <span class="text-4xl font-bold tracking-tight text-white">3,160</span>
+        <span class="text-xs text-emerald-200 mb-1">积分</span>
+      </div>
+      <div class="mt-3 flex gap-4 border-t border-emerald-800 pt-2.5 text-[10px] text-emerald-100">
+        <span>1v1 2,260</span>
+        <span>小班课 900</span>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-2 gap-2.5">
+      <section class="rounded-xl border border-slate-200 bg-white p-3">
+        <div class="text-[10px] text-slate-500">小班自留盈余</div>
+        <div class="mt-1 text-xl font-bold text-slate-900">79</div>
+        <div class="text-[10px] text-slate-400">3 个班 · 已预留</div>
+      </section>
+      <section class="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+        <div class="text-[10px] text-emerald-700">实际应转平台</div>
+        <div class="mt-1 text-xl font-bold text-emerald-800">3,093</div>
+        <div class="text-[10px] text-emerald-600">含亏损贴补 12</div>
+      </section>
+    </div>
+
+    <button onclick="openDrawer()" class="w-full h-11 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold transition flex items-center justify-center gap-1.5">
+      <i data-lucide="send" class="w-4 h-4"></i>发起周度资金上交
+    </button>
+
+    <div class="flex gap-1.5 overflow-x-auto pt-0.5">${filterChips}</div>
+    <div class="space-y-2.5">${list.length ? list.map(orderCard).join('') : emptyState('暂无转账单')}</div>
+  </div>`;
+}
+
+function orderCard(o) {
+  const chip = statusChip(o.status);
+  return `<article onclick="openOrderDetail('${o.id}')" class="rounded-xl border border-slate-200 bg-white p-3 cursor-pointer hover:border-slate-300 transition">
+    <div class="flex items-center justify-between">
+      <span class="font-mono text-[10px] text-slate-500">${o.id}</span>
+      <span class="text-[9px] px-1.5 py-0.5 rounded border ${chip.cls}">${chip.label}</span>
+    </div>
+    <div class="mt-2 flex items-end justify-between gap-3">
+      <div>
+        <div class="text-[10px] text-slate-500">${typeLabel(o.type)} · ${o.count} 节</div>
+        <div class="text-xl font-bold text-slate-900 leading-tight">${fmt(o.transfer)} <span class="text-[10px] font-normal text-slate-400">积分</span></div>
+      </div>
+      <div class="text-right text-[10px] leading-relaxed text-slate-400">
+        <div>账面 ${fmt(o.gross)}</div>
+        <div>自留 ${fmt(o.retained)}</div>
+      </div>
+    </div>
+    ${o.status === 'CANCELLED' && o.reject ? `<div class="mt-2 rounded-lg bg-rose-50 px-2 py-1.5 text-[10px] text-rose-700">${o.reject}</div>` : ''}
+    <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-2 text-[10px] text-slate-400">
+      <span class="flex items-center gap-1.5">
+        ${o.voucher ? `<button onclick="event.stopPropagation();openVoucher('${o.id}')" class="block h-6 w-5 overflow-hidden rounded-sm border border-slate-200 bg-slate-50">${miniReceipt()}</button>` : ''}
+        <span>${o.time}</span>
+      </span>
+      <span class="flex items-center gap-0.5 text-slate-600">查看详情<i data-lucide="chevron-right" class="w-3 h-3"></i></span>
+    </div>
+  </article>`;
+}
+
+function leoTimeSlots() {
+  const rows = S.ts.map(tsCard).join('');
+  const wrapper = S.device === 'tablet' ? 'grid grid-cols-2 gap-2.5' : 'space-y-2.5';
+  const cancelled = S.ts.filter((t) => t.status === 'CANCELLED').length;
+  return `
+  <div class="px-3.5 py-2 bg-white border-b border-slate-100 flex items-center justify-between text-[11px]">
+    <span class="text-slate-500">待结算 <b class="text-slate-900">${17 - cancelled}</b> 节</span>
+    <span class="text-slate-400">已归集 1 节</span>
+  </div>
+  <div class="p-3.5 space-y-2.5">
+    <div class="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-900">
+      <i data-lucide="triangle-alert" class="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5"></i>
+      <span>每节已结课课次可回退 1 次，回退后原购课单自动补生 1 节待排期。</span>
+    </div>
+    <div class="${wrapper}">${rows}</div>
+  </div>`;
+}
+
+function tsCard(t) {
+  const cancelled = t.status === 'CANCELLED';
+  let action = '';
+  if (cancelled) {
+    action = `<span class="text-[10px] text-slate-400">已补生 1 节待排期</span>`;
+  } else if (t.settled) {
+    action = `<span class="inline-flex items-center gap-1 text-[10px] text-slate-400"><i data-lucide="lock" class="w-3 h-3"></i>已归集，禁止回退</span>`;
+  } else {
+    action = `<button onclick="openRollback('${t.id}')" class="h-7 px-2.5 rounded-lg border border-rose-200 bg-rose-50 text-[10px] font-semibold text-rose-700 hover:bg-rose-100 transition">未上课回退</button>`;
+  }
+  return `<article class="rounded-xl border ${cancelled ? 'border-slate-100 bg-slate-50' : 'border-slate-200 bg-white'} p-3 ${t.settled ? 'opacity-70' : ''}">
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-[11px] font-bold text-slate-900">${t.date} ${t.weekday} ${t.time}</span>
+          ${t.transfer ? '<span class="text-[9px] px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">转让</span>' : ''}
+          ${cancelled ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">已取消</span>' : ''}
+        </div>
+        <div class="mt-1 text-[10px] text-slate-500">${t.student} · ${t.teacher}</div>
+        <div class="text-[10px] text-slate-400">${t.kind} · ${t.points} 积分</div>
+      </div>
+      <div class="shrink-0">${action}</div>
+    </div>
+  </article>`;
+}
+
+function setFilter(key) {
+  S.filter = key;
+  resetScroll();
+  renderAll();
+}
+
+function openDrawer() {
+  S.drawer = true;
+  S.tab = 'student';
+  S.voucher = false;
+  renderAll();
+}
+
+function closeDrawer() {
+  S.drawer = false;
+  renderAll();
+}
+
+function setTab(tab) {
+  S.tab = tab;
+  renderAll();
+}
+
+function renderDrawer() {
+  const root = $('drawerRoot');
+  if (!S.drawer) {
+    root.innerHTML = '';
+    return;
+  }
+  const groupBlock = S.tab === 'student' ? studentGroups() : teacherGroups();
+  root.innerHTML = `
+  <div class="absolute inset-0 z-40">
+    <div onclick="closeDrawer()" class="absolute inset-0 bg-slate-900/50"></div>
+    <aside class="absolute inset-y-0 right-0 ${S.device === 'tablet' ? 'w-[560px]' : 'w-full'} bg-white shadow-2xl flex flex-col">
+      <div class="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">发起周度资金上交</h2>
+          <p class="mt-0.5 text-[10px] text-slate-400">17 节 · 3,160 积分</p>
+        </div>
+        <button onclick="closeDrawer()" class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div id="drawerBody" class="flex-1 space-y-3 overflow-y-auto p-3.5">
+        <section class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-semibold text-slate-500">收款账户</span>
+            <span class="text-[9px] text-slate-400">1 积分 = 1 元</span>
+          </div>
+          <div class="mt-1.5 text-[11px] font-semibold text-slate-900">${PLATFORM.bank}</div>
+          <div class="font-mono text-xs tracking-wide text-slate-800">${PLATFORM.account}</div>
+          <div class="text-[10px] text-slate-500">${PLATFORM.name}</div>
+          <div class="mt-1.5 inline-block rounded bg-emerald-50 px-2 py-1 text-[10px] text-emerald-700">转账备注 ${PLATFORM.note}</div>
+        </section>
+
+        <div class="inline-flex w-full rounded-xl bg-slate-100 p-0.5">
+          <button onclick="setTab('student')" class="flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition ${S.tab === 'student' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">按学生</button>
+          <button onclick="setTab('teacher')" class="flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition ${S.tab === 'teacher' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">按教师</button>
+        </div>
+
+        ${groupBlock}
+
+        <div class="flex items-center justify-between pt-1">
+          <h3 class="text-[11px] font-bold text-slate-900">小班自负盈亏核算</h3>
+          <span class="text-[9px] text-slate-400">R = 20%</span>
+        </div>
+        <div class="space-y-2">${SMALL.map(smallBlock).join('')}</div>
+
+        <div class="rounded-xl bg-slate-900 p-3">
+          <div class="grid grid-cols-3 divide-x divide-white/10 text-center">
+            <div>
+              <div class="text-[9px] text-slate-400">账面总实收</div>
+              <div class="mt-0.5 text-sm font-bold text-white">${fmt(TOTALS.gross)}</div>
+            </div>
+            <div>
+              <div class="text-[9px] text-slate-400">自留盈余</div>
+              <div class="mt-0.5 text-sm font-bold text-amber-300">${fmt(TOTALS.retained)}</div>
+            </div>
+            <div>
+              <div class="text-[9px] text-slate-400">应转平台</div>
+              <div class="mt-0.5 text-base font-bold text-emerald-400">${fmt(TOTALS.transfer)}</div>
+            </div>
+          </div>
+          <div class="mt-2 text-center font-mono text-[9px] text-slate-400">3,160 − 79 + 12 = 3,093</div>
+        </div>
+      </div>
+      <div class="shrink-0 space-y-2 border-t border-slate-200 p-3">
+        <div id="uploadBox">${uploadInner()}</div>
+        <button id="btnSubmitOrder" onclick="submitOrder()" ${S.voucher ? '' : 'disabled'} class="h-11 w-full rounded-xl bg-emerald-700 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:bg-slate-300 disabled:text-slate-500">确认并提交转账单</button>
+      </div>
+    </aside>
+  </div>`;
+}
+
+function studentGroups() {
+  return `<div class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+    ${STUDENTS.map((s) => `
+      <div class="flex items-center justify-between px-3 py-2">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[11px] font-semibold text-slate-900">${s.name}</span>
+            <span class="rounded bg-slate-100 px-1 py-0.5 text-[9px] text-slate-500">${s.kind}</span>
+            ${s.transfer ? '<span class="rounded border border-amber-200 bg-amber-50 px-1 py-0.5 text-[9px] text-amber-700">转让</span>' : ''}
+          </div>
+          <div class="mt-0.5 text-[10px] text-slate-400">${s.transfer ? '原出资人' : '出资家长'} ${s.parent} · ${s.count} 节</div>
+        </div>
+        <div class="shrink-0 text-right">
+          <div class="text-[11px] font-bold text-slate-900">${fmt(s.amount)}</div>
+          <div class="text-[9px] text-slate-400">积分</div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function teacherGroups() {
+  return `<div class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+    ${TEACHERS.map((t) => `
+      <div class="flex items-center justify-between px-3 py-2">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[11px] font-semibold text-slate-900">${t.name}</span>
+            ${t.sub ? `<span class="rounded border border-violet-200 bg-violet-50 px-1 py-0.5 text-[9px] text-violet-700">代课 ${t.sub} 节</span>` : ''}
+          </div>
+          <div class="mt-0.5 text-[10px] text-slate-400">${t.note} · ${t.count} 节</div>
+        </div>
+        <div class="shrink-0 text-right">
+          <div class="text-[11px] font-bold text-slate-900">${fmt(t.amount)}</div>
+          <div class="text-[9px] text-slate-400">积分</div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function smallBlock(s) {
+  const netCls = s.net < 0 ? 'text-rose-600' : 'text-emerald-700';
+  const footer = s.loss
+    ? `<span class="text-rose-600">亏损贴补 ${s.loss}</span><span class="font-semibold text-slate-800">上交 ${s.transfer}</span>`
+    : `<span class="text-slate-500">小计实收 ${s.gross}</span><span class="font-semibold text-slate-800">自留 ${s.retainedTotal} · 上交 ${s.transfer}</span>`;
+  return `<div class="space-y-1.5 rounded-xl border border-slate-200 p-2.5">
+    <div class="flex items-center justify-between">
+      <span class="text-[11px] font-semibold text-slate-900">${s.name}</span>
+      <span class="text-[10px] text-slate-400">Max ${s.max} · ${s.count} 节</span>
+    </div>
+    <div class="grid grid-cols-3 gap-1 text-[10px]">
+      <div><span class="text-slate-400">单节实收</span><div class="font-semibold text-slate-800">${s.unit}</div></div>
+      <div><span class="text-slate-400">课酬</span><div class="font-semibold text-slate-800">${s.pay}</div></div>
+      <div><span class="text-slate-400">工具费</span><div class="font-semibold text-slate-800">${s.tool}</div></div>
+      <div><span class="text-slate-400">净盈余</span><div class="font-semibold ${netCls}">${s.net}</div></div>
+      <div><span class="text-slate-400">平台抽佣</span><div class="font-semibold text-slate-800">${s.commission}</div></div>
+      <div><span class="text-slate-400">自留盈余</span><div class="font-semibold text-slate-800">${s.retained}</div></div>
+    </div>
+    <div class="flex justify-between border-t border-slate-100 pt-1.5 text-[10px]">${footer}</div>
+  </div>`;
+}
+
+function uploadInner() {
+  if (!S.voucher) {
+    return `<button onclick="addVoucher()" class="flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 transition hover:border-emerald-400 hover:text-emerald-600">
+      <i data-lucide="upload" class="w-4 h-4"></i>
+      <span class="text-[10px]">上传打款凭证</span>
+      <span class="text-[9px]">JPG PNG PDF · ≤10MB · 最多 5 张</span>
+    </button>`;
+  }
+  return `<div class="flex h-16 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5">
+    <button onclick="openVoucher('v-leo')" class="h-12 w-10 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-50">${miniReceipt()}</button>
+    <div class="min-w-0 flex-1">
+      <div class="truncate text-[10px] font-semibold text-slate-800">cmb-1105-0938.jpg</div>
+      <div class="text-[9px] text-slate-400">已上传 1 / 5 · 1.2MB</div>
+    </div>
+    <button onclick="removeVoucher()" class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-rose-600"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+  </div>`;
+}
+
+function addVoucher() {
+  S.voucher = true;
+  $('uploadBox').innerHTML = uploadInner();
+  const button = $('btnSubmitOrder');
+  if (button) button.disabled = false;
+  refreshIcons();
+}
+
+function removeVoucher() {
+  S.voucher = false;
+  $('uploadBox').innerHTML = uploadInner();
+  const button = $('btnSubmitOrder');
+  if (button) button.disabled = true;
+  refreshIcons();
+}
+
+function submitOrder() {
+  if (!S.voucher) return;
+  const id = `TR-20261105-${String(S.seq++).padStart(2, '0')}`;
+  S.orders.unshift({
+    id,
+    type: 'WEEKLY',
+    monitor: 'Leo',
+    count: TOTALS.count,
+    gross: TOTALS.gross,
+    retained: TOTALS.retained,
+    transfer: TOTALS.transfer,
+    status: 'PENDING_TRANSFER',
+    time: '11-05 10:26',
+    voucher: true
+  });
+  S.drawer = false;
+  S.voucher = false;
+  S.filter = 'ALL';
+  renderAll();
+  toast('转账单已提交，等待平台确认');
+}
+
+function openRollback(id) {
+  S.rollId = id;
+  S.rollReason = '';
+  S.modal = { type: 'rollback' };
+  renderAll();
+}
+
+function onRollInput(el) {
+  S.rollReason = el.value;
+  $('rollCount').textContent = `${el.value.length}/200`;
+  $('btnRollConfirm').disabled = el.value.trim().length === 0;
+}
+
+function confirmRollback() {
+  const ts = S.ts.find((x) => x.id === S.rollId);
+  if (ts) {
+    ts.status = 'CANCELLED';
+    ts.reborn = true;
+  }
+  S.modal = null;
+  S.rollReason = '';
+  renderAll();
+  toast('已回退，原购课单补生 1 节待排期');
+}
+
+function adminAudit() {
+  const list = S.orders.filter((o) => S.adminFilter === 'ALL' || o.status === S.adminFilter);
+  const pending = S.orders.filter((o) => o.status === 'PENDING_TRANSFER');
+  const pendingTotal = pending.reduce((sum, o) => sum + o.transfer, 0);
+  const filters = [['PENDING_TRANSFER', '待确认'], ['ALL', '全部'], ['COMPLETED', '已完成'], ['CANCELLED', '已驳回']]
+    .map(([key, label]) => `<button onclick="setAdminFilter('${key}')" class="shrink-0 rounded-lg border px-2.5 py-1 text-[10px] transition ${S.adminFilter === key ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}">${label}</button>`).join('');
+
+  return `
+  <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-2.5 text-[11px]">
+    <span class="text-slate-500">待确认 <b class="text-slate-900">${pending.length}</b> 笔</span>
+    <span class="font-semibold text-slate-900">合计 ${fmt(pendingTotal)} 积分</span>
+  </div>
+  <div class="space-y-4 p-5">
+    <div class="flex gap-1.5">${filters}</div>
+    ${list.length ? (S.device === 'tablet' ? auditTable(list) : auditCards(list)) : emptyState('该状态下暂无转账单')}
+  </div>`;
+}
+
+function setAdminFilter(key) {
+  S.adminFilter = key;
+  resetScroll();
+  renderAll();
+}
+
+function auditTable(list) {
+  return `<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+    <table class="w-full whitespace-nowrap text-left">
+      <thead class="border-b border-slate-200 bg-slate-50">
+        <tr class="text-[10px] font-medium text-slate-500">
+          <th class="px-2 py-2.5">班长</th>
+          <th class="px-2 py-2.5">类型</th>
+          <th class="px-2 py-2.5 text-right">账面 / 自留</th>
+          <th class="px-2 py-2.5 text-right">实转</th>
+          <th class="px-2 py-2.5">凭证</th>
+          <th class="px-2 py-2.5">提交</th>
+          <th class="px-2 py-2.5 text-right">操作</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">${list.map(auditRow).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function auditRow(o) {
+  const chip = statusChip(o.status);
+  const actions = o.status === 'PENDING_TRANSFER'
+    ? `<div class="flex justify-end gap-1">
+        <button onclick="openConfirm('${o.id}')" class="h-6 rounded-md bg-emerald-700 px-1.5 text-[9px] font-semibold text-white hover:bg-emerald-800">确认收款</button>
+        <button onclick="openReject('${o.id}')" class="h-6 rounded-md border border-rose-200 px-1.5 text-[9px] font-semibold text-rose-700 hover:bg-rose-50">驳回</button>
+      </div>`
+    : `<div class="flex justify-end"><span class="rounded border px-1.5 py-0.5 text-[9px] ${chip.cls}">${chip.label}</span></div>`;
+  return `<tr class="text-[11px] hover:bg-slate-50/60">
+    <td class="px-2 py-2.5">
+      <div class="flex items-center gap-1.5">
+        <span class="grid h-5 w-5 place-items-center rounded bg-slate-100 text-[9px] font-bold text-slate-600">${o.monitor[0]}</span>
+        <span class="font-semibold text-slate-800">${o.monitor}</span>
+      </div>
+    </td>
+    <td class="px-2 py-2.5 text-[10px] text-slate-500">${typeLabel(o.type)}</td>
+    <td class="px-2 py-2.5 text-right">
+      <div class="text-slate-500">${fmt(o.gross)}</div>
+      <div class="text-[9px] text-slate-400">自留 ${fmt(o.retained)}</div>
+    </td>
+    <td class="px-2 py-2.5 text-right font-bold text-slate-900">${fmt(o.transfer)}</td>
+    <td class="px-2 py-2.5"><button onclick="openVoucher('${o.id}')" class="block h-8 w-6 overflow-hidden rounded border border-slate-200 bg-slate-50">${miniReceipt()}</button></td>
+    <td class="px-2 py-2.5 text-[10px] text-slate-400">${o.time}</td>
+    <td class="px-2 py-2.5">${actions}</td>
+  </tr>`;
+}
+
+function auditCards(list) {
+  return `<div class="space-y-2.5">${list.map((o) => {
+    const chip = statusChip(o.status);
+    const actions = o.status === 'PENDING_TRANSFER'
+      ? `<div class="mt-2 flex gap-2 border-t border-slate-100 pt-2">
+          <button onclick="openReject('${o.id}')" class="h-8 flex-1 rounded-lg border border-rose-200 text-[10px] font-semibold text-rose-700">驳回</button>
+          <button onclick="openConfirm('${o.id}')" class="h-8 flex-[2] rounded-lg bg-emerald-700 text-[10px] font-semibold text-white">确认收款</button>
+        </div>`
+      : '';
+    return `<article class="rounded-xl border border-slate-200 bg-white p-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-1.5">
+          <span class="grid h-5 w-5 place-items-center rounded bg-slate-100 text-[9px] font-bold text-slate-600">${o.monitor[0]}</span>
+          <span class="text-[11px] font-semibold text-slate-900">${o.monitor}</span>
+          <span class="text-[9px] text-slate-400">${typeLabel(o.type)}</span>
+        </div>
+        <span class="rounded border px-1.5 py-0.5 text-[9px] ${chip.cls}">${chip.label}</span>
+      </div>
+      <div class="mt-2 flex items-end justify-between">
+        <div>
+          <div class="text-[10px] text-slate-500">实转 · ${o.count} 节</div>
+          <div class="text-lg font-bold text-slate-900">${fmt(o.transfer)}</div>
+        </div>
+        <div class="text-right text-[10px] text-slate-400">
+          <div>账面 ${fmt(o.gross)}</div>
+          <div>自留 ${fmt(o.retained)}</div>
+        </div>
+      </div>
+      <div class="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+        <span>${o.time}</span>
+        <button onclick="openVoucher('${o.id}')" class="flex items-center gap-1 text-slate-600"><i data-lucide="image" class="w-3 h-3"></i>凭证</button>
+      </div>
+      ${actions}
+    </article>`;
+  }).join('')}</div>`;
+}
+
+function resignationOrder() {
+  return S.orders.find((o) => o.type === 'RESIGNATION_HANDOVER');
+}
+
+function adminHandover() {
+  const order = resignationOrder();
+  if (!order) {
+    return `<div class="p-5">${emptyState('暂无待审核的离职移交单', 'Tom 的离职交割单尚未提交')}</div>`;
+  }
+  if (order.status === 'COMPLETED') {
+    return `<div class="mx-auto max-w-2xl space-y-4 p-5">
+      <section class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+        <div class="flex items-center gap-2 text-emerald-800">
+          <i data-lucide="badge-check" class="w-5 h-5"></i><span class="text-sm font-bold">移交完成</span>
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+          <div class="rounded-xl border border-emerald-100 bg-white p-3"><div class="text-[10px] text-slate-500">移交资金</div><div class="text-base font-bold">4,400</div></div>
+          <div class="rounded-xl border border-emerald-100 bg-white p-3"><div class="text-[10px] text-slate-500">改绑课次</div><div class="text-base font-bold">20 节</div></div>
+        </div>
+        <div class="mt-3 flex items-center justify-center gap-3 rounded-xl border border-emerald-100 bg-white p-3 text-[11px]">
+          <span class="font-semibold text-slate-700">Tom</span>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span class="font-semibold text-emerald-700">平台 Sarah</span>
+        </div>
+        <p class="mt-2 text-center text-[10px] text-emerald-700">20 节 TS 的资金持有人已改为平台</p>
+      </section>
+    </div>`;
+  }
+  if (order.status === 'CANCELLED') {
+    return `<div class="p-5">${emptyState('离职移交单已驳回', order.reject || '等待 Tom 重新提交')}</div>`;
+  }
+  return `<div class="mx-auto max-w-2xl space-y-4 p-5">
+    <div class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[11px] text-amber-900">
+      <i data-lucide="user-round-minus" class="w-4 h-4 shrink-0 text-amber-600"></i>
+      <span>Tom 离职交割 · 最后工作日 11-15</span>
+    </div>
+    <section class="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-sm font-bold text-slate-900">Tom</div>
+          <div class="mt-0.5 text-[10px] text-slate-400">班长 · ${order.time} 提交</div>
+        </div>
+        <span class="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] text-amber-700">待平台确认</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="rounded-xl bg-slate-50 p-3"><div class="text-[10px] text-slate-500">待排期 TS</div><div class="mt-0.5 text-base font-bold">12 节</div><div class="text-[10px] text-slate-400">2,640 积分</div></div>
+        <div class="rounded-xl bg-slate-50 p-3"><div class="text-[10px] text-slate-500">未结已排期</div><div class="mt-0.5 text-base font-bold">8 节</div><div class="text-[10px] text-slate-400">1,760 积分</div></div>
+      </div>
+      <div class="flex items-center justify-between rounded-xl bg-slate-900 p-3 text-white">
+        <span class="text-[10px] text-slate-400">应移交托管资金</span>
+        <span class="text-lg font-bold text-emerald-400">4,400 <span class="text-[10px] font-normal text-slate-400">积分</span></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openVoucher('resign')" class="h-12 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">${miniReceipt()}</button>
+        <div class="min-w-0"><div class="text-[10px] font-semibold text-slate-700">cmb-1105-1012.jpg</div><div class="text-[10px] text-slate-400">打款凭证</div></div>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="openReject('${order.id}')" class="h-10 flex-1 rounded-xl border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-50">驳回</button>
+        <button onclick="openHandoverConfirm()" class="h-10 flex-[2] rounded-xl bg-amber-700 text-xs font-semibold text-white hover:bg-amber-800">确认移交收款</button>
+      </div>
+    </section>
+  </div>`;
+}
+
+function monitorHandover() {
+  if (S.handover === 'completed') {
+    return `<div class="mx-auto max-w-2xl space-y-4 p-5">
+      <section class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+        <div class="mx-auto grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-emerald-700"><i data-lucide="badge-check" class="w-5 h-5"></i></div>
+        <h3 class="mt-2 text-sm font-bold text-emerald-900">离职交割已完成</h3>
+        <p class="mt-1 text-[11px] text-emerald-700">20 节 TS 已移交，资金持有人改绑为平台</p>
+        <div class="mt-3 flex items-center justify-center gap-3 rounded-xl border border-emerald-100 bg-white p-3 text-[11px]">
+          <span class="font-semibold text-slate-700">Tom</span>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span class="font-semibold text-emerald-700">平台</span>
+        </div>
+      </section>
+    </div>`;
+  }
+  if (S.handover === 'pending') {
+    return `<div class="mx-auto max-w-2xl space-y-4 p-5">
+      <div class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[11px] text-amber-900">
+        <i data-lucide="clock" class="w-4 h-4 shrink-0 text-amber-600"></i><span>移交单已提交，等待平台确认收款</span>
+      </div>
+      <section class="rounded-2xl bg-amber-900 p-4 text-white">
+        <div class="text-[11px] text-amber-200">应移交托管资金</div>
+        <div class="mt-1 text-4xl font-bold tracking-tight">4,400 <span class="text-xs font-normal text-amber-200">积分</span></div>
+        <div class="mt-1 text-[10px] text-amber-200">20 节未结 TS · 11-05 10:15 提交</div>
+      </section>
+      <div class="rounded-xl border border-slate-200 bg-white p-3 text-[10px] text-slate-500">
+        平台确认后，20 节 TS 的资金持有人由 Tom 改绑为平台，您与这批课次彻底解绑。
+      </div>
+    </div>`;
+  }
+  return `<div class="mx-auto max-w-2xl space-y-3.5 p-5">
+    <div class="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[11px] text-amber-900">
+      <i data-lucide="user-round-minus" class="w-4 h-4 shrink-0 text-amber-600"></i>
+      <span>离职交割中 · 最后工作日 11-15</span>
+    </div>
+    <section class="rounded-2xl bg-amber-900 p-4 text-white">
+      <div class="text-[11px] text-amber-200">应移交托管资金</div>
+      <div class="mt-1 flex items-end gap-2">
+        <span class="text-4xl font-bold tracking-tight">4,400</span>
+        <span class="mb-1 text-xs text-amber-200">积分</span>
+      </div>
+      <div class="mt-3 border-t border-amber-800 pt-2.5 text-[10px] text-amber-100">20 节未结 TS · 全额上交平台</div>
+    </section>
+    <div class="grid grid-cols-2 gap-2.5">
+      <section class="rounded-xl border border-slate-200 bg-white p-3">
+        <div class="text-[10px] text-slate-500">待排期 TS</div>
+        <div class="mt-1 text-xl font-bold text-slate-900">12 节</div>
+        <div class="text-[10px] text-slate-400">2,640 积分</div>
+      </section>
+      <section class="rounded-xl border border-slate-200 bg-white p-3">
+        <div class="text-[10px] text-slate-500">未结已排期</div>
+        <div class="mt-1 text-xl font-bold text-slate-900">8 节</div>
+        <div class="text-[10px] text-slate-400">1,760 积分</div>
+      </section>
+    </div>
+    <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] leading-relaxed text-amber-900">
+      平台确认收款后，系统在本批次内将 20 节 TS 的资金持有人由 Tom 改绑为平台。
+    </div>
+    <div id="tomUploadBox">${tomUploadInner()}</div>
+    <button id="btnSubmitHandover" onclick="submitHandover()" ${S.tomVoucher ? '' : 'disabled'} class="h-11 w-full rounded-xl bg-amber-700 text-sm font-semibold text-white transition hover:bg-amber-800 disabled:bg-slate-300 disabled:text-slate-500">提交离职移交单</button>
+  </div>`;
+}
+
+function tomUploadInner() {
+  if (!S.tomVoucher) {
+    return `<button onclick="addTomVoucher()" class="flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 transition hover:border-amber-400 hover:text-amber-600">
+      <i data-lucide="upload" class="w-4 h-4"></i>
+      <span class="text-[10px]">上传打款凭证</span>
+      <span class="text-[9px]">JPG PNG PDF · ≤10MB · 最多 5 张</span>
+    </button>`;
+  }
+  return `<div class="flex h-16 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5">
+    <button onclick="openVoucher('resign')" class="h-12 w-10 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-50">${miniReceipt()}</button>
+    <div class="min-w-0 flex-1">
+      <div class="truncate text-[10px] font-semibold text-slate-800">cmb-1105-1012.jpg</div>
+      <div class="text-[9px] text-slate-400">已上传 1 / 5 · 1.1MB</div>
+    </div>
+    <button onclick="removeTomVoucher()" class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-rose-600"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+  </div>`;
+}
+
+function addTomVoucher() {
+  S.tomVoucher = true;
+  $('tomUploadBox').innerHTML = tomUploadInner();
+  const button = $('btnSubmitHandover');
+  if (button) button.disabled = false;
+  refreshIcons();
+}
+
+function removeTomVoucher() {
+  S.tomVoucher = false;
+  $('tomUploadBox').innerHTML = tomUploadInner();
+  const button = $('btnSubmitHandover');
+  if (button) button.disabled = true;
+  refreshIcons();
+}
+
+function submitHandover() {
+  if (!S.tomVoucher) return;
+  S.orders = S.orders.filter((o) => o.type !== 'RESIGNATION_HANDOVER');
+  S.orders.unshift({
+    id: 'TR-20261105-07',
+    type: 'RESIGNATION_HANDOVER',
+    monitor: 'Tom',
+    count: 20,
+    gross: 4400,
+    retained: 0,
+    transfer: 4400,
+    status: 'PENDING_TRANSFER',
+    time: '11-05 10:15',
+    voucher: true
+  });
+  S.handover = 'pending';
+  renderAll();
+  toast('移交单已提交，等待平台确认');
+}
+
+function openConfirm(id) {
+  S.modal = { type: 'confirm', id };
+  renderAll();
+}
+
+function openReject(id) {
+  S.rejectId = id;
+  S.rejectReason = '';
+  S.modal = { type: 'reject', id };
+  renderAll();
+}
+
+function openVoucher(id) {
+  S.modal = { type: 'voucher', id };
+  renderAll();
+}
+
+function openOrderDetail(id) {
+  S.modal = { type: 'order', id };
+  renderAll();
+}
+
+function openHandoverConfirm() {
+  S.modal = { type: 'handover' };
+  renderAll();
+}
+
+function closeModal() {
+  S.modal = null;
+  renderAll();
+}
+
+function renderOverlay() {
+  const root = $('modalRoot');
+  if (!S.modal) {
+    root.innerHTML = '';
+    return;
+  }
+  const type = S.modal.type;
+  if (type === 'rollback') root.innerHTML = rollbackModal();
+  else if (type === 'confirm') root.innerHTML = confirmModal(S.modal.id);
+  else if (type === 'reject') root.innerHTML = rejectModal(S.modal.id);
+  else if (type === 'voucher') root.innerHTML = voucherModal(S.modal.id);
+  else if (type === 'order') root.innerHTML = orderDetailModal(S.modal.id);
+  else if (type === 'handover') root.innerHTML = handoverConfirmModal();
+}
+
+function modalShell(inner, align = 'center') {
+  const wrapper = align === 'bottom'
+    ? 'absolute inset-0 z-[60] flex items-end justify-center bg-slate-900/60'
+    : 'absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4';
+  return `<div class="${wrapper}">
+    <div class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">${inner}</div>
+  </div>`;
+}
+
+function rollbackModal() {
+  const t = S.ts.find((x) => x.id === S.rollId);
+  if (!t) return '';
+  return modalShell(`
+    <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <h3 class="text-sm font-bold text-slate-900">异常未上课回退</h3>
+      <button onclick="closeModal()" class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="space-y-3 p-4">
+      <div class="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px]">
+        <div class="flex justify-between"><span class="text-slate-400">上课时间</span><span class="font-semibold text-slate-800">${t.date} ${t.weekday} ${t.time}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">授课老师</span><span class="font-semibold text-slate-800">${t.teacher}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">学生</span><span class="font-semibold text-slate-800">${t.student}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">单节实付</span><span class="font-semibold text-slate-800">${t.points} 积分</span></div>
+      </div>
+      <div class="flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3">
+        <i data-lucide="triangle-alert" class="mt-0.5 w-4 h-4 shrink-0 text-rose-600"></i>
+        <p class="text-[10px] leading-relaxed text-rose-900">该课次将改为已取消，原购课单下自动补生 1 节待排期 TS，并从课酬与工具费中剔除。不可撤销。</p>
+      </div>
+      <div>
+        <label class="mb-1 block text-[11px] font-semibold text-slate-700">未上课原因及补课说明</label>
+        <textarea id="rollReason" oninput="onRollInput(this)" rows="3" maxlength="200" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-[11px] outline-none focus:border-emerald-500" placeholder="如：外教网络中断，已与家长约定周六补课"></textarea>
+        <div class="mt-1 flex justify-between text-[10px] text-slate-400"><span>必填</span><span id="rollCount">0/200</span></div>
+      </div>
+    </div>
+    <div class="flex gap-2 px-4 pb-4">
+      <button onclick="closeModal()" class="h-10 flex-1 rounded-xl border border-slate-300 text-xs text-slate-600">取消</button>
+      <button id="btnRollConfirm" onclick="confirmRollback()" disabled class="h-10 flex-1 rounded-xl bg-rose-600 text-xs font-semibold text-white disabled:bg-slate-300 disabled:text-slate-500">确认回退并补生</button>
+    </div>
+  `);
+}
+
+function confirmModal(id) {
+  const o = S.orders.find((x) => x.id === id);
+  if (!o) return '';
+  return modalShell(`
+    <div class="space-y-3 p-4">
+      <div class="space-y-1 text-center">
+        <div class="mx-auto grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-emerald-700"><i data-lucide="badge-check" class="w-5 h-5"></i></div>
+        <h3 class="text-sm font-bold text-slate-900">确认该笔款项已到账？</h3>
+        <p class="text-[10px] text-slate-500">确认后课次流转为已归集并进入发薪池</p>
+      </div>
+      <div class="space-y-1.5 rounded-xl bg-slate-50 p-3 text-[11px]">
+        <div class="flex justify-between"><span class="text-slate-400">班长</span><span class="font-semibold text-slate-800">${o.monitor}</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">实转金额</span><span class="font-semibold text-slate-800">${fmt(o.transfer)} 积分</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">关联课次</span><span class="font-semibold text-slate-800">${o.count} 节</span></div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="closeModal()" class="h-10 flex-1 rounded-xl border border-slate-300 text-xs text-slate-600">取消</button>
+        <button onclick="confirmCollect('${o.id}')" class="h-10 flex-1 rounded-xl bg-emerald-700 text-xs font-semibold text-white">确认收款</button>
+      </div>
+    </div>
+  `);
+}
+
+function confirmCollect(id) {
+  const o = S.orders.find((x) => x.id === id);
+  if (!o) return;
+  o.status = 'COMPLETED';
+  o.confirmTime = '11-05 10:40';
+  S.modal = null;
+  renderAll();
+  toast(`${id} 已确认收款，${o.count} 节流转为已归集`);
+}
+
+function rejectModal(id) {
+  const o = S.orders.find((x) => x.id === id);
+  if (!o) return '';
+  return modalShell(`
+    <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <h3 class="text-sm font-bold text-slate-900">驳回转账单</h3>
+      <button onclick="closeModal()" class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="space-y-3 p-4">
+      <div class="flex justify-between rounded-xl bg-slate-50 px-3 py-2 text-[11px]">
+        <span class="font-mono text-[10px] text-slate-500">${o.id}</span>
+        <span class="font-semibold text-slate-800">${fmt(o.transfer)} 积分</span>
+      </div>
+      <div>
+        <label class="mb-1 block text-[11px] font-semibold text-slate-700">驳回原因</label>
+        <textarea id="rejectReason" oninput="onRejectInput(this)" rows="3" maxlength="200" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-[11px] outline-none focus:border-emerald-500" placeholder="如：到账金额与单据不符"></textarea>
+        <div class="mt-1 flex justify-between text-[10px] text-slate-400"><span>必填</span><span id="rejectCount">0/200</span></div>
+      </div>
+      <p class="text-[10px] text-slate-400">驳回后单据作废，关联课次解除锁定并恢复为已结课待结算。</p>
+    </div>
+    <div class="flex gap-2 px-4 pb-4">
+      <button onclick="closeModal()" class="h-10 flex-1 rounded-xl border border-slate-300 text-xs text-slate-600">取消</button>
+      <button id="btnRejectConfirm" onclick="confirmReject()" disabled class="h-10 flex-1 rounded-xl bg-rose-600 text-xs font-semibold text-white disabled:bg-slate-300 disabled:text-slate-500">确认驳回</button>
+    </div>
+  `);
+}
+
+function onRejectInput(el) {
+  S.rejectReason = el.value;
+  $('rejectCount').textContent = `${el.value.length}/200`;
+  $('btnRejectConfirm').disabled = el.value.trim().length === 0;
+}
+
+function confirmReject() {
+  const o = S.orders.find((x) => x.id === S.rejectId);
+  if (!o) return;
+  o.status = 'CANCELLED';
+  o.reject = S.rejectReason;
+  o.rejectTime = '11-05 10:42';
+  if (o.type === 'RESIGNATION_HANDOVER') S.handover = 'draft';
+  S.modal = null;
+  S.rejectReason = '';
+  renderAll();
+  toast('转账单已驳回，关联课次解除锁定');
+}
+
+function voucherModal(id) {
+  let amount = 3093;
+  const order = S.orders.find((x) => x.id === id);
+  if (order) amount = order.transfer;
+  else if (id === 'resign') amount = 4400;
+  return modalShell(`
+    <div class="flex items-center justify-between bg-slate-900 px-4 py-2.5 text-white">
+      <span class="text-[11px] font-semibold">打款凭证</span>
+      <button onclick="closeModal()" class="grid h-7 w-7 place-items-center rounded-lg hover:bg-white/10"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="bg-slate-100 p-3">
+      <div class="overflow-hidden rounded-xl bg-white shadow">
+        <div class="flex items-center justify-between bg-emerald-700 px-4 py-2.5 text-white">
+          <span class="text-[11px] font-semibold">招商银行 · 转账回单</span>
+          <span class="text-[9px] text-emerald-100">CMB</span>
+        </div>
+        <div class="px-4 py-5 text-center">
+          <div class="text-[10px] text-slate-400">转账金额</div>
+          <div class="mt-1 text-2xl font-bold text-slate-900">¥${fmt(amount)}.00</div>
+          <div class="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-700"><i data-lucide="check" class="w-3 h-3"></i>转账成功</div>
+        </div>
+        <div class="space-y-1.5 px-4 pb-4 text-[10px]">
+          <div class="flex justify-between border-b border-slate-100 pb-1.5"><span class="text-slate-400">付款方</span><span class="text-slate-700">Leo</span></div>
+          <div class="flex justify-between border-b border-slate-100 pb-1.5"><span class="text-slate-400">收款方</span><span class="text-right text-slate-700">深圳市拓皮教育科技有限公司</span></div>
+          <div class="flex justify-between border-b border-slate-100 pb-1.5"><span class="text-slate-400">收款账号</span><span class="font-mono text-slate-700">7559 **** 3021</span></div>
+          <div class="flex justify-between border-b border-slate-100 pb-1.5"><span class="text-slate-400">转账时间</span><span class="text-slate-700">2026-11-05 09:38:12</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">交易单号</span><span class="font-mono text-slate-700">20261105093812001</span></div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function orderTimeline(o) {
+  const rows = [{ text: '提交转账单', time: o.time, done: true }];
+  if (o.status === 'PENDING_TRANSFER') {
+    rows.push({ text: '平台待确认', time: '', current: true });
+  } else if (o.status === 'COMPLETED') {
+    rows.push({ text: '平台确认收款', time: o.confirmTime || '', done: true });
+    rows.push({ text: `${o.count} 节流转为已归集`, time: '', done: true });
+  } else if (o.status === 'CANCELLED') {
+    rows.push({ text: `平台驳回：${o.reject || ''}`, time: o.rejectTime || '', failed: true });
+    rows.push({ text: `${o.count} 节解除锁定`, time: '', done: true });
+  }
+  return rows.map((r) => `
+    <div class="flex gap-2.5">
+      <div class="flex flex-col items-center">
+        <span class="mt-0.5 h-2 w-2 rounded-full ${r.failed ? 'bg-rose-500' : r.current ? 'bg-amber-500' : 'bg-emerald-600'}"></span>
+        <span class="mt-1 w-px flex-1 bg-slate-200"></span>
+      </div>
+      <div class="pb-2">
+        <div class="text-[11px] ${r.failed ? 'text-rose-700' : 'text-slate-700'}">${r.text}</div>
+        ${r.time ? `<div class="text-[9px] text-slate-400">${r.time}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function orderDetailModal(id) {
+  const o = S.orders.find((x) => x.id === id);
+  if (!o) return '';
+  const chip = statusChip(o.status);
+  return modalShell(`
+    <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900">转账单详情</h3>
+        <p class="mt-0.5 font-mono text-[10px] text-slate-400">${o.id}</p>
+      </div>
+      <button onclick="closeModal()" class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="space-y-3 p-4">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] text-slate-500">${typeLabel(o.type)} · ${o.count} 节</span>
+        <span class="rounded border px-1.5 py-0.5 text-[9px] ${chip.cls}">${chip.label}</span>
+      </div>
+      <div class="grid grid-cols-3 divide-x divide-slate-200 rounded-xl bg-slate-50 py-2.5 text-center">
+        <div><div class="text-[9px] text-slate-400">账面</div><div class="text-xs font-bold text-slate-800">${fmt(o.gross)}</div></div>
+        <div><div class="text-[9px] text-slate-400">自留</div><div class="text-xs font-bold text-slate-800">${fmt(o.retained)}</div></div>
+        <div><div class="text-[9px] text-slate-400">实转</div><div class="text-sm font-bold text-emerald-700">${fmt(o.transfer)}</div></div>
+      </div>
+      <button onclick="openVoucher('${o.id}')" class="flex w-full items-center gap-2.5 rounded-xl border border-slate-200 p-2.5 text-left">
+        <span class="h-10 w-8 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-50">${miniReceipt()}</span>
+        <span class="flex-1 text-[10px] text-slate-600">打款凭证</span>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
+      </button>
+      <div class="rounded-xl border border-slate-200 p-3">${orderTimeline(o)}</div>
+    </div>
+  `);
+}
+
+function handoverConfirmModal() {
+  return modalShell(`
+    <div class="space-y-3 p-4">
+      <div class="space-y-1 text-center">
+        <div class="mx-auto grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-amber-700"><i data-lucide="user-round-check" class="w-5 h-5"></i></div>
+        <h3 class="text-sm font-bold text-slate-900">确认移交款项已到账？</h3>
+        <p class="text-[10px] text-slate-500">确认后 20 节 TS 的资金持有人改绑为平台</p>
+      </div>
+      <div class="space-y-1.5 rounded-xl bg-slate-50 p-3 text-[11px]">
+        <div class="flex justify-between"><span class="text-slate-400">离职班长</span><span class="font-semibold text-slate-800">Tom</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">移交金额</span><span class="font-semibold text-slate-800">4,400 积分</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">改绑课次</span><span class="font-semibold text-slate-800">20 节</span></div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="closeModal()" class="h-10 flex-1 rounded-xl border border-slate-300 text-xs text-slate-600">取消</button>
+        <button onclick="confirmHandover()" class="h-10 flex-1 rounded-xl bg-amber-700 text-xs font-semibold text-white">确认移交收款</button>
+      </div>
+    </div>
+  `);
+}
+
+function confirmHandover() {
+  const o = resignationOrder();
+  if (o) {
+    o.status = 'COMPLETED';
+    o.confirmTime = '11-05 10:45';
+  }
+  S.handover = 'completed';
+  S.modal = null;
+  renderAll();
+  toast('移交完成，20 节 TS 已改绑至平台');
+}
+
+renderAll();
+</script>
+</body>
+</html>

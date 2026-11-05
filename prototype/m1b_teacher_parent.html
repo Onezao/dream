@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
+<!-- 即抛型原型：m1b 子模块 教师团队与多媒体履历（家长端选课大厅与教师卡片）。纯前端 Mock，不连接后端，不触碰生产代码。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>原型 · m1b 教师履历（家长选课端）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-stone-100 text-slate-800 min-h-screen antialiased">
+
+  <!-- 原型控制台（测试用控制器） -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-[60]">
+    <div class="max-w-6xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-2 text-xs">
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-teal-500"></span>m1b 家长选课端原型
+        </span>
+        
+        <div class="flex items-center gap-2">
+          <span class="text-slate-500 font-medium">卡片变体</span>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="variant" data-value="A" class="ctl px-3 py-1.5 rounded-lg font-medium">方案 A：沉浸流式卡</button>
+            <button data-group="variant" data-value="B" class="ctl px-3 py-1.5 rounded-lg font-medium">方案 B：紧凑折叠卡</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-slate-500 font-medium">设备：</span>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="device" data-value="mobile" class="ctl px-3 py-1.5 rounded-lg font-medium">📱 手机 (390px)</button>
+            <button data-group="device" data-value="tablet" class="ctl px-3 py-1.5 rounded-lg font-medium">📟 平板 (768px)</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-slate-500 font-medium">网络模式</span>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="online" data-value="on" class="ctl px-3 py-1.5 rounded-lg font-medium">在线</button>
+            <button data-group="online" data-value="off" class="ctl px-3 py-1.5 rounded-lg font-medium">离线缓存 (L3)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 快捷跳转至班长端 -->
+      <a href="./m1b_teacher_monitor.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-medium border border-indigo-200 transition">
+        <span>切换到：班长端工作台</span>
+        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+      </a>
+    </div>
+  </header>
+
+  <main class="py-6 px-4 flex justify-center">
+    <!-- 设备画框：手机优先 (390px)，支持平板响应式 (768px) -->
+    <div id="frame" class="relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[390px] h-[812px] transition-all duration-300">
+
+      <!-- 顶部工作台公共导航 -->
+      <div class="h-14 px-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-teal-600 text-white grid place-items-center text-xs font-bold shadow-sm">D</div>
+          <div>
+            <span class="font-bold text-slate-900 text-sm tracking-tight block leading-tight">Dream 教务</span>
+            <span class="text-[10px] text-teal-700 font-medium bg-teal-50 px-1.5 py-0.2 rounded">家长工作台</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="h-8 px-2 rounded-lg text-xs text-slate-600 ring-1 ring-slate-200 font-medium hover:bg-slate-50">中 / EN</button>
+          <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-800 ring-1 ring-teal-200 grid place-items-center text-xs font-bold">Amy</div>
+        </div>
+      </div>
+
+      <!-- 离线缓存横幅 -->
+      <div id="offlineBanner" class="hidden shrink-0 px-4 py-2 bg-amber-50 text-amber-800 text-xs flex items-center gap-2 border-b border-amber-200">
+        <i data-lucide="wifi-off" class="w-3.5 h-3.5 text-amber-600"></i>
+        <span>离线模式：正展示本地 IndexedDB 缓存的教师履历快照</span>
+      </div>
+
+      <!-- 选课大厅标题与筛选条 -->
+      <div class="bg-white border-b border-slate-200 px-4 py-3 shrink-0">
+        <div class="flex items-center justify-between mb-2">
+          <h1 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+            <span>外教与名师团队</span>
+            <span class="text-xs font-normal text-slate-400">（3位在位）</span>
+          </h1>
+          <span class="text-[10px] text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full font-medium">双语履历</span>
+        </div>
+        
+        <!-- 擅长科目快速筛选 (移动端横滑) -->
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs">
+          <button onclick="filterCourse('all')" id="tag-all" class="tag-filter px-2.5 py-1 rounded-full bg-slate-900 text-white shrink-0 font-medium">全部科目</button>
+          <button onclick="filterCourse('少儿英语')" id="tag-少儿英语" class="tag-filter px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">少儿英语</button>
+          <button onclick="filterCourse('KET备考')" id="tag-KET备考" class="tag-filter px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">KET备考</button>
+          <button onclick="filterCourse('自然拼读')" id="tag-自然拼读" class="tag-filter px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">自然拼读</button>
+          <button onclick="filterCourse('生活口语')" id="tag-生活口语" class="tag-filter px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">生活口语</button>
+        </div>
+      </div>
+
+      <!-- 教师卡片渲染容器 -->
+      <div id="content" class="flex-1 overflow-y-auto p-3.5 space-y-3.5"></div>
+
+      <!-- 移动端 ClassIn 二维码 Bottom Sheet 抽屉浮层 -->
+      <div id="qrSheet" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end transition-opacity">
+        <div class="bg-white rounded-t-3xl p-5 w-full text-center shadow-2xl space-y-4">
+          <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto -mt-1 mb-2"></div>
+          
+          <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+            <div class="text-left">
+              <h3 class="text-sm font-bold text-slate-900" id="qrTeacherName">添加教师 ClassIn</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">课前备课沟通与电子教材派发</p>
+            </div>
+            <button onclick="closeQrSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 grid place-items-center">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 inline-block shadow-inner">
+            <img id="qrSheetImg" src="" class="w-44 h-44 object-contain rounded-xl mx-auto" alt="ClassIn QR Code">
+          </div>
+
+          <div class="text-xs text-slate-500 leading-relaxed bg-indigo-50/70 p-3 rounded-xl border border-indigo-100 text-left flex items-start gap-2">
+            <i data-lucide="info" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
+            <span>长按图片保存或截图，使用 <strong class="text-indigo-700">ClassIn App</strong> 扫码添加教师。</span>
+          </div>
+
+          <button onclick="closeQrSheet()" class="w-full h-11 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition">
+            我知道了
+          </button>
+        </div>
+      </div>
+
+      <!-- Toast 提示 -->
+      <div id="toast" class="absolute left-1/2 -translate-x-1/2 bottom-5 z-[100] hidden px-4 py-2.5 rounded-xl bg-slate-900/90 text-white text-xs shadow-lg whitespace-nowrap"></div>
+    </div>
+  </main>
+
+  <script>
+    // 假数据：完全符合 AC-1B-01 ~ AC-1B-11 业务规格
+    const mockTeachers = [
+      {
+        id: 'tc_david000001',
+        name: 'David Miller',
+        level: 'Senior',
+        levelBadgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+        skills: ['少儿英语', 'KET备考', '自然拼读'],
+        monitorName: 'Leo',
+        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
+        videoDuration: '01:45',
+        videoPoster: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=600&auto=format&fit=crop&q=80',
+        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ClassIn:DavidMiller_Teacher_ID',
+        currentLang: 'zh', // 'zh' | 'en'
+        introZh: 'David 老师来自英国伦敦，拥有牛津大学教育学背景与 8 年少儿一线教学经验（CELTA 认证）。擅长通过高频游戏化互动与自然拼读教学法激发孩子语言潜能，累计辅导超 200 名学员高分通过 KET/PET 剑桥五级考试。上课风格幽默亲切、肢体语言极其丰富，深得低龄宝贝喜爱。',
+        introEn: 'Teacher David comes from London, UK, holding a degree in Education and CELTA certification with over 8 years of ESL teaching experience. He specializes in gamified phonics and Cambridge KET exam preparation. His warm, engaging, and highly expressive teaching style creates an immersive native English atmosphere for young learners.'
+      },
+      {
+        id: 'tc_sarah000002',
+        name: 'Sarah Jenkins',
+        level: 'Standard',
+        levelBadgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
+        skills: ['生活口语', '少儿英语', '绘本阅读'],
+        monitorName: 'Leo',
+        avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80',
+        videoDuration: '01:15',
+        videoPoster: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&auto=format&fit=crop&q=80',
+        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ClassIn:SarahJenkins_Teacher_ID',
+        currentLang: 'zh',
+        introZh: 'Sarah 老师拥有 5 年少儿国际学校教育背景，擅长运用生动的经典英文绘本与趣味角色扮演带孩子开口。善于捕捉孩子的闪光点并给予积极正向激励，能有效攻克“不敢开口”难题。',
+        introEn: 'Sarah is an enthusiastic educator with 5 years of international school experience. She specializes in picture book storytelling and situational role-play, focusing on building kids confidence in daily spoken English.'
+      },
+      {
+        id: 'tc_michael0003',
+        name: 'Michael Chen',
+        level: 'Senior',
+        levelBadgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+        skills: ['KET备考', '自然拼读'],
+        monitorName: 'Emily',
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
+        videoDuration: '02:00',
+        videoPoster: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&auto=format&fit=crop&q=80',
+        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ClassIn:MichaelChen_Teacher_ID',
+        currentLang: 'en',
+        introZh: 'Michael 老师毕业于外语名校，英语专业八级，拥有 7 年英语语法与剑桥 KET 备考执教经历。教学逻辑严密，独创“发音词根记忆网”，帮助学生扎实打牢语法词汇基本功。',
+        introEn: 'Michael graduated from a top foreign languages university with TEM-8 certification. With 7 years of specialized grammar and KET preparation teaching, he utilizes systematic phonics diagrams to build solid language foundations.'
+      }
+    ];
+
+    // 运行状态
+    const state = {
+      variant: 'A', // A: 流式卡片, B: 双栏平铺聚焦
+      device: 'mobile', // mobile (390px) | tablet (768px)
+      online: 'on',
+      filter: 'all',
+      teachers: JSON.parse(JSON.stringify(mockTeachers)),
+      playingVideoId: null
+    };
+
+    function syncControls() {
+      document.querySelectorAll('.ctl').forEach(btn => {
+        const group = btn.dataset.group;
+        const val = btn.dataset.value;
+        const isActive = (group === 'variant' && state.variant === val) ||
+                         (group === 'device' && state.device === val) ||
+                         (group === 'online' && state.online === val);
+        btn.className = isActive 
+          ? 'ctl px-3 py-1.5 rounded-lg font-medium bg-white text-slate-900 shadow-sm transition' 
+          : 'ctl px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition';
+      });
+
+      // 手机优先与平板画框尺寸自适应
+      const frame = document.getElementById('frame');
+      const content = document.getElementById('content');
+      if (state.device === 'tablet') {
+        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[768px] h-[860px] transition-all duration-300';
+        content.className = 'flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-4 space-y-0';
+      } else {
+        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[390px] h-[812px] transition-all duration-300';
+        content.className = 'flex-1 overflow-y-auto p-3.5 space-y-3.5';
+      }
+
+      // 离线横幅
+      document.getElementById('offlineBanner').classList.toggle('hidden', state.online === 'on');
+    }
+
+    // 切换卡片中英简介
+    function switchTeacherLang(teacherId, lang, event) {
+      if (event) event.stopPropagation();
+      const tc = state.teachers.find(t => t.id === teacherId);
+      if (tc) {
+        tc.currentLang = lang;
+        render();
+      }
+    }
+
+    // 方案 B 折叠展开
+    function toggleExpand(teacherId) {
+      const tc = state.teachers.find(t => t.id === teacherId);
+      if (tc) {
+        tc.isExpanded = !tc.isExpanded;
+        render();
+      }
+    }
+
+    // 播放试讲视频（卡片内就地展开 HTML5 播放器）
+    function playVideo(teacherId, event) {
+      if (event) event.stopPropagation();
+      state.playingVideoId = teacherId;
+      render();
+    }
+
+    // 打开 ClassIn 移动端抽屉浮层
+    function openQrSheet(teacherId, event) {
+      if (event) event.stopPropagation();
+      const tc = state.teachers.find(t => t.id === teacherId);
+      if (!tc) return;
+      document.getElementById('qrTeacherName').textContent = `${tc.name} · ClassIn`;
+      document.getElementById('qrSheetImg').src = tc.qrUrl;
+      document.getElementById('qrSheet').classList.remove('hidden');
+    }
+
+    function closeQrSheet() {
+      document.getElementById('qrSheet').classList.add('hidden');
+    }
+
+    function filterCourse(courseName) {
+      state.filter = courseName;
+      document.querySelectorAll('.tag-filter').forEach(btn => {
+        btn.className = 'tag-filter px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0';
+      });
+      const activeBtn = document.getElementById(`tag-${courseName}`);
+      if (activeBtn) {
+        activeBtn.className = 'tag-filter px-2.5 py-1 rounded-full bg-slate-900 text-white shrink-0 font-medium';
+      }
+      render();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2200);
+    }
+
+    // 核心渲染函数 (优先适配手机触控，平板自适应双列)
+    function render() {
+      const container = document.getElementById('content');
+      const filtered = state.teachers.filter(t => {
+        if (state.filter === 'all') return true;
+        return t.skills.includes(state.filter);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 text-center py-16 text-slate-400">
+            <i data-lucide="search-x" class="w-10 h-10 mx-auto mb-2 text-slate-300"></i>
+            <p class="text-xs">暂无符合该科目的教师</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      if (state.variant === 'A') {
+        // 方案 A：沉浸流式纵向卡片 (手机端大触控面积，图文与视频一体化)
+        container.innerHTML = filtered.map(t => {
+          const isPlaying = state.playingVideoId === t.id;
+          const isZh = t.currentLang === 'zh';
+          const introText = isZh ? t.introZh : t.introEn;
+
+          return `
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col justify-between">
+              <div>
+                <!-- 卡片头部：教师照片与主信息 (头像精致紧凑，姓名独立单行杜绝截断) -->
+                <div class="p-3.5 flex gap-3 items-start">
+                  <img src="${t.avatarUrl}" class="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200 shrink-0 mt-0.5" alt="${t.name}">
+                  <div class="flex-1 min-w-0">
+                    <!-- 第一行：外教姓名独占一行，充足展示空间避免截断 -->
+                    <h3 class="font-bold text-slate-900 text-sm leading-tight">${t.name}</h3>
+
+                    <!-- 第二行：定级徽标与负责班长 -->
+                    <div class="flex items-center gap-2 mt-1">
+                      <span class="text-[10px] px-1.5 py-0.2 rounded-md font-semibold border ${t.levelBadgeColor}">${t.level} 外教</span>
+                      <span class="text-[11px] text-slate-400">负责班长: <strong class="text-slate-600 font-medium">${t.monitorName}</strong></span>
+                    </div>
+
+                    <!-- 第三行：擅长课程标签 -->
+                    <div class="flex flex-wrap gap-1 mt-1.5">
+                      ${t.skills.map(s => `<span class="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">${s}</span>`).join('')}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 中英双语切换器与自我介绍 -->
+                <div class="px-3.5 pb-2.5">
+                  <div class="bg-slate-50/80 rounded-xl p-3 border border-slate-100 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                      <span class="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+                        <i data-lucide="book-open" class="w-3 h-3 text-teal-600"></i>教师简介
+                      </span>
+                      <div class="inline-flex rounded-lg bg-slate-200/70 p-0.5 text-[10px]">
+                        <button onclick="switchTeacherLang('${t.id}', 'zh', event)" class="px-2 py-0.5 rounded-md font-medium transition ${isZh ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'}">中文</button>
+                        <button onclick="switchTeacherLang('${t.id}', 'en', event)" class="px-2 py-0.5 rounded-md font-medium transition ${!isZh ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'}">English</button>
+                      </div>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">${introText}</p>
+                  </div>
+                </div>
+
+                <!-- 试讲视频区域 (就地播放 HTML5) -->
+                <div class="px-3.5 pb-3">
+                  <div class="rounded-xl overflow-hidden bg-slate-900 border border-slate-200 relative">
+                    ${isPlaying ? `
+                      <video controls autoplay class="w-full h-40 object-cover" src="${t.videoUrl}">
+                        您的移动设备支持原生播放
+                      </video>
+                    ` : `
+                      <div onclick="playVideo('${t.id}', event)" class="relative cursor-pointer group h-32">
+                        <img src="${t.videoPoster}" class="w-full h-full object-cover" alt="Video Poster">
+                        <div class="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
+                          <div class="w-10 h-10 rounded-full bg-white/95 text-teal-700 grid place-items-center shadow-lg">
+                            <i data-lucide="play" class="w-4 h-4 fill-current ml-0.5"></i>
+                          </div>
+                        </div>
+                        <div class="absolute bottom-1.5 left-2.5 right-2.5 flex items-center justify-between text-white text-[10px]">
+                          <span class="flex items-center gap-1 font-medium"><i data-lucide="video" class="w-3 h-3"></i> 试讲视频 (原位试看)</span>
+                          <span class="bg-black/60 px-1 py-0.2 rounded font-mono">${t.videoDuration}</span>
+                        </div>
+                      </div>
+                    `}
+                  </div>
+                </div>
+              </div>
+
+              <!-- 卡片底部动作条：ClassIn 二维码与约课主操作 -->
+              <div class="px-3.5 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+                <button onclick="openQrSheet('${t.id}', event)" class="h-9 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 flex items-center gap-1.5 text-xs font-medium shadow-2xs">
+                  <i data-lucide="qr-code" class="w-3.5 h-3.5 text-indigo-600"></i>
+                  <span>ClassIn</span>
+                </button>
+                <div class="flex items-center gap-2">
+                  <button onclick="showToast('已加入心愿单')" class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-rose-500 grid place-items-center">
+                    <i data-lucide="heart" class="w-4 h-4"></i>
+                  </button>
+                  <button onclick="showToast('正在打开 ${t.name} 的 7 色日历...')" class="h-9 px-4 rounded-xl bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 shadow-xs">
+                    去约课
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        // 方案 B：紧凑展开卡片 (移动端折叠手风琴，默认精炼，点击展开完整双语及视频)
+        container.innerHTML = filtered.map(t => {
+          const isPlaying = state.playingVideoId === t.id;
+          const isZh = t.currentLang === 'zh';
+          const introText = isZh ? t.introZh : t.introEn;
+          const expanded = t.isExpanded;
+
+          return `
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden transition-all">
+              <div onclick="toggleExpand('${t.id}')" class="p-3.5 cursor-pointer flex items-center justify-between hover:bg-slate-50/50">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <img src="${t.avatarUrl}" class="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200 shrink-0" alt="${t.name}">
+                  <div class="min-w-0">
+                    <h3 class="font-bold text-slate-900 text-sm leading-tight">${t.name}</h3>
+                    <div class="flex items-center gap-1.5 mt-1">
+                      <span class="text-[10px] px-1.5 py-0.2 rounded-md font-semibold border ${t.levelBadgeColor}">${t.level}</span>
+                      <div class="flex gap-1">
+                        ${t.skills.slice(0, 2).map(s => `<span class="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">${s}</span>`).join('')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                  <button onclick="openQrSheet('${t.id}', event)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:text-indigo-600 grid place-items-center">
+                    <i data-lucide="qr-code" class="w-4 h-4"></i>
+                  </button>
+                  <i data-lucide="${expanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-slate-400"></i>
+                </div>
+              </div>
+
+              ${expanded ? `
+                <div class="px-3.5 pb-3.5 pt-1 space-y-3 border-t border-slate-100">
+                  <!-- 语言切换 -->
+                  <div class="flex items-center justify-between text-xs pt-1">
+                    <span class="text-[11px] text-slate-400">负责班长: <strong class="text-slate-700">${t.monitorName}</strong></span>
+                    <div class="inline-flex rounded-lg bg-slate-100 p-0.5 text-[10px]">
+                      <button onclick="switchTeacherLang('${t.id}', 'zh', event)" class="px-2 py-0.5 rounded font-medium ${isZh ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-400'}">中</button>
+                      <button onclick="switchTeacherLang('${t.id}', 'en', event)" class="px-2 py-0.5 rounded font-medium ${!isZh ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-400'}">EN</button>
+                    </div>
+                  </div>
+
+                  <p class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
+                    ${introText}
+                  </p>
+
+                  <!-- 视频播放 -->
+                  <div class="rounded-xl overflow-hidden bg-slate-900 relative">
+                    ${isPlaying ? `
+                      <video controls autoplay class="w-full h-36 object-cover" src="${t.videoUrl}"></video>
+                    ` : `
+                      <div onclick="playVideo('${t.id}', event)" class="h-28 relative cursor-pointer flex items-center justify-center">
+                        <img src="${t.videoPoster}" class="w-full h-full object-cover" alt="Poster">
+                        <div class="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
+                          <div class="w-9 h-9 rounded-full bg-white text-teal-700 grid place-items-center shadow">
+                            <i data-lucide="play" class="w-4 h-4 fill-current ml-0.5"></i>
+                          </div>
+                        </div>
+                      </div>
+                    `}
+                  </div>
+
+                  <button onclick="showToast('正在进入 ${t.name} 的排课日历...')" class="w-full h-10 bg-teal-600 text-white rounded-xl text-xs font-semibold shadow-xs">
+                    立即约课排班
+                  </button>
+                </div>
+              ` : `
+                <div class="px-3.5 pb-2.5 text-[11px] text-slate-400 line-clamp-1">
+                  ${t.introZh}
+                </div>
+              `}
+            </div>
+          `;
+        }).join('');
+      }
+
+      lucide.createIcons();
+    }
+
+    // 初始化事件绑定
+    document.querySelectorAll('.ctl').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const val = btn.dataset.value;
+        if (group === 'variant') state.variant = val;
+        if (group === 'device') state.device = val;
+        if (group === 'online') state.online = val;
+        syncControls();
+        render();
+      });
+    });
+
+    // 初始执行
+    syncControls();
+    render();
+  </script>
+</body>
+</html>

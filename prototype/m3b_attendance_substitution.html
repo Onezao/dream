@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原型 - M3B 考勤、请假挪位与代课调度全链路 (12.5%配额·24h/3h熔断·同师挪位·代课双视角·小班停课)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#4f46e5', 600: '#4338ca', 700: '#3730a3', 900: '#1e1b4b' }
+      }
+    }
+  }
+}
+</script>
+<style>
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</head>
+<body class="bg-slate-200 text-slate-800 min-h-screen">
+
+<!-- 顶部全局控制台 (多角色·双设备·三时效快捷演练) -->
+<header class="bg-white border-b border-slate-200 px-3 py-2 sticky top-0 z-50 flex flex-wrap gap-2 items-center justify-between text-xs shadow-sm">
+  <div class="flex items-center gap-2">
+    <span class="font-bold text-slate-900 flex items-center gap-1.5">
+      <i data-lucide="calendar-sync" class="w-4 h-4 text-brand-600"></i>M3B 考勤与代课调度
+    </span>
+    <!-- 角色切换 -->
+    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="roleSwitch"></div>
+    <!-- 设备切换 -->
+    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="deviceSwitch"></div>
+  </div>
+
+  <!-- 快捷时限与场景演示切换器 -->
+  <div class="flex items-center gap-2">
+    <span class="text-[11px] text-slate-400">时限场景演示:</span>
+    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="timeScenarioSwitch"></div>
+  </div>
+</header>
+
+<main class="flex justify-center py-4">
+  <div id="frame" class="relative w-[390px] max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[820px] flex flex-col border border-slate-300/60 transition-all">
+
+    <!-- 顶部工作台标题栏 (动态适配角色主题) -->
+    <div id="appHeader" class="bg-teal-700 text-white px-4 py-2.5 flex items-center justify-between shrink-0 transition-colors">
+      <div class="flex items-center gap-2.5">
+        <div id="roleAvatar" class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold text-sm">A</div>
+        <div>
+          <div id="roleTitle" class="text-xs font-semibold leading-tight">Amy · 家长工作台</div>
+          <div id="roleSub" class="text-[10px] text-teal-100">名下学生：AliceZ12 · 课表考勤与请假</div>
+        </div>
+      </div>
+      <div id="topHeaderBadge" class="flex items-center gap-1"></div>
+    </div>
+
+    <!-- 状态与规则提示横幅 -->
+    <div id="scenarioBanner" class="px-4 py-2 bg-amber-50 border-b border-amber-200 text-amber-900 text-[11px] flex items-center justify-between shrink-0">
+      <span class="flex items-center gap-1.5 truncate">
+        <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
+        <span id="scenarioBannerText">距开课 ≥ 24h 正常期：允许退期待排 (扣配额) 或同师挪位 (免扣)</span>
+      </span>
+      <span id="scenarioTag" class="text-[10px] px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 font-bold shrink-0">≥24h</span>
+    </div>
+
+    <!-- 主体动态内容区 (根据角色挂载不同内容) -->
+    <div id="content" class="flex-1 overflow-y-auto p-3.5 space-y-3"></div>
+
+    <!-- 全局轻量 Toast 提示 -->
+    <div id="toast" class="hidden absolute left-1/2 -translate-x-1/2 bottom-12 bg-slate-900/95 text-white text-xs rounded-xl px-4 py-2.5 z-[100] shadow-xl max-w-[90%] text-center flex items-center gap-2">
+      <i id="toastIcon" data-lucide="info" class="w-4 h-4 shrink-0 text-amber-400"></i>
+      <span id="toastText">提示内容</span>
+    </div>
+
+    <!-- 全局半透明遮罩 -->
+    <div id="mask" onclick="closeAllModals()" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] z-40"></div>
+
+    <!-- 弹窗 1A: 家长申请请假二次确认弹窗 (Leave Quota Deduction Dialog) -->
+    <div id="parentLeaveConfirmModal" class="hidden absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3.5 text-xs">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 grid place-items-center">
+              <i data-lucide="calendar-x" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-sm">申请请假 (退回待排期)</h4>
+              <p class="text-[10px] text-slate-400" id="leaveConfirmLessonSub">11-14 (周六) 16:00 · David Miller</p>
+            </div>
+          </div>
+          <button onclick="closeAllModals()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- 配额核销警告卡 -->
+        <div class="p-3 bg-rose-50 rounded-2xl border border-rose-200 text-rose-950 space-y-1.5">
+          <div class="flex items-center justify-between font-bold text-rose-900">
+            <span class="flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600"></i>消耗 1 次请假配额</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-200 text-rose-900 font-semibold" id="leaveQuotaChangeTag">2次 ➔ 1次</span>
+          </div>
+          <p class="text-[11px] text-rose-800 leading-relaxed">
+            请假成功后，该课次将退回待排期，原日历网格立即释放；<b>扣减的配额为永久性消费，后续重新预约并正常完课亦不予返还 (AC-3B-03)</b>。
+          </p>
+        </div>
+
+        <!-- 业务反悔引导条 (引导使用同师挪位) -->
+        <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-950 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-900 text-[11px] flex items-center gap-1">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>不想浪费请假配额？
+            </span>
+            <span class="text-[10px] text-emerald-700 font-semibold">免扣额度</span>
+          </div>
+          <p class="text-[10px] text-amber-800 leading-tight">
+            若孩子仅是本时段冲突，推荐使用【同师挪位】，在前后 7 天内平移至该外教其他空闲格，<b>完全不消耗请假配额</b>！
+          </p>
+          <button onclick="switchToRescheduleFromLeave()" class="w-full h-8 rounded-xl bg-amber-200/80 hover:bg-amber-300 text-amber-950 font-semibold text-xs flex items-center justify-center gap-1 transition">
+            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>切换为同师挪位 (免扣配额)
+          </button>
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button onclick="closeAllModals()" class="w-24 h-9 rounded-xl border border-slate-200 text-slate-600 font-medium">暂不请假</button>
+          <button onclick="executeApplyLeave()" class="flex-1 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-xs">确认请假 (扣1次额度)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗 1B: 同师周度排期网格 Picker 抽屉 (方案 A: 单屏 7 天 Excel 网格模式) -->
+    <section id="rescheduleGridPickerModal" class="hidden absolute inset-0 z-50 bg-white flex flex-col transition-all">
+      <!-- 顶栏 -->
+      <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white grid place-items-center font-bold text-xs">
+            <i data-lucide="calendar-range" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-bold" id="pickerHeaderTeacher">同师改期排盘网格 (David Miller)</h3>
+            <p class="text-[10px] text-slate-400">仅展示原授课外教前后 7 天内的可约时段 (方案 A)</p>
+          </div>
+        </div>
+        <button onclick="closeGridPicker()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- 周度导航与前后 7 天提示 -->
+      <div class="bg-slate-50 border-b border-slate-200 px-3 py-1.5 flex items-center justify-between shrink-0 text-xs">
+        <button onclick="changePickerWeek(-1)" class="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs flex items-center gap-0.5">
+          <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>上周
+        </button>
+        <div class="text-center">
+          <span id="pickerWeekTitle" class="font-bold text-slate-800 text-xs">2026年第46周 (11-09 ~ 11-15)</span>
+          <span class="text-[9px] text-emerald-600 block">🟢 点击绿色单元格选定新排期</span>
+        </div>
+        <button onclick="changePickerWeek(1)" class="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs flex items-center gap-0.5">
+          下周<i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <!-- 图例提示 -->
+      <div class="bg-white border-b border-slate-100 px-3 py-1 text-[10px] flex items-center justify-between text-slate-500 shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded border border-dashed border-amber-500 bg-amber-100"></span>[原]课次</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-500"></span>可挪🟢</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-indigo-600"></span>拟选🟣</span>
+          <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-200"></span>不可选⚪</span>
+        </div>
+        <span class="text-[10px] text-indigo-600 font-medium">限 [-7天, +7天]</span>
+      </div>
+
+      <!-- 单屏 7 天 Excel 风格网格容器 -->
+      <div class="flex-1 overflow-y-auto bg-slate-50 relative">
+        <table id="pickerExcelTable" class="w-full table-fixed border-collapse text-center select-none bg-white">
+          <!-- 动态渲染表头(40px+7列)与时段表体 -->
+        </table>
+      </div>
+
+      <!-- 底部确认操作条 -->
+      <div class="p-3 border-t border-slate-200 bg-white flex flex-col gap-2 shrink-0">
+        <div class="flex items-center justify-between text-xs">
+          <div class="truncate">
+            <span class="text-slate-400 text-[10px] block">平移时段变更对比</span>
+            <span id="pickerCompareText" class="font-bold text-slate-800 text-xs">请点击上方 🟢 绿色时段格</span>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 shrink-0">免扣请假配额</span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="closeGridPicker()" class="w-24 h-9 rounded-xl border border-slate-200 text-slate-600 font-medium text-xs">取消</button>
+          <button id="btnConfirmPickerSlot" onclick="confirmPickerSlot()" disabled class="flex-1 h-9 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-xs flex items-center justify-center gap-1 transition">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>确认平移此排期 (免扣配额)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 弹窗 2: 原教师发起请假弹窗 (Teacher Leave Modal) -->
+    <div id="teacherLeaveModal" class="hidden absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3.5 text-xs">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 grid place-items-center">
+              <i data-lucide="user-minus" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-sm">教师申请请假</h4>
+              <p class="text-[10px] text-slate-400" id="teacherLeaveSub">David Miller · 2026-11-14 16:00</p>
+            </div>
+          </div>
+          <button onclick="closeAllModals()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">请假类型 *</label>
+          <select id="teacherLeaveType" class="w-full h-9 px-2.5 rounded-xl border border-slate-200 text-xs bg-white outline-none">
+            <option value="SICK">因病请假 (如突发咽喉炎/发热)</option>
+            <option value="PERSONAL">因事请假 (个人紧急事务)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">请假事由与交接说明 *</label>
+          <textarea id="teacherLeaveReason" rows="2.5" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs outline-none resize-none" placeholder="请详细描述病情或事由，便于班长为学生协调代课..."></textarea>
+        </div>
+
+        <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[10px] text-amber-900 leading-relaxed">
+          <b>代课派发机制：</b>已有排课单元格请假后，该节 TS 挂起为 <code>PENDING_SUBSTITUTE</code>，您的日历显示 🔴【已请假】，系统即时派发待办卡片给负责班长 Leo 为该学生指派代课外教。
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button onclick="closeAllModals()" class="flex-1 h-9 rounded-xl border border-slate-200 text-slate-600 font-medium">取消</button>
+          <button onclick="submitTeacherLeave()" class="flex-1 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-xs">确认申请请假</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗 3: 班长指派代课教师弹窗 (Substitute Dispatch Modal) -->
+    <div id="substituteDispatchModal" class="hidden absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3.5 text-xs max-h-[90%] overflow-y-auto">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 grid place-items-center">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-sm">指派代课外教</h4>
+              <p class="text-[10px] text-slate-400">学员: AliceZ12 · KET备考</p>
+            </div>
+          </div>
+          <button onclick="closeAllModals()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- 缺课信息卡 -->
+        <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] space-y-1">
+          <div class="flex justify-between"><span>原授课外教：</span><span class="font-semibold text-slate-800">David Miller (因咽喉炎请假)</span></div>
+          <div class="flex justify-between"><span>授课时间：</span><span class="font-mono text-indigo-700 font-bold">2026-11-14 16:00 - 16:30</span></div>
+          <div class="flex justify-between"><span>课程类型：</span><span class="text-slate-800">KET备考 (需匹配KET技能)</span></div>
+          <div class="flex justify-between"><span>资金持有人：</span><span class="text-emerald-700 font-medium">班长 Leo (代课资金持有不变)</span></div>
+        </div>
+
+        <!-- 候选可用代课外教列表 (时段空闲且技能匹配) -->
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1.5">符合技能资质且此时段空闲的外教</label>
+          <div id="subTeacherCandidates" class="space-y-2"></div>
+        </div>
+
+        <!-- 底部兜底操作：实在无人可代课，协商退期待排 -->
+        <div class="pt-2 border-t border-slate-100">
+          <button onclick="showFallbackRefundInput()" class="text-[11px] text-amber-700 hover:underline flex items-center gap-1">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>实在无可用代课外教？与家长协商退期待排
+          </button>
+          <div id="fallbackRefundBox" class="hidden mt-2 p-2.5 bg-amber-50 rounded-xl border border-amber-200 space-y-2">
+            <p class="text-[10px] text-amber-900 leading-tight">
+              <b>免扣除配额保障：</b>因外教请假无法代课而退回待排期的，系统物理强制豁免扣减学生的请假配额 (AC-3B-11)。
+            </p>
+            <input id="fallbackMemo" class="w-full h-8 px-2.5 rounded-lg border border-amber-300 text-xs bg-white outline-none" placeholder="输入与家长协商沟通说明...">
+            <button onclick="doFallbackRefundToPending()" class="w-full h-8 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold">
+              确认协商退回待排期 (豁免扣配额)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 抽屉 4: 代课教师查看学生学情与交接留言板 (Sub Teacher Student Profile Sheet) -->
+    <section id="subMemoSheet" class="hidden absolute inset-x-0 bottom-0 bg-white rounded-t-3xl z-50 shadow-2xl border-t border-slate-200 overflow-hidden flex flex-col max-h-[92%] transition-all">
+      <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto my-2.5 shrink-0"></div>
+      
+      <div class="px-4 pb-2.5 border-b border-slate-100 flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 grid place-items-center">
+            <i data-lucide="book-open" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">代课学情与交接进度</h3>
+            <p class="text-[10px] text-slate-400">学员: AliceZ12 (12岁 · KET备考)</p>
+          </div>
+        </div>
+        <button onclick="closeAllModals()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+        <!-- 代课权益与课酬说明 -->
+        <div class="p-3 rounded-2xl bg-purple-50 border border-purple-200 text-purple-950 space-y-1">
+          <div class="flex items-center justify-between font-bold">
+            <span class="flex items-center gap-1.5"><i data-lucide="coins" class="w-4 h-4 text-purple-700"></i>代课课酬记账归属</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 font-semibold">100% 计入 Elena 周结单</span>
+          </div>
+          <p class="text-[11px] text-purple-800 leading-relaxed">
+            本节完课后，课酬 100% 结算至代课老师 Elena 周课酬单中，原授课外教 David 课酬计数为 0。
+          </p>
+          <div class="pt-1 border-t border-purple-200 text-[10px] text-purple-700">
+            🔒 距开课不足 24 小时时代课刚性锁定，不可撤销，全力保障您的备课权益。
+          </div>
+        </div>
+
+        <!-- 原老师留存的历史教学进度 -->
+        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+          <div class="font-bold text-slate-800 flex items-center justify-between">
+            <span class="flex items-center gap-1"><i data-lucide="message-square" class="w-3.5 h-3.5 text-indigo-600"></i>原任课外教 David 的交接备注</span>
+            <span class="text-[10px] text-slate-400">2天前留存</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-white border border-slate-100 text-slate-700 space-y-1 leading-relaxed text-[11px]">
+            <p><b>【教学进度】：</b>已完成 Lesson 12 自然拼读，掌握全部双元音发音规律；本节需开启 Lesson 13 短元音专项训练。</p>
+            <p><b>【学员性格】：</b>Alice 互动积极、口语自信，但在长时间拼读时容易注意力分散。建议前半段采用闪卡互动游戏破冰。</p>
+          </div>
+        </div>
+
+        <!-- 代课教师追加备课笔记 -->
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">代课老师备课心得 / 教学记录留痕</label>
+          <textarea id="subTeacherNote" rows="2.5" class="w-full p-2.5 rounded-xl border border-slate-200 text-xs outline-none resize-none" placeholder="已准备短元音闪卡PPT与单词配对游戏..."></textarea>
+          <button onclick="saveSubTeacherNote()" class="mt-2 w-full h-8 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-semibold shadow-xs">
+            保存代课交接笔记
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 弹窗 5: 小班课整班停课确认弹窗 (Whole Class Cancel Modal) -->
+    <div id="wholeClassCancelModal" class="hidden absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3.5 text-xs">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 grid place-items-center">
+              <i data-lucide="users" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-slate-900 text-sm">小班整班请假停课</h4>
+              <p class="text-[10px] text-slate-400">KET 冲刺精讲小班 (4人班)</p>
+            </div>
+          </div>
+          <button onclick="closeAllModals()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
+            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">停课日期与时段</label>
+          <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] font-mono text-slate-800">
+            2026-11-15 (周日) 10:00 - 11:00
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">停课事由 *</label>
+          <input id="wholeClassReason" class="w-full h-9 px-3 rounded-xl border border-slate-200 text-xs bg-white outline-none" value="国庆公众假期停课，后续统一补排">
+        </div>
+
+        <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[10px] text-amber-900 space-y-1 leading-relaxed">
+          <p><b>执行联动逻辑：</b></p>
+          <p>1. 该节小班课原子退回班级待排期池中，日历网格置红 🔴【已请假】；</p>
+          <p>2. 系统自动向全班 4 位学员家长发送停课邮件；</p>
+          <p>3. 系统向负责班长发送高优先级邮件与待办卡片，催促班长线下协调后手工选择新时段补排 (决策 6B)。</p>
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button onclick="closeAllModals()" class="flex-1 h-9 rounded-xl border border-slate-200 text-slate-600 font-medium">取消</button>
+          <button onclick="doCancelWholeClass()" class="flex-1 h-9 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-xs">确认整班停课</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+/** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
+
+// ===== 全局状态 =====
+const S = {
+  role: 'parent',        // parent | teacher | sub_teacher | monitor
+  device: 'phone',
+  hours: 32,             // 模拟距开课小时数: 32(≥24h) | 8(3~24h) | 2(<3h)
+  quotaUsed: 0,
+  quotaMax: 2,
+  activeLessonId: null,
+  pickedSlot: null,
+  pickerOffset: 0,       // 0: 当周 W46, 1: 下周 W47
+  pickerSelectedSlot: null,
+  classCancelled: false
+};
+
+// 方案 A：周度 Excel 排期网格数据 (David Miller 前后 7 天时段网格)
+const PICKER_HOURS = ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '19:00', '19:30'];
+const PICKER_WEEKS = {
+  '0': {
+    title: '2026年第46周 (11-09 ~ 11-15)',
+    days: [
+      { key: '2026-11-09', label: '11-09', week: '一', inWindow: true },
+      { key: '2026-11-10', label: '11-10', week: '二', inWindow: true },
+      { key: '2026-11-11', label: '11-11', week: '三', inWindow: true },
+      { key: '2026-11-12', label: '11-12', week: '四', inWindow: true },
+      { key: '2026-11-13', label: '11-13', week: '五', inWindow: true },
+      { key: '2026-11-14', label: '11-14', week: '六', inWindow: true, isOriginDay: true },
+      { key: '2026-11-15', label: '11-15', week: '日', inWindow: true }
+    ],
+    slots: {
+      '2026-11-10_14:30': 'GREEN',
+      '2026-11-11_15:00': 'GREEN',
+      '2026-11-13_16:00': 'GREEN',
+      '2026-11-14_16:00': 'ORIGIN', // 原课次位置
+      '2026-11-15_14:00': 'GREEN',
+      '2026-11-12_19:00': 'OCCUPIED'
+    }
+  },
+  '1': {
+    title: '2026年第47周 (11-16 ~ 11-22)',
+    days: [
+      { key: '2026-11-16', label: '11-16', week: '一', inWindow: true },
+      { key: '2026-11-17', label: '11-17', week: '二', inWindow: true },
+      { key: '2026-11-18', label: '11-18', week: '三', inWindow: true },
+      { key: '2026-11-19', label: '11-19', week: '四', inWindow: true },
+      { key: '2026-11-20', label: '11-20', week: '五', inWindow: true },
+      { key: '2026-11-21', label: '11-21', week: '六', inWindow: true },
+      { key: '2026-11-22', label: '11-22', week: '日', inWindow: false } // 超出 +7 天窗口物理禁用
+    ],
+    slots: {
+      '2026-11-16_17:00': 'GREEN',
+      '2026-11-18_16:30': 'GREEN',
+      '2026-11-20_14:30': 'GREEN',
+      '2026-11-17_19:00': 'OCCUPIED'
+    }
+  }
+};
+
+// 共享课次数据 (AliceZ12 / David Miller / KET备考)
+const LESSONS = [
+  { id: 'L1', type: 'temp',  student: 'AliceZ12', date: '11-14 (周六)', time: '16:00 - 16:30', teacher: 'David Miller', status: 'SCHEDULED', rescheduleCount: 0, sub: null },
+  { id: 'L2', type: 'fixed', student: 'AliceZ12', date: '11-12 (周四)', time: '19:00 - 19:30', teacher: 'David Miller', status: 'SCHEDULED', rescheduleCount: 1, sub: null }
+];
+
+// 同师前后7天空闲时段 (Mock)
+const FREE_SLOTS = [
+  { id: 'F1', label: '11-11 (周三) 15:00 - 15:30', offset: '-3天' },
+  { id: 'F2', label: '11-16 (周一) 17:00 - 17:30', offset: '+2天' },
+  { id: 'F3', label: '11-18 (周三) 16:30 - 17:00', offset: '+4天' },
+  { id: 'F4', label: '11-20 (周五) 14:30 - 15:00', offset: '+6天' }
+];
+
+// 候选代课外教 (技能含KET, 该时段空闲)
+const SUB_CANDIDATES = [
+  { id: 'T_ELENA', name: 'Elena Wright', level: 'Senior', monitor: 'Leo', skills: 'KET / 少儿英语' },
+  { id: 'T_SARAH', name: 'Sarah Jenkins', level: 'Standard', monitor: 'Leo', skills: 'KET / 自然拼读' }
+];
+
+const $ = id => document.getElementById(id);
+const ico = () => lucide.createIcons();
+const lessonById = id => LESSONS.find(l => l.id === id);
+
+function toast(text, isError = false) {
+  $('toastText').textContent = text;
+  $('toastIcon').className = isError ? 'w-4 h-4 shrink-0 text-rose-400' : 'w-4 h-4 shrink-0 text-amber-400';
+  $('toast').classList.remove('hidden');
+  setTimeout(() => $('toast').classList.add('hidden'), 2800);
+}
+
+function seg(el, items, cur, fn) {
+  $(el).innerHTML = items.map(([k, l]) =>
+    `<button onclick="${fn}('${k}')" class="px-2.5 py-1 rounded-md font-medium transition ${String(k) === String(cur) ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">${l}</button>`
+  ).join('');
+}
+
+function renderControls() {
+  seg('roleSwitch', [['parent', '家长 Amy'], ['teacher', '原师 David'], ['sub_teacher', '代课 Elena'], ['monitor', '班长 Leo']], S.role, 'setRole');
+  seg('deviceSwitch', [['phone', '手机 390'], ['tablet', '平板 768']], S.device, 'setDevice');
+  seg('timeScenarioSwitch', [[32, '≥24h 远期'], [8, '3~24h 中段'], [2, '<3h 熔断']], S.hours, 'setHours');
+}
+
+function setDevice(d) {
+  S.device = d;
+  $('frame').className = `relative ${d === 'phone' ? 'w-[390px]' : 'w-[768px]'} max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[820px] flex flex-col border border-slate-300/60 transition-all`;
+  renderControls();
+}
+
+function setHours(h) {
+  S.hours = Number(h);
+  renderAll();
+}
+
+function setRole(r) {
+  S.role = r;
+  const themes = {
+    parent:      { bg: 'bg-teal-700',   av: 'A', title: 'Amy · 家长工作台',   sub: '名下学生：AliceZ12 · 课表考勤与请假', sub2: 'text-teal-100' },
+    teacher:     { bg: 'bg-emerald-700', av: 'D', title: 'David · 原授课教师', sub: '本人课表 · 被代课显示蓝色', sub2: 'text-emerald-100' },
+    sub_teacher: { bg: 'bg-purple-700', av: 'E', title: 'Elena · 代课教师',   sub: '替班课表 · 代上课显示紫色', sub2: 'text-purple-100' },
+    monitor:     { bg: 'bg-slate-900',  av: 'L', title: 'Leo · 班长工作台',   sub: '代课调度与小班停课', sub2: 'text-slate-300' }
+  };
+  const t = themes[r];
+  $('appHeader').className = `${t.bg} text-white px-4 py-2.5 flex items-center justify-between shrink-0 transition-colors`;
+  $('roleAvatar').textContent = t.av;
+  $('roleTitle').textContent = t.title;
+  $('roleSub').textContent = t.sub;
+  $('roleSub').className = `text-[10px] ${t.sub2}`;
+  renderAll();
+}
+
+function renderBanner() {
+  const map = {
+    32: ['距开课 ≥ 24h 正常期：可同师挪位 (免扣) 或临时课退期待排 (扣配额)', '≥24h', 'bg-emerald-50 border-emerald-200 text-emerald-900', 'bg-emerald-200 text-emerald-900'],
+    8:  ['距开课 3~24h 中段：仅支持同师挪位或转让，禁止直接请假退期', '3~24h', 'bg-amber-50 border-amber-200 text-amber-900', 'bg-amber-200 text-amber-900'],
+    2:  ['距开课 < 3h 熔断：全端关闭请假/挪位/转让，缺席照常结课扣费', '<3h', 'bg-rose-50 border-rose-200 text-rose-900', 'bg-rose-200 text-rose-900']
+  };
+  const [text, tag, boxCls, tagCls] = map[S.hours];
+  $('scenarioBanner').className = `px-4 py-2 border-b text-[11px] flex items-center justify-between shrink-0 ${boxCls}`;
+  $('scenarioBannerText').textContent = text;
+  $('scenarioTag').className = `text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 ${tagCls}`;
+  $('scenarioTag').textContent = tag;
+}
+
+function closeAllModals() {
+  ['parentLeaveConfirmModal', 'rescheduleGridPickerModal', 'teacherLeaveModal', 'substituteDispatchModal', 'subMemoSheet', 'wholeClassCancelModal', 'mask']
+    .forEach(id => {
+      const el = $(id);
+      if (el) el.classList.add('hidden');
+    });
+  S.pickerSelectedSlot = null;
+}
+
+function openModal(id) {
+  $('mask').classList.remove('hidden');
+  $(id).classList.remove('hidden');
+  ico();
+}
+
+function renderAll() {
+  renderControls();
+  renderBanner();
+  renderContent();
+  ico();
+}
+</script>
+<script>
+// ===== 课次卡片视觉 =====
+function lessonVisual(l) {
+  if (l.status === 'PENDING_SUBSTITUTE') return { cls: 'bg-rose-50 border-rose-200', chip: 'bg-rose-100 text-rose-700', label: '已请假 · 待代课' };
+  if (l.status === 'PENDING_REBOOK')     return { cls: 'bg-slate-50 border-slate-200', chip: 'bg-slate-200 text-slate-600', label: '已退回待排期' };
+  if (l.status === 'SUBSTITUTED') {
+    return S.role === 'sub_teacher'
+      ? { cls: 'bg-purple-50 border-purple-300', chip: 'bg-purple-600 text-white', label: '代上课' }
+      : { cls: 'bg-blue-50 border-blue-300', chip: 'bg-blue-500 text-white', label: '被代课' };
+  }
+  return l.type === 'fixed'
+    ? { cls: 'bg-amber-50 border-amber-300', chip: 'bg-amber-500 text-white', label: '固定位' }
+    : { cls: 'bg-yellow-50 border-yellow-300', chip: 'bg-yellow-400 text-yellow-950', label: '临时课' };
+}
+
+function lessonNote(l) {
+  if (l.status === 'SUBSTITUTED') {
+    if (S.role === 'teacher') return `由 ${l.sub} 代上，不计入个人课酬`;
+    if (S.role === 'sub_teacher') return '替 David 代课，课酬计入个人周结单';
+    return `本节由代课老师 ${l.sub} 上课`;
+  }
+  if (l.status === 'PENDING_SUBSTITUTE') return S.role === 'parent' ? '教师请假，班长正在协调代课，无需操作' : '等待班长指派代课';
+  if (l.status === 'PENDING_REBOOK') return '课次已退回待排期，配额未被扣减';
+  return `${l.teacher} · KET备考`;
+}
+
+function lessonCard(l, actionHtml) {
+  const v = lessonVisual(l);
+  return `
+    <div class="rounded-2xl border ${v.cls} p-3.5 space-y-2">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${v.chip}">${v.label}</span>
+          <span class="font-bold text-sm text-slate-900">${l.student}</span>
+        </div>
+        <span class="text-[10px] text-slate-400 font-mono">${l.id}</span>
+      </div>
+      <div class="flex items-center justify-between text-xs">
+        <span class="font-mono font-semibold text-slate-800">${l.date} ${l.time}</span>
+        <span class="text-[10px] text-slate-500">挪位 ${l.rescheduleCount}/1</span>
+      </div>
+      <p class="text-[11px] text-slate-600">${lessonNote(l)}</p>
+      ${actionHtml ? `<div class="pt-2 border-t border-slate-200/70 flex justify-end gap-1.5">${actionHtml}</div>` : ''}
+    </div>`;
+}
+
+const btnPrimary = 'h-8 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold';
+const btnGhost = 'h-8 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium';
+const btnLocked = 'h-8 px-3 rounded-lg bg-slate-100 text-slate-400 text-xs font-medium cursor-not-allowed';
+
+// ===== 各角色内容渲染 =====
+function renderContent() {
+  const el = $('content');
+  if (S.role === 'parent') el.innerHTML = renderParent();
+  else if (S.role === 'teacher') el.innerHTML = renderTeacher();
+  else if (S.role === 'sub_teacher') el.innerHTML = renderSubTeacher();
+  else el.innerHTML = renderMonitor();
+  ico();
+}
+
+function renderParent() {
+  const cards = LESSONS.map(l => {
+    const canAct = l.status === 'SCHEDULED';
+    if (!canAct) {
+      return lessonCard(l, '');
+    }
+
+    // 1. 同师挪位按钮 (Accent 主操作, 免扣配额, 1-tap 呼起网格 Picker)
+    let reschedBtn = '';
+    if (S.hours < 3) {
+      reschedBtn = `<button disabled class="${btnLocked}">挪位已锁(&lt;3h)</button>`;
+    } else if (l.rescheduleCount >= 1) {
+      reschedBtn = `<button disabled class="${btnLocked}" title="单节限同师改期1次">已挪位(限1次)</button>`;
+    } else {
+      reschedBtn = `
+        <button onclick="openRescheduleForLesson('${l.id}')" class="h-8 px-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs flex items-center gap-1 transition">
+          <i data-lucide="calendar" class="w-3.5 h-3.5"></i>同师挪位<span class="text-[10px] font-normal opacity-85">免扣</span>
+        </button>`;
+    }
+
+    // 2. 申请请假按钮 (Ghost 次操作, 消耗配额, 呼起核销确认弹窗)
+    let leaveDisabled = '';
+    if (S.hours < 3) leaveDisabled = '请假已锁(&lt;3h)';
+    else if (S.hours < 24) leaveDisabled = '&lt;24h中段禁请假';
+    else if (l.type === 'fixed') leaveDisabled = '固定位禁退期待排';
+    else if (S.quotaUsed >= S.quotaMax) leaveDisabled = '配额已耗尽';
+
+    const leaveBtn = leaveDisabled
+      ? `<button disabled class="${btnLocked}" title="${leaveDisabled}">${leaveDisabled}</button>`
+      : `
+        <button onclick="openLeaveConfirmModal('${l.id}')" class="h-8 px-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-1 transition">
+          <i data-lucide="user-minus" class="w-3.5 h-3.5 text-slate-500"></i>申请请假<span class="text-[10px] font-normal text-rose-600">耗1次</span>
+        </button>`;
+
+    const actionHtml = `<div class="flex items-center gap-1.5 flex-wrap justify-end">${leaveBtn}${reschedBtn}</div>`;
+    return lessonCard(l, actionHtml);
+  }).join('');
+
+  const leftQuota = S.quotaMax - S.quotaUsed;
+  return `
+    <div class="flex items-center justify-between px-1">
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs font-bold text-slate-800">AliceZ12 近期课次</span>
+        <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-mono">共${LESSONS.length}节</span>
+      </div>
+      <div class="flex items-center gap-1 text-[11px]">
+        <span class="text-slate-400">请假配额:</span>
+        <span class="font-bold font-mono ${leftQuota > 0 ? 'text-emerald-600' : 'text-rose-500'}">${leftQuota} / ${S.quotaMax} 次</span>
+      </div>
+    </div>${cards}`;
+}
+
+function renderTeacher() {
+  const cards = LESSONS.map(l => {
+    const act = l.status === 'SCHEDULED'
+      ? `<button onclick="openTeacherLeave('${l.id}')" class="${btnGhost}">申请请假</button>` : '';
+    return lessonCard(l, act);
+  }).join('');
+  return `<div class="px-1 text-xs font-bold text-slate-800">David 本周课表</div>${cards}`;
+}
+
+function renderSubTeacher() {
+  const mine = LESSONS.filter(l => l.status === 'SUBSTITUTED');
+  if (!mine.length) {
+    return `<div class="text-center py-16 text-slate-400 text-xs">暂无代课任务<br><span class="text-[10px]">请先切换到「原师 David」请假，再由「班长 Leo」指派</span></div>`;
+  }
+  return mine.map(l => lessonCard(l,
+    `<button onclick="openModal('subMemoSheet')" class="h-8 px-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold">查看学生教学留言</button>`
+  )).join('');
+}
+
+function renderMonitor() {
+  const pending = LESSONS.filter(l => l.status === 'PENDING_SUBSTITUTE');
+  const subbed = LESSONS.filter(l => l.status === 'SUBSTITUTED');
+  const pendingHtml = pending.length
+    ? pending.map(l => lessonCard(l, `<button onclick="openDispatch('${l.id}')" class="${btnPrimary}">指派代课老师</button>`)).join('')
+    : `<div class="text-center py-6 text-slate-400 text-[11px]">暂无待安排代课工单</div>`;
+  const subbedHtml = subbed.map(l => lessonCard(l,
+    S.hours >= 24
+      ? `<button onclick="revokeSub('${l.id}')" class="${btnGhost}">撤销代课</button>`
+      : `<span class="text-[10px] text-slate-400">开课前24小时内锁定</span>`
+  )).join('');
+  const classCard = S.classCancelled
+    ? `<div class="rounded-2xl border border-amber-300 bg-amber-50 p-3.5 text-xs space-y-1.5">
+         <div class="font-bold text-amber-900 flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>补排待办</div>
+         <p class="text-[11px] text-amber-800">KET 冲刺精讲小班尚有 1 节已停课课次未补排，请与家长沟通后在日历上选定新时间。</p>
+         <button onclick="toast('跳转日历手工补排 (原型占位)')" class="${btnPrimary}">立即补排</button>
+       </div>`
+    : `<div class="rounded-2xl border border-slate-200 bg-white p-3.5 text-xs space-y-2">
+         <div class="flex items-center justify-between">
+           <span class="font-bold text-slate-900">KET 冲刺精讲小班 (4人班)</span>
+           <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-semibold">小班课</span>
+         </div>
+         <div class="font-mono text-slate-700">11-15 (周日) 10:00 - 11:00</div>
+         <div class="flex justify-end"><button onclick="openModal('wholeClassCancelModal')" class="${btnGhost}">整班停课</button></div>
+       </div>`;
+  return `
+    <div class="flex items-center justify-between px-1">
+      <span class="text-xs font-bold text-slate-800">待协调代课</span>
+      <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-bold">${pending.length}</span>
+    </div>
+    ${pendingHtml}
+    ${subbedHtml ? `<div class="px-1 text-xs font-bold text-slate-800 pt-1">已指派代课</div>${subbedHtml}` : ''}
+    <div class="px-1 text-xs font-bold text-slate-800 pt-1">小班课管理</div>
+    ${classCard}`;
+}
+
+// ===== 家长：同师挪位通道 (1-tap 直达周度 Excel 网格 Picker，免扣配额) =====
+function openRescheduleForLesson(id) {
+  const l = lessonById(id);
+  if (!l) return;
+  if (S.hours < 3) {
+    toast('距开课不足3小时，进入授课准备锁定期，无法挪位', true);
+    return;
+  }
+  if (l.rescheduleCount >= 1) {
+    toast('本课次已挪位过 1 次，单节仅限同师改期 1 次 (AC-3B-07)', true);
+    return;
+  }
+  S.activeLessonId = id;
+  S.pickerOffset = 0;
+  S.pickerSelectedSlot = null;
+  $('pickerHeaderTeacher').textContent = `同师改期排盘网格 (${l.teacher})`;
+  $('pickerCompareText').innerHTML = `[原] ${l.date} ${l.time} ➔ <span class="text-slate-400">请点击上方 🟢 绿色时段格</span>`;
+  $('btnConfirmPickerSlot').disabled = true;
+  renderPickerGrid();
+  $('rescheduleGridPickerModal').classList.remove('hidden');
+  ico();
+}
+
+function closeGridPicker() {
+  $('rescheduleGridPickerModal').classList.add('hidden');
+  S.pickerSelectedSlot = null;
+}
+
+function changePickerWeek(delta) {
+  const next = S.pickerOffset + delta;
+  if (next < 0 || next > 1) {
+    toast(delta > 0 ? '已到达前后7天最远窗口' : '已到达最早周');
+    return;
+  }
+  S.pickerOffset = next;
+  renderPickerGrid();
+  ico();
+}
+
+function renderPickerGrid() {
+  const week = PICKER_WEEKS[String(S.pickerOffset)];
+  $('pickerWeekTitle').textContent = week.title;
+  const l = lessonById(S.activeLessonId);
+
+  let html = '<thead><tr class="bg-slate-100 border-b border-slate-200 text-[10px] text-slate-600 font-bold">';
+  html += '<th class="w-[40px] py-1 bg-slate-200 border-r border-slate-300">时段</th>';
+  week.days.forEach(d => {
+    const isOut = !d.inWindow;
+    const isOriginDay = (d.label === '11-14');
+    html += `<th class="py-1 px-0.5 border-r border-slate-200 ${isOriginDay ? 'bg-amber-100/70 text-amber-900 font-bold' : ''} ${isOut ? 'opacity-30' : ''}">
+      <div class="text-[9px] text-slate-400 leading-none">周${d.week}</div>
+      <div class="leading-tight font-semibold mt-0.5">${d.label}</div>
+    </th>`;
+  });
+  html += '</tr></thead><tbody class="divide-y divide-slate-100 text-xs">';
+
+  PICKER_HOURS.forEach(time => {
+    html += `<tr><td class="w-[40px] py-1 bg-slate-100 border-r border-slate-200 text-[10px] font-mono text-slate-500 font-semibold">${time}</td>`;
+    week.days.forEach(d => {
+      const slotKey = `${d.key}_${time}`;
+      const slotType = week.slots[slotKey];
+      const isOut = !d.inWindow;
+      const isPicked = S.pickerSelectedSlot && S.pickerSelectedSlot.dayKey === d.key && S.pickerSelectedSlot.time === time;
+
+      if (isOut) {
+        html += `<td class="p-0.5 border-r border-slate-100 h-7 bg-slate-50 opacity-25 cursor-not-allowed"><div class="w-full h-full rounded text-[9px] text-slate-400 grid place-items-center">超限</div></td>`;
+      } else if (slotType === 'ORIGIN') {
+        html += `<td class="p-0.5 border-r border-slate-100 h-7"><div class="w-full h-full rounded border-2 border-dashed border-amber-500 bg-amber-50 text-amber-900 font-bold text-[9px] grid place-items-center shadow-2xs">[原]课</div></td>`;
+      } else if (slotType === 'OCCUPIED') {
+        html += `<td class="p-0.5 border-r border-slate-100 h-7"><div class="w-full h-full rounded bg-slate-100 text-slate-400 font-medium text-[9px] grid place-items-center cursor-not-allowed">已占</div></td>`;
+      } else if (slotType === 'GREEN') {
+        if (isPicked) {
+          html += `<td onclick="onPickerCellClick('${d.key}', '${time}', '${d.label} (周${d.week})')" class="p-0.5 border-r border-slate-100 h-7 cursor-pointer"><div class="w-full h-full rounded bg-indigo-600 text-white font-bold text-[10px] ring-2 ring-indigo-400 shadow-xs grid place-items-center">拟选</div></td>`;
+        } else {
+          html += `<td onclick="onPickerCellClick('${d.key}', '${time}', '${d.label} (周${d.week})')" class="p-0.5 border-r border-slate-100 h-7 cursor-pointer"><div class="w-full h-full rounded bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold text-[10px] grid place-items-center transition active:scale-95">可挪</div></td>`;
+        }
+      } else {
+        html += `<td class="p-0.5 border-r border-slate-100 h-7 bg-white"><div class="w-full h-full rounded text-slate-200 text-[8px] grid place-items-center">·</div></td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  $('pickerExcelTable').innerHTML = html;
+}
+
+function onPickerCellClick(dayKey, time, dayLabel) {
+  const l = lessonById(S.activeLessonId);
+  S.pickerSelectedSlot = { dayKey, time, dayLabel };
+  $('pickerCompareText').innerHTML = `[原] ${l.date} ${l.time} ➔ <span class="text-indigo-600 font-bold font-mono">[新] ${dayLabel} ${time}</span>`;
+  $('btnConfirmPickerSlot').disabled = false;
+  renderPickerGrid();
+}
+
+function confirmPickerSlot() {
+  if (!S.pickerSelectedSlot) return;
+  const l = lessonById(S.activeLessonId);
+  if (!l) return;
+  l.rescheduleCount = 1;
+  l.date = S.pickerSelectedSlot.dayLabel;
+  l.time = S.pickerSelectedSlot.time;
+  closeGridPicker();
+  renderAll();
+  toast(`🎉 同师改期平移成功！新时段: ${l.date} ${l.time}，免扣请假配额，已同步通知教师 ${l.teacher}`);
+}
+
+// ===== 家长：申请请假通道 (弹窗核销配额 + 业务反悔引导) =====
+function openLeaveConfirmModal(id) {
+  const l = lessonById(id);
+  if (!l) return;
+  if (S.hours < 3) {
+    toast('距开课不足3小时，进入授课准备锁定期，无法请假', true);
+    return;
+  }
+  if (S.hours < 24) {
+    toast('距开课不足24小时，不可直接请假退期，推荐使用【同师挪位】', true);
+    return;
+  }
+  if (l.type === 'fixed') {
+    toast('固定位课次不可请假退回待排期，仅支持同师挪位或转让', true);
+    return;
+  }
+  const remaining = S.quotaMax - S.quotaUsed;
+  if (remaining <= 0) {
+    toast(`本期请假配额已用尽 (${S.quotaMax}次)，无法请假退期`, true);
+    return;
+  }
+  S.activeLessonId = id;
+  $('leaveConfirmLessonSub').textContent = `${l.date} ${l.time} · ${l.teacher} (${l.type === 'fixed' ? '固定位' : '1v1临时课'})`;
+  $('leaveQuotaChangeTag').textContent = `剩余 ${remaining}次 ➔ ${remaining - 1}次`;
+  openModal('parentLeaveConfirmModal');
+}
+
+function switchToRescheduleFromLeave() {
+  const id = S.activeLessonId;
+  closeAllModals();
+  openRescheduleForLesson(id);
+}
+
+function executeApplyLeave() {
+  const l = lessonById(S.activeLessonId);
+  if (!l) return;
+  S.quotaUsed += 1;
+  l.status = 'PENDING_REBOOK';
+  closeAllModals();
+  renderAll();
+  toast(`请假成功：课次已退回待排期，消耗1次配额 (剩余 ${S.quotaMax - S.quotaUsed}/${S.quotaMax} 次，永久不退还)`);
+}
+
+function goToTransferMock() { toast('跳转课程转让流程 (M3C 承载，原型占位)'); }
+
+// ===== 教师请假 =====
+function openTeacherLeave(id) {
+  S.activeLessonId = id;
+  const l = lessonById(id);
+  $('teacherLeaveSub').textContent = `David Miller · ${l.date} ${l.time}`;
+  openModal('teacherLeaveModal');
+}
+
+function submitTeacherLeave() {
+  const reason = $('teacherLeaveReason').value.trim();
+  if (!reason) { toast('请填写请假事由', true); return; }
+  const l = lessonById(S.activeLessonId);
+  l.status = 'PENDING_SUBSTITUTE';
+  closeAllModals();
+  renderAll();
+  toast(S.hours < 24 ? '紧急请假：已并发向班长发送邮件/站内信告警' : '请假已提交，已向班长派发代课待办');
+}
+
+// ===== 班长：指派 / 撤销 / 兜底 / 停课 =====
+function openDispatch(id) {
+  S.activeLessonId = id;
+  $('fallbackRefundBox').classList.add('hidden');
+  $('subTeacherCandidates').innerHTML = SUB_CANDIDATES.map(t => `
+    <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200">
+      <div>
+        <span class="font-semibold text-slate-800">${t.name}</span>
+        <span class="text-[10px] text-slate-400 block">${t.level} · 技能: ${t.skills} · 班长 ${t.monitor}</span>
+      </div>
+      <button onclick="assignSub('${t.name}')" class="${btnPrimary}">指派代课</button>
+    </div>`).join('');
+  openModal('substituteDispatchModal');
+}
+
+function assignSub(name) {
+  const l = lessonById(S.activeLessonId);
+  l.status = 'SUBSTITUTED';
+  l.sub = name.split(' ')[0];
+  closeAllModals();
+  renderAll();
+  toast(`已指派 ${name} 代课，资金持有人保持不变，已通知三方`);
+}
+
+function revokeSub(id) {
+  if (S.hours < 24) { toast('距开课不足24小时，代课已锁定不可撤销', true); return; }
+  const l = lessonById(id);
+  l.status = 'SCHEDULED';
+  l.sub = null;
+  renderAll();
+  toast('已撤销代课，恢复由原老师授课');
+}
+
+function showFallbackRefundInput() { $('fallbackRefundBox').classList.remove('hidden'); }
+
+function doFallbackRefundToPending() {
+  if (!$('fallbackMemo').value.trim()) { toast('请输入协商备注', true); return; }
+  lessonById(S.activeLessonId).status = 'PENDING_REBOOK';
+  closeAllModals();
+  renderAll();
+  toast('已退回待排期，豁免扣减学生请假配额');
+}
+
+function doCancelWholeClass() {
+  if (!$('wholeClassReason').value.trim()) { toast('请填写停课事由', true); return; }
+  S.classCancelled = true;
+  closeAllModals();
+  renderAll();
+  toast('整班停课成功：已通知全班家长，并生成补排催办待办');
+}
+
+function saveSubTeacherNote() {
+  closeAllModals();
+  toast('代课交接笔记已保存');
+}
+
+// 启动
+setRole('parent');
+</script>
+</body>
+</html>

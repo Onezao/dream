@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
+<!-- 即抛型原型：m1d 双权限教学留言板与代课交接。移动端优先 (Mobile First) + 平板自适应 (Tablet)。不触碰生产代码。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>原型 · m1d 双权限教学留言板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
+            internal: { 50: '#f5f3ff', 100: '#ede9fe', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-stone-100 text-slate-800 min-h-screen antialiased">
+
+  <!-- 原型控制台 (顶部控制器) -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-[60]">
+    <div class="max-w-4xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-2 text-xs">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-violet-600"></span>m1d 留言板原型
+        </span>
+        
+        <!-- 角色切换：教师 / 班长 / 家长 / 管理员 -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">当前视角：</span>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="role" data-value="teacher" class="ctl px-2.5 py-1.5 rounded-lg font-medium">教师 (David)</button>
+            <button data-group="role" data-value="parent" class="ctl px-2.5 py-1.5 rounded-lg font-medium">家长 (Amy)</button>
+            <button data-group="role" data-value="monitor" class="ctl px-2.5 py-1.5 rounded-lg font-medium">班长 (Leo)</button>
+            <button data-group="role" data-value="admin" class="ctl px-2.5 py-1.5 rounded-lg font-medium">管理员 (Sarah)</button>
+          </div>
+        </div>
+
+        <!-- 布局变体切换 -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">卡片样式：</span>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="variant" data-value="A" class="ctl px-2.5 py-1.5 rounded-lg font-medium">方案 A：时间流气泡</button>
+            <button data-group="variant" data-value="B" class="ctl px-2.5 py-1.5 rounded-lg font-medium">方案 B：教学备忘卡</button>
+          </div>
+        </div>
+
+        <!-- 设备选择：移动端优先 -->
+        <div class="flex items-center gap-1.5">
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="device" data-value="mobile" class="ctl px-2.5 py-1.5 rounded-lg font-medium">📱 手机</button>
+            <button data-group="device" data-value="tablet" class="ctl px-2.5 py-1.5 rounded-lg font-medium">📟 平板</button>
+          </div>
+        </div>
+      </div>
+
+      <span class="text-slate-400 text-[11px] hidden sm:inline">5分钟内原子撤回 · 双权限物理隔离</span>
+    </div>
+  </header>
+
+  <main class="py-6 px-4 flex justify-center">
+    <!-- 主画框容器：默认 390px 手机触控视口 -->
+    <div id="frame" class="relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[390px] h-[812px] transition-all duration-300">
+
+      <!-- 移动端顶部导航栏：挂载学员档案 -->
+      <div class="h-14 px-4 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?w=100&auto=format&fit=crop&q=80" class="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200" alt="Alice">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold text-slate-900 text-xs">AliceZ12</span>
+              <span class="text-[10px] px-1.5 py-0.2 bg-teal-50 text-teal-700 rounded-md font-medium">大宝 · 12岁</span>
+            </div>
+            <span class="text-[10px] text-slate-400 block leading-none mt-0.5">少儿教务档案教学留言板</span>
+          </div>
+        </div>
+        
+        <!-- 当前角色身份徽标 -->
+        <div id="currentRoleBadge" class="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-medium">
+          <i data-lucide="user" class="w-3 h-3"></i>
+          <span id="roleLabelText">教师 David</span>
+        </div>
+      </div>
+
+      <!-- 权限隔离与隐私提示横幅 -->
+      <div id="privacyBanner" class="px-3.5 py-1.5 bg-violet-50 text-violet-900 text-[11px] flex items-center justify-between border-b border-violet-100 shrink-0">
+        <span class="flex items-center gap-1.5 truncate">
+          <i id="privacyIcon" data-lucide="lock" class="w-3.5 h-3.5 text-violet-600 shrink-0"></i>
+          <span id="privacyText">双权限模式：可发布师生公开或内部交接备忘</span>
+        </span>
+        <span id="revokeTip" class="text-[10px] text-violet-600 font-mono shrink-0">300s 撤回窗口</span>
+      </div>
+
+      <!-- 留言流渲染容器 (支持时间倒序排布) -->
+      <div id="content" class="flex-1 overflow-y-auto p-3.5 space-y-3"></div>
+
+      <!-- 手机端吸底发布控制台 (Touch-Friendly) -->
+      <div class="bg-white border-t border-slate-200 p-3 shrink-0 shadow-lg space-y-2">
+        <!-- 权限可见性胶囊选择器 (家长视角下强制固定公开并隐藏切换) -->
+        <div id="visibilitySelectorRow" class="flex items-center justify-between text-xs">
+          <span class="text-[11px] text-slate-400">留言可见范围：</span>
+          <div class="inline-flex rounded-lg bg-slate-100 p-0.5 text-[11px]">
+            <button type="button" onclick="setVisibility('public')" id="btnVisPublic" class="px-2.5 py-1 rounded-md font-medium bg-white text-slate-900 shadow-2xs transition flex items-center gap-1">
+              <i data-lucide="globe" class="w-3 h-3 text-emerald-600"></i>师生公开
+            </button>
+            <button type="button" onclick="setVisibility('internal')" id="btnVisInternal" class="px-2.5 py-1 rounded-md font-medium text-slate-500 hover:text-slate-900 transition flex items-center gap-1">
+              <i data-lucide="lock" class="w-3 h-3 text-violet-600"></i>仅内部可见
+            </button>
+          </div>
+        </div>
+
+        <!-- 家长端锁定提示 -->
+        <div id="parentLockNote" class="hidden text-[11px] text-slate-400 flex items-center gap-1">
+          <i data-lucide="info" class="w-3.5 h-3.5 text-teal-600"></i>
+          <span>家长留言默认为【师生公开】，全员可见</span>
+        </div>
+
+        <!-- 文本输入与字数统计 -->
+        <div class="relative">
+          <textarea id="messageInput" oninput="handleInput()" maxlength="1000" rows="2" class="w-full p-2.5 pr-14 rounded-xl border border-slate-200 focus:border-violet-600 text-xs outline-none resize-none leading-relaxed" placeholder="写下教学反馈、课堂表现或代课备忘..."></textarea>
+          <span id="charCount" class="absolute right-2.5 bottom-2.5 text-[10px] text-slate-400 font-mono">0/1000</span>
+        </div>
+
+        <!-- 发送动作按钮 -->
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] text-slate-400 flex items-center gap-1">
+            <i data-lucide="timer" class="w-3 h-3"></i>发布后 5 分钟内可自主撤回
+          </span>
+          <button onclick="postMessage()" id="btnPost" class="h-8 px-4 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1 transition">
+            <span>发送</span>
+            <i data-lucide="send" class="w-3 h-3"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 管理员争议软删除二次确认弹窗 (AC-1D-07, AC-1D-08) -->
+      <div id="adminDeleteModal" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-5">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl space-y-3.5 text-center">
+          <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 mx-auto grid place-items-center">
+            <i data-lucide="shield-alert" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">管理员下架争议留言</h4>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+              执行软删除后，该条留言将对所有角色物理隐藏，操作过程将完整记入运营审计日志。
+            </p>
+          </div>
+          <div class="text-left">
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">下架处理原因 (必填 2-200 字) *</label>
+            <input id="deleteReasonInput" class="w-full h-9 px-3 rounded-xl border border-slate-200 text-xs outline-none" placeholder="如：涉及学员隐私纠纷，协商下架">
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button onclick="closeDeleteModal()" class="flex-1 h-10 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">取消</button>
+            <button onclick="confirmAdminDelete()" class="flex-1 h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs">确认下架</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast 提示 -->
+      <div id="toast" class="absolute left-1/2 -translate-x-1/2 bottom-20 z-[100] hidden px-4 py-2 rounded-xl bg-slate-900/90 text-white text-xs shadow-lg whitespace-nowrap"></div>
+    </div>
+  </main>
+  <script>
+    // 假数据：完全对齐 AC-1D-01 ~ AC-1D-10 业务规范
+    const now = Date.now();
+    let mockMessages = [
+      {
+        id: 'msg_001',
+        authorRole: 'teacher',
+        authorName: 'David Miller (正课老师)',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
+        visibility: 'public_teacher_student',
+        content: 'Alice 今天完成了 KET Unit 3 过去时态精读与单词拓展，课堂回答问题非常积极！课后请完成 Workbook P24-25 语法练习。',
+        createdAt: now - 95 * 1000, // 95秒前发布，处于 300 秒原子撤回时效内！
+        isRevoked: false
+      },
+      {
+        id: 'msg_002',
+        authorRole: 'teacher',
+        authorName: 'David Miller (正课老师)',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
+        visibility: 'internal_teaching_only',
+        content: '【内部代课备忘】Alice 对不规则动词过去式拼写有点抗拒，容易产生挫败感。下周二若由代课老师接手，建议开课先用 5 分钟小卡片游戏调动自信，切勿直接批评。',
+        createdAt: now - 3600 * 1000, // 1小时前
+        isRevoked: false
+      },
+      {
+        id: 'msg_003',
+        authorRole: 'parent',
+        authorName: 'Amy (家长)',
+        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&auto=format&fit=crop&q=80',
+        visibility: 'public_teacher_student',
+        content: '收到老师反馈！今晚已督促她打卡完成了练习册，发音录音已经提交在 ClassIn 作业区了，感谢 David 老师耐心的启发！',
+        createdAt: now - 86400 * 1000, // 昨天
+        isRevoked: false
+      },
+      {
+        id: 'msg_004',
+        authorRole: 'monitor',
+        authorName: 'Leo (负责班长)',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80',
+        visibility: 'internal_teaching_only',
+        content: '【教务备忘】已向家长同步下周外教年假代课安排，Sarah 老师已确认接单，教材与当前课次进度均已在后台完成交接。',
+        createdAt: now - 172800 * 1000, // 2天前
+        isRevoked: false
+      }
+    ];
+
+    const state = {
+      role: 'teacher', // 'teacher' | 'parent' | 'monitor' | 'admin'
+      variant: 'A', // 'A' (时间流气泡) | 'B' (教学备忘卡)
+      device: 'mobile', // 'mobile' (390px) | 'tablet' (768px)
+      selectedVisibility: 'public', // 'public' | 'internal'
+      selectedDeleteMsgId: null
+    };
+
+    function formatTime(timestamp) {
+      const diffSec = Math.floor((Date.now() - timestamp) / 1000);
+      if (diffSec < 60) return '刚刚';
+      if (diffSec < 3600) return `${Math.floor(diffSec / 60)} 分钟前`;
+      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} 小时前`;
+      return '1 天前';
+    }
+
+    function getRevokeRemainingSec(timestamp) {
+      const elapsed = Math.floor((Date.now() - timestamp) / 1000);
+      return Math.max(0, 300 - elapsed);
+    }
+
+    function syncControls() {
+      document.querySelectorAll('.ctl').forEach(btn => {
+        const group = btn.dataset.group;
+        const val = btn.dataset.value;
+        const isActive = (group === 'role' && state.role === val) ||
+                         (group === 'variant' && state.variant === val) ||
+                         (group === 'device' && state.device === val);
+        btn.className = isActive 
+          ? 'ctl px-2.5 py-1.5 rounded-lg font-medium bg-white text-slate-900 shadow-sm transition' 
+          : 'ctl px-2.5 py-1.5 rounded-lg font-medium text-slate-500 hover:text-slate-800 transition';
+      });
+
+      // 画框尺寸
+      const frame = document.getElementById('frame');
+      const content = document.getElementById('content');
+      if (state.device === 'tablet') {
+        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[768px] h-[860px] transition-all duration-300';
+        content.className = 'flex-1 overflow-y-auto p-4 space-y-3';
+      } else {
+        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[390px] h-[812px] transition-all duration-300';
+        content.className = 'flex-1 overflow-y-auto p-3.5 space-y-3';
+      }
+
+      // 顶部角色徽标与横幅
+      const roleTextMap = {
+        teacher: '授课教师 David',
+        parent: '学员家长 Amy',
+        monitor: '带班班长 Leo',
+        admin: '管理员 Sarah'
+      };
+      document.getElementById('roleLabelText').textContent = roleTextMap[state.role];
+
+      const privacyBanner = document.getElementById('privacyBanner');
+      const privacyIcon = document.getElementById('privacyIcon');
+      const privacyText = document.getElementById('privacyText');
+      const visRow = document.getElementById('visibilitySelectorRow');
+      const parentLockNote = document.getElementById('parentLockNote');
+      const btnPost = document.getElementById('btnPost');
+
+      if (state.role === 'parent') {
+        // 家长端物理隔离 (AC-1D-02, AC-1D-03)
+        privacyBanner.className = 'px-3.5 py-1.5 bg-teal-50 text-teal-900 text-[11px] flex items-center justify-between border-b border-teal-100 shrink-0';
+        privacyIcon.setAttribute('data-lucide', 'shield-check');
+        privacyIcon.className = 'w-3.5 h-3.5 text-teal-600 shrink-0';
+        privacyText.textContent = '师生公开视图 · 内部教学评语已物理屏蔽隔离';
+        visRow.classList.add('hidden');
+        parentLockNote.classList.remove('hidden');
+        state.selectedVisibility = 'public';
+        btnPost.className = 'h-8 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1 transition';
+      } else {
+        privacyBanner.className = 'px-3.5 py-1.5 bg-violet-50 text-violet-900 text-[11px] flex items-center justify-between border-b border-violet-100 shrink-0';
+        privacyIcon.setAttribute('data-lucide', 'lock');
+        privacyIcon.className = 'w-3.5 h-3.5 text-violet-600 shrink-0';
+        privacyText.textContent = '双权限模式：支持发公开反馈或内部代课备忘';
+        visRow.classList.remove('hidden');
+        parentLockNote.classList.add('hidden');
+        btnPost.className = 'h-8 px-4 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center gap-1 transition';
+      }
+
+      lucide.createIcons();
+    }
+
+    function setVisibility(type) {
+      if (state.role === 'parent') return; // 家长不可更改
+      state.selectedVisibility = type;
+      const btnPublic = document.getElementById('btnVisPublic');
+      const btnInternal = document.getElementById('btnVisInternal');
+
+      if (type === 'public') {
+        btnPublic.className = 'px-2.5 py-1 rounded-md font-medium bg-white text-slate-900 shadow-2xs transition flex items-center gap-1';
+        btnInternal.className = 'px-2.5 py-1 rounded-md font-medium text-slate-500 hover:text-slate-900 transition flex items-center gap-1';
+      } else {
+        btnInternal.className = 'px-2.5 py-1 rounded-md font-medium bg-white text-slate-900 shadow-2xs transition flex items-center gap-1';
+        btnPublic.className = 'px-2.5 py-1 rounded-md font-medium text-slate-500 hover:text-slate-900 transition flex items-center gap-1';
+      }
+    }
+
+    function handleInput() {
+      const val = document.getElementById('messageInput').value;
+      document.getElementById('charCount').textContent = `${val.length}/1000`;
+    }
+
+    function postMessage() {
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) {
+        showToast('请输入留言内容');
+        return;
+      }
+
+      const authorMap = {
+        teacher: { name: 'David Miller (正课老师)', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80' },
+        parent: { name: 'Amy (家长)', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&auto=format&fit=crop&q=80' },
+        monitor: { name: 'Leo (负责班长)', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80' },
+        admin: { name: 'Sarah (管理员)', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&auto=format&fit=crop&q=80' }
+      };
+
+      const vis = (state.role === 'parent') ? 'public_teacher_student' : 
+                  (state.selectedVisibility === 'internal' ? 'internal_teaching_only' : 'public_teacher_student');
+
+      const newMsg = {
+        id: `msg_${Date.now()}`,
+        authorRole: state.role,
+        authorName: authorMap[state.role].name,
+        avatar: authorMap[state.role].avatar,
+        visibility: vis,
+        content: text,
+        createdAt: Date.now(), // 启动 300 秒倒计时
+        isRevoked: false
+      };
+
+      mockMessages.unshift(newMsg);
+      input.value = '';
+      handleInput();
+      showToast('✅ 留言已发布！5分钟内可撤回');
+      render();
+    }
+
+    function revokeMessage(id) {
+      const msg = mockMessages.find(m => m.id === id);
+      if (msg) {
+        const remaining = getRevokeRemainingSec(msg.createdAt);
+        if (remaining <= 0) {
+          alert('【撤回拦截】超过 300 秒（5分钟）撤回时效，留言已永久归档锁定 (AC-1D-05)！');
+          return;
+        }
+        msg.isRevoked = true;
+        showToast('已撤回该条留言并从界面移除');
+        render();
+      }
+    }
+
+    function openDeleteModal(id) {
+      state.selectedDeleteMsgId = id;
+      document.getElementById('adminDeleteModal').classList.remove('hidden');
+    }
+    function closeDeleteModal() {
+      document.getElementById('adminDeleteModal').classList.add('hidden');
+    }
+    function confirmAdminDelete() {
+      const reason = document.getElementById('deleteReasonInput').value.trim();
+      if (!reason || reason.length < 2) {
+        alert('请填写至少 2 字的下架删除原因（将记入审计日志）');
+        return;
+      }
+      const msg = mockMessages.find(m => m.id === state.selectedDeleteMsgId);
+      if (msg) {
+        msg.isRevoked = true;
+        showToast(`已下架留言，删除原因已记入 dream.audit_logs 审计日志`);
+      }
+      closeDeleteModal();
+      render();
+    }
+
+    function showToast(text) {
+      const t = document.getElementById('toast');
+      t.textContent = text;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2400);
+    }
+
+    function render() {
+      const container = document.getElementById('content');
+      
+      // 核心业务规则：若为家长角色，物理过滤掉 internal_teaching_only (AC-1D-03)
+      let visibleList = mockMessages.filter(m => !m.isRevoked);
+      if (state.role === 'parent') {
+        visibleList = visibleList.filter(m => m.visibility === 'public_teacher_student');
+      }
+
+      if (visibleList.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 text-slate-400">
+            <i data-lucide="message-square-off" class="w-10 h-10 mx-auto mb-2 text-slate-300"></i>
+            <p class="text-xs">暂无留言记录</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      if (state.variant === 'A') {
+        // 方案 A：时间流气泡卡 (Mobile Chat Stream)
+        container.innerHTML = visibleList.map(m => {
+          const isInternal = m.visibility === 'internal_teaching_only';
+          const remainingSec = getRevokeRemainingSec(m.createdAt);
+          const isMyMessage = (state.role === m.authorRole);
+          const canRevoke = isMyMessage && remainingSec > 0;
+          const isAdmin = (state.role === 'admin');
+
+          return `
+            <div class="flex gap-2.5 items-start">
+              <img src="${m.avatar}" class="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200 shrink-0 mt-0.5" alt="">
+              <div class="flex-1 min-w-0">
+                <!-- 头部：发布者姓名、可见性徽标与时间戳 -->
+                <div class="flex items-center justify-between gap-1 mb-1">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-xs font-bold text-slate-900 truncate">${m.authorName}</span>
+                    ${isInternal ? `
+                      <span class="text-[10px] px-1.5 py-0.2 rounded-md font-semibold bg-violet-100 text-violet-800 border border-violet-200 flex items-center gap-0.5">
+                        <i data-lucide="lock" class="w-2.5 h-2.5"></i>仅内部可见
+                      </span>
+                    ` : `
+                      <span class="text-[10px] px-1.5 py-0.2 rounded-md font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        师生公开
+                      </span>
+                    `}
+                  </div>
+                  <span class="text-[10px] text-slate-400 shrink-0 font-mono">${formatTime(m.createdAt)}</span>
+                </div>
+
+                <!-- 消息气泡正文 -->
+                <div class="p-3 rounded-2xl text-xs leading-relaxed ${isInternal ? 'bg-violet-50/80 border border-violet-200/80 text-violet-950' : 'bg-white border border-slate-200 text-slate-800'} shadow-2xs">
+                  ${m.content}
+                </div>
+
+                <!-- 操作栏：300s 撤回倒计时或管理员软删除 -->
+                <div class="flex items-center justify-end gap-2 mt-1">
+                  ${canRevoke ? `
+                    <button onclick="revokeMessage('${m.id}')" class="text-[11px] text-violet-700 hover:text-violet-900 font-medium flex items-center gap-1 bg-violet-100/60 px-2 py-0.5 rounded-lg">
+                      <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                      <span>撤回 (${remainingSec}s)</span>
+                    </button>
+                  ` : ''}
+
+                  ${isAdmin ? `
+                    <button onclick="openDeleteModal('${m.id}')" class="text-[11px] text-rose-600 hover:text-rose-800 font-medium flex items-center gap-0.5">
+                      <i data-lucide="trash-2" class="w-3 h-3"></i>
+                      <span>下架</span>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        // 方案 B：教学备忘卡片 (Structured Memo Card)
+        container.innerHTML = visibleList.map(m => {
+          const isInternal = m.visibility === 'internal_teaching_only';
+          const remainingSec = getRevokeRemainingSec(m.createdAt);
+          const isMyMessage = (state.role === m.authorRole);
+          const canRevoke = isMyMessage && remainingSec > 0;
+          const isAdmin = (state.role === 'admin');
+
+          return `
+            <div class="bg-white rounded-2xl border ${isInternal ? 'border-violet-200 ring-1 ring-violet-100' : 'border-slate-200'} p-3.5 shadow-xs space-y-2">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                  <img src="${m.avatar}" class="w-7 h-7 rounded-full object-cover" alt="">
+                  <div>
+                    <div class="text-xs font-bold text-slate-900 leading-none">${m.authorName}</div>
+                    <span class="text-[10px] text-slate-400 font-mono">${formatTime(m.createdAt)}</span>
+                  </div>
+                </div>
+
+                ${isInternal ? `
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-violet-100 text-violet-800 flex items-center gap-1">
+                    <i data-lucide="lock" class="w-3 h-3"></i>代课内部交接
+                  </span>
+                ` : `
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800">
+                    公开课后反馈
+                  </span>
+                `}
+              </div>
+
+              <p class="text-xs text-slate-700 leading-relaxed">${m.content}</p>
+
+              <div class="pt-1 flex items-center justify-between text-[11px] text-slate-400">
+                <span class="text-[10px]">${isInternal ? '仅教师、代课教师与班长可见' : '家长与学员全员可见'}</span>
+                
+                <div class="flex items-center gap-2">
+                  ${canRevoke ? `
+                    <button onclick="revokeMessage('${m.id}')" class="text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1">
+                      <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                      <span>撤回 (${remainingSec}s)</span>
+                    </button>
+                  ` : ''}
+
+                  ${isAdmin ? `
+                    <button onclick="openDeleteModal('${m.id}')" class="text-rose-600 hover:text-rose-800 font-medium flex items-center gap-1">
+                      <i data-lucide="trash-2" class="w-3 h-3"></i>
+                      <span>下架</span>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      lucide.createIcons();
+    }
+
+    // 倒计时心跳循环：每秒更新 300 秒原子撤回时效
+    setInterval(() => {
+      // 检查是否有任何处于 300 秒内的消息
+      const hasActiveRevoke = mockMessages.some(m => !m.isRevoked && getRevokeRemainingSec(m.createdAt) > 0);
+      if (hasActiveRevoke) {
+        render();
+      }
+    }, 1000);
+
+    // 控制台事件
+    document.querySelectorAll('.ctl').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const val = btn.dataset.value;
+        if (group === 'role') state.role = val;
+        if (group === 'variant') state.variant = val;
+        if (group === 'device') state.device = val;
+        syncControls();
+        render();
+      });
+    });
+
+    syncControls();
+    render();
+  </script>
+</body>
+</html>

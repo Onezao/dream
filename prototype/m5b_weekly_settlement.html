@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原型 - M5B 周结单与教师发薪</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-200 text-slate-800 min-h-screen">
+
+<header class="sticky top-0 z-50 border-b border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
+  <div class="flex items-center justify-between gap-2">
+    <span class="flex min-w-0 items-center gap-1.5 font-bold text-slate-900">
+      <i data-lucide="wallet" class="h-4 w-4 shrink-0 text-sky-700"></i>
+      <span class="truncate">M5B 周结单与教师发薪</span>
+    </span>
+    <div class="flex shrink-0 items-center gap-2">
+      <span class="hidden text-[11px] text-slate-400 md:inline">只出节数 · 周一 03:00 跑批</span>
+      <button onclick="resetPrototype()" class="flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] text-slate-600 transition hover:bg-slate-200">
+        <i data-lucide="rotate-ccw" class="h-3 w-3"></i>重置
+      </button>
+    </div>
+  </div>
+  <div class="mt-2 flex flex-wrap items-center gap-1.5">
+    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="roleSwitch"></div>
+    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="viewSwitch"></div>
+    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="deviceSwitch"></div>
+  </div>
+</header>
+
+<main class="flex justify-center py-4">
+  <div id="frame" class="relative w-[390px] max-w-full bg-white rounded-2xl shadow-xl overflow-hidden h-[840px] flex flex-col border border-slate-300/60 transition-all">
+    <div id="appHeader" class="shrink-0"></div>
+    <div id="content" class="flex-1 overflow-y-auto"></div>
+    <div id="drawerRoot"></div>
+    <div id="modalRoot"></div>
+    <div id="toast" class="hidden absolute left-1/2 -translate-x-1/2 bottom-6 z-[100] bg-slate-900/95 text-white text-[11px] rounded-xl px-4 py-2.5 shadow-xl max-w-[86%] text-center flex items-center gap-2">
+      <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+      <span id="toastText"></span>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Number(n).toLocaleString('en-US');
+const clone = (v) => JSON.parse(JSON.stringify(v));
+
+const WEEK = { code: '2026-W45', range: '11-02 至 11-08', batch: '11-09 03:00' };
+
+const USERS = {
+  david: { title: 'David Miller · 教师工作台', sub: '课酬对账 · 只出节数', avatar: 'D', theme: 'bg-sky-800', badge: '教师端' },
+  elena: { title: 'Elena Rossi · 教师工作台', sub: '课酬对账 · 代课归集', avatar: 'E', theme: 'bg-sky-800', badge: '教师端' },
+  sarah: { title: 'Sarah · 管理员后台', sub: '财务中心 · 周结算与发薪', avatar: 'S', theme: 'bg-slate-900', badge: '管理员' }
+};
+
+const INIT_TEACHERS = [
+  {
+    id: 'david', name: 'David Miller', level: 'A2', rate: 25, prepRate: 10,
+    regular: 10, sub: 2, prep: 3, group: 0,
+    status: 'PENDING', txn: '', note: '',
+    adjust: 0, adjustReason: '', adjustRef: '',
+    taken: [{ date: '11-04', dow: '周三', time: '15:00-15:50', student: 'AliceZ12', by: 'Elena Rossi' }],
+    stream: [
+      { date: '11-02', dow: '周一', time: '16:00-16:50', student: 'AliceZ12', type: '1v1', prep: false, subFor: '' },
+      { date: '11-02', dow: '周一', time: '17:00-17:50', student: 'BobZ10', type: '1v1', prep: false, subFor: 'Lily Chen' },
+      { date: '11-03', dow: '周二', time: '18:00-18:50', student: 'CharlieZ08', type: '1v1', prep: true, subFor: '' },
+      { date: '11-04', dow: '周三', time: '16:00-16:50', student: 'TomZ11', type: '1v1', prep: false, subFor: 'Kevin Zhou' },
+      { date: '11-05', dow: '周四', time: '19:00-19:50', student: 'EthanW12', type: '1v1', prep: true, subFor: '' },
+      { date: '11-06', dow: '周五', time: '20:00-20:50', student: 'WendyY07', type: '1v1', prep: false, subFor: '' },
+      { date: '11-07', dow: '周六', time: '10:00-10:50', student: 'DaisyL09', type: '1v1', prep: true, subFor: '' },
+      { date: '11-08', dow: '周日', time: '11:00-11:50', student: 'AliceZ12', type: '1v1', prep: false, subFor: '' }
+    ]
+  },
+  {
+    id: 'elena', name: 'Elena Rossi', level: 'A2', rate: 25, prepRate: 10,
+    regular: 4, sub: 2, prep: 1, group: 3,
+    status: 'PENDING', txn: '', note: '',
+    adjust: 0, adjustReason: '', adjustRef: '',
+    taken: [],
+    stream: [
+      { date: '11-02', dow: '周一', time: '14:00-14:50', student: 'AliceZ12', type: '1v1', prep: false, subFor: '' },
+      { date: '11-03', dow: '周二', time: '15:00-15:50', student: 'BobZ10', type: '1v1', prep: false, subFor: 'Kevin Zhou' },
+      { date: '11-04', dow: '周三', time: '15:00-15:50', student: 'AliceZ12', type: '1v1', prep: false, subFor: 'David Miller' },
+      { date: '11-05', dow: '周四', time: '17:00-17:50', student: 'CharlieZ08', type: '1v1', prep: true, subFor: '' },
+      { date: '11-06', dow: '周五', time: '10:00-10:50', student: 'TomZ11', type: '1v1', prep: false, subFor: '' },
+      { date: '11-06', dow: '周五', time: '18:00-18:50', student: 'DaisyL09', type: '小班', prep: false, subFor: '' },
+      { date: '11-07', dow: '周六', time: '09:00-09:50', student: 'WendyY07', type: '小班', prep: false, subFor: '' },
+      { date: '11-08', dow: '周日', time: '10:00-10:50', student: 'AliceZ12', type: '1v1', prep: false, subFor: '' }
+    ]
+  },
+  {
+    id: 'lily', name: 'Lily Chen', level: 'B1', rate: 18, prepRate: 6,
+    regular: 14, sub: 0, prep: 2, group: 6,
+    status: 'PAID', txn: 'WISE-20261109-8841', note: '',
+    adjust: 0, adjustReason: '', adjustRef: '',
+    taken: [
+      { date: '11-05', dow: '周四', time: '18:00-18:50', student: 'CharlieZ08', by: 'Kevin Zhou' },
+      { date: '11-04', dow: '周三', time: '17:00-17:50', student: 'BobZ10', by: 'Mia Wang' }
+    ],
+    stream: [
+      { date: '11-02', dow: '周一', time: '19:00-19:50', student: 'AliceZ12', type: '1v1', prep: false, subFor: '' },
+      { date: '11-03', dow: '周二', time: '19:00-19:50', student: 'BobZ10', type: '1v1', prep: true, subFor: '' },
+      { date: '11-04', dow: '周三', time: '17:00-17:50', student: 'CharlieZ08', type: '小班', prep: false, subFor: '' },
+      { date: '11-05', dow: '周四', time: '18:00-18:50', student: 'DaisyL09', type: '小班', prep: false, subFor: '' },
+      { date: '11-06', dow: '周五', time: '19:00-19:50', student: 'EthanW12', type: '1v1', prep: true, subFor: '' }
+    ]
+  },
+  {
+    id: 'kevin', name: 'Kevin Zhou', level: 'B1', rate: 18, prepRate: 6,
+    regular: 8, sub: 3, prep: 1, group: 2,
+    status: 'PENDING', txn: '', note: '',
+    adjust: 0, adjustReason: '', adjustRef: '',
+    taken: [{ date: '11-03', dow: '周二', time: '15:00-15:50', student: 'BobZ10', by: 'Elena Rossi' }],
+    stream: [
+      { date: '11-02', dow: '周一', time: '10:00-10:50', student: 'EthanW12', type: '1v1', prep: true, subFor: '' },
+      { date: '11-03', dow: '周二', time: '16:00-16:50', student: 'DaisyL09', type: '小班', prep: false, subFor: '' },
+      { date: '11-04', dow: '周三', time: '16:00-16:50', student: 'WendyY07', type: '小班', prep: false, subFor: '' },
+      { date: '11-05', dow: '周四', time: '18:00-18:50', student: 'CharlieZ08', type: '1v1', prep: false, subFor: 'Lily Chen' },
+      { date: '11-06', dow: '周五', time: '16:00-16:50', student: 'TomZ11', type: '1v1', prep: false, subFor: 'David Miller' }
+    ]
+  },
+  {
+    id: 'mia', name: 'Mia Wang', level: 'A1', rate: 30, prepRate: 12,
+    regular: 6, sub: 1, prep: 0, group: 1,
+    status: 'PAID', txn: 'PAY-20261109-2210', note: '',
+    adjust: 0, adjustReason: '', adjustRef: '',
+    taken: [],
+    stream: [
+      { date: '11-02', dow: '周一', time: '11:00-11:50', student: 'WendyY07', type: '1v1', prep: false, subFor: '' },
+      { date: '11-03', dow: '周二', time: '15:00-15:50', student: 'CharlieZ08', type: '小班', prep: false, subFor: '' },
+      { date: '11-04', dow: '周三', time: '17:00-17:50', student: 'BobZ10', type: '1v1', prep: false, subFor: 'Lily Chen' },
+      { date: '11-05', dow: '周四', time: '11:00-11:50', student: 'AliceZ12', type: '1v1', prep: false, subFor: '' }
+    ]
+  }
+];
+
+const PLATFORM = {
+  total: 660,
+  oneOnOne: 100,
+  groupFee: 372,
+  commission: 188,
+  lessons: 62,
+  contributions: [
+    { name: 'David Miller', oneOnOne: 24, groupFee: 0, commission: 0 },
+    { name: 'Elena Rossi', oneOnOne: 12, groupFee: 72, commission: 40 },
+    { name: 'Lily Chen', oneOnOne: 28, groupFee: 216, commission: 96 },
+    { name: 'Kevin Zhou', oneOnOne: 22, groupFee: 48, commission: 32 },
+    { name: 'Mia Wang', oneOnOne: 14, groupFee: 36, commission: 20 }
+  ],
+  tsRows: [
+    { id: 'TS-8F2A41', date: '11-02', teacher: 'David Miller', student: 'AliceZ12', fee: 2, commission: 0 },
+    { id: 'TS-3D1E55', date: '11-03', teacher: 'David Miller', student: 'BobZ10', fee: 2, commission: 0 },
+    { id: 'TS-6A9F10', date: '11-04', teacher: 'Lily Chen', student: 'DaisyL09', fee: 36, commission: 16 },
+    { id: 'TS-2B8C44', date: '11-05', teacher: 'Elena Rossi', student: 'WendyY07', fee: 24, commission: 10 },
+    { id: 'TS-7C4D12', date: '11-05', teacher: 'Kevin Zhou', student: 'EthanW12', fee: 2, commission: 0 },
+    { id: 'TS-9E5A73', date: '11-06', teacher: 'Lily Chen', student: 'CharlieZ08', fee: 36, commission: 18 },
+    { id: 'TS-1F8B20', date: '11-07', teacher: 'Elena Rossi', student: 'DaisyL09', fee: 24, commission: 14 },
+    { id: 'TS-5A3C09', date: '11-08', teacher: 'Mia Wang', student: 'AliceZ12', fee: 36, commission: 20 }
+  ]
+};
+
+function initialState() {
+  return {
+    role: 'david',
+    view: 'sheet',
+    device: 'phone',
+    week: WEEK.code,
+    teachers: clone(INIT_TEACHERS),
+    modal: null,
+    paidId: null,
+    txn: '',
+    note: '',
+    adjustId: null,
+    adjustDir: '+',
+    adjustCount: 1,
+    adjustReason: '',
+    detailId: null,
+    takenOpen: false,
+    feeTab: 'teacher',
+    statusFilter: 'ALL',
+    search: '',
+    seq: 1
+  };
+}
+
+let S = initialState();
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function teacherById(id) { return S.teachers.find((t) => t.id === id); }
+function totalOf(t) { return t.regular + t.sub + t.group + t.adjust; }
+function refOf(t) { return t.rate * totalOf(t) + t.prepRate * t.prep; }
+
+function statusChip(status) {
+  if (status === 'PAID') {
+    return `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-700"><i data-lucide="lock" class="h-2.5 w-2.5"></i>已打款</span>`;
+  }
+  return `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9px] font-semibold text-amber-700"><i data-lucide="clock" class="h-2.5 w-2.5"></i>待发薪</span>`;
+}
+
+function applyFrameSize() {
+  $('frame').className = `relative ${S.device === 'tablet' ? 'w-[760px]' : 'w-[390px]'} max-w-full bg-white rounded-2xl shadow-xl overflow-hidden h-[840px] flex flex-col border border-slate-300/60 transition-all`;
+}
+
+function refreshIcons() {
+  if (window.lucide) lucide.createIcons();
+}
+
+let toastTimer = null;
+function toast(msg) {
+  $('toastText').textContent = msg;
+  $('toast').classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('toast').classList.add('hidden'), 2400);
+}
+
+function resetScroll() {
+  const c = $('content');
+  if (c) c.scrollTop = 0;
+}
+
+function renderControls() {
+  const roles = [['david', 'David 教师'], ['elena', 'Elena 代课'], ['sarah', 'Sarah 管理员']];
+  $('roleSwitch').innerHTML = roles.map(([key, label]) =>
+    `<button onclick="setRole('${key}')" class="rounded-md px-2 py-1 text-[11px] transition ${S.role === key ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">${label}</button>`
+  ).join('');
+
+  const viewEl = $('viewSwitch');
+  if (S.role === 'sarah') {
+    viewEl.classList.remove('hidden');
+    const views = [['grid', '教师结算'], ['fee', '平台工具费']];
+    viewEl.innerHTML = views.map(([key, label]) =>
+      `<button onclick="setView('${key}')" class="rounded-md px-2 py-1 text-[11px] transition ${S.view === key ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">${label}</button>`
+    ).join('');
+  } else {
+    viewEl.classList.add('hidden');
+    viewEl.innerHTML = '';
+  }
+
+  $('deviceSwitch').innerHTML = [['phone', '手机'], ['tablet', '平板']].map(([key, label]) =>
+    `<button onclick="setDevice('${key}')" class="rounded-md px-2 py-1 text-[11px] transition ${S.device === key ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">${label}</button>`
+  ).join('');
+}
+
+function renderHeader() {
+  const u = USERS[S.role];
+  $('appHeader').innerHTML = `
+    <div class="${u.theme} flex items-center justify-between px-4 py-3 text-white">
+      <div class="flex min-w-0 items-center gap-2.5">
+        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-[12px] font-bold">${u.avatar}</div>
+        <div class="min-w-0">
+          <div class="truncate text-[12px] font-semibold">${u.title}</div>
+          <div class="truncate text-[9px] text-white/60">${u.sub}</div>
+        </div>
+      </div>
+      <span class="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] text-white/80">${u.badge}</span>
+    </div>`;
+}
+
+function renderAll() {
+  applyFrameSize();
+  const contentEl = $('content');
+  const contentScroll = contentEl ? contentEl.scrollTop : 0;
+  renderControls();
+  renderHeader();
+  renderContent();
+  renderOverlay();
+  const next = $('content');
+  if (next) next.scrollTop = contentScroll;
+  refreshIcons();
+}
+
+function setRole(role) {
+  S.role = role;
+  S.view = role === 'sarah' ? 'grid' : 'sheet';
+  S.device = role === 'sarah' ? 'tablet' : 'phone';
+  S.modal = null;
+  S.detailId = null;
+  S.takenOpen = false;
+  S.statusFilter = 'ALL';
+  S.search = '';
+  resetScroll();
+  renderAll();
+}
+
+function setView(view) {
+  S.view = view;
+  S.modal = null;
+  S.detailId = null;
+  resetScroll();
+  renderAll();
+}
+
+function setDevice(device) {
+  S.device = device;
+  renderAll();
+}
+
+function toggleTaken() {
+  S.takenOpen = !S.takenOpen;
+  renderAll();
+}
+
+function resetPrototype() {
+  S = initialState();
+  resetScroll();
+  renderAll();
+}
+
+function renderContent() {
+  if (S.role === 'sarah') {
+    $('content').innerHTML = S.view === 'fee' ? feeView() : gridView();
+  } else {
+    $('content').innerHTML = teacherSheet(S.role);
+  }
+}
+
+function teacherSheet(id) {
+  const t = teacherById(id);
+  const total = totalOf(t);
+  const isPaid = t.status === 'PAID';
+  const attended = t.regular + t.sub + t.group;
+  return `
+  <div class="space-y-3 p-3.5">
+    <div class="flex items-end justify-between gap-2">
+      <label class="block">
+        <span class="mb-1 block text-[9px] text-slate-500">账期</span>
+        <div class="relative">
+          <select class="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-7 text-[10px] font-medium text-slate-700 outline-none focus:border-sky-500">
+            <option>${WEEK.code}</option>
+            <option disabled>2026-W44 已归档</option>
+          </select>
+          <i data-lucide="chevron-down" class="pointer-events-none absolute right-2 top-2 h-3 w-3 text-slate-400"></i>
+        </div>
+      </label>
+      ${statusChip(t.status)}
+    </div>
+
+    ${isPaid
+      ? `<div class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+           <i data-lucide="check-circle-2" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600"></i>
+           <div class="min-w-0">
+             <div class="text-[10px] font-semibold text-emerald-900">本周课酬已打款 · 11-09</div>
+             <div class="mt-0.5 truncate font-mono text-[9px] text-emerald-700">${esc(t.txn)}</div>
+           </div>
+         </div>`
+      : `<div class="flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2">
+           <i data-lucide="calendar-check" class="h-3.5 w-3.5 shrink-0 text-sky-600"></i>
+           <div class="text-[10px] text-sky-900">周结算跑批完成 <span class="font-mono text-sky-700">${WEEK.batch}</span></div>
+         </div>`}
+
+    <section class="rounded-2xl bg-sky-900 px-4 py-4 text-white">
+      <div class="text-[10px] text-sky-200">当周实际出勤总节数</div>
+      <div class="mt-1.5 flex items-baseline gap-1.5">
+        <span class="text-[44px] font-bold leading-none tracking-tight">${total}</span>
+        <span class="text-[12px] text-sky-200">节</span>
+        ${t.adjust !== 0 ? `<span class="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[9px] font-semibold text-slate-900">含调整 ${t.adjust > 0 ? '+' : ''}${t.adjust}</span>` : ''}
+      </div>
+      <div class="mt-2 text-[9px] text-sky-200/80">${WEEK.code} · ${WEEK.range}</div>
+    </section>
+
+    <div class="grid grid-cols-2 gap-2">
+      ${metricTile('1v1 正课', t.regular)}
+      ${metricTile('代上课', t.sub, 'text-violet-700', t.sub > 0 ? 'border-violet-200 bg-violet-50' : '')}
+      ${metricTile('含额外备课', t.prep)}
+      ${metricTile('小班课', t.group)}
+    </div>
+
+    <div class="flex items-center justify-between pt-1">
+      <h2 class="text-[11px] font-semibold text-slate-900">授课明细</h2>
+      <span class="text-[9px] text-slate-400">${t.stream.length} / ${attended} 节</span>
+    </div>
+    <div class="space-y-1.5">${t.stream.map(streamRow).join('')}</div>
+
+    ${t.adjust !== 0 ? teacherAdjustRow(t) : ''}
+    ${t.taken.length ? takenBlock(t) : ''}
+  </div>`;
+}
+
+function metricTile(label, value, valueCls = 'text-slate-900', extra = '') {
+  return `
+    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 ${extra}">
+      <div class="text-[9px] text-slate-500">${label}</div>
+      <div class="mt-1 text-[22px] font-bold leading-none ${valueCls}">${value}<span class="ml-0.5 text-[9px] font-normal text-slate-400">节</span></div>
+    </div>`;
+}
+
+function streamRow(s) {
+  return `
+    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-x-1.5 text-[10px] font-semibold text-slate-800">
+            <span class="font-mono">${s.date}</span><span class="font-normal text-slate-400">${s.dow}</span>
+            <span class="font-mono font-normal text-slate-500">${s.time}</span>
+          </div>
+          <div class="mt-0.5 text-[10px] text-slate-500">${s.student} · ${s.type}</div>
+        </div>
+        <div class="flex shrink-0 flex-wrap justify-end gap-1">
+          ${s.subFor ? `<span class="whitespace-nowrap rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[9px] font-semibold text-violet-700">代课 · 替 ${s.subFor}</span>` : ''}
+          ${s.prep ? `<span class="whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-600">备课费</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function teacherAdjustRow(t) {
+  return `
+    <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-semibold text-amber-900">差额调整 · ${t.adjust > 0 ? '补发' : '扣减'} ${Math.abs(t.adjust)} 节</span>
+        <span class="font-mono text-[12px] font-bold text-amber-900">${t.adjust > 0 ? '+' : ''}${t.adjust}</span>
+      </div>
+      <div class="mt-1 flex items-center justify-between gap-2">
+        <span class="text-[9px] text-amber-800">${esc(t.adjustReason)}</span>
+        <span class="shrink-0 font-mono text-[8px] text-amber-700">${esc(t.adjustRef)}</span>
+      </div>
+    </div>`;
+}
+
+function takenBlock(t) {
+  return `
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+      <button onclick="toggleTaken()" class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left">
+        <span class="text-[10px] font-medium text-slate-600">当周被代课记录备查（共 ${t.taken.length} 节，不计入课酬）</span>
+        <i data-lucide="${S.takenOpen ? 'chevron-up' : 'chevron-down'}" class="h-3.5 w-3.5 shrink-0 text-slate-400"></i>
+      </button>
+      ${S.takenOpen ? `<div class="space-y-2 border-t border-slate-200 bg-white px-3 py-2.5">${t.taken.map((x) => `
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="text-[10px] font-semibold text-slate-700"><span class="font-mono">${x.date}</span> ${x.dow} <span class="font-mono font-normal text-slate-400">${x.time}</span></div>
+            <div class="mt-0.5 text-[9px] text-slate-500">${x.student} · 原授课教师</div>
+          </div>
+          <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-600">接代 ${x.by}</span>
+        </div>`).join('')}</div>` : ''}
+    </div>`;
+}
+
+function filteredTeachers() {
+  const q = S.search.trim().toLowerCase();
+  return S.teachers.filter((t) => {
+    const statusOk = S.statusFilter === 'ALL' || t.status === S.statusFilter;
+    const searchOk = !q || t.name.toLowerCase().includes(q);
+    return statusOk && searchOk;
+  });
+}
+
+function gridView() {
+  const pending = S.teachers.filter((t) => t.status === 'PENDING').length;
+  const paid = S.teachers.length - pending;
+  const refSum = S.teachers.reduce((sum, t) => sum + refOf(t), 0);
+  const filters = [['ALL', '全部'], ['PENDING', '待发薪'], ['PAID', '已打款']];
+  return `
+  <div class="space-y-3 p-3.5">
+    <div class="rounded-xl border border-slate-200 bg-white p-2.5">
+      <div class="flex flex-wrap items-end gap-2">
+        <label class="block shrink-0">
+          <span class="mb-1 block text-[9px] text-slate-500">账期</span>
+          <div class="relative">
+            <select class="h-[30px] appearance-none rounded-lg border border-slate-200 bg-white pl-2 pr-6 text-[10px] font-medium text-slate-700 outline-none focus:border-sky-500">
+              <option>${WEEK.code}</option>
+              <option disabled>2026-W44 已归档</option>
+            </select>
+            <i data-lucide="chevron-down" class="pointer-events-none absolute right-1.5 top-[9px] h-3 w-3 text-slate-400"></i>
+          </div>
+        </label>
+        <div class="shrink-0">
+          <span class="mb-1 block text-[9px] text-slate-500">状态</span>
+          <div class="flex gap-1">
+            ${filters.map(([key, label]) => `<button onclick="setStatusFilter('${key}')" class="h-[30px] rounded-lg px-2 text-[10px] transition ${S.statusFilter === key ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 text-slate-500 hover:text-slate-700'}">${label}</button>`).join('')}
+          </div>
+        </div>
+        <label class="block w-28 shrink-0">
+          <span class="mb-1 block text-[9px] text-slate-500">教师</span>
+          <div class="relative">
+            <i data-lucide="search" class="absolute left-2 top-[9px] h-3 w-3 text-slate-400"></i>
+            <input id="teacherSearch" value="${esc(S.search)}" oninput="onSearch(this.value)" placeholder="姓名" class="h-[30px] w-full rounded-lg border border-slate-200 bg-white pl-6 pr-2 text-[10px] outline-none focus:border-sky-500">
+          </div>
+        </label>
+        <button onclick="exportGrid()" class="ml-auto flex h-[30px] items-center gap-1 rounded-lg border border-slate-200 px-2 text-[10px] text-slate-600 transition hover:bg-slate-50">
+          <i data-lucide="download" class="h-3 w-3"></i>导出
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3 text-[9px] text-slate-500">
+      <span>${S.teachers.length} 位教师</span>
+      <span class="text-amber-600">待发薪 ${pending}</span>
+      <span class="text-emerald-600">已打款 ${paid}</span>
+      <span class="ml-auto font-mono text-[10px] text-slate-700">参考合计 ${fmt(refSum)}</span>
+    </div>
+
+    <div id="gridBody">${gridBody()}</div>
+  </div>`;
+}
+
+function setStatusFilter(filter) {
+  S.statusFilter = filter;
+  resetScroll();
+  renderAll();
+}
+
+function onSearch(value) {
+  S.search = value;
+  const body = $('gridBody');
+  if (body) {
+    body.innerHTML = gridBody();
+    refreshIcons();
+  }
+}
+
+function gridBody() {
+  const rows = filteredTeachers();
+  if (!rows.length) {
+    return `<div class="rounded-xl border border-dashed border-slate-200 bg-white py-10 text-center">
+      <i data-lucide="search-x" class="mx-auto h-5 w-5 text-slate-300"></i>
+      <div class="mt-2 text-[10px] text-slate-400">没有匹配的教师</div>
+    </div>`;
+  }
+  return S.device === 'tablet' ? gridTable(rows) : `<div class="space-y-2">${rows.map(gridCard).join('')}</div>`;
+}
+
+function gridTable(rows) {
+  return `
+  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <table class="w-full table-fixed border-collapse text-left">
+      <thead class="bg-slate-50 text-[9px] text-slate-500">
+        <tr>
+          <th class="w-[23%] px-1.5 py-2 font-medium">教师</th>
+          <th class="w-[7%] px-1 py-2 font-medium">定级</th>
+          <th class="w-[19%] px-1 py-2 font-medium">节数构成</th>
+          <th class="w-[7%] px-1 py-2 text-center font-medium">总计</th>
+          <th class="w-[11%] px-1 py-2 text-right font-medium">参考金额</th>
+          <th class="w-[13%] px-1 py-2 font-medium">状态</th>
+          <th class="w-[20%] px-1.5 py-2 text-right font-medium">操作</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        ${rows.map((t) => `
+        <tr class="transition hover:bg-slate-50/70">
+          <td class="px-1.5 py-2">
+            <div class="flex min-w-0 items-center gap-1.5">
+              <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[9px] font-semibold text-slate-600">${t.name.charAt(0)}</div>
+              <span class="truncate text-[10px] font-semibold text-slate-800">${t.name}</span>
+            </div>
+          </td>
+          <td class="px-1 py-2"><span class="rounded bg-slate-100 px-1 py-0.5 text-[9px] text-slate-600">${t.level}</span></td>
+          <td class="px-1 py-2">
+            <div class="whitespace-nowrap text-[9px] text-slate-600">1v1 <span class="font-semibold text-slate-800">${t.regular}</span> · 代 <span class="font-semibold ${t.sub ? 'text-violet-700' : 'text-slate-800'}">${t.sub}</span></div>
+            <div class="mt-0.5 whitespace-nowrap text-[9px] text-slate-400">备课 ${t.prep} · 小班 ${t.group}</div>
+          </td>
+          <td class="px-1 py-2 text-center">
+            <div class="text-[12px] font-bold text-slate-900">${totalOf(t)}</div>
+            ${t.adjust !== 0 ? `<div class="text-[8px] text-amber-600">含调整 ${t.adjust > 0 ? '+' : ''}${t.adjust}</div>` : ''}
+          </td>
+          <td class="px-1.5 py-2 text-right"><span class="font-mono text-[11px] font-semibold text-slate-800">${fmt(refOf(t))}</span></td>
+          <td class="px-1 py-2">
+            ${statusChip(t.status)}
+            ${t.txn ? `<div class="mt-0.5 max-w-[84px] truncate font-mono text-[8px] text-slate-400" title="${esc(t.txn)}">${esc(t.txn)}</div>` : ''}
+          </td>
+          <td class="px-1.5 py-2"><div class="flex justify-end gap-1">${rowActions(t)}</div></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function gridCard(t) {
+  return `
+  <div class="rounded-xl border border-slate-200 bg-white p-3">
+    <div class="flex items-start justify-between gap-2">
+      <div class="flex min-w-0 items-center gap-2">
+        <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600">${t.name.charAt(0)}</div>
+        <div class="min-w-0">
+          <div class="truncate text-[11px] font-semibold text-slate-900">${t.name}</div>
+          <div class="text-[9px] text-slate-400">定级 ${t.level}</div>
+        </div>
+      </div>
+      ${statusChip(t.status)}
+    </div>
+
+    <div class="mt-2.5 grid grid-cols-5 gap-1 text-center">
+      ${miniCount('1v1', t.regular)}
+      ${miniCount('代课', t.sub, t.sub ? 'text-violet-700' : '')}
+      ${miniCount('备课', t.prep)}
+      ${miniCount('小班', t.group)}
+      <div class="rounded-lg bg-slate-900 py-1">
+        <div class="text-[8px] text-slate-400">总计</div>
+        <div class="text-[13px] font-bold text-white">${totalOf(t)}</div>
+      </div>
+    </div>
+
+    <div class="mt-2.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+      <div class="text-[9px] text-slate-400">参考金额 <span class="font-mono text-[12px] font-semibold text-slate-800">${fmt(refOf(t))}</span></div>
+      <div class="flex gap-1">${rowActions(t)}</div>
+    </div>
+    ${t.txn ? `<div class="mt-1 truncate font-mono text-[8px] text-slate-400">${esc(t.txn)}</div>` : ''}
+  </div>`;
+}
+
+function miniCount(label, value, cls = '') {
+  return `<div class="rounded-lg bg-slate-50 py-1">
+    <div class="text-[8px] text-slate-400">${label}</div>
+    <div class="text-[13px] font-semibold ${cls || 'text-slate-800'}">${value}</div>
+  </div>`;
+}
+
+function rowActions(t) {
+  const base = 'h-6 rounded px-1.5 text-[9px] transition';
+  if (t.status === 'PAID') {
+    return `<button onclick="downloadSlip('${t.id}')" class="${base} border border-slate-200 text-slate-600 hover:bg-slate-50">对账单</button>
+            <button onclick="openDetail('${t.id}')" class="${base} border border-slate-200 text-slate-600 hover:bg-slate-50">明细</button>`;
+  }
+  return `<button onclick="openPaid('${t.id}')" class="${base} bg-sky-700 font-semibold text-white hover:bg-sky-800">打款</button>
+          <button onclick="openAdjust('${t.id}')" class="${base} border border-slate-200 text-slate-600 hover:bg-slate-50">调整</button>
+          <button onclick="openDetail('${t.id}')" class="${base} border border-slate-200 text-slate-600 hover:bg-slate-50">明细</button>`;
+}
+
+function openDetail(id) {
+  S.detailId = id;
+  renderDetail();
+  refreshIcons();
+}
+
+function closeDetail() {
+  S.detailId = null;
+  renderDetail();
+  refreshIcons();
+}
+
+function renderDetail() {
+  const root = $('drawerRoot');
+  if (!S.detailId) { root.innerHTML = ''; return; }
+  const t = teacherById(S.detailId);
+  if (!t) { root.innerHTML = ''; return; }
+  const isPaid = t.status === 'PAID';
+  const attended = t.regular + t.sub + t.group;
+  root.innerHTML = `
+  <div class="absolute inset-0 z-[55] flex justify-end bg-slate-900/50" onclick="if(event.target===this)closeDetail()">
+    <div class="flex h-full w-[88%] max-w-[440px] flex-col bg-white shadow-2xl">
+      <div class="flex items-start justify-between gap-2 border-b border-slate-200 px-4 py-3">
+        <div class="min-w-0">
+          <div class="truncate text-[12px] font-semibold text-slate-900">${t.name}</div>
+          <div class="mt-0.5 text-[9px] text-slate-400">${WEEK.code} · 定级 ${t.level} · 教师结算单</div>
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          ${statusChip(t.status)}
+          <button onclick="closeDetail()" class="text-slate-400 transition hover:text-slate-600"><i data-lucide="x" class="h-4 w-4"></i></button>
+        </div>
+      </div>
+
+      <div class="flex-1 space-y-3 overflow-y-auto p-3.5">
+        ${isPaid ? `<div class="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+          <i data-lucide="lock" class="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600"></i>
+          <div class="min-w-0">
+            <div class="text-[10px] font-semibold text-emerald-900">已打款并冻结</div>
+            <div class="mt-0.5 truncate font-mono text-[9px] text-emerald-700">${esc(t.txn)}</div>
+            <div class="mt-0.5 text-[9px] text-emerald-700">全部 TS 已结算，不可回退</div>
+          </div>
+        </div>` : ''}
+
+        <div class="rounded-xl bg-slate-900 p-3 text-white">
+          <div class="flex items-end justify-between">
+            <div>
+              <div class="text-[9px] text-slate-400">总节数</div>
+              <div class="mt-0.5 text-[26px] font-bold leading-none">${totalOf(t)}<span class="ml-1 text-[9px] font-normal text-slate-400">节</span></div>
+            </div>
+            <div class="text-right">
+              <div class="text-[9px] text-slate-400">参考金额</div>
+              <div class="font-mono text-[16px] font-semibold">${fmt(refOf(t))}</div>
+            </div>
+          </div>
+          <div class="mt-2 font-mono text-[9px] text-slate-400">${t.regular} + ${t.sub} + ${t.group}${t.adjust !== 0 ? ` ${t.adjust > 0 ? '+' : '-'} ${Math.abs(t.adjust)}` : ''} 节</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          ${metricTile('1v1 正课', t.regular)}
+          ${metricTile('代上课', t.sub, 'text-violet-700', t.sub > 0 ? 'border-violet-200 bg-violet-50' : '')}
+          ${metricTile('含额外备课', t.prep)}
+          ${metricTile('小班课', t.group)}
+        </div>
+
+        ${t.adjust !== 0 ? teacherAdjustRow(t) : ''}
+
+        <div class="flex items-center justify-between pt-1">
+          <h3 class="text-[11px] font-semibold text-slate-900">授课明细</h3>
+          <span class="text-[9px] text-slate-400">${t.stream.length} / ${attended} 节</span>
+        </div>
+        <div class="space-y-1.5">${t.stream.map(streamRow).join('')}</div>
+
+        ${t.taken.length ? `<div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+          <div class="text-[10px] font-medium text-slate-600">被代课记录（${t.taken.length} 节，不计入）</div>
+          <div class="mt-2 space-y-1.5">${t.taken.map((x) => `<div class="flex items-center justify-between gap-2 text-[9px]">
+            <span class="text-slate-600"><span class="font-mono">${x.date}</span> ${x.time} · ${x.student}</span>
+            <span class="shrink-0 text-slate-400">接代 ${x.by}</span>
+          </div>`).join('')}</div>
+        </div>` : ''}
+      </div>
+
+      <div class="flex gap-2 border-t border-slate-200 px-4 py-3">
+        <button onclick="closeDetail()" class="flex-1 rounded-lg border border-slate-200 py-2 text-[11px] text-slate-600 transition hover:bg-slate-50">关闭</button>
+        ${isPaid
+          ? `<button onclick="downloadSlip('${t.id}')" class="flex flex-1 items-center justify-center gap-1 rounded-lg bg-slate-900 py-2 text-[11px] font-semibold text-white transition hover:bg-slate-800"><i data-lucide="download" class="h-3 w-3"></i>下载对账单</button>`
+          : `<button onclick="openAdjust('${t.id}')" class="flex-1 rounded-lg border border-slate-200 py-2 text-[11px] text-slate-600 transition hover:bg-slate-50">差额调整</button>
+             <button onclick="openPaid('${t.id}')" class="flex flex-1 rounded-lg bg-sky-700 py-2 text-[11px] font-semibold text-white transition hover:bg-sky-800">标记打款</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function exportGrid() {
+  toast('结算表已导出 CSV（原型示意）');
+}
+
+function downloadSlip(id) {
+  const t = teacherById(id);
+  toast(`${t.name} 的周对账单已生成（原型示意）`);
+}
+
+function feeView() {
+  const f = PLATFORM;
+  return `
+  <div class="space-y-3 p-3.5">
+    <div class="flex items-end justify-between gap-2">
+      <label class="block">
+        <span class="mb-1 block text-[9px] text-slate-500">账期</span>
+        <div class="relative">
+          <select class="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-2.5 pr-7 text-[10px] font-medium text-slate-700 outline-none focus:border-sky-500">
+            <option>${WEEK.code}</option>
+            <option disabled>2026-W44 已归档</option>
+          </select>
+          <i data-lucide="chevron-down" class="pointer-events-none absolute right-2 top-2 h-3 w-3 text-slate-400"></i>
+        </div>
+      </label>
+      <button onclick="exportFee()" class="flex h-[30px] items-center gap-1 rounded-lg border border-slate-200 px-2 text-[10px] text-slate-600 transition hover:bg-slate-50">
+        <i data-lucide="download" class="h-3 w-3"></i>导出报表
+      </button>
+    </div>
+
+    <section class="rounded-2xl bg-slate-900 p-4 text-white">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <div class="text-[10px] text-slate-400">平台周净利润</div>
+          <div class="mt-1 flex items-baseline gap-1">
+            <span class="text-[36px] font-bold leading-none tracking-tight">${fmt(f.total)}</span>
+            <span class="text-[10px] text-slate-400">积分</span>
+          </div>
+        </div>
+        <div class="text-right text-[9px] leading-relaxed text-slate-400">
+          <div class="font-mono">${WEEK.code}</div>
+          <div>${f.lessons} 节已结算 TS</div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex h-2.5 overflow-hidden rounded-full bg-slate-700">
+        <div class="h-full w-[15%] shrink-0 bg-sky-300"></div>
+        <div class="h-full w-[57%] shrink-0 bg-sky-500"></div>
+        <div class="h-full w-[28%] shrink-0 bg-sky-700"></div>
+      </div>
+      <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px]">
+        <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-sky-300"></span><span class="text-slate-300">1v1</span><span class="font-mono text-white">${f.oneOnOne}</span></span>
+        <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-sky-500"></span><span class="text-slate-300">小班</span><span class="font-mono text-white">${f.groupFee}</span></span>
+        <span class="flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-sky-700"></span><span class="text-slate-300">抽佣</span><span class="font-mono text-white">${f.commission}</span></span>
+      </div>
+
+      <div class="mt-3 space-y-1.5 border-t border-white/10 pt-2.5">
+        <div class="flex items-center justify-between text-[9px]">
+          <span class="text-slate-300">1v1 工具费 <span class="ml-1 text-slate-500">50 节 × 2</span></span>
+          <span class="font-mono text-white">${f.oneOnOne}</span>
+        </div>
+        <div class="flex items-center justify-between text-[9px]">
+          <span class="text-slate-300">小班工具费 <span class="ml-1 text-slate-500">Σ Max × 6</span></span>
+          <span class="font-mono text-white">${f.groupFee}</span>
+        </div>
+        <div class="flex items-center justify-between text-[9px]">
+          <span class="text-slate-300">小班抽佣 <span class="ml-1 text-slate-500">Σ 正盈余 × R%</span></span>
+          <span class="font-mono text-white">${f.commission}</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="flex rounded-lg bg-slate-100 p-0.5">
+      <button onclick="setFeeTab('teacher')" class="flex-1 rounded-md px-2 py-1.5 text-[10px] transition ${S.feeTab === 'teacher' ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">按教师贡献</button>
+      <button onclick="setFeeTab('ts')" class="flex-1 rounded-md px-2 py-1.5 text-[10px] transition ${S.feeTab === 'ts' ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">TS 单节明细</button>
+    </div>
+
+    ${S.feeTab === 'teacher' ? contributionPanel() : tsPanel()}
+
+    <div class="flex items-center justify-between text-[9px] text-slate-400">
+      <span>结算口径：已结算 TS 计入，冻结重算不计</span>
+      <span class="font-mono">${WEEK.code}</span>
+    </div>
+  </div>`;
+}
+
+function setFeeTab(tab) {
+  S.feeTab = tab;
+  renderAll();
+}
+
+function contributionPanel() {
+  const f = PLATFORM;
+  if (S.device === 'phone') {
+    return `<div class="space-y-2">${f.contributions.map((c) => `
+      <div class="rounded-xl border border-slate-200 bg-white p-3">
+        <div class="flex items-center justify-between gap-2">
+          <span class="truncate text-[11px] font-semibold text-slate-900">${c.name}</span>
+          <span class="font-mono text-[15px] font-bold text-slate-900">${c.oneOnOne + c.groupFee + c.commission}</span>
+        </div>
+        <div class="mt-2 grid grid-cols-3 gap-1">
+          <div class="rounded-lg bg-slate-50 px-2 py-1.5"><div class="text-[8px] text-slate-400">1v1 工具费</div><div class="font-mono text-[11px] font-semibold text-slate-700">${c.oneOnOne}</div></div>
+          <div class="rounded-lg bg-slate-50 px-2 py-1.5"><div class="text-[8px] text-slate-400">小班工具费</div><div class="font-mono text-[11px] font-semibold text-slate-700">${c.groupFee}</div></div>
+          <div class="rounded-lg bg-slate-50 px-2 py-1.5"><div class="text-[8px] text-slate-400">抽佣</div><div class="font-mono text-[11px] font-semibold text-slate-700">${c.commission}</div></div>
+        </div>
+      </div>`).join('')}
+      <div class="flex items-center justify-between rounded-xl bg-slate-900 px-3 py-2.5 text-white">
+        <span class="text-[10px] font-semibold">合计</span>
+        <span class="font-mono text-[14px] font-bold">${fmt(f.total)}</span>
+      </div>
+    </div>`;
+  }
+  return `
+  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <table class="w-full table-fixed border-collapse text-left">
+      <thead class="bg-slate-50 text-[9px] text-slate-500">
+        <tr>
+          <th class="w-[32%] px-2 py-2 font-medium">教师</th>
+          <th class="w-[18%] px-1 py-2 text-right font-medium">1v1 工具费</th>
+          <th class="w-[20%] px-1 py-2 text-right font-medium">小班工具费</th>
+          <th class="w-[14%] px-1 py-2 text-right font-medium">抽佣</th>
+          <th class="w-[16%] px-2 py-2 text-right font-medium">合计</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        ${f.contributions.map((c) => `
+        <tr class="transition hover:bg-slate-50/70">
+          <td class="truncate px-2 py-2 text-[10px] font-medium text-slate-800">${c.name}</td>
+          <td class="px-1 py-2 text-right font-mono text-[10px] text-slate-600">${c.oneOnOne}</td>
+          <td class="px-1 py-2 text-right font-mono text-[10px] text-slate-600">${c.groupFee}</td>
+          <td class="px-1 py-2 text-right font-mono text-[10px] text-slate-600">${c.commission}</td>
+          <td class="px-2 py-2 text-right font-mono text-[11px] font-semibold text-slate-900">${c.oneOnOne + c.groupFee + c.commission}</td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot class="bg-slate-50">
+        <tr>
+          <td class="px-2 py-2 text-[10px] font-semibold text-slate-900">合计</td>
+          <td class="px-1 py-2 text-right font-mono text-[10px]">${f.oneOnOne}</td>
+          <td class="px-1 py-2 text-right font-mono text-[10px]">${f.groupFee}</td>
+          <td class="px-1 py-2 text-right font-mono text-[10px]">${f.commission}</td>
+          <td class="px-2 py-2 text-right font-mono text-[12px] font-bold text-slate-900">${fmt(f.total)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>`;
+}
+
+function tsPanel() {
+  const f = PLATFORM;
+  if (S.device === 'phone') {
+    return `<div class="space-y-2">${f.tsRows.map((r) => `
+      <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+        <div class="flex items-center justify-between gap-2">
+          <span class="font-mono text-[10px] font-semibold text-slate-800">${r.id}</span>
+          <span class="font-mono text-[9px] text-slate-400">${r.date}</span>
+        </div>
+        <div class="mt-0.5 text-[9px] text-slate-500">${r.teacher} · ${r.student}</div>
+        <div class="mt-1.5 flex items-center gap-3 text-[9px]">
+          <span class="text-slate-400">工具费 <span class="font-mono text-[10px] font-semibold text-slate-700">${r.fee}</span></span>
+          <span class="text-slate-400">抽佣 <span class="font-mono text-[10px] font-semibold text-slate-700">${r.commission}</span></span>
+        </div>
+      </div>`).join('')}
+      <div class="text-center text-[9px] text-slate-400">显示 ${f.tsRows.length} / ${f.lessons} 条，按 TS 归集</div>
+    </div>`;
+  }
+  return `
+  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <table class="w-full table-fixed border-collapse text-left">
+      <thead class="bg-slate-50 text-[9px] text-slate-500">
+        <tr>
+          <th class="w-[24%] px-2 py-2 font-medium">TS 单号</th>
+          <th class="w-[10%] px-1 py-2 font-medium">日期</th>
+          <th class="w-[24%] px-1 py-2 font-medium">教师</th>
+          <th class="w-[20%] px-1 py-2 font-medium">学生</th>
+          <th class="w-[11%] px-1 py-2 text-right font-medium">工具费</th>
+          <th class="w-[11%] px-2 py-2 text-right font-medium">抽佣</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        ${f.tsRows.map((r) => `
+        <tr class="transition hover:bg-slate-50/70">
+          <td class="truncate px-2 py-2 font-mono text-[9px] text-slate-700">${r.id}</td>
+          <td class="px-1 py-2 font-mono text-[9px] text-slate-500">${r.date}</td>
+          <td class="truncate px-1 py-2 text-[10px] text-slate-700">${r.teacher}</td>
+          <td class="truncate px-1 py-2 text-[9px] text-slate-500">${r.student}</td>
+          <td class="px-1 py-2 text-right font-mono text-[10px] text-slate-700">${r.fee}</td>
+          <td class="px-2 py-2 text-right font-mono text-[10px] text-slate-700">${r.commission}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="border-t border-slate-100 px-2 py-2 text-center text-[9px] text-slate-400">显示 ${f.tsRows.length} / ${f.lessons} 条</div>
+  </div>`;
+}
+
+function exportFee() {
+  toast('平台工具费报表已导出 Excel（原型示意）');
+}
+
+function renderOverlay() {
+  const root = $('modalRoot');
+  if (S.modal === 'paid') root.innerHTML = paidModal();
+  else if (S.modal === 'adjust') root.innerHTML = adjustModal();
+  else root.innerHTML = '';
+  renderDetail();
+}
+
+function modalShell(inner) {
+  return `<div class="absolute inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4" onclick="if(event.target===this)closeModal()">
+    <div class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl">${inner}</div>
+  </div>`;
+}
+
+function closeModal() {
+  S.modal = null;
+  S.paidId = null;
+  S.adjustId = null;
+  S.txn = '';
+  S.note = '';
+  S.adjustDir = '+';
+  S.adjustCount = 1;
+  S.adjustReason = '';
+  renderOverlay();
+  refreshIcons();
+}
+
+function openPaid(id) {
+  S.paidId = id;
+  S.txn = '';
+  S.note = '';
+  S.modal = 'paid';
+  renderOverlay();
+  refreshIcons();
+}
+
+function paidModal() {
+  const t = teacherById(S.paidId);
+  if (!t) return '';
+  const valid = S.txn.trim().length >= 1 && S.txn.trim().length <= 100;
+  return modalShell(`
+    <div class="flex items-start justify-between gap-2 border-b border-slate-200 px-4 py-3">
+      <div class="min-w-0">
+        <div class="text-[12px] font-semibold text-slate-900">标记已打款</div>
+        <div class="mt-0.5 truncate text-[9px] text-slate-400">${t.name} · ${WEEK.code}</div>
+      </div>
+      <button onclick="closeModal()" class="shrink-0 text-slate-400 transition hover:text-slate-600"><i data-lucide="x" class="h-4 w-4"></i></button>
+    </div>
+
+    <div class="space-y-3 px-4 py-3">
+      <div class="rounded-xl bg-slate-50 px-3 py-2.5">
+        <div class="flex items-center justify-between text-[10px]"><span class="text-slate-500">总节数</span><span class="font-semibold text-slate-900">${totalOf(t)} 节</span></div>
+        <div class="mt-1.5 flex items-center justify-between text-[10px]"><span class="text-slate-500">参考金额</span><span class="font-mono text-[13px] font-bold text-slate-900">${fmt(refOf(t))}</span></div>
+        <div class="mt-1.5 flex items-center justify-between text-[10px]"><span class="text-slate-500">1v1 / 代课 / 备课 / 小班</span><span class="font-mono text-slate-600">${t.regular} / ${t.sub} / ${t.prep} / ${t.group}</span></div>
+      </div>
+
+      <label class="block">
+        <div class="mb-1 flex items-center justify-between">
+          <span class="text-[10px] font-medium text-slate-600">银行流水号 <span class="text-rose-500">*</span></span>
+          <span id="txnCount" class="text-[9px] text-slate-400">${S.txn.length}/100</span>
+        </div>
+        <input id="txnInput" value="${esc(S.txn)}" oninput="onTxnInput(this.value)" maxlength="100" placeholder="1 至 100 字符" class="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-[11px] outline-none focus:border-sky-500">
+      </label>
+
+      <label class="block">
+        <span class="mb-1 block text-[10px] font-medium text-slate-600">备注</span>
+        <input id="noteInput" value="${esc(S.note)}" oninput="S.note=this.value" placeholder="可选" class="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-[11px] outline-none focus:border-sky-500">
+      </label>
+
+      <div class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[9px] leading-relaxed text-amber-800">
+        <i data-lucide="alert-triangle" class="mt-0.5 h-3 w-3 shrink-0"></i>
+        <span>确认后本周全部课次 TS 更新为已结算并冻结，不可撤销。</span>
+      </div>
+    </div>
+
+    <div class="flex gap-2 border-t border-slate-200 px-4 py-3">
+      <button onclick="closeModal()" class="flex-1 rounded-lg border border-slate-200 py-2 text-[11px] text-slate-600 transition hover:bg-slate-50">取消</button>
+      <button id="btnPaid" onclick="confirmPaid()" ${valid ? '' : 'disabled'} class="flex-1 rounded-lg bg-sky-700 py-2 text-[11px] font-semibold text-white transition hover:bg-sky-800 disabled:bg-slate-300 disabled:text-slate-500">确认打款</button>
+    </div>
+  `);
+}
+
+function onTxnInput(value) {
+  S.txn = value;
+  const btn = $('btnPaid');
+  if (btn) btn.disabled = !(value.trim().length >= 1 && value.trim().length <= 100);
+  const count = $('txnCount');
+  if (count) count.textContent = `${value.length}/100`;
+}
+
+function confirmPaid() {
+  const t = teacherById(S.paidId);
+  const txn = S.txn.trim();
+  if (!t || !txn || txn.length > 100) return;
+  t.status = 'PAID';
+  t.txn = txn;
+  t.note = S.note.trim();
+  S.modal = null;
+  S.paidId = null;
+  S.txn = '';
+  S.note = '';
+  renderAll();
+  toast('已标记打款，本周全部 TS 已结算并冻结');
+}
+
+function openAdjust(id) {
+  const t = teacherById(id);
+  if (!t) return;
+  S.adjustId = id;
+  S.adjustDir = t.adjust < 0 ? '-' : '+';
+  S.adjustCount = Math.max(1, Math.abs(t.adjust));
+  S.adjustReason = t.adjustReason || '';
+  S.modal = 'adjust';
+  renderOverlay();
+  refreshIcons();
+}
+
+function adjustModal() {
+  const t = teacherById(S.adjustId);
+  if (!t) return '';
+  const base = t.regular + t.sub + t.group;
+  const delta = (S.adjustDir === '+' ? 1 : -1) * S.adjustCount;
+  const next = base + delta;
+  const nextRef = t.rate * next + t.prepRate * t.prep;
+  const reasonOk = S.adjustReason.trim().length >= 1 && S.adjustReason.trim().length <= 200;
+  return modalShell(`
+    <div class="flex items-start justify-between gap-2 border-b border-slate-200 px-4 py-3">
+      <div class="min-w-0">
+        <div class="text-[12px] font-semibold text-slate-900">差额调整</div>
+        <div class="mt-0.5 truncate text-[9px] text-slate-400">${t.name} · ${WEEK.code}</div>
+      </div>
+      <button onclick="closeModal()" class="shrink-0 text-slate-400 transition hover:text-slate-600"><i data-lucide="x" class="h-4 w-4"></i></button>
+    </div>
+
+    <div class="space-y-3 px-4 py-3">
+      <div class="rounded-xl bg-slate-50 px-3 py-2.5 text-[10px]">
+        <div class="flex items-center justify-between"><span class="text-slate-500">当前</span><span class="font-mono text-slate-800">${totalOf(t)} 节 / ${fmt(refOf(t))}</span></div>
+      </div>
+
+      <div>
+        <span class="mb-1 block text-[10px] font-medium text-slate-600">调整类型</span>
+        <div class="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-0.5">
+          <button onclick="setAdjustDir('+')" class="rounded-md py-1.5 text-[10px] transition ${S.adjustDir === '+' ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'text-slate-500'}">补发</button>
+          <button onclick="setAdjustDir('-')" class="rounded-md py-1.5 text-[10px] transition ${S.adjustDir === '-' ? 'bg-white font-semibold text-slate-900 shadow-sm' : 'text-slate-500'}">扣减</button>
+        </div>
+      </div>
+
+      <div>
+        <span class="mb-1 block text-[10px] font-medium text-slate-600">调整节数</span>
+        <div class="flex items-center gap-2">
+          <button onclick="stepAdjust(-1)" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-[14px] text-slate-600 transition hover:bg-slate-50">-</button>
+          <div id="adjustCount" class="flex-1 rounded-lg border border-slate-200 py-2 text-center font-mono text-[14px] font-semibold text-slate-900">${S.adjustDir === '-' ? '-' : ''}${S.adjustCount}</div>
+          <button onclick="stepAdjust(1)" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-[14px] text-slate-600 transition hover:bg-slate-50">+</button>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 px-3 py-2 text-[10px]">
+        <div class="flex items-center justify-between"><span class="text-slate-500">调整后总节数</span><span id="adjustPreviewTotal" class="font-mono font-semibold text-slate-900">${next} 节</span></div>
+        <div class="mt-1 flex items-center justify-between"><span class="text-slate-500">调整后参考金额</span><span id="adjustPreviewRef" class="font-mono font-semibold text-slate-900">${fmt(nextRef)}</span></div>
+      </div>
+
+      <label class="block">
+        <div class="mb-1 flex items-center justify-between">
+          <span class="text-[10px] font-medium text-slate-600">调整原因 <span class="text-rose-500">*</span></span>
+          <span id="reasonCount" class="text-[9px] text-slate-400">${S.adjustReason.length}/200</span>
+        </div>
+        <textarea id="reasonInput" rows="3" maxlength="200" oninput="onReasonInput(this.value)" placeholder="例如 补发 W44 漏计代课 1 节" class="w-full resize-none rounded-lg border border-slate-200 px-2.5 py-2 text-[11px] outline-none focus:border-sky-500">${esc(S.adjustReason)}</textarea>
+      </label>
+
+      <div class="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-2 text-[9px] leading-relaxed text-sky-900">
+        <i data-lucide="info" class="mt-0.5 h-3 w-3 shrink-0"></i>
+        <span>调整只作用于当前账期，不改历史周。</span>
+      </div>
+    </div>
+
+    <div class="flex gap-2 border-t border-slate-200 px-4 py-3">
+      <button onclick="closeModal()" class="flex-1 rounded-lg border border-slate-200 py-2 text-[11px] text-slate-600 transition hover:bg-slate-50">取消</button>
+      <button id="btnAdjust" onclick="confirmAdjust()" ${reasonOk ? '' : 'disabled'} class="flex-1 rounded-lg bg-sky-700 py-2 text-[11px] font-semibold text-white transition hover:bg-sky-800 disabled:bg-slate-300 disabled:text-slate-500">确认调整</button>
+    </div>
+  `);
+}
+
+function setAdjustDir(dir) {
+  S.adjustDir = dir;
+  renderOverlay();
+  refreshIcons();
+}
+
+function stepAdjust(delta) {
+  const t = teacherById(S.adjustId);
+  if (!t) return;
+  const base = t.regular + t.sub + t.group;
+  const max = S.adjustDir === '-' ? base : 99;
+  S.adjustCount = Math.max(1, Math.min(max, S.adjustCount + delta));
+  const signed = (S.adjustDir === '+' ? 1 : -1) * S.adjustCount;
+  const next = base + signed;
+  const countEl = $('adjustCount');
+  if (countEl) countEl.textContent = `${S.adjustDir === '-' ? '-' : ''}${S.adjustCount}`;
+  const totalEl = $('adjustPreviewTotal');
+  if (totalEl) totalEl.textContent = `${next} 节`;
+  const refEl = $('adjustPreviewRef');
+  if (refEl) refEl.textContent = fmt(t.rate * next + t.prepRate * t.prep);
+}
+
+function onReasonInput(value) {
+  S.adjustReason = value;
+  const count = $('reasonCount');
+  if (count) count.textContent = `${value.length}/200`;
+  const btn = $('btnAdjust');
+  if (btn) btn.disabled = !(value.trim().length >= 1 && value.trim().length <= 200);
+}
+
+function confirmAdjust() {
+  const t = teacherById(S.adjustId);
+  const reason = S.adjustReason.trim();
+  if (!t || t.status === 'PAID' || !reason) return;
+  const delta = (S.adjustDir === '+' ? 1 : -1) * S.adjustCount;
+  t.adjust = delta;
+  t.adjustReason = reason;
+  t.adjustRef = `#ADJ-${8800 + S.seq++}`;
+  S.modal = null;
+  S.adjustId = null;
+  S.adjustDir = '+';
+  S.adjustCount = 1;
+  S.adjustReason = '';
+  renderAll();
+  toast(`已添加差额调整 ${delta > 0 ? '+' : ''}${delta} 节`);
+}
+
+renderAll();
+</script>
+</body>
+</html>

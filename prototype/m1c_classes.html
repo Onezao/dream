@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
+<!-- 即抛型原型：m1c 子模块 统一班级与招生管控。移动端优先 (Mobile First) + 平板自适应 (Tablet)。不触碰生产代码。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>原型 · m1c 统一班级与招生管控</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' },
+            monitor: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-stone-100 text-slate-800 min-h-screen antialiased">
+
+  <!-- 原型控制器（顶部操作面板） -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-[60]">
+    <div class="max-w-4xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-2 text-xs">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <span class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-indigo-600"></span>m1c 班级管控原型
+        </span>
+        
+        <!-- 视角切换：班长工作台 vs 家长选课端 -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">视角：</span>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="role" data-value="monitor" class="ctl px-3 py-1.5 rounded-lg font-medium">班长端 (Leo)</button>
+            <button data-group="role" data-value="parent" class="ctl px-3 py-1.5 rounded-lg font-medium">家长端 (Amy)</button>
+          </div>
+        </div>
+
+        <!-- 设备选择：移动端优先 (仅手机和平板) -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-500 font-medium">设备：</span>
+          <div class="inline-flex rounded-xl bg-slate-100 p-1">
+            <button data-group="device" data-value="mobile" class="ctl px-3 py-1.5 rounded-lg font-medium">📱 手机 (390px)</button>
+            <button data-group="device" data-value="tablet" class="ctl px-3 py-1.5 rounded-lg font-medium">📟 平板 (768px)</button>
+          </div>
+        </div>
+      </div>
+
+      <span class="text-slate-400 text-[11px] hidden sm:inline">纯前端即抛原型 · 满员截流与强制开班</span>
+    </div>
+  </header>
+
+  <main class="py-6 px-4 flex justify-center">
+    <!-- 主画框容器：默认 390px 手机触控视口 -->
+    <div id="frame" class="relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[390px] h-[812px] transition-all duration-300">
+
+      <!-- 动态顶部 Header：由视角驱动 (班长深靛蓝 / 家长浅绿白) -->
+      <div id="appHeader" class="h-14 px-4 bg-slate-900 text-white flex items-center justify-between shrink-0 transition-colors">
+        <div class="flex items-center gap-2.5">
+          <div id="headerLogo" class="w-8 h-8 rounded-xl bg-indigo-500 text-white grid place-items-center text-xs font-bold shadow-inner">M</div>
+          <div>
+            <span id="headerTitle" class="font-bold text-xs tracking-tight block leading-tight">Dream 班长工作台</span>
+            <span id="headerSub" class="text-[10px] text-indigo-300 font-medium">小班课招生与容量管控</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="headerUserBadge" class="text-[11px] text-slate-300 bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-700">Leo</span>
+          <div id="headerUserAvatar" class="w-7 h-7 rounded-full bg-indigo-600 text-white grid place-items-center font-bold text-xs ring-1 ring-indigo-400">L</div>
+        </div>
+      </div>
+
+      <!-- 视角说明小条 -->
+      <div id="roleBanner" class="px-4 py-2 bg-indigo-50 border-b border-indigo-100 text-indigo-900 text-[11px] flex items-center justify-between shrink-0">
+        <span class="flex items-center gap-1.5">
+          <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-indigo-600"></i>
+          <span id="roleBannerText">负责班长 Leo 的自负盈亏小班列表</span>
+        </span>
+        <button id="btnCreateClass" onclick="openCreateSheet()" class="h-7 px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-semibold flex items-center gap-1 shadow-2xs">
+          <i data-lucide="plus" class="w-3 h-3"></i>创建小班
+        </button>
+      </div>
+
+      <!-- 主内容卡片容器 (单列滚动，平板模式下为双列) -->
+      <div id="content" class="flex-1 overflow-y-auto p-3.5 space-y-3"></div>
+
+      <!-- 移动端抽屉：创建小班课 (Bottom Sheet) -->
+      <div id="createSheet" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end">
+        <div class="bg-white rounded-t-3xl p-5 w-full max-h-[90%] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200">
+          <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto -mt-1 mb-3 shrink-0"></div>
+          
+          <div class="flex justify-between items-center pb-2.5 border-b border-slate-100 shrink-0">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">发起小班课 (自主招生)</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">自负盈亏模式 · 设定开班人数与盈余抽佣</p>
+            </div>
+            <button onclick="closeCreateSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 grid place-items-center">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <!-- 表单滚动区 -->
+          <div class="flex-1 overflow-y-auto py-3 space-y-3.5 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">班级名称 *</label>
+              <input id="fClassName" class="w-full h-10 px-3 rounded-xl border border-slate-200 focus:border-indigo-600 text-xs outline-none" placeholder="如：KET 强化精讲 4 人小班">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">课程类型 *</label>
+                <select id="fCourseType" class="w-full h-10 px-2.5 rounded-xl border border-slate-200 text-xs bg-white outline-none">
+                  <option value="KET备考">KET备考</option>
+                  <option value="少儿英语">少儿英语</option>
+                  <option value="自然拼读">自然拼读</option>
+                  <option value="生活口语">生活口语</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">授课外教 *</label>
+                <select id="fTeacher" class="w-full h-10 px-2.5 rounded-xl border border-slate-200 text-xs bg-white outline-none">
+                  <option value="David Miller">David Miller (Senior)</option>
+                  <option value="Sarah Jenkins">Sarah Jenkins (Standard)</option>
+                  <option value="Michael Chen">Michael Chen (Senior)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 人数区间 Min ~ Max (AC-1C-03) -->
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-800">开班人数边界 (Min ~ Max) *</span>
+                <span class="text-[10px] text-slate-400">上限最多20人</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] text-slate-500 mb-1">最低开班 (Min 人数)</label>
+                  <div class="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden h-9">
+                    <button type="button" onclick="changeMin(-1)" class="w-8 h-full bg-slate-50 text-slate-600 font-bold">-</button>
+                    <span id="minVal" class="flex-1 text-center font-bold text-slate-800">2</span>
+                    <button type="button" onclick="changeMin(1)" class="w-8 h-full bg-slate-50 text-slate-600 font-bold">+</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-500 mb-1">满员截流 (Max 人数)</label>
+                  <div class="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden h-9">
+                    <button type="button" onclick="changeMax(-1)" class="w-8 h-full bg-slate-50 text-slate-600 font-bold">-</button>
+                    <span id="maxVal" class="flex-1 text-center font-bold text-slate-800">4</span>
+                    <button type="button" onclick="changeMax(1)" class="w-8 h-full bg-slate-50 text-slate-600 font-bold">+</button>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[10px] text-slate-400">达到 Max 时系统自动封顶并置灰禁用报名，坚决杜绝超卖。</p>
+            </div>
+
+            <!-- 财务配置：教师课酬底分与平台抽佣比例 R% -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">教师单节课酬 *</label>
+                <div class="relative">
+                  <input id="fSalary" type="number" value="30" class="w-full h-10 pl-3 pr-8 rounded-xl border border-slate-200 text-xs outline-none">
+                  <span class="absolute right-2.5 top-2.5 text-slate-400 text-[11px]">积分</span>
+                </div>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">平台盈余抽佣 R% *</label>
+                <div class="relative">
+                  <input id="fCommission" type="number" step="0.5" value="10.0" class="w-full h-10 pl-3 pr-6 rounded-xl border border-slate-200 text-xs outline-none">
+                  <span class="absolute right-2.5 top-2.5 text-slate-400 text-[11px]">%</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">计划开班日期 *</label>
+              <input id="fStartDate" type="date" value="2026-11-20" class="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs bg-white outline-none">
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-100 flex gap-2.5 shrink-0">
+            <button onclick="closeCreateSheet()" class="w-24 h-10 rounded-xl border border-slate-200 text-slate-600 font-medium">取消</button>
+            <button onclick="submitCreateClass()" class="flex-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs">确认发布班级</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 移动端二次确认弹窗：强制开班 (未达 Min 时) -->
+      <div id="forceStartModal" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-5">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl space-y-3.5 text-center">
+          <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 mx-auto grid place-items-center">
+            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">确认强制开班？</h4>
+            <p id="forceStartDesc" class="text-xs text-slate-500 mt-1 leading-relaxed">
+              当前报名仅 1 人（低于最低 2 人要求）。强制开班后将按小班自负盈亏执行，学费差额由负责班长预留款承担！
+            </p>
+          </div>
+          <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 text-left">
+            <span class="font-semibold block">⚠️ 盈亏提示：</span>
+            <span>已选学员将立即锁定课表，开班状态转为正式开课 (active)。</span>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button onclick="closeForceStartModal()" class="flex-1 h-10 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">再想想</button>
+            <button onclick="confirmForceStart()" class="flex-1 h-10 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs">确定强制开班</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 移动端取消班级弹窗 (AC-1C-07) -->
+      <div id="cancelClassModal" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-5">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-xs shadow-2xl space-y-3.5 text-center">
+          <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 mx-auto grid place-items-center">
+            <i data-lucide="x-circle" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">取消小班课招生</h4>
+            <p class="text-xs text-slate-500 mt-1">取消后将联动通知已报名学员，并将课时原路退回！</p>
+          </div>
+          <div class="text-left">
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">取消原因 (家长可见) *</label>
+            <input id="cancelReasonInput" class="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs outline-none" placeholder="如：未达最低成班人数">
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button onclick="closeCancelModal()" class="flex-1 h-10 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">返回</button>
+            <button onclick="confirmCancelClass()" class="flex-1 h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs">确认取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast 提示 -->
+      <div id="toast" class="absolute left-1/2 -translate-x-1/2 bottom-5 z-[100] hidden px-4 py-2 rounded-xl bg-slate-900/90 text-white text-xs shadow-lg whitespace-nowrap"></div>
+    </div>
+  </main>
+  <script>
+    // 假数据：完全对齐 AC-1C-01 ~ AC-1C-07 业务规格
+    let mockClasses = [
+      {
+        id: 'cls_ket0000001',
+        name: 'KET 冲刺精讲小班 (4人班)',
+        courseType: 'KET备考',
+        teacherName: 'David Miller',
+        monitorName: 'Leo',
+        minStudents: 2,
+        maxStudents: 4,
+        enrolledStudents: [
+          { name: 'AliceZ12', avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=80&auto=format&fit=crop&q=80' },
+          { name: 'BobZ10', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&auto=format&fit=crop&q=80' }
+        ],
+        status: 'recruiting', // 'recruiting' | 'active' | 'cancelled'
+        plannedStartDate: '2026-11-20',
+        salaryPoints: 30,
+        commissionRate: 10.0,
+        isOneToOne: false
+      },
+      {
+        id: 'cls_phonics002',
+        name: '自然拼读发音启蒙班 (3人班)',
+        courseType: '自然拼读',
+        teacherName: 'Sarah Jenkins',
+        monitorName: 'Leo',
+        minStudents: 2,
+        maxStudents: 3,
+        enrolledStudents: [
+          { name: 'CharlieC09', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80' }
+        ],
+        status: 'recruiting',
+        plannedStartDate: '2026-11-06', // 临近开课！未达 Min 触发高亮预警
+        salaryPoints: 25,
+        commissionRate: 8.0,
+        isOneToOne: false
+      },
+      {
+        id: 'cls_cambridge03',
+        name: '剑桥少儿英语进阶班 (3人班)',
+        courseType: '少儿英语',
+        teacherName: 'David Miller',
+        monitorName: 'Leo',
+        minStudents: 2,
+        maxStudents: 3,
+        enrolledStudents: [
+          { name: 'DavidW11', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80' },
+          { name: 'EmmaZ10', avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&auto=format&fit=crop&q=80' },
+          { name: 'FrankL12', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80' }
+        ],
+        status: 'recruiting',
+        plannedStartDate: '2026-11-25',
+        salaryPoints: 30,
+        commissionRate: 10.0,
+        isOneToOne: false
+      },
+      {
+        id: 'cls_1v1_silent01',
+        name: '1v1 个人专属排班 (后台物理班级)',
+        courseType: '少儿英语',
+        teacherName: 'David Miller',
+        monitorName: 'Leo',
+        minStudents: 1,
+        maxStudents: 1,
+        enrolledStudents: [
+          { name: 'AliceZ12', avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=80&auto=format&fit=crop&q=80' }
+        ],
+        status: 'active',
+        plannedStartDate: '2026-11-01',
+        salaryPoints: 20,
+        commissionRate: 0.0,
+        isOneToOne: true // 1v1 静默建班：家长端物理屏蔽“班级”
+      }
+    ];
+
+    const state = {
+      role: 'monitor', // 'monitor' (班长端) | 'parent' (家长端)
+      device: 'mobile', // 'mobile' (390px) | 'tablet' (768px)
+      selectedClassId: null,
+      tempMin: 2,
+      tempMax: 4
+    };
+
+    function syncControls() {
+      document.querySelectorAll('.ctl').forEach(btn => {
+        const group = btn.dataset.group;
+        const val = btn.dataset.value;
+        const isActive = (group === 'role' && state.role === val) ||
+                         (group === 'device' && state.device === val);
+        btn.className = isActive 
+          ? 'ctl px-3 py-1.5 rounded-lg font-medium bg-white text-slate-900 shadow-sm transition' 
+          : 'ctl px-3 py-1.5 rounded-lg font-medium text-slate-500 hover:text-slate-800 transition';
+      });
+
+      // 画框尺寸
+      const frame = document.getElementById('frame');
+      const content = document.getElementById('content');
+      if (state.device === 'tablet') {
+        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[768px] h-[860px] transition-all duration-300';
+        content.className = 'flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3.5 space-y-0';
+      } else {
+        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[390px] h-[812px] transition-all duration-300';
+        content.className = 'flex-1 overflow-y-auto p-3.5 space-y-3';
+      }
+
+      // 切换顶部导航与 Banner 主题
+      const appHeader = document.getElementById('appHeader');
+      const headerLogo = document.getElementById('headerLogo');
+      const headerTitle = document.getElementById('headerTitle');
+      const headerSub = document.getElementById('headerSub');
+      const headerUserBadge = document.getElementById('headerUserBadge');
+      const headerUserAvatar = document.getElementById('headerUserAvatar');
+      const roleBanner = document.getElementById('roleBanner');
+      const roleBannerText = document.getElementById('roleBannerText');
+      const btnCreate = document.getElementById('btnCreateClass');
+
+      if (state.role === 'monitor') {
+        appHeader.className = 'h-14 px-4 bg-slate-900 text-white flex items-center justify-between shrink-0 transition-colors';
+        headerLogo.className = 'w-8 h-8 rounded-xl bg-indigo-500 text-white grid place-items-center text-xs font-bold shadow-inner';
+        headerLogo.textContent = 'M';
+        headerTitle.textContent = 'Dream 班长工作台';
+        headerSub.textContent = '小班课招生与容量管控';
+        headerUserBadge.textContent = '班长: Leo';
+        headerUserAvatar.className = 'w-7 h-7 rounded-full bg-indigo-600 text-white grid place-items-center font-bold text-xs ring-1 ring-indigo-400';
+        headerUserAvatar.textContent = 'L';
+        roleBanner.className = 'px-4 py-2 bg-indigo-50 border-b border-indigo-100 text-indigo-900 text-[11px] flex items-center justify-between shrink-0';
+        roleBannerText.textContent = '负责班长 Leo 的自负盈亏小班列表';
+        btnCreate.classList.remove('hidden');
+      } else {
+        appHeader.className = 'h-14 px-4 bg-white border-b border-slate-200 text-slate-800 flex items-center justify-between shrink-0 transition-colors';
+        headerLogo.className = 'w-8 h-8 rounded-xl bg-teal-600 text-white grid place-items-center text-xs font-bold shadow-sm';
+        headerLogo.textContent = 'D';
+        headerTitle.textContent = 'Dream 家长工作台';
+        headerSub.textContent = '选班大厅与招生进度';
+        headerUserBadge.textContent = 'Amy (家长)';
+        headerUserAvatar.className = 'w-7 h-7 rounded-full bg-teal-100 text-teal-800 grid place-items-center font-bold text-xs ring-1 ring-teal-200';
+        headerUserAvatar.textContent = 'A';
+        roleBanner.className = 'px-4 py-2 bg-teal-50 border-b border-teal-100 text-teal-900 text-[11px] flex items-center justify-between shrink-0';
+        roleBannerText.textContent = '小班课选班中心 (满员自动截流 · 1v1物理屏蔽班级)';
+        btnCreate.classList.add('hidden');
+      }
+    }
+
+    function render() {
+      const container = document.getElementById('content');
+      
+      if (state.role === 'monitor') {
+        // 班长端小班课运营视图
+        container.innerHTML = mockClasses.map(c => {
+          if (c.isOneToOne) {
+            // 班长端标注 1v1 静默实体
+            return `
+              <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs opacity-80 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-slate-800">${c.name}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">1v1静默建班</span>
+                  </div>
+                  <span class="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">履约中</span>
+                </div>
+                <div class="text-[11px] text-slate-500">外教: <strong class="text-slate-700">${c.teacherName}</strong> · 学员: <strong class="text-slate-700">${c.enrolledStudents[0].name}</strong></div>
+                <p class="text-[10px] text-slate-400 bg-slate-50 p-2 rounded-lg">系统在购课时自动静默建立此班级，家长端与教师端全流程物理屏蔽“班级”概念。</p>
+              </div>
+            `;
+          }
+
+          const count = c.enrolledStudents.length;
+          const isFull = count >= c.maxStudents;
+          const isBelowMin = count < c.minStudents;
+          const progressPercent = Math.min(100, Math.round((count / c.maxStudents) * 100));
+
+          return `
+            <div class="bg-white rounded-2xl border ${isBelowMin ? 'border-amber-300 ring-1 ring-amber-100' : 'border-slate-200'} p-3.5 shadow-xs space-y-2.5">
+              <!-- 顶部标题与状态 -->
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h3 class="font-bold text-slate-900 text-sm leading-tight">${c.name}</h3>
+                  <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-2">
+                    <span>外教: <strong class="text-slate-700">${c.teacherName}</strong></span>
+                    <span>·</span>
+                    <span>类型: ${c.courseType}</span>
+                  </div>
+                </div>
+                <div>
+                  ${c.status === 'cancelled' ? `
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-rose-50 text-rose-700 border border-rose-200">已取消</span>
+                  ` : c.status === 'active' ? `
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">已正式开课</span>
+                  ` : isFull ? `
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200">已满员 (${count}/${c.maxStudents})</span>
+                  ` : `
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">招募中 (${count}/${c.maxStudents})</span>
+                  `}
+                </div>
+              </div>
+
+              <!-- 招生进度条与人数边界 -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-[11px] text-slate-500">
+                  <span>当前招生：<strong class="text-indigo-600 font-semibold">${count} 人</strong> (Min ${c.minStudents}人 - Max ${c.maxStudents}人)</span>
+                  <span class="font-mono text-slate-400">${progressPercent}%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-300 ${isFull ? 'bg-slate-400' : isBelowMin ? 'bg-amber-500' : 'bg-indigo-600'}" style="width: ${progressPercent}%"></div>
+                </div>
+              </div>
+
+              <!-- 未达最低成班预警 -->
+              ${isBelowMin && c.status === 'recruiting' ? `
+                <div class="p-2 bg-amber-50/80 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
+                  <span class="flex items-center gap-1"><i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-600"></i>计划开班仅差 1 人成班</span>
+                  <span class="text-[10px] font-mono text-amber-700">${c.plannedStartDate} 开班</span>
+                </div>
+              ` : ''}
+
+              <!-- 已报学员头像展示 -->
+              <div class="flex items-center justify-between pt-1 text-[11px]">
+                <div class="flex items-center gap-1.5 overflow-x-auto">
+                  <span class="text-slate-400 shrink-0">已报学员:</span>
+                  ${c.enrolledStudents.map(s => `
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-medium">
+                      <img src="${s.avatar}" class="w-3.5 h-3.5 rounded-full object-cover" alt="">
+                      <span>${s.name}</span>
+                    </span>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- 底部操作按钮 -->
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span class="text-[10px] text-slate-400">课酬: ${c.salaryPoints}分 · 抽佣: ${c.commissionRate}%</span>
+                
+                <div class="flex items-center gap-1.5">
+                  ${c.status === 'recruiting' && isBelowMin ? `
+                    <button onclick="openForceStartModal('${c.id}')" class="h-8 px-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-2xs">
+                      强制开班
+                    </button>
+                    <button onclick="openCancelModal('${c.id}')" class="h-8 px-2.5 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-medium">
+                      取消班级
+                    </button>
+                  ` : c.status === 'recruiting' ? `
+                    <button onclick="openCancelModal('${c.id}')" class="h-8 px-2.5 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg text-xs font-medium">
+                      取消班级
+                    </button>
+                    <button onclick="showToast('班级详情已展开')" class="h-8 px-3 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold">
+                      详情
+                    </button>
+                  ` : `
+                    <span class="text-xs text-slate-400 font-medium py-1">状态已结案</span>
+                  `}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        // 家长端选班视图
+        container.innerHTML = mockClasses.map(c => {
+          if (c.isOneToOne) {
+            // AC-1C-02：物理屏蔽“班级”字样，仅显示“老师 + 课程类型”
+            return `
+              <div class="bg-white rounded-2xl border border-teal-200/80 p-3.5 shadow-xs space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-teal-500"></span>
+                    <h3 class="font-bold text-slate-900 text-sm">${c.teacherName} · ${c.courseType} (1v1专属)</h3>
+                  </div>
+                  <span class="text-[10px] text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full font-medium">随时排课</span>
+                </div>
+                <p class="text-xs text-slate-500">1v1 个人自由排班，按需选择时间网格，无需等待成班拼班。</p>
+                <div class="pt-2 border-t border-slate-100 flex justify-between items-center">
+                  <span class="text-[11px] text-slate-400">单节 25 分钟一对一专属互动</span>
+                  <button onclick="showToast('正在为您打开 ${c.teacherName} 的 1v1 排课日历...')" class="h-8 px-3.5 bg-teal-600 text-white rounded-xl text-xs font-semibold shadow-xs">
+                    立即约课
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+
+          const count = c.enrolledStudents.length;
+          const isFull = count >= c.maxStudents;
+          const isCancelled = c.status === 'cancelled';
+
+          return `
+            <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs space-y-2.5 ${isFull || isCancelled ? 'opacity-80' : ''}">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-bold text-slate-900 text-sm">${c.name}</h3>
+                  <div class="text-[11px] text-slate-400 mt-0.5">授课外教: <strong class="text-slate-700">${c.teacherName}</strong> (负责班长: ${c.monitorName})</div>
+                </div>
+                ${isCancelled ? `
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-rose-50 text-rose-600 border border-rose-200">招生取消</span>
+                ` : isFull ? `
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600 border border-slate-200">已满员封顶</span>
+                ` : `
+                  <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-teal-50 text-teal-700 border border-teal-200">招募中 (余 ${c.maxStudents - count} 位)</span>
+                `}
+              </div>
+
+              <!-- 家长端进度提示 -->
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
+                <span class="text-slate-600">招生进度: <strong class="text-slate-900">${count}/${c.maxStudents} 人</strong></span>
+                <span class="text-slate-400 text-[11px]">开课日期: ${c.plannedStartDate}</span>
+              </div>
+
+              <!-- 报名按钮：满员时严格置灰截流 (AC-1C-05) -->
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-[11px] text-slate-400">小班固定 1 小时 (连续 2 网格)</span>
+                ${isCancelled ? `
+                  <button disabled class="h-8 px-4 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed">
+                    已停止报名
+                  </button>
+                ` : isFull ? `
+                  <button disabled class="h-8 px-4 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed flex items-center gap-1">
+                    <i data-lucide="lock" class="w-3.5 h-3.5"></i>已满员截流
+                  </button>
+                ` : `
+                  <button onclick="enrollClass('${c.id}')" class="h-8 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold shadow-xs">
+                    报名加入
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      lucide.createIcons();
+    }
+
+    // 弹窗与抽屉控制
+    function openCreateSheet() {
+      document.getElementById('createSheet').classList.remove('hidden');
+    }
+    function closeCreateSheet() {
+      document.getElementById('createSheet').classList.add('hidden');
+    }
+
+    function changeMin(delta) {
+      state.tempMin = Math.max(1, Math.min(state.tempMax, state.tempMin + delta));
+      document.getElementById('minVal').textContent = state.tempMin;
+    }
+    function changeMax(delta) {
+      state.tempMax = Math.max(state.tempMin, Math.min(20, state.tempMax + delta));
+      document.getElementById('maxVal').textContent = state.tempMax;
+    }
+
+    function submitCreateClass() {
+      const name = document.getElementById('fClassName').value.trim() || '新建小班课';
+      const courseType = document.getElementById('fCourseType').value;
+      const teacherName = document.getElementById('fTeacher').value.split(' ')[0];
+      const salary = parseInt(document.getElementById('fSalary').value) || 30;
+      const commission = parseFloat(document.getElementById('fCommission').value) || 10.0;
+      const startDate = document.getElementById('fStartDate').value;
+
+      mockClasses.unshift({
+        id: `cls_${Date.now().toString().slice(-8)}`,
+        name: name,
+        courseType: courseType,
+        teacherName: teacherName,
+        monitorName: 'Leo',
+        minStudents: state.tempMin,
+        maxStudents: state.tempMax,
+        enrolledStudents: [],
+        status: 'recruiting',
+        plannedStartDate: startDate,
+        salaryPoints: salary,
+        commissionRate: commission,
+        isOneToOne: false
+      });
+
+      closeCreateSheet();
+      showToast('✅ 小班课创建成功并进入招募中！');
+      render();
+    }
+
+    function openForceStartModal(classId) {
+      state.selectedClassId = classId;
+      const c = mockClasses.find(x => x.id === classId);
+      document.getElementById('forceStartDesc').textContent = 
+        `当前班级仅有 ${c.enrolledStudents.length} 人报名（低于最低成班 ${c.minStudents} 人要求）。强制开班后将按小班课自负盈亏执行，差额由负责班长预留款自担！`;
+      document.getElementById('forceStartModal').classList.remove('hidden');
+    }
+    function closeForceStartModal() {
+      document.getElementById('forceStartModal').classList.add('hidden');
+    }
+    function confirmForceStart() {
+      const c = mockClasses.find(x => x.id === state.selectedClassId);
+      if (c) {
+        c.status = 'active';
+        showToast('✅ 已执行强制开班！班级状态已转为正式开课 (active)');
+      }
+      closeForceStartModal();
+      render();
+    }
+
+    function openCancelModal(classId) {
+      state.selectedClassId = classId;
+      document.getElementById('cancelClassModal').classList.remove('hidden');
+    }
+    function closeCancelModal() {
+      document.getElementById('cancelClassModal').classList.add('hidden');
+    }
+    function confirmCancelClass() {
+      const reason = document.getElementById('cancelReasonInput').value.trim() || '未达最低成班人数';
+      const c = mockClasses.find(x => x.id === state.selectedClassId);
+      if (c) {
+        c.status = 'cancelled';
+        showToast(`已取消班级 (${reason})，已联动触发学员课时退回事件！`);
+      }
+      closeCancelModal();
+      render();
+    }
+
+    function enrollClass(classId) {
+      const c = mockClasses.find(x => x.id === classId);
+      if (c && c.enrolledStudents.length < c.maxStudents) {
+        c.enrolledStudents.push({
+          name: 'AmyChild01',
+          avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=80&auto=format&fit=crop&q=80'
+        });
+        showToast('🎉 报名成功！已占用 1 席名额。');
+        render();
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2400);
+    }
+
+    // 事件监听
+    document.querySelectorAll('.ctl').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const val = btn.dataset.value;
+        if (group === 'role') state.role = val;
+        if (group === 'device') state.device = val;
+        syncControls();
+        render();
+      });
+    });
+
+    syncControls();
+    render();
+  </script>
+</body>
+</html>
