@@ -8,7 +8,7 @@
 | **所属模块** | 模块五：周度财务对账与结算分账 (Weekly Settlement & Reconciliation) |
 | **文档状态** | 待评审 (Draft) |
 | **关联顶层 PRD** | [Prd-v5.md](../Prd-v5.md) |
-| **关联规范文档** | [finance_settlement_conventions.md](../conventions/finance_settlement_conventions.md) |
+| **关联规范文档** | [BUSINESS_RULES.md](../BUSINESS_RULES.md) |
 | **关联模块划分** | [system_modules_overview.md](../system_modules_overview.md) |
 | **创建与更新日期** | 2026-11-05 |
 
@@ -182,9 +182,8 @@
 ### 8.3 外部文档与参照依据
 | 文档名称 | 存放路径 / 链接 | 使用场景说明 |
 |---|---|---|
-| 财务单据与分账核算规范 | docs/conventions/finance_settlement_conventions.md | 资金持有方锁定、小班盈余公式、单向转账规约 |
-| 协作准则 | docs/conventions/rule.md | 异常未上课回退补生兜底机制 |
-| 遥测与异步规范 | docs/conventions/telemetry_and_task_relay_conventions.md | dream-worker 结课跑批调度标准 |
+| 核心业务规则与财务分账规约 | docs/BUSINESS_RULES.md | 资金持有方锁定、小班盈余公式、单向转账与异常回退补生机制 |
+| 工程与编码规范 | docs/CODING_STANDARDS.md | dream-worker 结课跑批调度标准与 TaskRelay 状态码 |
 
 ---
 

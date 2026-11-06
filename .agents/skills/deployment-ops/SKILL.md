@@ -7,7 +7,7 @@ description: 用于 Dream 项目中各应用（dream-frontend, dream-backend, dr
 
 ## Instructions
 
-执行构建、容器化或部署任务时，必须严格遵循 [运维与部署规范](../../docs/conventions/ops_conventions.md) 并参考 `deploy/<app-name>/cloudbuild.yaml`。
+执行构建、容器化或部署任务时，必须严格遵循 [工程与编码规范](../../docs/CODING_STANDARDS.md#8-生产构建容器化与运维部署规范) 并参考 `deploy/<app-name>/cloudbuild.yaml`。
 
 ### 1. 环境感知 (Environment Awareness)
 - **多环境架构**：区分 Dev、国内生产 (engtop.top) 与 海外生产 (topee.top)。
@@ -36,5 +36,5 @@ description: 用于 Dream 项目中各应用（dream-frontend, dream-backend, dr
 - **严格打标**：发布生产环境必须使用语义化版本 Tag（如 `v1.0.0`），由 `git-master` 辅助执行。
 
 ## Available Resources
-- `docs/conventions/ops_conventions.md`: 核心运维设计标准。
+- `docs/CODING_STANDARDS.md`: 核心运维设计标准与镜像构建规范。
 - `deploy/`: 包含各应用的 `Dockerfile` 和 `cloudbuild.yaml`。

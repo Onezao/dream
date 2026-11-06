@@ -60,19 +60,11 @@ dream/
 
 ## 五、 工程规范与设计文档索引
 
-- [全局开发指引 (GEMINI.md)](./GEMINI.md)
+- [全局开发指引与红线 (GEMINI.md)](./GEMINI.md)
+- [UI 视觉与设计系统 (DESIGN.md)](./DESIGN.md)
+- [工程与编码规范 (docs/CODING_STANDARDS.md)](./docs/CODING_STANDARDS.md)
+- [核心业务规则与财务分账规约 (docs/BUSINESS_RULES.md)](./docs/BUSINESS_RULES.md)
 - [需求规格说明书 (Prd-v5.md)](./docs/Prd-v5.md)
-- [顶层协作准则 (rule.md)](./docs/conventions/rule.md)
-- [模块定位规范 (module_positioning.md)](./docs/conventions/module_positioning.md)
-- [后端编码规范 (backend_coding_conventions.md)](./docs/conventions/backend_coding_conventions.md)
-- [数据库设计规范 (database_design_conventions.md)](./docs/conventions/database_design_conventions.md)
-- [REST API 规范 (rest_api_conventions.md)](./docs/conventions/rest_api_conventions.md)
-- [UI 架构与视觉标准 (tech_ui_architecture_standard.md)](./docs/conventions/tech_ui_architecture_standard.md)
-- [7 色日历规范 (tech_calendar_7color_standard.md)](./docs/conventions/tech_calendar_7color_standard.md)
-- [财务分账规范 (finance_settlement_conventions.md)](./docs/conventions/finance_settlement_conventions.md)
-- [消息通知规范 (notification_conventions.md)](./docs/conventions/notification_conventions.md)
-- [文件存储规范 (file_upload_conventions.md)](./docs/conventions/file_upload_conventions.md)
-- [运维与部署规范 (ops_conventions.md)](./docs/conventions/ops_conventions.md)
 
 ---
 

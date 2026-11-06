@@ -189,8 +189,8 @@
 | 文档名称 | 存放路径 | 使用场景说明 |
 |---|---|---|
 | 顶层 PRD v5 | docs/Prd-v5.md | 定价与分账规则原始来源 |
-| 财务分账规范 | docs/conventions/finance_settlement_conventions.md | 资金持有人锁定 |
-| 文件上传规范 | docs/conventions/file_upload_conventions.md | 凭证直传 |
+| 核心业务规则与财务分账规约 | docs/BUSINESS_RULES.md | 资金持有人锁定与尾差吸收算法 |
+| 工程与编码规范 | docs/CODING_STANDARDS.md | 凭证 S3 预签名直传规范 |
 
 ---
 

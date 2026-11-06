@@ -9,7 +9,7 @@ description: 专门处理 @topeetop/* 系列私有包安装失败（401/403 权�
 专门用于处理 `@topeetop/*` 系列私有包在 Google Artifact Registry 中的权限错误。
 
 ## Authentication Flow (推荐方案)
-遵循 [运维与部署规范](../../docs/conventions/ops_conventions.md)，优先使用 **Service Account Key** 进行持久化认证：
+遵循 [工程与编码规范](../../docs/CODING_STANDARDS.md#8-生产构建容器化与运维部署规范)，优先使用 **Service Account Key** 进行持久化认证：
 
 1. **环境准备**：
    确保执行环境已加载凭据路径（GCP 密钥）：
@@ -42,5 +42,5 @@ steps:
 3. 检查 `.npmrc` 中是否包含正确的仓库地址及凭据映射。
 
 ## Available Resources
-- `docs/conventions/ops_conventions.md`: 包含私有库认证标准。
+- `docs/CODING_STANDARDS.md`: 包含私有库认证与运维部署标准。
 - `ravll9-aff11159d2b6.json`: 项目指定的访问凭据。

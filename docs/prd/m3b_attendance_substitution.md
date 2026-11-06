@@ -8,7 +8,7 @@
 | **所属模块** | 模块三：7色智能日历、排班、考勤与课程转让 (Calendar & Scheduling) |
 | **文档状态** | 待评审 (Draft) |
 | **关联顶层 PRD** | [Prd-v5.md](../Prd-v5.md) |
-| **关联规范文档** | [tech_calendar_7color_standard.md](../conventions/tech_calendar_7color_standard.md) |
+| **关联规范文档** | [DESIGN.md](../DESIGN.md) ｜ [BUSINESS_RULES.md](../BUSINESS_RULES.md) |
 | **关联模块划分** | [system_modules_overview.md](../system_modules_overview.md) |
 | **创建与更新日期** | 2026-11-05 |
 
@@ -217,8 +217,8 @@
 | 文档名称 | 存放路径 / 链接 | 使用场景说明 |
 |---|---|---|
 | 教务排班与分账 PRD v5.1 | docs/Prd-v5.md | 请假、代课与挪位矩阵原始规约 |
-| 日历 7 色视觉与代课调度规约 | docs/conventions/tech_calendar_7color_standard.md | 代课双视角染色与数据流规范 |
-| 消息通知三级分发规约 | docs/conventions/notification_conventions.md | 紧急代课与停课通知邮件触发规范 |
+| UI 视觉与设计系统 | DESIGN.md | 代课双视角染色与 7 色日历 Design Tokens |
+| 核心业务规则与财务分账规约 | docs/BUSINESS_RULES.md | 请假挪位熔断矩阵、代课课酬归集与紧急邮件触发规范 |
 
 ---
 

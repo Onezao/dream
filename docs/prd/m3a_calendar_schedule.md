@@ -8,7 +8,7 @@
 | **所属模块** | 模块三：7色智能日历、排班、考勤与课程转让 (Calendar & Scheduling) |
 | **文档状态** | 待评审 (Draft) |
 | **关联顶层 PRD** | [Prd-v5.md](../Prd-v5.md) |
-| **关联规范文档** | [tech_calendar_7color_standard.md](../conventions/tech_calendar_7color_standard.md) |
+| **关联规范文档** | [DESIGN.md](../DESIGN.md) ｜ [BUSINESS_RULES.md](../BUSINESS_RULES.md) |
 | **关联模块划分** | [system_modules_overview.md](../system_modules_overview.md) |
 | **创建与更新日期** | 2026-11-05 |
 
@@ -231,8 +231,8 @@
 | 文档名称 | 存放路径 / 链接 | 使用场景说明 |
 |---|---|---|
 | 教务排班与分账 PRD v5.1 | docs/Prd-v5.md | 营业时间、固定位、临时课规则基准 |
-| 日历 7 色视觉与代课调度规约 | docs/conventions/tech_calendar_7color_standard.md | 7色色值、后端预计算DTO规范 |
-| 协作准则 | docs/conventions/rule.md | 时间窗红线与资产隔离 |
+| UI 视觉与设计系统 | DESIGN.md | 7 色日历 Design Tokens、单屏 7 列网格规范 |
+| 核心业务规则与财务分账规约 | docs/BUSINESS_RULES.md | 12.5% 请假配额与 3h 熔断时间窗红线与资产隔离 |
 
 ---
 

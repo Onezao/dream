@@ -7,7 +7,7 @@
 | **子模块代号** | `m1a` |
 | **关联 PRD** | [m1a_student_profile.md](../prd/m1a_student_profile.md) |
 | **文档状态** | 草稿 (Draft) |
-| **适用工程规范** | `GEMINI.md` + `docs/conventions/*` |
+| **适用工程规范** | `GEMINI.md` + `DESIGN.md` + `docs/CODING_STANDARDS.md` + `docs/BUSINESS_RULES.md` |
 | **创建与更新日期** | 2026-11-04 |
 
 ---

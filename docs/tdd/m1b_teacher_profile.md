@@ -7,7 +7,7 @@
 | **子模块代号** | `m1b` |
 | **关联 PRD** | [m1b_teacher_profile.md](../prd/m1b_teacher_profile.md) |
 | **文档状态** | 草稿 (Draft) |
-| **适用工程规范** | `GEMINI.md` + `docs/conventions/*` |
+| **适用工程规范** | `GEMINI.md` + `DESIGN.md` + `docs/CODING_STANDARDS.md` + `docs/BUSINESS_RULES.md` |
 | **创建与更新日期** | 2026-11-04 |
 
 ---

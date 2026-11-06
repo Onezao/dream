@@ -8,7 +8,7 @@
 | **所属模块** | 模块五：周度财务对账与结算分账 (Weekly Settlement & Reconciliation) |
 | **文档状态** | 待评审 (Draft) |
 | **关联顶层 PRD** | [Prd-v5.md](../Prd-v5.md) |
-| **关联规范文档** | [finance_settlement_conventions.md](../conventions/finance_settlement_conventions.md) |
+| **关联规范文档** | [BUSINESS_RULES.md](../BUSINESS_RULES.md) |
 | **关联模块划分** | [system_modules_overview.md](../system_modules_overview.md) |
 | **创建与更新日期** | 2026-11-05 |
 
@@ -183,8 +183,7 @@
 | 文档名称 | 存放路径 / 链接 | 使用场景说明 |
 |---|---|---|
 | 教务排班与分账 PRD v5.1 | docs/Prd-v5.md | 双周结单、只出节数单与发薪终态规约 |
-| 财务单据与分账核算规范 | docs/conventions/finance_settlement_conventions.md | 平台工具费计算、代课课酬归集铁律 |
-| 协作准则 | docs/conventions/rule.md | TS 终态不可逆冻结红线 |
+| 核心业务规则与财务分账规约 | docs/BUSINESS_RULES.md | 平台工具费计算、代课课酬归集铁律与 TS 终态不可逆冻结红线 |
 
 ---
 

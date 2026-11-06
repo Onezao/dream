@@ -8,7 +8,7 @@
 | **所属模块** | 模块四：三级消息通知分发网络 (Notification Network) |
 | **文档状态** | 待评审 (Draft) |
 | **关联顶层 PRD** | [Prd-v5.md](../Prd-v5.md) |
-| **关联规范文档** | [notification_conventions.md](../conventions/notification_conventions.md) ｜ [telemetry_and_task_relay_conventions.md](../conventions/telemetry_and_task_relay_conventions.md) |
+| **关联规范文档** | [BUSINESS_RULES.md](../BUSINESS_RULES.md) ｜ [CODING_STANDARDS.md](../CODING_STANDARDS.md) |
 | **关联模块划分** | [system_modules_overview.md](../system_modules_overview.md) |
 | **创建与更新日期** | 2026-11-05 |
 
@@ -180,8 +180,8 @@
 ### 8.3 外部文档与参照依据
 | 文档名称 | 存放路径 / 链接 | 使用场景说明 |
 |---|---|---|
-| 消息通知分发规约 | docs/conventions/notification_conventions.md | 三级分发矩阵与双权限隔离规约 |
-| 遥测追踪与异步任务规范 | docs/conventions/telemetry_and_task_relay_conventions.md | TaskRelay 延迟调度与重试标准 |
+| 核心业务规则与财务分账规约 | docs/BUSINESS_RULES.md | 三级分发矩阵与双权限隔离规约 |
+| 工程与编码规范 | docs/CODING_STANDARDS.md | TaskRelay 延迟调度、状态码与遥测标准 |
 | 简易留言板 PRD | docs/prd/m1d_profile_messages.md | 内部教学可见隐私屏蔽联动 |
 
 ---

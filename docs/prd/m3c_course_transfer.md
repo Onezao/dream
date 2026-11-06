@@ -8,7 +8,7 @@
 | **所属模块** | 模块三：7色智能日历、排班、考勤与课程转让 (Calendar & Scheduling) |
 | **文档状态** | 待评审 (Draft) |
 | **关联顶层 PRD** | [Prd-v5.md](../Prd-v5.md) |
-| **关联规范文档** | [rule.md](../conventions/rule.md) |
+| **关联规范文档** | [BUSINESS_RULES.md](../BUSINESS_RULES.md) ｜ [DESIGN.md](../DESIGN.md) |
 | **关联模块划分** | [system_modules_overview.md](../system_modules_overview.md) |
 | **创建与更新日期** | 2026-11-05 |
 
@@ -177,8 +177,8 @@
 | 文档名称 | 存放路径 / 链接 | 使用场景说明 |
 |---|---|---|
 | 教务排班与分账 PRD v5.1 | docs/Prd-v5.md | 课程转让场景与财课分离规约 |
-| 协作准则 | docs/conventions/rule.md | 资金持有人锁定与财课分离铁律 |
-| 日历 7 色视觉规范 | docs/conventions/tech_calendar_7color_standard.md | 橙色固定位与【转】字角标规范 |
+| 核心业务规则与财务分账规约 | docs/BUSINESS_RULES.md | 资金持有人锁定与财课分离铁律 |
+| UI 视觉与设计系统 | DESIGN.md | 橙色固定位与【转】字角标规范 |
 | 退款单与课时冲退 PRD | docs/prd/m2b_refund_orders.md | 跨家长已转让课次防退款规则 |
 
 ---

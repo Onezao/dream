@@ -173,9 +173,8 @@
 | 文档名称 | 存放路径 / 链接 | 使用场景说明 |
 |---|---|---|
 | 教务排班与分账 PRD v5.1 | docs/Prd-v5.md | 逆向退款、转让与异常回退规则基准 |
-| 财务单据与分账核算规范 | docs/conventions/finance_settlement_conventions.md | 违约金拆分与资金持有人归集规约 |
-| 消息通知三级分发规约 | docs/conventions/notification_conventions.md | 退款确认后管理员通知邮件触发规范 |
-| 文件上传规范 | docs/conventions/file_upload_conventions.md | 退款打款凭证直传与归档 |
+| 核心业务规则与财务分账规约 | docs/BUSINESS_RULES.md | 违约金拆分、退款审计与资金持有人归集规约 |
+| 工程与编码规范 | docs/CODING_STANDARDS.md | 退款打款凭证直传与归档规范 |
 
 ---
 

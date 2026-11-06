@@ -16,7 +16,7 @@ description: 用于在 Dream 项目中安全、规范地执行 psql 命令与数
 2. **遵循建模规约**：
    - 在构造 SQL 时，必须显式指定 Schema 前缀 `dream.`（例如 `dream.student_profiles`, `dream.timeslots`, `dream.course_orders` 等）。
    - 严禁在 SQL 中使用自增 ID 或标准 UUID，必须遵循 12 位短 ID 规范（使用 `@topeetop/shared-core` 的 `generateShortUuid()`）。
-   - 详细设计标准参考：[数据库设计规范](../../docs/conventions/database_design_conventions.md)。
+   - 详细设计标准参考：[工程与编码规范](../../docs/CODING_STANDARDS.md#3-数据库设计接入与迁移规范)。
 
 3. **安全与防越权 (IDOR)**：
    - 对于 `UPDATE` 或 `DELETE` 操作，必须带上 `account_id` 或 `student_profile_id` 过滤条件以防止越权。
@@ -29,5 +29,5 @@ description: 用于在 Dream 项目中安全、规范地执行 psql 命令与数
 
 ## Available Resources
 
-- `docs/conventions/database_design_conventions.md`: 核心数据库设计准则。
+- `docs/CODING_STANDARDS.md`: 核心数据库设计准则与短 ID 规约。
 - `db-schema/`: 物理表结构定义与版本化迁移脚本。
