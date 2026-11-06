@@ -202,7 +202,7 @@ describe('ClassService Unit Tests', () => {
           teacherProfileId: 'tea1',
           courseTypeId: 'ct1',
         })
-      ).rejects.toThrow('缺少必要的 1v1 关联参数');
+      ).rejects.toThrow('Missing required 1v1 class association parameters');
     });
 
     it('should return existing class idempotently when already created', async () => {
@@ -228,7 +228,7 @@ describe('ClassService Unit Tests', () => {
           teacherProfileId: 'tea123456789',
           courseTypeId: 'ct1234567890',
         })
-      ).rejects.toThrow('学员档案不存在');
+      ).rejects.toThrow('Student profile not found');
     });
 
     it('should throw 404 when teacher profile does not exist', async () => {
@@ -242,7 +242,7 @@ describe('ClassService Unit Tests', () => {
           teacherProfileId: 'tea_not_found',
           courseTypeId: 'ct1234567890',
         })
-      ).rejects.toThrow('授课教师档案不存在');
+      ).rejects.toThrow('Teacher profile not found');
     });
 
     it('should create 1v1 class and enroll student on first schedule', async () => {
@@ -297,7 +297,7 @@ describe('ClassService Unit Tests', () => {
       mockMonitorMapper.findByAccountId.mockResolvedValue(null);
 
       await expect(service.createSmallGroupClass('acc_not_mon', input)).rejects.toThrow(
-        '当前账号未关联班长档案'
+        'Monitor profile not found for account'
       );
     });
 
@@ -306,7 +306,7 @@ describe('ClassService Unit Tests', () => {
       mockTeacherMapper.findById.mockResolvedValue(null);
 
       await expect(service.createSmallGroupClass('acc_mon_0001', input)).rejects.toThrow(
-        '授课教师档案不存在'
+        'Teacher profile not found'
       );
     });
 
@@ -332,7 +332,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.enrollStudent('cls_not_found', 'stu123456789')
-      ).rejects.toThrow('班级不存在');
+      ).rejects.toThrow('Class not found');
     });
 
     it('should throw 409 CLASS_STATE_INVALID when class status is not recruiting', async () => {
@@ -343,7 +343,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.enrollStudent('cls_sg_12345', 'stu123456789')
-      ).rejects.toThrow('班级未处于招募状态');
+      ).rejects.toThrow('Class is not in recruiting status');
     });
 
     it('should throw 404 when student does not exist', async () => {
@@ -352,7 +352,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.enrollStudent('cls_sg_12345', 'stu_not_found')
-      ).rejects.toThrow('学员档案不存在');
+      ).rejects.toThrow('Student profile not found');
     });
 
     it('should throw 409 ALREADY_ENROLLED when student is already enrolled in class', async () => {
@@ -362,7 +362,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.enrollStudent('cls_sg_12345', 'stu123456789')
-      ).rejects.toThrow('学员已在班级中，请勿重复报名');
+      ).rejects.toThrow('Student is already enrolled in this class');
     });
 
     it('should throw 409 CLASS_FULL when enrolled count reaches maxStudents limit (Anti-Overselling)', async () => {
@@ -376,7 +376,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.enrollStudent('cls_sg_12345', 'stu123456789')
-      ).rejects.toThrow('班级名额已满，无法加塞');
+      ).rejects.toThrow('Class is already full');
     });
 
     it('should enroll student successfully when capacity permits', async () => {
@@ -413,7 +413,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.forceStartClass('cls_sg_12345', 'acc_mon_other')
-      ).rejects.toThrow('无权操作此班级');
+      ).rejects.toThrow('Permission denied for this class');
     });
 
     it('should throw 409 when class is not in recruiting status', async () => {
@@ -425,7 +425,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.forceStartClass('cls_sg_12345', 'acc_mon_0001')
-      ).rejects.toThrow('班级未处于招募状态，无法强制开班');
+      ).rejects.toThrow('Class is not in recruiting status to force start');
     });
 
     it('should force start class and transition status to active', async () => {
@@ -457,7 +457,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.cancelClass('cls_sg_12345', 'acc_mon_other', '招生不足')
-      ).rejects.toThrow('无权操作此班级');
+      ).rejects.toThrow('Permission denied for this class');
     });
 
     it('should throw 409 when class is already cancelled or completed', async () => {
@@ -469,7 +469,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.cancelClass('cls_sg_12345', 'acc_mon_0001', '招生不足')
-      ).rejects.toThrow('班级已处于完结或取消状态');
+      ).rejects.toThrow('Class is already completed or cancelled');
     });
 
     it('should cancel class and withdraw all enrolled students', async () => {
@@ -583,7 +583,7 @@ describe('ClassService Unit Tests', () => {
 
       await expect(
         service.adminUpdateClass('non_exist_cls', { name: '新班名' })
-      ).rejects.toThrow('班级不存在');
+      ).rejects.toThrow('Class not found');
     });
   });
 });

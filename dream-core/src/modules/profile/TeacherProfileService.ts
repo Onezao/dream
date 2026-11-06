@@ -94,7 +94,7 @@ export class TeacherProfileService {
   async listTeachersByMonitor(monitorAccountId: string): Promise<TeacherDetailDto[]> {
     const monitor = await this.monitorProfileMapper.findByAccountId(monitorAccountId);
     if (!monitor) {
-      throw new ApiError('当前账号未关联班长档案', 403, 'FORBIDDEN');
+      throw new ApiError('Monitor profile not found for account', 403, 'FORBIDDEN');
     }
 
     const teachers = await this.teacherProfileMapper.findByMonitorProfileId(monitor.id);
@@ -132,19 +132,19 @@ export class TeacherProfileService {
   ): Promise<TeacherDetailDto> {
     const monitor = await this.monitorProfileMapper.findByAccountId(monitorAccountId);
     if (!monitor) {
-      throw new ApiError('当前账号未关联班长档案', 403, 'FORBIDDEN');
+      throw new ApiError('Monitor profile not found for account', 403, 'FORBIDDEN');
     }
 
     // 校验教师级别是否存在
     const level = await this.teacherLevelMapper.findById(input.levelId);
     if (!level || !level.isActive) {
-      throw new ApiError('指定的教师级别不存在或已停用', 400, 'BAD_REQUEST');
+      throw new ApiError('Teacher level does not exist or is inactive', 400, 'TEACHER_LEVEL_INVALID');
     }
 
     // 校验擅长课程类型
     const courseTypes = await this.courseTypeMapper.findByIds(input.skillCourseTypeIds);
     if (courseTypes.length !== input.skillCourseTypeIds.length) {
-      throw new ApiError('存在无效或已停用的课程类型', 400, 'BAD_REQUEST');
+      throw new ApiError('Invalid or inactive course type provided', 400, 'COURSE_TYPE_INVALID');
     }
     const courseTypeMap = new Map(courseTypes.map((c) => [c.id, c.name]));
 
@@ -179,20 +179,20 @@ export class TeacherProfileService {
   ): Promise<TeacherDetailDto> {
     const monitor = await this.monitorProfileMapper.findByAccountId(monitorAccountId);
     if (!monitor) {
-      throw new ApiError('当前账号未关联班长档案', 403, 'FORBIDDEN');
+      throw new ApiError('Monitor profile not found for account', 403, 'FORBIDDEN');
     }
 
     if (input.levelId) {
       const level = await this.teacherLevelMapper.findById(input.levelId);
       if (!level || !level.isActive) {
-        throw new ApiError('指定的教师级别不存在或已停用', 400, 'BAD_REQUEST');
+        throw new ApiError('Teacher level does not exist or is inactive', 400, 'TEACHER_LEVEL_INVALID');
       }
     }
 
     if (input.skillCourseTypeIds) {
       const courseTypes = await this.courseTypeMapper.findByIds(input.skillCourseTypeIds);
       if (courseTypes.length !== input.skillCourseTypeIds.length) {
-        throw new ApiError('存在无效或已停用的课程类型', 400, 'BAD_REQUEST');
+        throw new ApiError('Invalid or inactive course type provided', 400, 'COURSE_TYPE_INVALID');
       }
     }
 
@@ -202,7 +202,7 @@ export class TeacherProfileService {
       input
     );
     if (!updated) {
-      throw new ApiError('教师档案不存在或无权操作', 404, 'NOT_FOUND');
+      throw new ApiError('Teacher profile not found or permission denied', 404, 'NOT_FOUND');
     }
 
     const level = await this.teacherLevelMapper.findById(updated.levelId);
@@ -223,7 +223,7 @@ export class TeacherProfileService {
   async deleteTeacher(monitorAccountId: string, teacherId: string): Promise<boolean> {
     const monitor = await this.monitorProfileMapper.findByAccountId(monitorAccountId);
     if (!monitor) {
-      throw new ApiError('当前账号未关联班长档案', 403, 'FORBIDDEN');
+      throw new ApiError('Monitor profile not found for account', 403, 'FORBIDDEN');
     }
 
     const success = await this.teacherProfileMapper.softDeleteByMonitor(
@@ -231,7 +231,7 @@ export class TeacherProfileService {
       monitor.id
     );
     if (!success) {
-      throw new ApiError('教师档案不存在或无权操作', 404, 'NOT_FOUND');
+      throw new ApiError('Teacher profile not found or permission denied', 404, 'NOT_FOUND');
     }
 
     return true;
@@ -288,12 +288,12 @@ export class TeacherProfileService {
   ): Promise<TeacherDetailDto> {
     const monitor = await this.monitorProfileMapper.findById(input.monitorProfileId);
     if (!monitor) {
-      throw new ApiError('指定的负责班长档案不存在', 400, 'BAD_REQUEST');
+      throw new ApiError('Assigned monitor profile not found', 400, 'MONITOR_NOT_FOUND');
     }
 
     const level = await this.teacherLevelMapper.findById(input.levelId);
     if (!level) {
-      throw new ApiError('指定的教师级别不存在', 400, 'BAD_REQUEST');
+      throw new ApiError('Teacher level does not exist', 400, 'TEACHER_LEVEL_INVALID');
     }
 
     const courseTypes = await this.courseTypeMapper.findByIds(input.skillCourseTypeIds);
@@ -316,7 +316,7 @@ export class TeacherProfileService {
         resignedAt: input.resigned ? new Date() : null,
       });
       if (!updated) {
-        throw new ApiError('教师档案不存在', 404, 'NOT_FOUND');
+        throw new ApiError('Teacher profile not found', 404, 'NOT_FOUND');
       }
       record = updated;
     } else {
@@ -353,7 +353,7 @@ export class TeacherProfileService {
         phone: input.phone ?? null,
       });
       if (!updated) {
-        throw new ApiError('更新班长档案失败', 404, 'NOT_FOUND');
+        throw new ApiError('Failed to update monitor profile', 500, 'UPDATE_FAILED');
       }
       return updated;
     }

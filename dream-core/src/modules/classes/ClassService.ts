@@ -128,7 +128,7 @@ export class ClassService {
     client?: PoolClient
   ): Promise<ClassRecord> {
     if (!params.studentProfileId || !params.teacherProfileId || !params.courseTypeId) {
-      throw new ApiError('缺少必要的 1v1 关联参数', 400, 'BAD_REQUEST');
+      throw new ApiError('Missing required 1v1 class association parameters', 400, 'BAD_REQUEST');
     }
 
     if (client) {
@@ -158,25 +158,25 @@ export class ClassService {
     // 2. 校验学员实体
     const student = await this.studentProfileMapper.findById(params.studentProfileId, client);
     if (!student) {
-      throw new ApiError('学员档案不存在', 404, 'STUDENT_NOT_FOUND');
+      throw new ApiError('Student profile not found', 404, 'STUDENT_NOT_FOUND');
     }
 
     // 3. 校验教师实体
     const teacher = await this.teacherProfileMapper.findById(params.teacherProfileId, client);
     if (!teacher) {
-      throw new ApiError('授课教师档案不存在', 404, 'TEACHER_NOT_FOUND');
+      throw new ApiError('Teacher profile not found', 404, 'TEACHER_NOT_FOUND');
     }
 
     // 4. 校验课程类型
     const courseType = await this.courseTypeMapper.findById(params.courseTypeId, client);
     if (!courseType) {
-      throw new ApiError('课程类型不存在', 404, 'COURSE_TYPE_NOT_FOUND');
+      throw new ApiError('Course type not found', 404, 'COURSE_TYPE_NOT_FOUND');
     }
 
     // 5. 确定负责班长（优先入参，缺省继承教师所绑定的责任班长）
     const ownerMonitorProfileId = params.ownerMonitorProfileId || teacher.monitorProfileId;
     if (!ownerMonitorProfileId) {
-      throw new ApiError('教师未分配所属班长，无法建班', 400, 'TEACHER_MONITOR_MISSING');
+      throw new ApiError('Teacher has no assigned monitor profile', 400, 'TEACHER_MONITOR_MISSING');
     }
 
     // 6. 自动生成班级名称（格式：1v1 - {学员昵称} - {课程类型名称}，最多64字）
@@ -230,19 +230,19 @@ export class ClassService {
     // 1. 班长身份物理校验 (IDOR 强隔离)
     const monitor = await this.monitorProfileMapper.findByAccountId(monitorAccountId, client);
     if (!monitor) {
-      throw new ApiError('当前账号未关联班长档案', 403, 'FORBIDDEN');
+      throw new ApiError('Monitor profile not found for account', 403, 'FORBIDDEN');
     }
 
     // 2. 授课教师存在性校验
     const teacher = await this.teacherProfileMapper.findById(validated.teacherProfileId, client);
     if (!teacher) {
-      throw new ApiError('授课教师档案不存在', 404, 'TEACHER_NOT_FOUND');
+      throw new ApiError('Teacher profile not found', 404, 'TEACHER_NOT_FOUND');
     }
 
     // 3. 课程类型存在性校验
     const courseType = await this.courseTypeMapper.findById(validated.courseTypeId, client);
     if (!courseType) {
-      throw new ApiError('课程类型不存在', 404, 'COURSE_TYPE_NOT_FOUND');
+      throw new ApiError('Course type not found', 404, 'COURSE_TYPE_NOT_FOUND');
     }
 
     // 4. 写入班级实体 (初始状态强制为 recruiting)
@@ -297,7 +297,7 @@ export class ClassService {
     client?: PoolClient
   ): Promise<ClassStudentRecord> {
     if (!classId || !studentProfileId) {
-      throw new ApiError('班级编号或学员编号不能为空', 400, 'BAD_REQUEST');
+      throw new ApiError('Class ID and student profile ID cannot be empty', 400, 'BAD_REQUEST');
     }
 
     if (client) {
@@ -317,18 +317,18 @@ export class ClassService {
     // 1. 原生行级排他锁锁定班级行 (SELECT ... FOR UPDATE)
     const targetClass = await this.classMapper.findByIdForUpdate(classId, client);
     if (!targetClass) {
-      throw new ApiError('班级不存在', 404, 'CLASS_NOT_FOUND');
+      throw new ApiError('Class not found', 404, 'CLASS_NOT_FOUND');
     }
 
     // 2. 状态机前置守卫：必须处于 recruiting 招募中
     if (targetClass.status !== 'recruiting') {
-      throw new ApiError('班级未处于招募状态', 409, 'CLASS_STATE_INVALID');
+      throw new ApiError('Class is not in recruiting status', 409, 'CLASS_STATE_INVALID');
     }
 
     // 3. 学员档案有效性校验
     const student = await this.studentProfileMapper.findById(studentProfileId, client);
     if (!student) {
-      throw new ApiError('学员档案不存在', 404, 'STUDENT_NOT_FOUND');
+      throw new ApiError('Student profile not found', 404, 'STUDENT_NOT_FOUND');
     }
 
     // 4. 重复报名幂等拦截
@@ -338,13 +338,13 @@ export class ClassService {
       client
     );
     if (activeEnrollment) {
-      throw new ApiError('学员已在班级中，请勿重复报名', 409, 'ALREADY_ENROLLED');
+      throw new ApiError('Student is already enrolled in this class', 409, 'ALREADY_ENROLLED');
     }
 
     // 5. 容量上限刚性截流 (并发防超卖核心)
     const enrolledCount = await this.classStudentMapper.countEnrolled(classId, client);
     if (enrolledCount >= targetClass.maxStudents) {
-      throw new ApiError('班级名额已满，无法加塞', 409, 'CLASS_FULL');
+      throw new ApiError('Class is already full', 409, 'CLASS_FULL');
     }
 
     // 6. 落盘学员在读关系
@@ -368,26 +368,26 @@ export class ClassService {
   async forceStartClass(classId: string, monitorAccountId: string): Promise<MonitorClassDto> {
     const monitor = await this.monitorProfileMapper.findByAccountId(monitorAccountId);
     if (!monitor) {
-      throw new ApiError('当前账号未关联班长档案', 403, 'FORBIDDEN');
+      throw new ApiError('Monitor profile not found for account', 403, 'FORBIDDEN');
     }
 
     const targetClass = await this.classMapper.findById(classId);
     if (!targetClass) {
-      throw new ApiError('班级不存在', 404, 'CLASS_NOT_FOUND');
+      throw new ApiError('Class not found', 404, 'CLASS_NOT_FOUND');
     }
 
     // IDOR 校验：必须为责任班长本人
     if (targetClass.ownerMonitorProfileId !== monitor.id) {
-      throw new ApiError('无权操作此班级', 403, 'FORBIDDEN');
+      throw new ApiError('Permission denied for this class', 403, 'FORBIDDEN');
     }
 
     if (targetClass.status !== 'recruiting') {
-      throw new ApiError('班级未处于招募状态，无法强制开班', 409, 'CLASS_STATE_INVALID');
+      throw new ApiError('Class is not in recruiting status to force start', 409, 'CLASS_STATE_INVALID');
     }
 
     const updated = await this.classMapper.updateForceStarted(classId, new Date());
     if (!updated) {
-      throw new ApiError('更新班级状态失败', 500, 'INTERNAL_SERVER_ERROR');
+      throw new ApiError('Failed to update class status', 500, 'INTERNAL_SERVER_ERROR');
     }
 
     return this.buildMonitorClassDto(updated);
@@ -407,22 +407,22 @@ export class ClassService {
   ): Promise<{ success: boolean }> {
     const monitor = await this.monitorProfileMapper.findByAccountId(monitorAccountId);
     if (!monitor) {
-      throw new ApiError('当前账号未关联班长档案', 403, 'FORBIDDEN');
+      throw new ApiError('Monitor profile not found for account', 403, 'FORBIDDEN');
     }
 
     const targetClass = await this.classMapper.findById(classId);
     if (!targetClass) {
-      throw new ApiError('班级不存在', 404, 'CLASS_NOT_FOUND');
+      throw new ApiError('Class not found', 404, 'CLASS_NOT_FOUND');
     }
 
     // IDOR 校验
     if (targetClass.ownerMonitorProfileId !== monitor.id) {
-      throw new ApiError('无权操作此班级', 403, 'FORBIDDEN');
+      throw new ApiError('Permission denied for this class', 403, 'FORBIDDEN');
     }
 
     // 终态不可流转守卫
     if (targetClass.status === 'completed' || targetClass.status === 'cancelled') {
-      throw new ApiError('班级已处于完结或取消状态', 409, 'CLASS_STATE_INVALID');
+      throw new ApiError('Class is already completed or cancelled', 409, 'CLASS_STATE_INVALID');
     }
 
     await this.executeTransaction(async (txClient) => {
@@ -468,7 +468,7 @@ export class ClassService {
   ): Promise<MonitorClassDto[]> {
     const monitor = await this.monitorProfileMapper.findByAccountId(monitorAccountId);
     if (!monitor) {
-      throw new ApiError('当前账号未关联班长档案', 403, 'FORBIDDEN');
+      throw new ApiError('Monitor profile not found for account', 403, 'FORBIDDEN');
     }
 
     const classes = await this.classMapper.findByMonitor(monitor.id, {
@@ -488,16 +488,16 @@ export class ClassService {
   ): Promise<MonitorClassDto> {
     const monitor = await this.monitorProfileMapper.findByAccountId(monitorAccountId);
     if (!monitor) {
-      throw new ApiError('当前账号未关联班长档案', 403, 'FORBIDDEN');
+      throw new ApiError('Monitor profile not found for account', 403, 'FORBIDDEN');
     }
 
     const targetClass = await this.classMapper.findById(classId);
     if (!targetClass) {
-      throw new ApiError('班级不存在', 404, 'CLASS_NOT_FOUND');
+      throw new ApiError('Class not found', 404, 'CLASS_NOT_FOUND');
     }
 
     if (targetClass.ownerMonitorProfileId !== monitor.id) {
-      throw new ApiError('无权查看此班级', 403, 'FORBIDDEN');
+      throw new ApiError('Permission denied to view this class', 403, 'FORBIDDEN');
     }
 
     return this.buildMonitorClassDto(targetClass);
@@ -529,8 +529,8 @@ export class ClassService {
     return {
       id: cls.id,
       name: cls.name,
-      courseTypeName: courseType?.name ?? '未知课程',
-      teacherDisplayName: teacher?.displayName ?? '未知教师',
+      courseTypeName: courseType?.name ?? 'Unknown Course',
+      teacherDisplayName: teacher?.displayName ?? 'Unknown Teacher',
       teacherPhotoUrl: this.resolveCdnUrl(teacher?.photoKey),
       minStudents: cls.minStudents,
       maxStudents: cls.maxStudents,
@@ -610,13 +610,13 @@ export class ClassService {
   ): Promise<AdminClassDto> {
     const existing = await this.classMapper.findById(classId);
     if (!existing) {
-      throw new ApiError('班级不存在', 404, 'CLASS_NOT_FOUND');
+      throw new ApiError('Class not found', 404, 'CLASS_NOT_FOUND');
     }
 
     if (input.teacherProfileId) {
       const teacher = await this.teacherProfileMapper.findById(input.teacherProfileId);
       if (!teacher) {
-        throw new ApiError('指定的教师档案不存在', 404, 'TEACHER_NOT_FOUND');
+        throw new ApiError('Teacher profile not found', 404, 'TEACHER_NOT_FOUND');
       }
     }
 
@@ -632,7 +632,7 @@ export class ClassService {
     });
 
     if (!updated) {
-      throw new ApiError('更新班级失败', 500, 'INTERNAL_ERROR');
+      throw new ApiError('Failed to update class', 500, 'INTERNAL_ERROR');
     }
 
     const monitorDto = await this.buildMonitorClassDto(updated);

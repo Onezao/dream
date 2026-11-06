@@ -80,7 +80,22 @@
   - 页面导航、工作台标题、角色标签。
   - 表单 Label、Placeholder、校验错误提示。
   - 7 色日历状态枚举（如：`固定位 / Fixed Slot`、`被代课 / Substituted`）。
-  - 后端 API 业务错误码（如 `NICKNAME_ALREADY_EXISTS` 国际化文案映射）。
+  - 后端 API 业务错误码（如 `NICKNAME_ALREADY_EXISTS`、`CLASS_FULL` 国际化文案映射）。
+- **错误码统一拦截与自动翻译（对齐 Topee-Auth 范式）**：
+  - 前端统一请求封装在捕获非 2xx 响应时，优先提取 `error.code || error.errorCode`：
+    ```typescript
+    const code = error.code || error.errorCode;
+    const key = `errors.${code}`;
+    let message = error.error || error.message || t('common.failed');
+    if (code && i18n.global.te(key)) {
+      message = i18n.global.t(key);
+    }
+    // 抛出经过多语言翻译的 Error 供 UI 组件 Toast 呈现
+    throw new Error(message);
+    ```
+  - 语言包中集中以 `errors.<CODE>` 维护（如 `errors.CLASS_FULL`、`errors.ALREADY_ENROLLED`），确保无论后端抛出何种已知业务错误，界面均呈现当前语言。
+- **表单输入校验第一道防线**：
+  - 所有表单交互组件必须在客户端绑定基于 `i18n` 的响应式 rules（如 `t('form.rules.required')`），在用户触发提交前即时完成本地化校验与标红，避免向后端发送无效请求导致粗暴回退。
 - **无刷新切换与持久化**：
   - 顶部导航栏提供全局语言切换下拉框。
   - 语言首选项持久化存入 `localStorage.getItem('dream_locale')`，初次访问自动匹配 `navigator.language`。

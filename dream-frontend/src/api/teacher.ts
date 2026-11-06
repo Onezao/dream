@@ -1,5 +1,6 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
+import { resolveApiErrorMessage } from '../utils/apiError';
 import type {
   TeacherCardDto,
   TeacherDetailDto,
@@ -32,7 +33,7 @@ async function authFetch<T>(url: string, options: RequestInit = {}): Promise<T> 
   const json = (await res.json().catch(() => ({}))) as Record<string, any>;
 
   if (!res.ok) {
-    throw new Error(json.error || json.message || `Request failed with ${res.status}`);
+    throw new Error(resolveApiErrorMessage(json, res.status));
   }
 
   return json as T;

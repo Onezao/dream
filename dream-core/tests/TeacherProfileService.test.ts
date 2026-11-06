@@ -200,7 +200,7 @@ describe('TeacherProfileService', () => {
       mockMonitorMapper.findByAccountId.mockResolvedValue(null);
 
       await expect(service.listTeachersByMonitor('acc_not_monitor')).rejects.toThrow(
-        '当前账号未关联班长档案'
+        'Monitor profile not found for account'
       );
     });
 
@@ -232,7 +232,7 @@ describe('TeacherProfileService', () => {
       mockMonitorMapper.findByAccountId.mockResolvedValue(null);
 
       await expect(service.createTeacher('acc_fake', createInput)).rejects.toThrow(
-        '当前账号未关联班长档案'
+        'Monitor profile not found for account'
       );
     });
 
@@ -241,7 +241,7 @@ describe('TeacherProfileService', () => {
       mockLevelMapper.findById.mockResolvedValue(null);
 
       await expect(service.createTeacher('acc123456789', createInput)).rejects.toThrow(
-        '指定的教师级别不存在或已停用'
+        'Teacher level does not exist or is inactive'
       );
     });
 
@@ -251,7 +251,7 @@ describe('TeacherProfileService', () => {
       mockCourseMapper.findByIds.mockResolvedValue([]); // not found
 
       await expect(service.createTeacher('acc123456789', createInput)).rejects.toThrow(
-        '存在无效或已停用的课程类型'
+        'Invalid or inactive course type provided'
       );
     });
 
@@ -285,7 +285,7 @@ describe('TeacherProfileService', () => {
         service.updateTeacher('acc123456789', 'tea_other', {
           displayName: 'Updated Name',
         })
-      ).rejects.toThrow('教师档案不存在或无权操作');
+      ).rejects.toThrow('Teacher profile not found or permission denied');
     });
 
     it('should update teacher successfully when owned by monitor', async () => {
@@ -317,7 +317,7 @@ describe('TeacherProfileService', () => {
 
       await expect(
         service.deleteTeacher('acc123456789', 'tea_other')
-      ).rejects.toThrow('教师档案不存在或无权操作');
+      ).rejects.toThrow('Teacher profile not found or permission denied');
     });
 
     it('should soft delete teacher successfully when owned', async () => {

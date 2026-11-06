@@ -1,5 +1,6 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
+import { resolveApiErrorMessage } from '../utils/apiError';
 import type {
   StudentProfileDto,
   CreateStudentProfileInput,
@@ -43,10 +44,7 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 
   if (!response.ok) {
-    const message =
-      (typeof body.message === 'string' && body.message) ||
-      (typeof body.error === 'string' && body.error) ||
-      `HTTP ${response.status}`;
+    const message = resolveApiErrorMessage(body, response.status);
     const error: ProfileApiError = new Error(message);
     error.statusCode = response.status;
     error.code = typeof body.code === 'string' ? body.code : undefined;

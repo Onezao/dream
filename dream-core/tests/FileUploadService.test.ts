@@ -77,7 +77,7 @@ describe('FileUploadService', () => {
           contentType: 'video/mp4',
           contentLength: 51 * 1024 * 1024,
         })
-      ).rejects.toThrow('文件类型或体积超出业务限制');
+      ).rejects.toThrow('File type or size exceeds limit');
     });
 
     it('should reject teacher photo exceeding 1MB limit', async () => {
@@ -87,7 +87,7 @@ describe('FileUploadService', () => {
           contentType: 'image/webp',
           contentLength: 1.5 * 1024 * 1024,
         })
-      ).rejects.toThrow('文件类型或体积超出业务限制');
+      ).rejects.toThrow('File type or size exceeds limit');
     });
 
     it('should reject non-mp4 video contentType', async () => {

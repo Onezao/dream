@@ -1,5 +1,7 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
+import { resolveApiErrorMessage } from '../utils/apiError';
+
 export interface ApiResponse<T = any> {
   code?: string;
   message?: string;
@@ -28,7 +30,7 @@ async function request<T = any>(url: string, options: RequestInit = {}): Promise
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const error: any = new Error(data.message || data.error || `HTTP ${response.status}`);
+    const error: any = new Error(resolveApiErrorMessage(data, response.status));
     error.response = { data, status: response.status };
     throw error;
   }

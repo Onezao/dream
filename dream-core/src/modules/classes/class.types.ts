@@ -16,33 +16,33 @@ import type {
 
 export const CreateSmallGroupClassSchema = z
   .object({
-    name: z.string().trim().min(2, '班级名称至少2字').max(64, '班级名称最多64字'),
+    name: z.string().trim().min(2, 'Class name must be at least 2 characters').max(64, 'Class name cannot exceed 64 characters'),
     courseTypeId: ShortId,
     teacherProfileId: ShortId,
-    minStudents: z.number().int().min(1, '最少开班人数不能小于1').default(2),
-    maxStudents: z.number().int().min(1).max(20, '最大容纳人数不能超过20人').default(4),
-    teacherSalaryPoints: z.number().int().nonnegative('教师单节课酬必须非负').default(0),
+    minStudents: z.number().int().min(1, 'Minimum students cannot be less than 1').default(2),
+    maxStudents: z.number().int().min(1).max(20, 'Maximum students cannot exceed 20').default(4),
+    teacherSalaryPoints: z.number().int().nonnegative('Teacher salary points must be non-negative').default(0),
     platformCommissionRate: z
       .number()
       .min(0.0)
       .max(100.0)
-      .multipleOf(0.01, '抽佣比例最多支持2位小数')
+      .multipleOf(0.01, 'Commission rate supports at most 2 decimal places')
       .default(0.0),
-    plannedStartDate: z.string().date('计划开课日期格式不正确 (YYYY-MM-DD)'),
+    plannedStartDate: z.string().date('Invalid planned start date format (YYYY-MM-DD)'),
   })
   .refine((data) => data.minStudents <= data.maxStudents, {
-    message: '最少开班人数不能大于最大容纳人数',
+    message: 'Minimum students cannot exceed maximum students',
     path: ['minStudents'],
   });
 
 export const ConfirmActionSchema = z.object({
   confirm: z.literal(true, {
-    errorMap: () => ({ message: '必须显式确认操作' }),
+    errorMap: () => ({ message: 'Action must be explicitly confirmed' }),
   }),
 });
 
 export const CancelClassSchema = ConfirmActionSchema.extend({
-  reason: z.string().trim().min(2, '取消原因至少2字').max(200, '取消原因最多200字'),
+  reason: z.string().trim().min(2, 'Cancellation reason must be at least 2 characters').max(200, 'Cancellation reason cannot exceed 200 characters'),
 });
 
 export const AdminClassQuerySchema = z.object({
@@ -57,19 +57,19 @@ export const AdminClassQuerySchema = z.object({
 
 export const AdminUpdateClassSchema = z
   .object({
-    name: z.string().trim().min(2, '班级名称至少2字').max(64, '班级名称最多64字').optional(),
+    name: z.string().trim().min(2, 'Class name must be at least 2 characters').max(64, 'Class name cannot exceed 64 characters').optional(),
     teacherProfileId: ShortId.optional(),
-    minStudents: z.number().int().min(1, '最少开班人数不能小于1').optional(),
-    maxStudents: z.number().int().min(1).max(20, '最大容纳人数不能超过20人').optional(),
-    teacherSalaryPoints: z.number().int().nonnegative('教师单节课酬必须非负').optional(),
+    minStudents: z.number().int().min(1, 'Minimum students cannot be less than 1').optional(),
+    maxStudents: z.number().int().min(1).max(20, 'Maximum students cannot exceed 20').optional(),
+    teacherSalaryPoints: z.number().int().nonnegative('Teacher salary points must be non-negative').optional(),
     platformCommissionRate: z
       .number()
       .min(0.0)
       .max(100.0)
-      .multipleOf(0.01, '抽佣比例最多支持2位小数')
+      .multipleOf(0.01, 'Commission rate supports at most 2 decimal places')
       .optional(),
     status: z.enum(['recruiting', 'active', 'completed', 'cancelled']).optional(),
-    plannedStartDate: z.string().date('计划开课日期格式不正确 (YYYY-MM-DD)').nullable().optional(),
+    plannedStartDate: z.string().date('Invalid planned start date format (YYYY-MM-DD)').nullable().optional(),
   })
   .refine(
     (data) => {
@@ -79,7 +79,7 @@ export const AdminUpdateClassSchema = z
       return true;
     },
     {
-      message: '最少开班人数不能大于最大容纳人数',
+      message: 'Minimum students cannot exceed maximum students',
       path: ['minStudents'],
     }
   );

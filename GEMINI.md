@@ -37,7 +37,13 @@
     - **强制在线与零离线缓存 (NetworkOnly - 强一致性)**: 所有财务与资金流单据（购课单支付、退款单、转账单、周结单）；抢位与排班落盘接口（`SELECT ... FOR UPDATE`）严禁离线操作，离线状态下置灰阻断并 Toast 提示“离线模式不可用”。
   - **全站中英文双语规范 (i18n Standards)**:
     - 采用 **`vue-i18n`**（Composition API 模式），覆盖中文简体 (`zh-CN`) 与英文 (`en-US`)。
-    - 国际化范围：顶部与侧边导航、表单字段与校验错误提示、系统弹窗、通用状态标签（7色日历状态、单据状态）、错误码文本（如 `NICKNAME_ALREADY_EXISTS`）。
+    - **对齐 `@topeetop/auth-core` 官方范式**：遵循“后端传标准 Code 与英文 Fallback，前端按 Code 翻译双语”。
+    - **`dream-core` 语言中立铁律**：严禁在 `dream-core` 中硬编码中文字符串。
+      - 入参校验 Schema（`*.types.ts`）的错误信息统一使用**标准英文**（面向用户的表单校验由前端表单组件 rules 借助 `vue-i18n` 拦截作为第一道防线）。
+      - 业务异常必须显式传入大写业务错误码 `ApiError(message, status, code)`，`message` 统一使用**标准英文**用于日志排障与安全回退。
+      - DTO 组装严禁中文兜底（统一使用英文如 `'Unknown Course'` 或为 `null` 由前端展示层 i18n 渲染）。
+    - **前端错误码统一拦截**：前端请求统一封装自动提取 `error.code || error.errorCode`，优先通过 `i18n.global.te('errors.' + code)` 动态翻译并 Toast，未定义则安全回退至后端英文 message。
+    - 国际化范围：顶部与侧边导航、表单字段与校验错误提示、系统弹窗、通用状态标签（7色日历状态、单据状态）、错误码文本（如 `NICKNAME_ALREADY_EXISTS`、`CLASS_FULL`）。
     - 语言切换与持久化：支持在设置/顶部栏即时无刷新切换，持久化存入 `localStorage.getItem('dream_locale')`，默认根据 `navigator.language` 智能回退。
   - **样式驱动**: 必须且仅允许使用 **Tailwind CSS** 处理组件样式。
   - **UI 组件库搭配**: 移动端界面（家长端约课、个人档案、课表）统一采用 **`tdesign-mobile-vue`**；管理看板与财务报表（管理员后台、班长工作台排课网格、周结单看板）搭配 **`tdesign-vue-next`**。

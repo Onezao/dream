@@ -16,18 +16,18 @@ export const NICKNAME_REGEX = /^[A-Za-z]{1,24}[A-Z]\d{1,2}[a-z0-9]{0,3}$/;
 
 export const CreateStudentProfileSchema = z.object({
   realName: z.string().trim().min(1).max(32),
-  englishName: z.string().trim().regex(/^[A-Za-z]{1,24}$/, '英文名必须为1-24位英文字母'),
+  englishName: z.string().trim().regex(/^[A-Za-z]{1,24}$/, 'English name must be 1-24 letters'),
   surnameInitial: z
     .string()
     .trim()
     .length(1)
-    .regex(/^[A-Za-z]$/, '姓首字母必须为单个字母')
+    .regex(/^[A-Za-z]$/, 'Surname initial must be a single letter')
     .transform((v) => v.toUpperCase()),
   age: z.number().int().min(1).max(99),
   nicknameSuffix: z
     .string()
     .trim()
-    .regex(/^[a-z0-9]{1,3}$/, '后缀限1-3位小写字母/数字')
+    .regex(/^[a-z0-9]{1,3}$/, 'Suffix must be 1-3 lowercase letters or digits')
     .optional(),
   gender: z.enum(['male', 'female', 'undisclosed']).default('undisclosed'),
   birthDate: z

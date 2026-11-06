@@ -119,3 +119,20 @@
   事务内仅包含状态校验、TS 状态更新与日志插入，严禁在锁持有期间调用外部 API 或发送邮件，确保事务在 50ms 内提交并释放行锁。
 - **轻量异步任务队列表**：
   邮件并发派发与超时未读兜底，通过数据库表 `dream.notice_logs` 维护待发送状态，由 `dream-worker` 独立轮询扫描并处理，保障任务持久化且无需维护额外 MQ 集群。
+
+---
+
+## 8. 领域层多语言与错误码中立规约 (i18n & Error Handling Standards)
+
+对齐 `@topeetop/auth-core` 标准范式，`dream-core` 作为无状态的领域核心与跨端共享包，必须保持**语言中立与全英文技术诊断**：
+
+### 8.1 严禁在 `dream-core` 中硬编码中文字符串
+- **Zod 校验契约 (`*.types.ts`)**：
+  - 入参校验 Schema 中的错误消息统一使用**标准英文**（如 `z.string().min(2, 'Class name must be at least 2 characters')`）或原生校验约束，严禁硬编码中文提示。
+  - 面向用户的实时表单校验由前端表单组件（TDesign Form Rules）在客户端调用 `vue-i18n` 拦截，后端的 Zod 规则作为防御性底线。
+- **业务异常 (`ApiError`)**：
+  - 抛出 `ApiError(message, statusCode, code)` 时，`message` 统一使用**标准英文**（用于后端 stdout 结构化日志、云原生排障与前端未命中翻译时的安全 Fallback）。
+  - **必须显式声明语义精准的全局大写业务错误码 (`code`)**（如 `CLASS_FULL`, `ALREADY_ENROLLED`, `CLASS_STATE_INVALID`, `TEACHER_MONITOR_MISSING`）。
+- **DTO 与数据组装兜底文本**：
+  - 组装 DTO 时严禁填充中文兜底值（如避免 `courseType?.name ?? '未知课程'`，应统一使用 `courseType?.name ?? 'Unknown Course'` 或保持 `null`，由前端视图层结合 `i18n` 做展示兜底）。
+  - 领域状态与枚举必须保持标准英文字符串（如 `'recruiting'`, `'active'`, `'completed'`），严禁在 Service/Mapper 层将其转换为中文状态文本返回。

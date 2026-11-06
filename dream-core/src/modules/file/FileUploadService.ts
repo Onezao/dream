@@ -95,7 +95,7 @@ export class FileUploadService {
     const parseResult = UploadUrlSchema.safeParse(input);
     if (!parseResult.success) {
       const errorMsg = parseResult.error.errors.map((e) => e.message).join('; ');
-      throw new ApiError(errorMsg || '文件上传参数校验失败', 400, 'VALIDATION_ERROR');
+      throw new ApiError(errorMsg || 'File upload validation failed', 400, 'VALIDATION_ERROR');
     }
 
     const { bizType, contentType } = parseResult.data;
