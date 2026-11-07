@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
+<!-- 即抛型原型：M0 工作台与主页全域基座。纯前端 Mock，不连接后端，不触碰生产代码。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>原型 · M0 工作台与主页基座</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800 antialiased">
+
+  <!-- 原型控制台 -->
+  <header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">M0</span>
+        <span class="text-[13px] font-bold text-slate-900">工作台与主页基座</span>
+        <span class="hidden text-[12px] font-medium text-slate-400 sm:inline">纯前端 Mock · 不连接后端</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">工作台</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-action="set-role" data-role="user" data-role-btn class="console-role inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold">
+            <i data-lucide="home" class="h-3.5 w-3.5"></i>家长
+          </button>
+          <button data-action="set-role" data-role="monitor" data-role-btn class="console-role inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold">
+            <i data-lucide="briefcase" class="h-3.5 w-3.5"></i>班长
+          </button>
+          <button data-action="set-role" data-role="teacher" data-role-btn class="console-role inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold">
+            <i data-lucide="graduation-cap" class="h-3.5 w-3.5"></i>教师
+          </button>
+          <button data-action="set-role" data-role="admin" data-role-btn class="console-role inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold">
+            <i data-lucide="shield-check" class="h-3.5 w-3.5"></i>管理员
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">多角色</span>
+        <button data-action="toggle-multi" id="multiToggle" class="relative h-5 w-9 rounded-full bg-indigo-600 transition">
+          <span class="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all"></span>
+        </button>
+        <span id="multiLabel" class="text-[12px] font-semibold text-indigo-600">开</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">设备</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-action="set-device" data-device="mobile" data-device-btn class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold">
+            <i data-lucide="smartphone" class="h-3.5 w-3.5"></i>手机
+          </button>
+          <button data-action="set-device" data-device="tablet" data-device-btn class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold">
+            <i data-lucide="tablet" class="h-3.5 w-3.5"></i>平板
+          </button>
+        </div>
+      </div>
+
+      <a href="../docs/prd/m0_workspace_and_home.md" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 md:inline-flex">
+        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M0 PRD
+      </a>
+    </div>
+  </header>
+
+  <main class="flex justify-center px-4 py-6">
+    <!-- 手机优先画框；平板由 JS 切换为 768px -->
+    <div id="frame" class="relative flex h-[812px] w-[390px] flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
+      <div id="topbar" class="shrink-0"></div>
+      <div id="content" class="flex-1 overflow-y-auto"></div>
+      <nav id="bottomnav" class="shrink-0"></nav>
+      <div id="overlay"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-24 left-1/2 z-[80] hidden -translate-x-1/2 rounded-full bg-slate-900/90 px-4 py-2 text-[12px] font-semibold text-white shadow-xl"></div>
+    </div>
+  </main>
+
+  <!-- Tailwind CDN 动态类安全垫 -->
+  <div class="hidden grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-6 grid-cols-[repeat(21,1fr)]"></div>
+
+  <script>
+    const ROLE_META = {
+      user: {
+        label: '家长', short: '家长端', icon: 'home', todo: 0, frame: 'bg-slate-50',
+        title: '家长工作台', subtitle: 'Amy · 2 个孩子',
+        desc: '多孩档案与课表',
+        nav: [
+          { icon: 'home', label: '首页', action: 'open-home' },
+          { icon: 'calendar-days', label: '课表', action: 'toast', message: '课表入口：由 M3 排班模块承载' },
+          { icon: 'plus-circle', label: '约课', action: 'toast', message: '约课入口：由 M3 排班模块承载' },
+          { icon: 'bell', label: '消息', action: 'notifications' },
+          { icon: 'user', label: '我的', action: 'open-me' }
+        ]
+      },
+      monitor: {
+        label: '班长', short: '班长端', icon: 'briefcase', todo: 2, frame: 'bg-slate-100',
+        title: '班长工作台', subtitle: 'Leo 的教务域 · 50 名学生',
+        desc: '50 名学生与教师团队',
+        nav: [
+          { icon: 'home', label: '首页', action: 'open-home' },
+          { icon: 'calendar-days', label: '排课', action: 'toast', message: '全局排课网格：由 M3 排班模块承载' },
+          { icon: 'file-plus', label: '录单', action: 'toast', message: '购课录单：由 M2 资金单据模块承载' },
+          { icon: 'wallet', label: '财务', action: 'toast', message: '财务中心：由 M5 结算模块承载' },
+          { icon: 'user', label: '我的', action: 'open-me' }
+        ]
+      },
+      teacher: {
+        label: '教师', short: '教师端', icon: 'graduation-cap', todo: 1, frame: 'bg-slate-50',
+        title: 'Teacher Workspace', subtitle: 'David · 今日 6 节',
+        desc: '今日授课与代课交接',
+        nav: [
+          { icon: 'home', labelKey: 'navHome', action: 'open-home' },
+          { icon: 'calendar-days', labelKey: 'navSchedule', action: 'toast', message: '教师 7 色课表：由 M3 排班模块承载' },
+          { icon: 'message-square', labelKey: 'navFeedback', action: 'toast', message: '留言与反馈：由 M1D 留言板模块承载' },
+          { icon: 'wallet', labelKey: 'navPay', action: 'toast', message: '周课酬节数单：由 M5B 结算模块承载' },
+          { icon: 'user', labelKey: 'navMe', action: 'open-me' }
+        ]
+      },
+      admin: {
+        label: '管理员', short: '管理员端', icon: 'shield-check', todo: 1, frame: 'bg-slate-100',
+        title: '管理员后台', subtitle: 'Sarah · 平台中枢',
+        desc: '中央结算与平台风控',
+        nav: [
+          { icon: 'home', label: '首页', action: 'open-home' },
+          { icon: 'landmark', label: '结算', action: 'toast', message: '中央结算：由 M5 结算模块承载' },
+          { icon: 'users', label: '教师', action: 'toast', message: '教师与班长调配：由 M1B 模块承载' },
+          { icon: 'bar-chart-3', label: '报表', action: 'toast', message: '平台工具费周报：由 M5B 模块承载' },
+          { icon: 'user', label: '我的', action: 'open-me' }
+        ]
+      }
+    };
+
+    const PROFILES = {
+      alice: {
+        name: 'AliceZ12', age: 12, initial: 'A', color: 'sky', tag: '固定位',
+        next: { teacher: 'David', initial: 'D', course: '少儿英语', type: '1v1', time: '19:00 - 19:30', countdown: '02:14:36', fuse: true },
+        stats: { scheduled: 3, pending: 5, leave: '1/2' },
+        todos: [
+          { icon: 'calendar-plus', label: '去约课', sub: '还有 3 节待排', tone: 'indigo' },
+          { icon: 'message-square', label: '看反馈', sub: 'David 新反馈', tone: 'sky' },
+          { icon: 'alarm-clock', label: '续费提醒', sub: '72h 后到期', tone: 'rose' }
+        ]
+      },
+      bob: {
+        name: 'BobZ10', age: 10, initial: 'B', color: 'emerald', tag: '临时课',
+        next: { teacher: 'Amy', initial: 'A', course: '生活口语', type: '1v1', time: '20:00 - 20:30', countdown: '03:14:36', fuse: false },
+        stats: { scheduled: 2, pending: 1, leave: '0/2' },
+        todos: [
+          { icon: 'calendar-plus', label: '去约课', sub: '还有 1 节待排', tone: 'indigo' },
+          { icon: 'message-square', label: '看反馈', sub: 'Amy 新反馈', tone: 'sky' },
+          { icon: 'users', label: '小班课', sub: '2 个招生中', tone: 'violet' }
+        ]
+      }
+    };
+
+    const TONES = {
+      indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600' },
+      sky: { bg: 'bg-sky-50', text: 'text-sky-600' },
+      emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600' },
+      amber: { bg: 'bg-amber-50', text: 'text-amber-600' },
+      rose: { bg: 'bg-rose-50', text: 'text-rose-600' },
+      violet: { bg: 'bg-violet-50', text: 'text-violet-600' },
+      purple: { bg: 'bg-purple-50', text: 'text-purple-600' },
+      slate: { bg: 'bg-slate-100', text: 'text-slate-600' }
+    };
+
+    const TEACHER_TEXT = {
+      zh: {
+        navHome: '首页', navSchedule: '课表', navFeedback: '反馈', navPay: '课酬', navMe: '我的',
+        workspaceTitle: '教师工作台', topSubtitle: 'David · 今日 6 节',
+        greeting: '下午好，David', subtitle: '今日 6 节课 · 1 节代课', todayDate: '11月6日 周四',
+        today: '今日授课', lessons: '节课', done: '已完课', upcoming: '待上课', substitute: '代上课',
+        next: '下一节课', substituting: '代上课', years: '岁', oral: '生活口语', forTeacher: '原老师',
+        handover: '原老师交接摘要', handoverText: '上节课完成 Unit 4 阅读，Bob 对过去式还不熟；今天先复习 10 分钟再进新单元。',
+        feedback: '留言板 / 写反馈', openClassIn: '打开 ClassIn', leave: '请假', leaveToast: '已打开请假面板',
+        feedbackReminder: '18:00 的课后反馈还没写', fillNow: '去补录',
+        week: '本周课表', legend: '7 色状态', thu: '周四', fri: '周五', sat: '周六',
+        tools: '常用工具', toolAvailability: '开放常规时段', toolLeave: '请假 / 销假', toolPay: '周课酬节数单', toolCard: '我的名片',
+        weekLabel: '本周'
+      },
+      en: {
+        navHome: 'Home', navSchedule: 'Schedule', navFeedback: 'Feedback', navPay: 'Pay', navMe: 'Me',
+        workspaceTitle: 'Teacher', topSubtitle: 'David · 6 lessons',
+        greeting: 'Good afternoon, David', subtitle: '6 lessons today · 1 substitute', todayDate: 'Nov 6 · Thu',
+        today: "Today's teaching", lessons: 'lessons', done: 'Done', upcoming: 'Upcoming', substitute: 'Substitute',
+        next: 'Next class', substituting: 'Substituting', years: 'yrs', oral: 'Conversational', forTeacher: 'for',
+        handover: 'Handover from Amy', handoverText: 'We finished Unit 4 reading last time. Bob is still shaky on past tense — review for 10 minutes before the new unit.',
+        feedback: 'Message / Feedback', openClassIn: 'Open ClassIn', leave: 'Request leave', leaveToast: 'Leave panel opened',
+        feedbackReminder: 'Feedback for the 18:00 class is missing', fillNow: 'Add now',
+        week: 'This week', legend: '7-color status', thu: 'Thu', fri: 'Fri', sat: 'Sat',
+        tools: 'Tools', toolAvailability: 'Availability', toolLeave: 'Leave', toolPay: 'Weekly pay', toolCard: 'My card',
+        weekLabel: 'This week'
+      }
+    };
+
+    const state = {
+      role: 'user',
+      multiRole: true,
+      device: 'mobile',
+      profileId: 'alice',
+      view: 'home',
+      sheet: null,
+      legalDoc: 'terms',
+      lang: 'zh'
+    };
+
+    // 便于评审的 URL 参数：?role=monitor&device=tablet&multi=0&view=me&sheet=workspace&doc=privacy&lang=en
+    const params = new URLSearchParams(location.search);
+    if (params.get('role') && ROLE_META[params.get('role')]) state.role = params.get('role');
+    if (params.get('device') === 'tablet') state.device = 'tablet';
+    if (params.get('multi') === '0') state.multiRole = false;
+    if (params.get('profile') && PROFILES[params.get('profile')]) state.profileId = params.get('profile');
+    if (params.get('view') === 'me') state.view = 'me';
+    if (params.get('lang') === 'en') state.lang = 'en';
+    if (['workspace', 'profile', 'notifications', 'qr', 'legal'].includes(params.get('sheet'))) state.sheet = params.get('sheet');
+    if (params.get('doc')) state.legalDoc = params.get('doc');
+
+    const THEMES = {
+      user: {
+        topbar: 'bg-white/95 text-slate-900 border-b border-slate-200',
+        capsule: 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+        iconBtn: 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+        avatar: 'bg-indigo-600 text-white',
+        nav: 'border-t border-slate-200 bg-white',
+        navActive: 'text-indigo-600',
+        navIdle: 'text-slate-400'
+      },
+      monitor: {
+        topbar: 'bg-indigo-950 text-white',
+        capsule: 'border-indigo-700 bg-indigo-900/70 text-indigo-100 hover:bg-indigo-900',
+        iconBtn: 'bg-white/10 text-white hover:bg-white/20',
+        avatar: 'bg-indigo-600 text-white ring-1 ring-indigo-400',
+        nav: 'border-t border-slate-200 bg-white',
+        navActive: 'text-indigo-600',
+        navIdle: 'text-slate-400'
+      },
+      teacher: {
+        topbar: 'bg-white text-slate-900 border-b border-slate-200',
+        capsule: 'border-slate-200 bg-slate-100 text-slate-700 hover:bg-slate-200',
+        iconBtn: 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+        avatar: 'bg-slate-900 text-white',
+        nav: 'border-t border-slate-200 bg-white',
+        navActive: 'text-slate-900',
+        navIdle: 'text-slate-400'
+      },
+      admin: {
+        topbar: 'bg-slate-900 text-amber-400',
+        capsule: 'border-amber-500/30 bg-slate-800 text-amber-300 hover:bg-slate-800/80',
+        iconBtn: 'bg-white/5 text-amber-300 hover:bg-white/10',
+        avatar: 'bg-amber-400 text-slate-900',
+        nav: 'border-t border-slate-800 bg-slate-900',
+        navActive: 'text-amber-400',
+        navIdle: 'text-slate-500'
+      }
+    };
+
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
+
+    function t(key) {
+      return TEACHER_TEXT[state.lang][key] || TEACHER_TEXT.zh[key] || key;
+    }
+
+    function otherTodo() {
+      const order = ['monitor', 'admin', 'teacher', 'user'].filter(r => r !== state.role);
+      for (const r of order) {
+        if (ROLE_META[r].todo > 0) return { role: r, count: ROLE_META[r].todo };
+      }
+      return null;
+    }
+
+    function renderTopbar() {
+      const meta = ROLE_META[state.role];
+      const th = THEMES[state.role];
+      const badge = otherTodo();
+      const capsule = state.multiRole
+        ? `<div class="relative shrink-0">
+             <button data-action="workspace-menu" class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[12px] font-bold ${th.capsule}">
+               ${icon('repeat-2', 'h-3.5 w-3.5')}
+               <span>${meta.short}</span>
+               ${icon('chevron-down', 'h-3 w-3 opacity-60')}
+             </button>
+             ${badge && state.role === 'user' ? `<span class="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-rose-500 px-1 text-[12px] font-bold leading-none text-white ring-2 ring-white">${badge.count}</span>` : ''}
+           </div>`
+        : `<span class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[12px] font-bold ${th.capsule}">${meta.short}</span>`;
+
+      const avatarText = state.role === 'teacher' ? 'D' : 'A';
+      const title = state.role === 'teacher' ? t('workspaceTitle') : meta.title;
+      const subtitle = state.role === 'teacher' ? t('topSubtitle') : meta.subtitle;
+
+      return `
+        <div class="${th.topbar}">
+          <div class="flex h-14 items-center justify-between px-3.5">
+            <div class="flex min-w-0 items-center gap-2">
+              ${capsule}
+              <div class="ml-1 min-w-0">
+                <div class="truncate text-[13px] font-bold leading-tight">${title}</div>
+                <div class="truncate text-[12px] font-medium opacity-60">${subtitle}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              ${state.role === 'teacher' ? `<button data-action="toggle-lang" class="inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 text-[12px] font-bold text-slate-600">${icon('globe', 'h-3.5 w-3.5')}<span>${state.lang === 'zh' ? 'EN' : '中'}</span></button>` : ''}
+              <button data-action="notifications" class="relative grid h-8 w-8 place-items-center rounded-full ${th.iconBtn}">
+                ${icon('bell', 'h-4 w-4')}
+                <span class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-500 ring-1 ${state.role === 'monitor' ? 'ring-indigo-950' : state.role === 'admin' ? 'ring-slate-900' : 'ring-white'}"></span>
+              </button>
+              <div class="grid h-8 w-8 place-items-center rounded-full ${th.avatar} text-[12px] font-bold">${avatarText}</div>
+            </div>
+          </div>
+          ${state.role === 'user' ? renderProfileRow() : ''}
+        </div>`;
+    }
+
+    function renderProfileRow() {
+      const p = PROFILES[state.profileId];
+      return `
+        <div class="flex items-center justify-between border-t border-slate-100 px-3.5 py-2">
+          <button data-action="profile-menu" class="flex items-center gap-2">
+            <span class="grid h-7 w-7 place-items-center rounded-full bg-${p.color}-100 text-[12px] font-bold text-${p.color}-700">${p.initial}</span>
+            <span class="text-left">
+              <span class="block text-[12px] font-bold text-slate-900">${p.name}</span>
+              <span class="block text-[12px] font-medium text-slate-400">${p.age}岁 · ${p.tag}</span>
+            </span>
+            ${icon('chevron-down', 'h-3.5 w-3.5 text-slate-400')}
+          </button>
+          <button data-action="toast" data-message="打开多孩档案管理" class="text-[12px] font-bold text-indigo-600">管理档案</button>
+        </div>`;
+    }
+
+    function renderHome() {
+      if (state.view === 'me') return renderMe();
+      switch (state.role) {
+        case 'user': return renderParentHome();
+        case 'monitor': return renderMonitorHome();
+        case 'teacher': return renderTeacherHome();
+        case 'admin': return renderAdminHome();
+        default: return '';
+      }
+    }
+
+    function renderParentHome() {
+      const p = PROFILES[state.profileId];
+      const n = p.next;
+      const entries = [
+        { icon: 'calendar-plus', label: '约临时课', tone: 'indigo' },
+        { icon: 'arrow-right-left', label: '课程转让', tone: 'sky' },
+        { icon: 'message-square', label: '留言板', tone: 'emerald' },
+        { icon: 'receipt', label: '购课与账单', tone: 'amber' },
+        { icon: 'baby', label: '孩子档案', tone: 'rose' },
+        { icon: 'users', label: '小班课大厅', tone: 'violet' }
+      ];
+
+      return `
+        <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-8">
+          <div class="flex items-end justify-between">
+            <div>
+              <h1 class="text-[22px] font-bold tracking-tight text-slate-900">晚上好，Amy</h1>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">11月6日 周四 · 今天也要加油</p>
+            </div>
+          </div>
+
+          <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            <div class="h-1 bg-indigo-600"></div>
+            <div class="p-4">
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-[12px] font-bold text-indigo-700">${icon('clock-3', 'h-3.5 w-3.5')}下一节课</span>
+                <div class="text-right">
+                  <div class="font-mono text-[17px] font-bold tracking-tight text-rose-600">${n.countdown}</div>
+                  <div class="text-[12px] font-medium text-slate-400">距上课</div>
+                </div>
+              </div>
+              <div class="mt-3 flex items-center gap-3">
+                <div class="grid h-12 w-12 place-items-center rounded-2xl bg-indigo-100 text-[17px] font-bold text-indigo-700">${n.initial}</div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-[17px] font-bold tracking-tight text-slate-900">${n.teacher}</h2>
+                    <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">${n.type}</span>
+                  </div>
+                  <p class="text-[12px] font-medium text-slate-500">${n.course} · ${n.time}</p>
+                </div>
+                <span class="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-[12px] font-bold text-sky-700">${p.name}</span>
+              </div>
+              <div class="mt-4 grid grid-cols-2 gap-2">
+                <button data-action="classin" class="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[12px] font-bold text-white shadow-sm active:scale-[0.98]">
+                  ${icon('video', 'h-4 w-4')}打开 ClassIn
+                </button>
+                <button data-action="open-qr" class="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-100 text-[12px] font-bold text-slate-700 active:scale-[0.98]">
+                  ${icon('qr-code', 'h-4 w-4')}扫码 / 账号
+                </button>
+              </div>
+              <div class="mt-2">
+                ${n.fuse ? `
+                  <div class="flex items-center justify-between rounded-xl bg-rose-50 px-3 py-2">
+                    <span class="flex items-center gap-1.5 text-[12px] font-bold text-rose-600">${icon('lock', 'h-3.5 w-3.5')}请假 / 挪位 / 转让</span>
+                    <span class="text-[12px] font-medium text-rose-500">距开课不足 3h · 已熔断</span>
+                  </div>` : `
+                  <div class="flex items-center gap-2">
+                    <button data-action="toast" data-message="已打开请假 / 挪位面板" class="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[12px] font-bold text-slate-700">${icon('calendar-off', 'h-4 w-4')}请假 / 挪位</button>
+                    <button data-action="toast" data-message="已打开课程转让面板" class="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[12px] font-bold text-slate-700">${icon('arrow-right-left', 'h-4 w-4')}转让</button>
+                  </div>`}
+              </div>
+            </div>
+          </section>
+
+          <section class="grid grid-cols-3 gap-2">
+            ${p.todos.map(item => `
+              <button data-action="toast" data-message="${item.label}：${item.sub}" class="flex min-w-0 flex-col items-start gap-1.5 rounded-2xl border border-slate-200/80 bg-white p-2.5 text-left shadow-sm">
+                <span class="grid h-8 w-8 place-items-center rounded-xl ${TONES[item.tone].bg} ${TONES[item.tone].text}">${icon(item.icon, 'h-4 w-4')}</span>
+                <span class="min-w-0 w-full">
+                  <span class="block truncate text-[12px] font-bold text-slate-900">${item.label}</span>
+                  <span class="block truncate text-[12px] font-medium text-slate-400">${item.sub}</span>
+                </span>
+              </button>`).join('')}
+          </section>
+
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+            <div class="grid grid-cols-3 divide-x divide-slate-100 text-center">
+              <div><div class="font-mono text-[20px] font-bold text-slate-900">${p.stats.scheduled}</div><div class="text-[12px] font-medium text-slate-400">已排待上</div></div>
+              <div><div class="font-mono text-[20px] font-bold text-indigo-600">${p.stats.pending}</div><div class="text-[12px] font-medium text-slate-400">待排余课</div></div>
+              <div><div class="font-mono text-[20px] font-bold text-emerald-600">${p.stats.leave}</div><div class="text-[12px] font-medium text-slate-400">请假配额</div></div>
+            </div>
+          </section>
+
+          <section>
+            <div class="mb-2 flex items-center justify-between">
+              <h2 class="text-[15px] font-bold text-slate-900">常用功能</h2>
+              <span class="text-[12px] font-medium text-slate-400">高频入口</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2" data-mobile-cols="3" data-tablet-cols="6">
+              ${entries.map(e => `
+                <button data-action="toast" data-message="${e.label}" class="flex flex-col items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-white px-1 py-3 shadow-sm">
+                  <span class="grid h-9 w-9 place-items-center rounded-xl ${TONES[e.tone].bg} ${TONES[e.tone].text}">${icon(e.icon, 'h-4 w-4')}</span>
+                  <span class="text-[12px] font-bold text-slate-600">${e.label}</span>
+                </button>`).join('')}
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h2 class="text-[15px] font-bold text-slate-900">严选外教</h2>
+              <button data-action="toast" data-message="查看全部外教" class="text-[12px] font-bold text-indigo-600">查看全部</button>
+            </div>
+            <div class="mt-3 flex items-center gap-3">
+              <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-sky-500 text-[17px] font-bold text-white">D</div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5"><h3 class="text-[14px] font-bold text-slate-900">David</h3><span class="text-[12px] font-bold text-amber-600">★ 4.9</span></div>
+                <p class="truncate text-[12px] font-medium text-slate-500">少儿英语 · 生活口语 · 5 年教龄</p>
+                <div class="mt-1 flex gap-1">
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">试讲视频</span>
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">双语履历</span>
+                </div>
+              </div>
+              <button data-action="toast" data-message="播放 David 的试讲视频" class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-indigo-600 text-white">${icon('play', 'h-4 w-4')}</button>
+            </div>
+            <div class="mt-3 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+              <span class="text-[12px] font-bold text-amber-800">招生中 · KET 冲刺小班</span>
+              <span class="text-[12px] font-bold text-amber-600">2/6 人</span>
+            </div>
+          </section>
+        </div>`;
+    }
+
+    function renderMonitorHome() {
+      const todos = [
+        { count: 2, label: '待调配代课', sub: '外教 <24h 请假', icon: 'user-x', tone: 'rose' },
+        { count: 3, label: '待排满 4 周', sub: '已收款未排满', icon: 'calendar-clock', tone: 'amber' },
+        { count: 4, label: '待确认购课/退费', sub: '核对线下凭证', icon: 'receipt-text', tone: 'sky' },
+        { count: 1, label: '待上交转账单', sub: '本周结课汇总', icon: 'landmark', tone: 'violet' }
+      ];
+      const entries = [
+        { icon: 'file-plus', label: '新建购课单', tone: 'indigo' },
+        { icon: 'calendar-days', label: '全局排课网格', tone: 'sky' },
+        { icon: 'undo-2', label: '异常完课回退', tone: 'rose' },
+        { icon: 'arrow-right-left', label: '跨家长转课', tone: 'violet' },
+        { icon: 'landmark', label: '发起转账单', tone: 'emerald' },
+        { icon: 'receipt', label: '创建退款单', tone: 'amber' },
+        { icon: 'graduation-cap', label: '我负责的外教', tone: 'sky' },
+        { icon: 'lock', label: '内部教学留言', tone: 'slate' }
+      ];
+
+      return `
+        <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-8">
+          <div class="flex items-end justify-between">
+            <div>
+              <h1 class="text-[22px] font-bold tracking-tight text-slate-900">下午好，Leo</h1>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">11月6日 周四 · 4 项紧急待办</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2" data-mobile-cols="2" data-tablet-cols="4">
+            ${todos.map(item => `
+              <button data-action="toast" data-message="打开${item.label}列表" class="rounded-2xl border border-slate-200/80 bg-white p-3 text-left shadow-sm">
+                <div class="flex items-start justify-between">
+                  <span class="grid h-8 w-8 place-items-center rounded-xl ${TONES[item.tone].bg} ${TONES[item.tone].text}">${icon(item.icon, 'h-4 w-4')}</span>
+                  <span class="font-mono text-[22px] font-bold leading-none text-slate-900">${item.count}</span>
+                </div>
+                <div class="mt-2 text-[12px] font-bold text-slate-900">${item.label}</div>
+                <div class="mt-0.5 text-[12px] font-medium text-slate-400">${item.sub}</div>
+              </button>`).join('')}
+          </div>
+
+          <button data-action="toast" data-message="打开 72h 续费预警名单" class="flex w-full items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-left">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">${icon('alarm-clock', 'h-4 w-4')}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[12px] font-bold text-amber-900">3 名学生固定位将在 72 小时内到期</span>
+              <span class="block text-[12px] font-medium text-amber-700">建议今天联系家长续费锁位</span>
+            </span>
+            ${icon('chevron-right', 'h-4 w-4 shrink-0 text-amber-600')}
+          </button>
+
+          <section>
+            <div class="mb-2 flex items-center justify-between">
+              <h2 class="text-[15px] font-bold text-slate-900">高频教务</h2>
+              <span class="text-[12px] font-medium text-slate-400">8 个入口</span>
+            </div>
+            <div class="grid grid-cols-4 gap-2" data-mobile-cols="4" data-tablet-cols="4">
+              ${entries.map(e => `
+                <button data-action="toast" data-message="${e.label}" class="flex flex-col items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-white px-1 py-3 shadow-sm">
+                  <span class="grid h-9 w-9 place-items-center rounded-xl ${TONES[e.tone].bg} ${TONES[e.tone].text}">${icon(e.icon, 'h-4 w-4')}</span>
+                  <span class="text-center text-[12px] font-bold leading-tight text-slate-600">${e.label}</span>
+                </button>`).join('')}
+            </div>
+          </section>
+
+          <section class="rounded-2xl bg-indigo-950 p-4 text-white shadow-sm">
+            <div class="flex items-center justify-between">
+              <h2 class="text-[12px] font-bold text-indigo-100">本周资金与课时</h2>
+              <span class="text-[12px] font-medium text-indigo-300">11.03 - 11.09</span>
+            </div>
+            <div class="mt-3 grid grid-cols-3 gap-2">
+              <div><div class="font-mono text-[18px] font-bold">28</div><div class="text-[12px] font-medium text-indigo-300">已结课节数</div></div>
+              <div><div class="font-mono text-[18px] font-bold text-amber-300">320</div><div class="text-[12px] font-medium text-indigo-300">小班自留盈余</div></div>
+              <div><div class="font-mono text-[18px] font-bold text-emerald-300">1,860</div><div class="text-[12px] font-medium text-indigo-300">待上交积分</div></div>
+            </div>
+            <button data-action="toast" data-message="打开本周转账单" class="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-white/10 text-[12px] font-bold text-white ring-1 ring-white/15">
+              ${icon('arrow-up-right', 'h-3.5 w-3.5')}查看本周转账单
+            </button>
+          </section>
+        </div>`;
+    }
+
+    function renderTeacherHome() {
+      const calendar = [
+        { time: '18:00', cells: [['约', 'bg-emerald-50 border-emerald-200 text-emerald-700'], ['Alic', 'bg-amber-50 border-amber-300 text-amber-900'], ['休', 'bg-slate-100 border-slate-200 text-slate-400']] },
+        { time: '18:30', cells: [['BobZ', 'bg-purple-50 border-purple-300 text-purple-900'], ['BobZ', 'bg-yellow-50 border-yellow-300 text-yellow-900'], ['Alic', 'bg-blue-50 border-blue-300 text-blue-900']] },
+        { time: '19:00', cells: [['Alic', 'bg-amber-50 border-amber-300 text-amber-900'], ['约', 'bg-emerald-50 border-emerald-200 text-emerald-700'], ['假', 'bg-rose-50 border-rose-200 text-rose-700']] },
+        { time: '19:30', cells: [['代', 'bg-purple-50 border-purple-300 text-purple-900'], ['休', 'bg-slate-100 border-slate-200 text-slate-400'], ['约', 'bg-emerald-50 border-emerald-200 text-emerald-700']] }
+      ];
+      const tools = [
+        { icon: 'calendar-check', label: t('toolAvailability'), tone: 'emerald' },
+        { icon: 'calendar-off', label: t('toolLeave'), tone: 'rose' },
+        { icon: 'wallet', label: t('toolPay'), tone: 'indigo' },
+        { icon: 'id-card', label: t('toolCard'), tone: 'sky' }
+      ];
+
+      return `
+        <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-8">
+          <div class="flex items-end justify-between">
+            <div>
+              <h1 class="text-[22px] font-bold tracking-tight text-slate-900">${t('greeting')}</h1>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">${t('subtitle')}</p>
+            </div>
+            <span class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[12px] font-bold text-slate-500">${t('weekLabel')}</span>
+          </div>
+
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-[12px] font-bold text-slate-500">${t('today')}</span>
+              <span class="text-[12px] font-medium text-slate-400">${t('todayDate')}</span>
+            </div>
+            <div class="mt-1 flex items-baseline gap-1">
+              <span class="font-mono text-[28px] font-bold tracking-tight text-slate-900">6</span>
+              <span class="text-[12px] font-medium text-slate-400">${t('lessons')}</span>
+            </div>
+            <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div class="rounded-xl bg-emerald-50 py-2"><div class="font-mono text-[16px] font-bold text-emerald-700">3</div><div class="text-[12px] font-bold text-emerald-600">${t('done')}</div></div>
+              <div class="rounded-xl bg-slate-100 py-2"><div class="font-mono text-[16px] font-bold text-slate-700">2</div><div class="text-[12px] font-bold text-slate-500">${t('upcoming')}</div></div>
+              <div class="rounded-xl bg-purple-50 py-2"><div class="font-mono text-[16px] font-bold text-purple-700">1</div><div class="text-[12px] font-bold text-purple-600">${t('substitute')}</div></div>
+            </div>
+          </section>
+
+          <section class="overflow-hidden rounded-2xl border border-purple-200 bg-white shadow-sm">
+            <div class="h-1 bg-purple-600"></div>
+            <div class="p-4">
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-2.5 py-1 text-[12px] font-bold text-purple-700">${icon('replace', 'h-3.5 w-3.5')}${t('next')} · ${t('substituting')}</span>
+                <span class="font-mono text-[12px] font-bold text-slate-500">19:00 - 19:30</span>
+              </div>
+              <div class="mt-3 flex items-center gap-3">
+                <div class="grid h-11 w-11 place-items-center rounded-2xl bg-purple-100 text-[15px] font-bold text-purple-700">B</div>
+                <div class="min-w-0 flex-1">
+                  <h2 class="text-[16px] font-bold text-slate-900">BobZ10</h2>
+                  <p class="text-[12px] font-medium text-slate-500">10${t('years')} · ${t('oral')} · ${t('forTeacher')} Amy</p>
+                </div>
+                <span class="rounded-lg bg-purple-600 px-2 py-1 text-[12px] font-bold text-white">SUB</span>
+              </div>
+              <div class="mt-3 rounded-xl border-l-4 border-purple-500 bg-purple-50/70 p-3">
+                <div class="flex items-center gap-1.5 text-[12px] font-bold text-purple-700">${icon('clipboard-list', 'h-3.5 w-3.5')}${t('handover')}</div>
+                <p class="mt-1 text-[12px] leading-relaxed text-slate-700">${t('handoverText')}</p>
+                <p class="mt-1 text-[12px] font-medium text-purple-500">— Amy · 18:02</p>
+              </div>
+              <div class="mt-3 grid grid-cols-2 gap-2">
+                <button data-action="toast" data-message="打开 BobZ10 的留言板" class="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-purple-600 text-[12px] font-bold text-white">${icon('message-square', 'h-4 w-4')}${t('feedback')}</button>
+                <button data-action="classin" class="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-900 text-[12px] font-bold text-white">${icon('video', 'h-4 w-4')}${t('openClassIn')}</button>
+              </div>
+              <button data-action="toast" data-message="${t('leaveToast')}" class="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[12px] font-bold text-slate-600">${icon('calendar-off', 'h-3.5 w-3.5')}${t('leave')}</button>
+            </div>
+          </section>
+
+          <button data-action="toast" data-message="打开课后反馈补录" class="flex w-full items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-left">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">${icon('pen-line', 'h-4 w-4')}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[12px] font-bold text-amber-900">${t('feedbackReminder')}</span>
+              <span class="block text-[12px] font-medium text-amber-700">AliceZ12 · 18:00</span>
+            </span>
+            <span class="shrink-0 text-[12px] font-bold text-amber-700">${t('fillNow')}</span>
+          </button>
+
+          <section>
+            <div class="mb-2 flex items-center justify-between">
+              <h2 class="text-[15px] font-bold text-slate-900">${t('tools')}</h2>
+              <span class="text-[12px] font-medium text-slate-400">4 个入口</span>
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+              ${tools.map(e => `
+                <button data-action="toast" data-message="${e.label}" class="flex flex-col items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-white px-1 py-3 shadow-sm">
+                  <span class="grid h-9 w-9 place-items-center rounded-xl ${TONES[e.tone].bg} ${TONES[e.tone].text}">${icon(e.icon, 'h-4 w-4')}</span>
+                  <span class="text-center text-[12px] font-bold leading-tight text-slate-600">${e.label}</span>
+                </button>`).join('')}
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h2 class="text-[12px] font-bold text-slate-900">${t('week')}</h2>
+              <span class="text-[12px] font-medium text-slate-400">${t('legend')}</span>
+            </div>
+            <div class="mt-2 grid grid-cols-4 gap-1 text-center text-[12px] font-bold text-slate-400">
+              <div></div><div>${t('thu')}</div><div>${t('fri')}</div><div>${t('sat')}</div>
+            </div>
+            <div class="mt-1 space-y-1">
+              ${calendar.map(row => `
+                <div class="grid grid-cols-4 gap-1">
+                  <div class="flex items-center justify-end pr-1 font-mono text-[12px] font-bold text-slate-400">${row.time}</div>
+                  ${row.cells.map(([label, cls]) => `<div class="rounded-md border px-1 py-1.5 text-center text-[12px] font-bold leading-none ${cls}">${label}</div>`).join('')}
+                </div>`).join('')}
+            </div>
+          </section>
+        </div>`;
+    }
+
+    function renderAdminHome() {
+      const todos = [
+        { count: 5, label: '待确认班长转账单', sub: '周度资金上交/离职移交', icon: 'landmark', tone: 'amber' },
+        { count: 12, label: '待打款教师课酬单', sub: '核对节数后线下发薪', icon: 'wallet', tone: 'emerald' },
+        { count: 2, label: '平台直收待确认', sub: '核对平台收款凭证', icon: 'receipt', tone: 'sky' },
+        { count: 1, label: '全局异常与申诉', sub: '跨班区复核与回退', icon: 'shield-alert', tone: 'rose' }
+      ];
+      const entries = [
+        { icon: 'plus-square', label: '创建小班与抽佣', tone: 'amber' },
+        { icon: 'bar-chart-3', label: '平台工具费周报', tone: 'emerald' },
+        { icon: 'users', label: '教师与班长调配', tone: 'sky' },
+        { icon: 'settings-2', label: '全局字典与参数', tone: 'slate' }
+      ];
+
+      return `
+        <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-8">
+          <div class="flex items-end justify-between">
+            <div>
+              <h1 class="text-[22px] font-bold tracking-tight text-slate-900">下午好，Sarah</h1>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">11月6日 周四 · 本周结算 4 项待办</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2" data-mobile-cols="2" data-tablet-cols="4">
+            ${todos.map(item => `
+              <button data-action="toast" data-message="打开${item.label}" class="rounded-2xl border border-slate-200/80 bg-white p-3 text-left shadow-sm">
+                <div class="flex items-start justify-between">
+                  <span class="grid h-8 w-8 place-items-center rounded-xl ${TONES[item.tone].bg} ${TONES[item.tone].text}">${icon(item.icon, 'h-4 w-4')}</span>
+                  <span class="font-mono text-[22px] font-bold leading-none text-slate-900">${item.count}</span>
+                </div>
+                <div class="mt-2 text-[12px] font-bold text-slate-900">${item.label}</div>
+                <div class="mt-0.5 text-[12px] font-medium text-slate-400">${item.sub}</div>
+              </button>`).join('')}
+          </div>
+
+          <section class="rounded-2xl bg-slate-900 p-4 text-white shadow-sm">
+            <div class="flex items-center justify-between">
+              <h2 class="text-[12px] font-bold text-amber-300">本周平台净收益</h2>
+              <span class="text-[12px] font-medium text-slate-400">11.03 - 11.09</span>
+            </div>
+            <div class="mt-1 font-mono text-[28px] font-bold tracking-tight text-amber-400">3,240 <span class="text-[12px] font-medium text-slate-400">积分</span></div>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <div class="rounded-xl bg-white/5 p-2"><div class="text-[12px] text-slate-400">工具费</div><div class="mt-0.5 font-mono text-[14px] font-bold text-white">1,280</div></div>
+              <div class="rounded-xl bg-white/5 p-2"><div class="text-[12px] text-slate-400">平台抽佣</div><div class="mt-0.5 font-mono text-[14px] font-bold text-white">1,960</div></div>
+            </div>
+            <div class="mt-3 flex items-center gap-2">
+              <div class="h-1.5 flex-1 rounded-full bg-white/10"><div class="h-1.5 w-3/4 rounded-full bg-amber-400"></div></div>
+              <span class="text-[12px] font-medium text-slate-400">3/4 已处理</span>
+            </div>
+          </section>
+
+          <section>
+            <div class="mb-2 flex items-center justify-between">
+              <h2 class="text-[15px] font-bold text-slate-900">管理入口</h2>
+              <span class="text-[12px] font-medium text-slate-400">平台配置</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2" data-mobile-cols="2" data-tablet-cols="4">
+              ${entries.map(e => `
+                <button data-action="toast" data-message="${e.label}" class="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-2.5 py-3 text-left shadow-sm">
+                  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl ${TONES[e.tone].bg} ${TONES[e.tone].text}">${icon(e.icon, 'h-4 w-4')}</span>
+                  <span class="min-w-0 text-[12px] font-bold leading-tight text-slate-600">${e.label}</span>
+                </button>`).join('')}
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-[12px] font-bold text-slate-900">本周结算进度</span>
+              <span class="text-[12px] font-bold text-amber-600">3 / 4 已完成</span>
+            </div>
+            <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div class="h-2 w-3/4 rounded-full bg-amber-500"></div>
+            </div>
+            <p class="mt-1.5 text-[12px] font-medium text-slate-400">还剩「教师课酬单打款」未完成</p>
+          </section>
+        </div>`;
+    }
+
+    function renderMe() {
+      const isTeacher = state.role === 'teacher';
+      const name = isTeacher ? 'David' : 'Amy';
+      const email = isTeacher ? 'david@example.com' : 'amy@example.com';
+      const avatar = isTeacher ? 'D' : 'A';
+      const avatarCls = isTeacher ? 'bg-slate-900 text-white' : 'bg-indigo-600 text-white';
+      const tags = isTeacher ? ['教师'] : ['管理员', '班长', '家长'];
+      const tagCls = isTeacher ? 'bg-purple-50 text-purple-600' : 'bg-indigo-50 text-indigo-600';
+      const langAction = isTeacher ? 'toggle-lang' : 'toast';
+      const langMessage = isTeacher ? '' : '全局双语切换：原型仅演示教师端';
+
+      const row = (ic, label, sub, action, message) => `
+        <button data-action="${action}" ${message ? `data-message="${message}"` : ''} class="flex w-full items-center gap-3 px-3.5 py-3 text-left">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500">${icon(ic, 'h-4 w-4')}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-[12px] font-bold text-slate-800">${label}</span>
+            ${sub ? `<span class="block text-[12px] font-medium text-slate-400">${sub}</span>` : ''}
+          </span>
+          ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
+        </button>`;
+
+      return `
+        <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-8">
+          <div class="flex items-center gap-2">
+            <button data-action="open-home" class="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200">${icon('chevron-left', 'h-4 w-4')}</button>
+            <h1 class="text-[22px] font-bold tracking-tight text-slate-900">我的</h1>
+          </div>
+
+          <section class="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+            <div class="grid h-14 w-14 place-items-center rounded-2xl ${avatarCls} text-[20px] font-bold">${avatar}</div>
+            <div class="min-w-0 flex-1">
+              <h2 class="text-[17px] font-bold text-slate-900">${name}</h2>
+              <p class="truncate text-[12px] font-medium text-slate-400">${email}</p>
+              <div class="mt-1 flex flex-wrap gap-1">
+                ${tags.map(tag => `<span class="rounded-full ${tagCls} px-2 py-0.5 text-[12px] font-bold">${tag}</span>`).join('')}
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-1.5 px-1 text-[12px] font-bold text-slate-400">账号安全</h2>
+            <div class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+              ${row('key-round', '修改登录密码', '验证原密码后设置新密码', 'toast', '打开修改密码')}
+              ${row('mail', '换绑邮箱', '双向验证码校验', 'toast', '打开换绑邮箱')}
+              ${row('phone', '换绑手机号', '双向验证码校验', 'toast', '打开换绑手机号')}
+            </div>
+          </section>
+
+          ${!isTeacher ? `
+          <section>
+            <h2 class="mb-1.5 px-1 text-[12px] font-bold text-slate-400">孩子档案 (2/10)</h2>
+            <div class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+              <button data-action="profile-menu" class="flex w-full items-center gap-3 px-3.5 py-3 text-left">
+                <span class="grid h-8 w-8 place-items-center rounded-full bg-sky-100 text-[12px] font-bold text-sky-700">A</span>
+                <span class="flex-1"><span class="block text-[12px] font-bold text-slate-800">AliceZ12</span><span class="block text-[12px] text-slate-400">12岁 · 固定位</span></span>
+                <span class="text-[12px] font-bold text-indigo-600">切换</span>
+              </button>
+              <button data-action="profile-menu" class="flex w-full items-center gap-3 px-3.5 py-3 text-left">
+                <span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-[12px] font-bold text-emerald-700">B</span>
+                <span class="flex-1"><span class="block text-[12px] font-bold text-slate-800">BobZ10</span><span class="block text-[12px] text-slate-400">10岁 · 临时课</span></span>
+                <span class="text-[12px] font-bold text-indigo-600">切换</span>
+              </button>
+              <button data-action="toast" data-message="打开添加新宝贝" class="flex w-full items-center gap-3 px-3.5 py-3 text-left">
+                <span class="grid h-8 w-8 place-items-center rounded-full border border-dashed border-slate-300 text-slate-400">${icon('plus', 'h-4 w-4')}</span>
+                <span class="text-[12px] font-bold text-slate-500">添加新宝贝</span>
+              </button>
+            </div>
+          </section>` : `
+          <section>
+            <h2 class="mb-1.5 px-1 text-[12px] font-bold text-slate-400">教师资料</h2>
+            <div class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+              ${row('id-card', '我的名片预览', '双语履历、试讲视频与 ClassIn 二维码', 'toast', '打开教师名片')}
+            </div>
+          </section>`}
+
+          <section>
+            <h2 class="mb-1.5 px-1 text-[12px] font-bold text-slate-400">系统偏好</h2>
+            <div class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+              <button data-action="${langAction}" data-message="${langMessage}" class="flex w-full items-center gap-3 px-3.5 py-3 text-left">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500">${icon('globe', 'h-4 w-4')}</span>
+                <span class="min-w-0 flex-1"><span class="block text-[12px] font-bold text-slate-800">中英双语</span><span class="block text-[12px] text-slate-400">即时生效，持久化到 dream_locale</span></span>
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">${state.lang === 'zh' ? '中' : 'EN'}</span>
+              </button>
+              ${row('bell-ring', '消息通知接收偏好', '站内信与邮件兜底', 'toast', '打开通知偏好')}
+              ${row('refresh-cw', '检查更新与清理缓存', '当前版本 v1.0.0 · PWA', 'toast', '已是最新版本')}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-1.5 px-1 text-[12px] font-bold text-slate-400">法律合规</h2>
+            <div class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+              ${row('info', '关于我们', '品牌介绍与联系方式', 'open-legal', '')}
+              ${row('scale', '用户服务协议', '固定位、请假配额与熔断规则', 'open-legal', '')}
+              ${row('shield', '隐私保护政策', '未成年人信息与跨境传输', 'open-legal', '')}
+            </div>
+          </section>
+
+          <button data-action="toast" data-message="已退出登录（原型模拟）" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-2xl border border-rose-200 bg-rose-50 text-[12px] font-bold text-rose-600">
+            ${icon('log-out', 'h-4 w-4')}退出登录
+          </button>
+        </div>`;
+    }
+
+    function renderNav() {
+      const meta = ROLE_META[state.role];
+      const th = THEMES[state.role];
+      return `
+        <div class="${th.nav} px-1 pb-1.5 pt-1">
+          <div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">
+            ${meta.nav.map((item, index) => {
+              const label = item.labelKey ? t(item.labelKey) : item.label;
+              const active = (index === 0 && state.view === 'home') || (item.action === 'open-me' && state.view === 'me');
+              const action = item.action === 'toast' && item.message ? `data-action="toast" data-message="${item.message}"` : `data-action="${item.action}"`;
+              return `
+                <button ${action} class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 ${active ? th.navActive : th.navIdle}">
+                  ${icon(item.icon, `h-[18px] w-[18px] ${active ? '' : 'opacity-80'}`)}
+                  <span class="text-[12px] font-bold">${label}</span>
+                </button>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    function renderOverlay() {
+      if (state.sheet === 'workspace') return renderWorkspaceMenu();
+      if (state.sheet === 'profile') return renderProfileMenu();
+      if (state.sheet === 'notifications') return renderNotifications();
+      if (state.sheet === 'qr') return renderQr();
+      if (state.sheet === 'legal') return renderLegal();
+      return '';
+    }
+
+    function renderWorkspaceMenu() {
+      return `
+        <div class="absolute inset-0 z-50">
+          <div class="absolute inset-0 bg-slate-900/25 backdrop-blur-[1px]" data-action="close-sheet"></div>
+          <div class="absolute left-3 top-14 w-[300px] max-w-[calc(100%-24px)] rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl">
+            <div class="px-2 py-1.5 text-[12px] font-bold uppercase tracking-wider text-slate-400">切换工作台</div>
+            ${Object.entries(ROLE_META).map(([key, meta]) => {
+              const active = key === state.role;
+              return `
+                <button data-action="set-role" data-role="${key}" class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left hover:bg-slate-50">
+                  <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl ${active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}">${icon(meta.icon, 'h-4 w-4')}</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block text-[12px] font-bold text-slate-900">${meta.label}工作台</span>
+                    <span class="block truncate text-[12px] font-medium text-slate-400">${meta.desc}</span>
+                  </span>
+                  ${meta.todo > 0 && !active ? `<span class="rounded-full bg-rose-50 px-2 py-0.5 text-[12px] font-bold text-rose-600">${meta.todo} 待办</span>` : ''}
+                  ${active ? icon('check', 'h-4 w-4 text-indigo-600') : ''}
+                </button>`;
+            }).join('')}
+            <div class="mt-1 border-t border-slate-100 px-2.5 py-2 text-[12px] font-medium text-slate-400">按账号记忆上次工作台 · 切换不刷新页面</div>
+          </div>
+        </div>`;
+    }
+
+    function renderProfileMenu() {
+      return `
+        <div class="absolute inset-0 z-50">
+          <div class="absolute inset-0 bg-slate-900/20 backdrop-blur-[1px]" data-action="close-sheet"></div>
+          <div class="absolute left-3 top-[104px] w-[300px] max-w-[calc(100%-24px)] rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl">
+            <div class="px-2 py-1.5 text-[12px] font-bold uppercase tracking-wider text-slate-400">当前孩子</div>
+            ${Object.entries(PROFILES).map(([key, p]) => {
+              const active = key === state.profileId;
+              return `
+                <button data-action="set-profile" data-profile="${key}" class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left hover:bg-slate-50">
+                  <span class="grid h-8 w-8 place-items-center rounded-full bg-${p.color}-100 text-[12px] font-bold text-${p.color}-700">${p.initial}</span>
+                  <span class="flex-1">
+                    <span class="block text-[12px] font-bold text-slate-900">${p.name}</span>
+                    <span class="block text-[12px] font-medium text-slate-400">${p.age}岁 · ${p.tag}</span>
+                  </span>
+                  ${active ? icon('check', 'h-4 w-4 text-indigo-600') : ''}
+                </button>`;
+            }).join('')}
+            <button data-action="toast" data-message="打开添加新宝贝" class="mt-1 flex w-full items-center gap-2.5 rounded-xl border-t border-slate-100 px-2.5 py-2.5 text-left hover:bg-slate-50">
+              <span class="grid h-8 w-8 place-items-center rounded-full border border-dashed border-slate-300 text-slate-400">${icon('plus', 'h-4 w-4')}</span>
+              <span class="text-[12px] font-bold text-slate-500">添加新宝贝 (2/10)</span>
+            </button>
+          </div>
+        </div>`;
+    }
+
+    function renderNotifications() {
+      const map = {
+        user: [
+          { icon: 'message-square', tone: 'sky', title: 'David 发布了新反馈', body: 'AliceZ12 · 今日学习进度', time: '10 分钟前', unread: true },
+          { icon: 'alarm-clock', tone: 'rose', title: '固定位将在 72 小时后到期', body: 'AliceZ12 · 请联系班长续费锁位', time: '2 小时前', unread: true },
+          { icon: 'video', tone: 'indigo', title: '明天的课已确认', body: '19:00 · David · 少儿英语', time: '昨天', unread: false }
+        ],
+        monitor: [
+          { icon: 'user-x', tone: 'rose', title: '外教 Amy 紧急请假', body: '18:30 的课需要调配代课', time: '5 分钟前', unread: true },
+          { icon: 'landmark', tone: 'amber', title: '本周转账单待提交', body: '已结课 28 节 · 待上交 1,860 积分', time: '1 小时前', unread: true },
+          { icon: 'receipt', tone: 'sky', title: '家长上传了付款凭证', body: 'AliceZ12 · 16 节固定位', time: '昨天', unread: false }
+        ],
+        teacher: [
+          { icon: 'clipboard-list', tone: 'purple', title: 'Amy 更新了交接留言', body: 'BobZ10 · 19:00 代课', time: '8 分钟前', unread: true },
+          { icon: 'pen-line', tone: 'amber', title: '课后反馈待补录', body: 'AliceZ12 · 18:00', time: '30 分钟前', unread: true },
+          { icon: 'wallet', tone: 'emerald', title: '本周课酬节数单已生成', body: '6 节正课 · 1 节代课', time: '昨天', unread: false }
+        ],
+        admin: [
+          { icon: 'landmark', tone: 'amber', title: '班长 Leo 提交了转账单', body: '本周 1,860 积分待确认', time: '12 分钟前', unread: true },
+          { icon: 'wallet', tone: 'emerald', title: '教师课酬单待打款', body: '12 位教师 · 本周节数已核对', time: '1 小时前', unread: true },
+          { icon: 'shield-alert', tone: 'rose', title: '异常完课申诉', body: '跨班区复核 · 1 条', time: '昨天', unread: false }
+        ]
+      };
+      const list = map[state.role] || map.user;
+      return `
+        <div class="absolute inset-0 z-50">
+          <div class="absolute inset-0 bg-slate-900/25 backdrop-blur-[1px]" data-action="close-sheet"></div>
+          <div class="absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-4 shadow-2xl">
+            <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200"></div>
+            <div class="flex items-center justify-between">
+              <h2 class="text-[17px] font-bold text-slate-900">消息中心</h2>
+              <button data-action="toast" data-message="已全部标记为已读" class="text-[12px] font-bold text-indigo-600">全部已读</button>
+            </div>
+            <div class="mt-3 space-y-2">
+              ${list.map(n => `
+                <button data-action="toast" data-message="打开通知：${n.title}" class="flex w-full items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-3 text-left">
+                  <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl ${TONES[n.tone].bg} ${TONES[n.tone].text}">${icon(n.icon, 'h-4 w-4')}</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="flex items-center gap-1.5">
+                      <span class="block truncate text-[12px] font-bold text-slate-900">${n.title}</span>
+                      ${n.unread ? '<span class="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500"></span>' : ''}
+                    </span>
+                    <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-500">${n.body}</span>
+                    <span class="mt-1 block text-[12px] font-medium text-slate-400">${n.time}</span>
+                  </span>
+                </button>`).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function renderQr() {
+      const p = PROFILES[state.profileId];
+      const size = 21;
+      const isFinder = (x, y, ox, oy) => {
+        const dx = x - ox, dy = y - oy;
+        if (dx < 0 || dx > 6 || dy < 0 || dy > 6) return false;
+        return dx === 0 || dx === 6 || dy === 0 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4);
+      };
+      let cells = '';
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          let on;
+          if (isFinder(x, y, 0, 0) || isFinder(x, y, size - 7, 0) || isFinder(x, y, 0, size - 7)) {
+            on = true;
+          } else if ((x < 8 && y < 8) || (x >= size - 8 && y < 8) || (x < 8 && y >= size - 8)) {
+            on = false;
+          } else {
+            on = ((x * 7 + y * 11 + x * y) % 5) < 2;
+          }
+          cells += `<div class="aspect-square ${on ? 'bg-slate-900' : 'bg-white'}"></div>`;
+        }
+      }
+      return `
+        <div class="absolute inset-0 z-50 flex flex-col bg-white">
+          <div class="flex h-14 shrink-0 items-center justify-between px-4">
+            <button data-action="close-sheet" class="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-slate-600">${icon('x', 'h-4 w-4')}</button>
+            <span class="text-[14px] font-bold text-slate-900">扫码进入教室</span>
+            <span class="w-8"></span>
+          </div>
+          <div class="flex flex-1 flex-col items-center justify-center px-6 pb-8">
+            <div class="grid grid-cols-[repeat(21,1fr)] gap-0 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm w-56 h-56">${cells}</div>
+            <h2 class="mt-4 text-[17px] font-bold text-slate-900">${p.next.teacher} 的 ClassIn 教室</h2>
+            <p class="mt-1 text-[12px] font-medium text-slate-500">${p.name} · ${p.next.time}</p>
+            <div class="mt-4 flex w-full items-center justify-between rounded-2xl bg-slate-50 p-3">
+              <div>
+                <div class="text-[12px] font-bold text-slate-400">ClassIn 账号</div>
+                <div class="mt-0.5 font-mono text-[13px] font-bold text-slate-900">${p.next.teacher}.2026</div>
+              </div>
+              <button data-action="toast" data-message="ClassIn 账号已复制" class="rounded-lg bg-white px-2.5 py-1.5 text-[12px] font-bold text-indigo-600 ring-1 ring-slate-200">复制</button>
+            </div>
+            <button data-action="classin" class="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-[13px] font-bold text-white">${icon('video', 'h-4 w-4')}打开 ClassIn</button>
+            <p class="mt-3 text-center text-[12px] leading-relaxed text-slate-400">家长用手机看排课，孩子用平板扫这个码进教室。<br>唤醒失败时，可在此手动复制账号。</p>
+          </div>
+        </div>`;
+    }
+
+    function renderLegal() {
+      const docs = {
+        terms: {
+          title: '用户服务协议',
+          version: 'v1.0 · 生效日期待定',
+          sections: [
+            ['固定位四周一轮', '固定位一次购买 4 周课次，购买后不可直接取消，只可选择同师挪位或转让。'],
+            ['12.5% 请假配额', '每期请假免费配额为总课次的 12.5%，向下取整；超出配额按规则扣费。'],
+            ['3 小时阶梯熔断', '距开课不足 3 小时，所有请假、挪位与转让入口关闭，缺席照常按已结课扣费。'],
+            ['代课差价多退少不补', '代课产生差价时，多收部分退还，少收部分不向家长补收。'],
+            ['退费原路退回', '退款按原收款方退回，原购课单与资金持有人保持锁定。']
+          ]
+        },
+        privacy: {
+          title: '隐私保护政策',
+          version: 'v1.0 · 生效日期待定',
+          sections: [
+            ['未成年人信息保护', '仅收集上课必需的年龄与昵称；非授课教师无法接触学生敏感信息。'],
+            ['跨境数据传输', '海外外教端仅接收脱敏后的授课必要信息，敏感个人信息物理屏蔽。'],
+            ['数据使用边界', '学生信息仅用于排课、授课、课后反馈与财务对账，不用于其他目的。']
+          ]
+        },
+        about: {
+          title: '关于我们',
+          version: 'Dream v1.0.0',
+          sections: [
+            ['品牌介绍', 'Dream 是为少儿英语小班与 1v1 教学打造的教务排班与分账管理系统。'],
+            ['官方支持', '如需帮助，请联系你的班长或平台客服；工作日 09:00 - 21:00。'],
+            ['版权声明', '© 2024-2026 Topee (https://topee.top). All rights reserved.']
+          ]
+        }
+      };
+      const doc = docs[state.legalDoc] || docs.terms;
+      return `
+        <div class="absolute inset-0 z-50 flex flex-col bg-slate-50">
+          <div class="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4">
+            <button data-action="close-sheet" class="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-slate-600">${icon('chevron-left', 'h-4 w-4')}</button>
+            <span class="text-[14px] font-bold text-slate-900">${doc.title}</span>
+            <span class="w-8"></span>
+          </div>
+          <div class="flex-1 overflow-y-auto px-4 py-4">
+            <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <div class="text-[12px] font-bold text-slate-400">${doc.version}</div>
+              <h1 class="mt-1 text-[20px] font-bold tracking-tight text-slate-900">${doc.title}</h1>
+              <div class="mt-4 space-y-3">
+                ${doc.sections.map(([title, body], i) => `
+                  <div class="flex gap-2.5">
+                    <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-slate-900 text-[12px] font-bold text-white">${i + 1}</span>
+                    <div>
+                      <h3 class="text-[12px] font-bold text-slate-900">${title}</h3>
+                      <p class="mt-0.5 text-[12px] leading-relaxed text-slate-500">${body}</p>
+                    </div>
+                  </div>`).join('')}
+              </div>
+              <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] leading-relaxed text-amber-800">法律文本待定；本期仅提供入口与占位内容，不记录用户同意版本。</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function applyTabletCols() {
+      document.querySelectorAll('[data-tablet-cols]').forEach(el => {
+        const mobile = el.dataset.mobileCols || '1';
+        const cols = state.device === 'tablet' ? el.dataset.tabletCols : mobile;
+        el.classList.remove('grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'grid-cols-6');
+        el.classList.add(`grid-cols-${cols}`);
+      });
+    }
+
+    function syncConsole() {
+      document.querySelectorAll('[data-role-btn]').forEach(btn => {
+        const active = btn.dataset.role === state.role;
+        btn.className = `console-role inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold ${active ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`;
+      });
+      document.querySelectorAll('[data-device-btn]').forEach(btn => {
+        const active = btn.dataset.device === state.device;
+        btn.className = `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold ${active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`;
+      });
+      const multiToggle = document.getElementById('multiToggle');
+      const multiLabel = document.getElementById('multiLabel');
+      if (multiToggle) {
+        multiToggle.className = `relative h-5 w-9 rounded-full transition ${state.multiRole ? 'bg-indigo-600' : 'bg-slate-300'}`;
+        multiToggle.firstElementChild.className = `absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${state.multiRole ? 'left-[18px]' : 'left-0.5'}`;
+      }
+      if (multiLabel) {
+        multiLabel.textContent = state.multiRole ? '开' : '关';
+        multiLabel.className = `text-[12px] font-semibold ${state.multiRole ? 'text-indigo-600' : 'text-slate-400'}`;
+      }
+    }
+
+    function render() {
+      const meta = ROLE_META[state.role];
+      const frame = document.getElementById('frame');
+      frame.className = `relative flex flex-col overflow-hidden rounded-3xl shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'} ${meta.frame}`;
+      document.getElementById('topbar').innerHTML = renderTopbar();
+      document.getElementById('content').innerHTML = renderHome();
+      document.getElementById('bottomnav').innerHTML = renderNav();
+      document.getElementById('overlay').innerHTML = renderOverlay();
+      applyTabletCols();
+      syncConsole();
+      lucide.createIcons();
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => toast.classList.add('hidden'), 2200);
+    }
+
+    function setRole(role) {
+      state.role = role;
+      state.view = 'home';
+      state.sheet = null;
+      render();
+      const meta = ROLE_META[role];
+      showToast(`已切换到${meta.short}${meta.todo ? ` · ${meta.todo} 项待办` : ''}`);
+    }
+
+    document.addEventListener('click', (event) => {
+      const el = event.target.closest('[data-action]');
+      if (!el) return;
+      const action = el.dataset.action;
+
+      if (action === 'set-role') {
+        setRole(el.dataset.role);
+        return;
+      }
+      if (action === 'set-device') {
+        state.device = el.dataset.device;
+        render();
+        return;
+      }
+      if (action === 'toggle-multi') {
+        state.multiRole = !state.multiRole;
+        state.sheet = null;
+        render();
+        showToast(state.multiRole ? '多角色模式：显示工作台切换器' : '单角色模式：隐藏工作台切换器');
+        return;
+      }
+      if (action === 'workspace-menu') {
+        state.sheet = 'workspace';
+        render();
+        return;
+      }
+      if (action === 'profile-menu') {
+        state.sheet = 'profile';
+        render();
+        return;
+      }
+      if (action === 'set-profile') {
+        state.profileId = el.dataset.profile;
+        state.sheet = null;
+        render();
+        showToast(`已切换到 ${PROFILES[state.profileId].name}`);
+        return;
+      }
+      if (action === 'notifications') {
+        state.sheet = 'notifications';
+        render();
+        return;
+      }
+      if (action === 'open-qr') {
+        state.sheet = 'qr';
+        render();
+        return;
+      }
+      if (action === 'close-sheet') {
+        state.sheet = null;
+        render();
+        return;
+      }
+      if (action === 'open-home') {
+        state.view = 'home';
+        state.sheet = null;
+        render();
+        return;
+      }
+      if (action === 'open-me') {
+        state.view = 'me';
+        state.sheet = null;
+        render();
+        return;
+      }
+      if (action === 'open-legal') {
+        state.sheet = 'legal';
+        state.legalDoc = el.dataset.doc || (el.textContent.includes('隐私') ? 'privacy' : el.textContent.includes('关于') ? 'about' : 'terms');
+        render();
+        return;
+      }
+      if (action === 'toggle-lang') {
+        state.lang = state.lang === 'zh' ? 'en' : 'zh';
+        render();
+        showToast(state.lang === 'zh' ? '已切换为中文' : 'Language: English');
+        return;
+      }
+      if (action === 'classin') {
+        showToast('正在唤醒 ClassIn…');
+        return;
+      }
+      if (action === 'toast') {
+        showToast(el.dataset.message || '原型模拟操作');
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

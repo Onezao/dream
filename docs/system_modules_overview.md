@@ -2,26 +2,32 @@
 
 # Dream 系统核心业务模块划分规约 (System Modules Overview)
 
-本文档基于 `docs/Prd-v5.md`（需求规格说明书）与 `DESIGN.md` / `docs/CODING_STANDARDS.md` / `docs/BUSINESS_RULES.md` 架构规范体系，正式定义 Dream（教务排班与分账管理系统）的**五大核心业务模块划分、边界职责、协作拓扑与领域实体归属**，作为全工程跨端（后端、核心共享库、批处理、前端 Web）研发与后续版本迭代的唯一顶层业务领域基准。
+本文档基于 `docs/Prd-v5.md`（需求规格说明书）与 `DESIGN.md` / `docs/CODING_STANDARDS.md` / `docs/BUSINESS_RULES.md` 架构规范体系，正式定义 Dream（教务排班与分账管理系统）的 **M0 顶层横向基座与 M1–M5 五大核心业务模块的划分、边界职责、协作拓扑与领域实体归属**，作为全工程跨端（后端、核心共享库、批处理、前端 Web）研发与后续版本迭代的唯一顶层业务领域基准。
 
 ---
 
-## 一、 系统架构哲学与五大核心红线
+## 一、 系统架构哲学与六大核心红线
 
-在深入各模块细节前，全系统所有模块必须且强制遵守以下五项底层红线：
+在深入各模块细节前，全系统所有模块必须且强制遵守以下六项底层红线：
 
 1. **账号与档案解耦 (Account vs. Profile)**：自然人操作主体（Account）与实际上课实体（Student Profile）物理隔离，单个家长账号可挂载多个学生档案（多孩共管），二者主键均采用 12 位短 ID。
 2. **多角色工作台物理隔离 (Workspace Isolation)**：管理员（黑金）、班长（深靛蓝）、教师（极简中性）、家长（清新浅色）四套工作台导航菜单、路由与主题色物理隔离，严防跨角色误操作。
 3. **资金持有人锁定铁律 (Funds Holder Lock)**：TS（最小课次单元）的收款资金持有方永远锁定最初收款的班长或平台，后续无论发生何种同师挪位、临时代课或跨家长转让，持有方归属保持不变，直至周度转账单归集。
 4. **财课分离与转让追踪 (Finance & Schedule Decoupling)**：课程发生转让时，原购课单与原付款家长的资金归属完全不变；排课层将 TS 实际授课学生档案变更为接收方学生，即时在其课表呈现。
 5. **异常未上课回退补生兜底 (Safe Rollback with Compensation)**：针对教师实际未上课但已被次日凌晨系统自动结课的异常 TS，允许班长/管理员修改为“已取消”，记录严格审计日志，并由系统在原单下自动补生 1 节全新“待排期 TS”，课酬统计物理剔除。
+6. **外壳与业务解耦 (Shell–Business Separation)**：M0 顶层基座只负责导航、工作台切换、角色主页聚合、账号设置与法律合规，不重复 M1–M5 的业务规则；所有业务动作仍由对应模块的 Service 承载，所有 SQL 仍只能落在 `dream-core` 的 Mapper 中。
 
 ---
 
-## 二、 五大核心业务模块划分与规格
+## 二、 M0 顶层基座与五大核心业务模块划分与规格
 
 ```mermaid
 flowchart TD
+    M0["模块零：工作台与主页全域基座 (App Shell)\n(导航/四角色主页/账号/合规)"] -.-> M1
+    M0 -.-> M2
+    M0 -.-> M3
+    M0 -.-> M4
+    M0 -.-> M5
     M1["模块一：教务基座与主数据\n(学员/教师/小班课/留言板)"] --> M2["模块二：购课单与资金单据\n(收款渠道/金额防呆/TS裂变)"]
     M1 --> M3["模块三：7色日历排班\n(并发排课/代课双视角/课程转让)"]
     M2 -- "生成待排期 TS" --> M3
@@ -35,6 +41,35 @@ flowchart TD
 
 ---
 
+### 模块零：工作台与主页全域基座 (Workspace & Home Foundation)
+
+- **模块代号**：`module0_workspace_home`（`m0`）
+- **业务定位**：整个系统的顶层横向基座（App Shell），统领 M1–M5 五大垂直业务模块。M0 只做统一入口、角色导航、主页聚合、账号设置与法律合规，不重复各模块的业务规则。
+- **PRD 依据**：[m0_workspace_and_home.md](./prd/m0_workspace_and_home.md)
+- **细分为四个子域**：
+  1. **全局导航与多角色外壳 (`m0_workspace_shell`)**：
+     - 管理员、班长、教师、家长四套工作台在路由、菜单与主题上物理隔离；
+     - 单角色用户隐藏切换器；多角色用户在顶部常驻“身份秒切胶囊”，按账号记忆上次退出的工作台，首次登录按 管理员 > 班长 > 教师 > 家长 进入；
+     - 跨角色待办红点透传：胶囊显示目标工作台待办数，点击 0.1 秒级切换并直达待办列表，切换不整页刷新、不保留上一角色敏感数据。
+  2. **角色专属主页与待办工作区 (`m0_role_home`)**：
+     - 家长端围绕当前孩子：下一节课焦点卡、ClassIn 双模入口、动态待办、课时资产快照与六大高频入口；
+     - 班长端聚焦紧急教务：待调配代课、待排满 4 周固定位、待确认购课/退费、待上交转账单，附 72 小时续费预警与八大入口；
+     - 教师端极简双语：今日授课概览、下一节课大卡片、代课交接摘要、待补录反馈提醒与 7 色课表；
+     - 管理员端聚焦中央结算：转账单审核、教师课酬打款、平台直收确认、异常申诉与抽佣配置；
+     - 全端手机优先、平板自适应，不做 PC 浏览器适配。
+  3. **统一个人中心与账号安全中心 (`m0_account_security`)**：
+     - 账号资料卡、修改密码、换绑邮箱/手机号（双向验证码）；
+     - 家长多孩档案集中管理（单账号上限 10 个）；
+     - 中英双语即时切换、通知偏好、PWA 缓存管理与退出登录；
+     - 登录、注册、找回密码与 Token 刷新统一委托 `@topeetop/auth-core`。
+  4. **法律合规与品牌信任中心 (`m0_legal_about`)**：
+     - 关于我们、用户服务协议、隐私保护政策；
+     - 协议固化固定位四周一轮、12.5% 请假配额、3 小时阶梯熔断、代课差价多退少不补、退费原收款方退回等核心契约；
+     - 未成年人个人信息保护专章与跨国数据跨境传输脱敏说明；V1 只提供入口与占位内容，不记录用户同意版本。
+- **边界约束**：主页待办与统计的数据归属 M1–M5，M0 只做展示与跳转，不新增业务规则；工作台记忆等外壳偏好由 M0 自行保存。
+
+---
+
 ### 模块一：教学教务基座与主数据 (Master Data & Profiles)
 
 - **模块代号**：`module1_master_data`
@@ -44,12 +79,17 @@ flowchart TD
      - 单个家长账号挂载上限 10 个学生档案，弱引导冷启动（未绑定时不阻断浏览，购课/约课时强提示补录）；
      - 支持正方形自定义头像上传至 S3/R2，数据库只存相对 Key；
      - 规范昵称严格遵循 `英文名 + 姓首字母 + 年龄`（正则 `^[A-Za-z]+[A-Za-z][0-9]{1,2}$`，如 `AliceZ12`），数据库大小写不敏感全局唯一，支持跨家长转让精确检索；
-     - 家长工作台常驻【多孩全局档案切换器】（Profile Switcher），Pinia 驱动下层单据无感刷新。
-  2. **M1B 教师团队与多媒体履历 (`m1b_teacher_profile`)**：
-     - 教师档案与负责班长建立 **1:1 强绑定关系** (`monitor_id`)；
-     - 必填**中文自我介绍**（低龄家长易读）与**英文自我介绍**（原汁原味展示），前台一键切换；
-     - 预签名直传对象存储：个人照片、试讲视频（MP4 $\le 50\text{MB}$，支持卡片内展开播放与原生全屏切换）、ClassIn 二维码图片（支持点击放大扫码）；
-     - 教师定级字典与擅长课程类型技能标签匹配。
+     - 家长工作台常驻【多孩全局档案切换器】（由 M0 外壳承载，M1A 提供档案数据与增删改能力），Pinia 驱动下层单据无感刷新。
+  2. **M1B 教师与班长档案管理 (`m1b_teacher_profile`)**：
+     - **全量班长管理**：管理员专属工作台支持查看全量班长列表（显示姓名、绑定邮箱、电话、委任日期、在职/已离职状态）及当前负荷统计（所辖外教数、负责小班数、托管未结课次资产）；
+     - **委任新班长**：通过检索平台已注册自然人 Email 校验匹配，录入显示名称与电话，授予 `monitor` 角色并建立班长档案；
+     - **教师 1:1 强绑定与改绑**：每位教师档案必须且只能绑定 1 位负责班长；支持在班长列表侧一键批量改绑或在教师档案编辑侧单人改绑负责班长；
+     - **解除班长职务（离职注销）两道强防线阻断**：
+       - 防线一（资金清算）：名下持有未结 TS（`待排期` 或 未结 `已排期`）时强制阻断解除，必须先在 M5A 完成离职资产移交转账单并全额归集平台；
+       - 防线二（教务管辖）：名下存在在职外教或小班课时强制阻断解除，必须先批量改绑接手班长；
+       - 解除后收回 `monitor` 角色，班长档案软删除（`deleted_at IS NOT NULL`），保留历史单据只读追溯；兼任家长的账号仍可正常登录家长端约课；
+     - **外教多媒体履历**：必填**中文自我介绍**与**英文自我介绍**，前台一键切换；预签名直传个人照片、试讲视频（MP4 $\le 50\text{MB}$，卡片内就地播放与原生全屏切换）、ClassIn 二维码图片（支持点击放大扫码与一键唤醒）；
+     - **基础字典**：教师定级字典与擅长课程类型技能标签匹配。
   3. **M1C 统一班级与招生管控 (`m1c_classes`)**：
      - **1v1 个人班**：首次排课时后台静默创建并维护关联，前端对家长和教师完全屏蔽“班级”实体概念；
      - **小班课班级**：手动创建，核心参数包括班级名称、课程类型、指定教师、小班课负责人（班长）、Min 开班人数（默认 2）、Max 容量人数（$\le 20$）；
@@ -189,7 +229,8 @@ flowchart TD
 
 | 模块名称 | 共享领域核心 (`dream-core`) | HTTP 接口层 (`dream-backend`) | 异步跑批 (`dream-worker`) | 前端表现层 (`dream-frontend`) |
 | :--- | :--- | :--- | :--- | :--- |
-| **模块一：主数据** | `StudentProfileMapper`<br>`TeacherProfileMapper`<br>`ClassMapper`<br>`ProfileMessageMapper` | `StudentProfileController`<br>`TeacherProfileController`<br>`ClassController`<br>`ProfileMessageController` | 基础主数据清理 | 四角色工作台物理隔离<br>多孩 Profile Switcher<br>TDesign 移动端适配 |
+| **模块零：工作台与主页基座** | `WorkspacePreferenceMapper`（仅存工作台记忆等外壳偏好） | `WorkspaceController`（外壳偏好与主页聚合入口；账号安全委托 `@topeetop/auth-core`） | - | App Shell、四角色主页、顶部秒切胶囊、多孩 Profile Switcher、个人中心、法律合规页、ClassIn 双模唤醒 |
+| **模块一：主数据** | `StudentProfileMapper`<br>`TeacherProfileMapper`<br>`ClassMapper`<br>`ProfileMessageMapper` | `StudentProfileController`<br>`TeacherProfileController`<br>`ClassController`<br>`ProfileMessageController` | 基础主数据清理 | 学员/教师/班级/留言板管理页面<br>TDesign 移动端适配 |
 | **模块二：购课单** | `CourseOrderMapper`<br>`CourseOrderService`<br>12.5%请假算法 | `CourseOrderController`<br>防呆金额强提醒拦截 | - | 购课表单与防呆强提醒弹窗<br>积分明细列表 |
 | **模块三：排班日历** | `TimeslotMapper`<br>`TimeslotLeaveMapper`<br>`TimeslotTransferMapper`<br>`TimeslotScheduleService`<br>`TimeslotAttendanceService`<br>`TimeslotTransferService` | `CalendarController`<br>`ScheduleController`<br>`AttendanceController`<br>`TransferController` | - | 7 色智能排课日历网格<br>代课双视角渲染<br>跨家长转让检索弹窗 |
 | **模块四：通知网络** | 站内信与邮件分发客户端集成 (`@topeetop/notification-core`) | 业务触发点透传通知事件 | 超时 30 分钟未读兜底邮件轮询 Job | 顶部未读站内信红点抽屉<br>邮件接收状态标记 |
@@ -201,6 +242,7 @@ flowchart TD
 
 | 模块与阶段 | 涵盖范围 | 当前状态 | 核心产出与依据 |
 | :--- | :--- | :--- | :--- |
+| **模块 0** | 工作台外壳、四角色主页、跨角色待办透传、个人中心与账号安全、法律合规、ClassIn 双模唤醒 | 📝 **PRD 已就绪** | `docs/prd/m0_workspace_and_home.md` |
 | **模块 1A** | 学员档案、多孩共管、规范昵称、S3头像 | ✅ **已完成 (Pass 100%)** | `StudentProfileMapper`, `StudentProfileService`, 60/60 单测全通 |
 | **模块 1B** | 教师团队、1:1绑定班长、双语介绍、多媒体预签名直传 | ✅ **已完成 (Pass 100%)** | `TeacherProfileMapper`, `TeacherProfileService`, `FileUploadService`, 132/132 单测全通 |
 | **模块 1C** | 1v1静默建班、小班课容量管控、抽佣配置、强制开班 | 📝 **方案已就绪** | `docs/prd/m1c_classes.md`, `docs/tdd/m1c_classes.md` |

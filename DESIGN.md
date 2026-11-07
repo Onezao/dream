@@ -25,16 +25,21 @@
 
 ## 2. 设计令牌体系 (Design Tokens)
 
-### 2.1 字体与排版阶梯 (Typography)
+### 2.1 字体与排版阶梯 (Typography - 对齐微信 WeUI 纯血标准)
+移动端视觉排版**严格对齐微信 App 官方规范 (WeUI Standards)**，以数亿中文移动端用户最熟悉的字号尺度为唯一基准，彻底消除“字小、费眼、iOS输入自动缩放”问题：
+
 - **字体栈 (Font Stack)**：
   - 无衬线主字体：`font-sans`（系统原生无衬线优先：`-apple-system, BlinkMacSystemFont, "PingFang SC", "Inter", "Segoe UI", Roboto, sans-serif`），保障中英文混排清晰度与零外部字体加载阻塞。
   - 等宽数字与编码字体：`font-mono`（用于 12 位短 ID、订单编号、时间网格 `09:00`、积分金额核算对齐及学生昵称编码 `AliceZ12`）。
-- **字号与字重规范**：
-  - 页面主标题：`text-lg` (18px) ~ `text-xl` (20px)，`font-bold tracking-tight text-slate-900`。
-  - 区块/卡片标题：`text-sm` (14px) ~ `text-base` (16px)，`font-semibold text-slate-800`。
-  - 正文与表单标签：`text-xs` (12px) ~ `text-sm` (14px)，`font-medium text-slate-700`。
-  - 辅助说明与时间戳：`text-[11px]` ~ `text-xs`，`text-slate-400` / `text-slate-500`。
-  - 日历微卡片与角标：`text-[10px]` ~ `text-[11px]`，`font-semibold leading-tight`（适应单屏 7 列高密度网格）。
+- **微信 WeUI 5 级字号与字重规范 (Typography Hierarchy)**：
+  - **L1 页面大标题 (Large Title)**：**`22px` (`text-[22px]` / `text-2xl`)**，`font-bold tracking-tight text-slate-900`（对齐微信大标题/钱包余额）。
+  - **L2 核心主标题 / 列表项名称 / 输入框 / 主按钮 (Title / Body / Input / Action)**：**`17px` (`text-[17px]`)**：
+    - 输入框 (Input) 统一 `text-[17px]`，高度统一 `h-12` (48px) ~ `h-[52px]`。彻底根除 iOS Safari 自动强制缩放，输入大字清晰扎实。
+    - 列表主项名称、卡片主标题、弹窗确认大按钮统一使用 `text-[17px]` (`font-semibold` 或 `font-bold`)（对齐微信好友名、设置项主文字、绿色大按钮）。
+  - **L3 次级正文 / 内容摘要 (Content / Subtitle)**：**`15px` (`text-[15px]`) ~ `16px` (`text-base`)**，`font-medium text-slate-800`（如课表主要名称、卡片重要信息描述，对齐微信聊天列表最新消息预览）。
+  - **L4 辅助说明 / 次要属性 (Caption / Footnote)**：**`14px` (`text-sm`)**，`font-medium text-slate-500`（如真实姓名、档案 ID、表单输入提示、选课偏好标签，对齐微信右侧灰色说明 `#888888`。**严禁在常规页面将辅助说明降级至 12px**）。
+  - **L5 时间戳 / 标签 / 徽标 (Metadata / Tag / Badge)**：**`12px` (`text-xs`) ~ `13px` (`text-[13px]`)**，`font-medium text-slate-400`（对齐微信聊天右上角时间“19:45”、红点徽标。**12px 为常规页面物理绝对下限，严禁出现 11px 及以下极限小字**）。
+  - **单屏 7 列周度日历微卡片 (全系统唯一业务特例)**：`text-[11px]` (`font-bold leading-tight`)，仅在单屏 7 列高密度日历缩写微卡片内保留，适配单列 45px 极窄视口。
 
 ### 2.2 基础色彩系统 (Color Palette)
 - **背景层 (Surfaces)**：
