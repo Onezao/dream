@@ -1,1414 +1,1400 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
 <!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<!-- 即抛型原型：M3C 课程转让与权益交割。纯前端 Mock，不连接后端，不触碰生产代码。 -->
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>原型 - M3C 课程转让与权益交割引擎</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>原型 · M3C 课程转让与权益交割</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body class="bg-slate-200 text-slate-800 min-h-screen">
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
 
-<header class="bg-white border-b border-slate-200 px-3 py-2 sticky top-0 z-50 flex flex-wrap gap-2 items-center justify-between text-xs shadow-sm">
-  <div class="flex items-center gap-2">
-    <span class="font-bold text-slate-900 flex items-center gap-1.5">
-      <i data-lucide="arrow-left-right" class="w-4 h-4 text-teal-700"></i>M3C 课程转让与权益交割
-    </span>
-    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="roleSwitch"></div>
-    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="viewSwitch"></div>
-    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="deviceSwitch"></div>
+  <!-- 原型控制台（不属于产品界面） -->
+  <header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">3C</span>
+        <span class="text-[14px] font-bold text-slate-900">课程转让与权益交割</span>
+        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">最新 PRD · 主页面底栏 ≤ 4 Tab</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">角色</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="role" data-value="amy" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">Amy 转出</button>
+          <button data-group="role" data-value="helen" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">Helen 受让</button>
+          <button data-group="role" data-value="david" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">David 教师</button>
+          <button data-group="role" data-value="leo" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">Leo 班长</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">设备</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="device" data-value="mobile" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">手机</button>
+          <button data-group="device" data-value="tablet" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">平板</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">网络</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="online" data-value="on" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">在线</button>
+          <button data-group="online" data-value="off" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">离线</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">场景</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="scenario" data-value="normal" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">正常 ≥3h</button>
+          <button data-group="scenario" data-value="locked" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">&lt;3h 锁定</button>
+          <button data-group="scenario" data-value="transferred" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">已受让</button>
+        </div>
+      </div>
+
+      <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置演示</button>
+
+      <a href="../docs/prd/m3c_course_transfer.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
+        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M3C PRD
+      </a>
+    </div>
+  </header>
+
+  <main class="flex justify-center px-4 py-6">
+    <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
+      <div id="topbar" class="shrink-0"></div>
+      <div id="scenarioBanner" class="shrink-0"></div>
+      <div id="offlineBanner" class="hidden">
+        <i data-lucide="wifi-off" class="h-4 w-4 shrink-0 text-amber-600"></i>
+        离线只读：可查看课表与转让明细，转让 / 验证 / 代办 / 挪位不可用
+      </div>
+      <div id="content" class="flex-1 overflow-y-auto"></div>
+      <nav id="bottomnav" class="shrink-0"></nav>
+      <div id="overlay"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-24 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
+    </div>
+  </main>
+
+  <!-- Tailwind CDN 动态类安全垫 -->
+  <div class="hidden">
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-h-[92%] max-h-[90%] max-w-[560px] max-w-[420px] max-w-[360px]"></span>
+    <span class="grid grid-cols-1 grid-cols-2 grid-cols-3"></span>
+    <span class="bg-amber-50 border-amber-300 text-amber-900 bg-yellow-50 border-yellow-300 text-yellow-900"></span>
+    <span class="bg-blue-50 border-blue-300 text-blue-900 bg-purple-50 border-purple-300 text-purple-900"></span>
+    <span class="bg-emerald-50/80 border-emerald-200 text-emerald-700 bg-slate-100 border-slate-200 text-slate-400"></span>
+    <span class="bg-rose-50 border-rose-200 text-rose-700 bg-indigo-600 bg-indigo-50 text-indigo-700 border-indigo-100"></span>
+    <span class="bg-amber-100 text-amber-900 bg-rose-600 bg-slate-900 text-amber-300"></span>
+    <span class="bg-slate-900/40 backdrop-blur-[1px]"></span>
   </div>
-  <div class="flex items-center gap-2">
-    <span class="text-sm text-slate-400">场景</span>
-    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="scenarioSwitch"></div>
-    <button onclick="resetPrototype()" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm flex items-center gap-1 transition">
-      <i data-lucide="rotate-ccw" class="w-3 h-3"></i>重置
-    </button>
-  </div>
-</header>
 
-<main class="flex justify-center py-4">
-  <div id="frame" class="relative w-[390px] max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[840px] flex flex-col border border-slate-300/60 transition-all">
-
-    <div id="appHeader" class="bg-teal-700 text-white px-4 py-2.5 flex items-center justify-between shrink-0 transition-colors">
-      <div class="flex items-center gap-2.5">
-        <div id="roleAvatar" class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold text-sm">A</div>
-        <div>
-          <div id="roleTitle" class="text-xs font-semibold leading-tight">Amy · 家长工作台</div>
-          <div id="roleSub" class="text-xs text-teal-100">转出方 · 出资家长 · 固定位流转</div>
-        </div>
-      </div>
-      <div id="topHeaderRight" class="flex items-center gap-1.5"></div>
-    </div>
-
-    <div id="scenarioBanner" class="px-4 py-2 bg-amber-50 border-b border-amber-200 text-amber-900 text-sm flex items-center justify-between shrink-0">
-      <span class="flex items-center gap-1.5 truncate">
-        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
-        <span id="scenarioBannerText">距开课 48 小时，仅 1v1 固定位可发起转让</span>
-      </span>
-      <span id="scenarioTag" class="text-xs px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-bold shrink-0">≥3h</span>
-    </div>
-
-    <div id="content" class="flex-1 overflow-y-auto p-3.5 space-y-3"></div>
-
-    <div id="toast" class="hidden absolute left-1/2 -translate-x-1/2 bottom-12 bg-slate-900/95 text-white text-xs rounded-xl px-4 py-2.5 z-[100] shadow-xl max-w-[90%] text-center flex items-center gap-2">
-      <i data-lucide="info" class="w-4 h-4 shrink-0 text-amber-400"></i>
-      <span id="toastText">提示内容</span>
-    </div>
-
-    <div id="transferModal" class="hidden absolute inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-3">
-      <div id="transferDialog" class="bg-white rounded-2xl p-4 w-full max-w-sm shadow-2xl max-h-[92%] overflow-y-auto"></div>
-    </div>
-
-    <div id="confirmModal" class="hidden absolute inset-0 z-[60] bg-slate-900/70 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl p-4 w-full max-w-xs shadow-2xl space-y-3 text-xs">
-        <div class="text-center space-y-1">
-          <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 mx-auto grid place-items-center">
-            <i data-lucide="alert-octagon" class="w-5 h-5"></i>
-          </div>
-          <h4 class="font-bold text-slate-900 text-sm">确认转让给该学员吗</h4>
-          <p class="text-xs text-slate-500">提交后立即生效，此操作不可撤销</p>
-        </div>
-        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 text-sm">
-          <div class="flex justify-between">
-            <span class="text-slate-400">转出课次</span>
-            <span id="confirmLessonTime" class="font-semibold text-slate-800">2026-11-14 16:00</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-slate-400">授课教师</span>
-            <span class="font-semibold text-slate-800">David Miller</span>
-          </div>
-          <div class="flex justify-between border-t border-slate-200 pt-1.5">
-            <span class="text-slate-400">接收学员</span>
-            <span id="confirmRecipient" class="font-bold text-rose-700">TomZ11（男，11岁）</span>
-          </div>
-        </div>
-        <p class="text-xs text-rose-700 bg-rose-50 p-2 rounded-lg leading-relaxed">
-          请确认线下资金已交割完毕。划转后原课格清空，受让方课表加注【转】字角标，且全端禁止二次转让。
-        </p>
-        <div class="flex gap-2 pt-1">
-          <button onclick="closeModal('confirmModal')" class="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 font-medium text-slate-700 transition">再核对一下</button>
-          <button onclick="commitExternalTransfer()" class="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-sm transition">我已核实，确认交割</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="detailModal" class="hidden absolute inset-0 z-50 bg-slate-900/60 flex items-end justify-center">
-      <div id="detailBody" class="bg-white rounded-t-3xl p-4 w-full max-w-sm shadow-2xl max-h-[88%] overflow-y-auto"></div>
-    </div>
-
-    <div id="memoModal" class="hidden absolute inset-0 z-[60] bg-slate-900/60 flex items-end justify-center">
-      <div id="memoBody" class="bg-white rounded-t-3xl p-4 w-full max-w-sm shadow-2xl max-h-[88%] overflow-y-auto"></div>
-    </div>
-
-    <div id="monitorModal" class="hidden absolute inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-3">
-      <div id="monitorBody" class="bg-white rounded-2xl p-4 w-full max-w-sm shadow-2xl max-h-[92%] overflow-y-auto"></div>
-    </div>
-
-    <div id="rescheduleModal" class="hidden absolute inset-0 z-50 bg-slate-900/60 flex items-end justify-center">
-      <div id="rescheduleBody" class="bg-white rounded-t-3xl p-4 w-full max-w-sm shadow-2xl max-h-[88%] overflow-y-auto"></div>
-    </div>
-
-  </div>
-</main>
-
-<script>
-const STUDENTS = {
-  AliceZ12: { nickname: 'AliceZ12', gender: '女', age: 12, grade: '六年级', parent: 'Amy', account: 'amy', focus: '英语 KET 精读', level: 'KET 卓越', match: true },
-  BobZ10: { nickname: 'BobZ10', gender: '男', age: 10, grade: '四年级', parent: 'Amy', account: 'amy', focus: '英语 KET 基础', level: 'KET 备考', match: true },
-  CharlieZ08: { nickname: 'CharlieZ08', gender: '男', age: 8, grade: '二年级', parent: 'Amy', account: 'amy', focus: '英语启蒙', level: 'Starters', match: false },
-  TomZ11: { nickname: 'TomZ11', gender: '男', age: 11, grade: '五年级', parent: 'Helen', account: 'helen', focus: '英语 KET 精读', level: 'KET 卓越', match: true },
-  CatherineW09: { nickname: 'CatherineW09', gender: '女', age: 9, grade: '三年级', parent: 'Eva', account: 'eva', focus: '英语 PET 冲刺', level: 'PET 预备', match: false }
-};
-
-const FIXED = {
-  id: 'TS_20261114_1600',
-  date: '2026-11-14',
-  weekday: '周六',
-  time: '16:00-16:30',
-  type: 'fixed',
-  course: '1v1 英语 KET 精读',
-  teacher: 'David Miller',
-  student: 'AliceZ12',
-  room: 'ClassIn A-302',
-  orderId: 'ORD_20261102_0091',
-  funder: 'Amy',
-  holder: 'Leo 班长'
-};
-
-const TEMP = {
-  id: 'TS_20261114_1700',
-  date: '2026-11-14',
-  weekday: '周六',
-  time: '17:00-17:30',
-  type: 'temp',
-  course: '1v1 临时口语强化',
-  teacher: 'David Miller',
-  student: 'AliceZ12',
-  room: 'ClassIn A-302',
-  orderId: 'ORD_20261102_0091',
-  funder: 'Amy',
-  holder: 'Leo 班长'
-};
-
-const DEFAULT_TRANSFER = {
-  from: 'AliceZ12',
-  to: 'TomZ11',
-  type: 'external',
-  operator: 'Amy',
-  at: '2026-11-05 10:20',
-  note: '微信群已线下结清，转给同群 TomZ11'
-};
-
-const WEEK = [
-  { date: '2026-11-09', weekday: '周一', label: '11-09' },
-  { date: '2026-11-10', weekday: '周二', label: '11-10' },
-  { date: '2026-11-11', weekday: '周三', label: '11-11' },
-  { date: '2026-11-12', weekday: '周四', label: '11-12' },
-  { date: '2026-11-13', weekday: '周五', label: '11-13' },
-  { date: '2026-11-14', weekday: '周六', label: '11-14' },
-  { date: '2026-11-15', weekday: '周日', label: '11-15' }
-];
-
-const TIME_SLOTS = [
-  '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-  '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'
-];
-
-const CELL_STYLES = {
-  ORANGE: 'bg-amber-500 text-white',
-  YELLOW: 'bg-yellow-400 text-gray-900',
-  BLUE: 'bg-blue-500 text-white',
-  PURPLE: 'bg-purple-600 text-white',
-  GREEN: 'bg-emerald-500 text-white',
-  GRAY: 'bg-slate-100 text-slate-400',
-  RED: 'bg-rose-500 text-white'
-};
-
-const LEGEND = [
-  ['bg-amber-500', '固定位'],
-  ['bg-yellow-400', '临时课'],
-  ['bg-blue-500', '被代课'],
-  ['bg-emerald-500', '空闲可约'],
-  ['bg-rose-500', '已请假'],
-  ['bg-slate-200', '不可约']
-];
-
-const ROLES = {
-  amy: { name: 'Amy', title: 'Amy · 家长工作台', sub: '转出方 · 出资家长 · 固定位流转', avatar: 'A', theme: 'bg-teal-700', badge: '转出方' },
-  helen: { name: 'Helen', title: 'Helen · 家长工作台', sub: '受让方 · 课次接收 · 资金不变', avatar: 'H', theme: 'bg-emerald-700', badge: '受让方' },
-  david: { name: 'David Miller', title: 'David Miller · 教师课表', sub: '授课教师 · 学员变更与备课', avatar: 'D', theme: 'bg-slate-800', badge: '教师端' },
-  leo: { name: 'Leo', title: 'Leo · 班长工作台', sub: '代办经办 · 资金持有方', avatar: 'L', theme: 'bg-indigo-900', badge: '班长端' }
-};
-
-const INIT = {
-  role: 'amy',
-  view: 'calendar',
-  device: 'phone',
-  scenario: 'normal',
-  amyActive: 'AliceZ12',
-  auditTab: 'out',
-  selectedDate: '2026-11-14',
-  selectedLesson: 'fixed',
-  transferTab: 'family',
-  nickInput: 'TomZ11',
-  verified: null,
-  verifyError: null,
-  transfer: null,
-  rescheduleCount: 0
-};
-
-let S = Object.assign({}, INIT);
-let toastTimer = null;
-
-const $ = (id) => document.getElementById(id);
-
-function ico() {
-  if (window.lucide) window.lucide.createIcons();
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function stamp() {
-  const d = new Date();
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-function activeTransfer() {
-  if (S.scenario === 'transferred' && !S.transfer) return DEFAULT_TRANSFER;
-  return S.transfer;
-}
-
-function currentStudent() {
-  if (S.role === 'amy') return S.amyActive;
-  if (S.role === 'helen') return 'TomZ11';
-  return null;
-}
-
-function fixedLesson() {
-  const t = activeTransfer();
-  return Object.assign({}, FIXED, {
-    isTransferred: !!t,
-    actualStudent: t ? t.to : FIXED.student,
-    originalStudent: t ? t.from : null,
-    hours: S.scenario === 'locked' ? 2 : 48,
-    rescheduleCount: S.rescheduleCount
-  });
-}
-
-function toast(message) {
-  const el = $('toast');
-  $('toastText').textContent = message;
-  el.classList.remove('hidden');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.add('hidden'), 2600);
-}
-
-function closeModal(id) {
-  $(id).classList.add('hidden');
-}
-
-function closeAllModals() {
-  ['transferModal', 'confirmModal', 'detailModal', 'memoModal', 'monitorModal', 'rescheduleModal'].forEach((id) => {
-    const el = $(id);
-    if (el) el.classList.add('hidden');
-  });
-}
-
-function setRole(role) {
-  S.role = role;
-  closeAllModals();
-  renderAll();
-}
-
-function setView(view) {
-  S.view = view;
-  renderAll();
-}
-
-function setDevice(device) {
-  S.device = device;
-  $('frame').className = `relative ${device === 'tablet' ? 'w-[760px]' : 'w-[390px]'} max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[840px] flex flex-col border border-slate-300/60 transition-all`;
-  renderAll();
-}
-
-function setScenario(key) {
-  S.scenario = key;
-  S.rescheduleCount = 0;
-  S.view = 'calendar';
-  if (key === 'transferred') {
-    S.transfer = Object.assign({}, DEFAULT_TRANSFER);
-    S.role = 'helen';
-  } else {
-    S.transfer = null;
-    S.role = 'amy';
-    S.amyActive = 'AliceZ12';
-  }
-  closeAllModals();
-  renderAll();
-}
-
-function setAmyStudent(nickname) {
-  S.amyActive = nickname;
-  renderAll();
-}
-
-function selectDate(date) {
-  S.selectedDate = date;
-  renderAll();
-}
-
-function resetPrototype() {
-  S = Object.assign({}, INIT);
-  closeAllModals();
-  $('frame').className = 'relative w-[390px] max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[840px] flex flex-col border border-slate-300/60 transition-all';
-  renderAll();
-}
-
-function renderControls() {
-  const roleButtons = [
-    ['amy', 'Amy 转出方'],
-    ['helen', 'Helen 受让方'],
-    ['david', 'David 教师'],
-    ['leo', 'Leo 班长']
-  ];
-  $('roleSwitch').innerHTML = roleButtons.map(([key, label]) => (
-    `<button onclick="setRole('${key}')" class="px-2 py-1 rounded-md transition ${S.role === key ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}">${label}</button>`
-  )).join('');
-
-  const views = S.role === 'david'
-    ? [['calendar', '课表'], ['audit', '通知']]
-    : [['calendar', '课表'], ['audit', S.role === 'leo' ? '转让审计' : '转让明细']];
-  $('viewSwitch').innerHTML = views.map(([key, label]) => (
-    `<button onclick="setView('${key}')" class="px-2 py-1 rounded-md transition ${S.view === key ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'}">${label}</button>`
-  )).join('');
-
-  $('deviceSwitch').innerHTML = [['phone', '手机'], ['tablet', '平板']].map(([key, label]) => (
-    `<button onclick="setDevice('${key}')" class="px-2 py-1 rounded-md transition ${S.device === key ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'}">${label}</button>`
-  )).join('');
-
-  const scenarios = [
-    ['normal', '正常 ≥3h'],
-    ['locked', '开课 <3h'],
-    ['transferred', '已受让']
-  ];
-  $('scenarioSwitch').innerHTML = scenarios.map(([key, label]) => (
-    `<button onclick="setScenario('${key}')" class="px-2 py-1 rounded-md transition ${S.scenario === key ? 'bg-amber-500 text-white shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'}">${label}</button>`
-  )).join('');
-}
-
-function renderHeader() {
-  const role = ROLES[S.role];
-  const header = $('appHeader');
-  header.className = `${role.theme} text-white px-4 py-2.5 flex items-center justify-between shrink-0 transition-colors`;
-  $('roleAvatar').textContent = role.avatar;
-  $('roleTitle').textContent = role.title;
-  $('roleSub').textContent = role.sub;
-
-  let profile = '';
-  if (S.role === 'amy') {
-    profile = `
-      <div class="flex items-center bg-white/15 rounded-lg px-2 py-1 text-sm">
-        <span class="text-white/80 mr-1">档案</span>
-        <select onchange="setAmyStudent(this.value)" class="bg-transparent text-white font-medium outline-none cursor-pointer">
-          ${['AliceZ12', 'BobZ10', 'CharlieZ08'].map((nick) => `<option value="${nick}" class="text-slate-900" ${S.amyActive === nick ? 'selected' : ''}>${nick}</option>`).join('')}
-        </select>
-      </div>`;
-  } else if (S.role === 'helen') {
-    profile = `<span class="text-xs px-2 py-1 rounded-lg bg-white/15 font-mono">TomZ11</span>`;
-  }
-  $('topHeaderRight').innerHTML = `${profile}<span class="text-xs px-2 py-0.5 rounded-full bg-white/20 font-medium">${role.badge}</span>`;
-}
-
-function renderBanner() {
-  const banner = $('scenarioBanner');
-  let text = '距开课 48 小时，仅 1v1 固定位可发起转让';
-  let tag = '≥3h';
-  let cls = 'px-4 py-2 bg-amber-50 border-b border-amber-200 text-amber-900 text-sm flex items-center justify-between shrink-0';
-  let icon = 'shield-check';
-  let iconCls = 'text-amber-600';
-
-  if (S.role === 'david') {
-    const t = activeTransfer();
-    text = t ? `学员变更已送达：${t.from} 变更为 ${t.to}，请提前备课` : '本周课程正常，暂无学员变更通知';
-    tag = t ? '变更' : '教师端';
-    cls = t ? 'px-4 py-2 bg-rose-50 border-b border-rose-200 text-rose-900 text-sm flex items-center justify-between shrink-0' : cls;
-    icon = t ? 'bell' : 'calendar-check';
-    iconCls = t ? 'text-rose-600' : 'text-amber-600';
-  } else if (S.role === 'leo') {
-    text = '资金持有方永久锁定，转让只改实际上课学员';
-    tag = '财课分离';
-  } else if (S.scenario === 'locked') {
-    text = '距开课不足 3 小时，转让入口已物理锁死';
-    tag = '<3h';
-    cls = 'px-4 py-2 bg-rose-50 border-b border-rose-200 text-rose-900 text-sm flex items-center justify-between shrink-0';
-    icon = 'lock';
-    iconCls = 'text-rose-600';
-  } else if (activeTransfer()) {
-    text = '受让课次已标记【转】，全端禁止二次转让，保留 1 次同师挪位';
-    tag = 'is_transferred';
-    cls = 'px-4 py-2 bg-emerald-50 border-b border-emerald-200 text-emerald-900 text-sm flex items-center justify-between shrink-0';
-    icon = 'badge-check';
-    iconCls = 'text-emerald-600';
-  }
-
-  banner.className = cls;
-  banner.innerHTML = `
-    <span class="flex items-center gap-1.5 truncate">
-      <i data-lucide="${icon}" class="w-3.5 h-3.5 ${iconCls} shrink-0"></i>
-      <span>${text}</span>
-    </span>
-    <span class="text-xs px-1.5 py-0.5 rounded bg-white/70 text-slate-700 font-bold shrink-0">${tag}</span>`;
-}
-
-function dayStrip() {
-  const hasLesson = !!activeTransfer() || S.scenario !== 'transferred';
-  return `
-    <div class="grid grid-cols-7 gap-1">
-      ${WEEK.map((d) => {
-        const active = S.selectedDate === d.date;
-        const dot = d.date === '2026-11-14' && hasLesson;
-        return `
-          <button onclick="selectDate('${d.date}')" class="relative rounded-xl py-1.5 text-center transition ${active ? 'bg-teal-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
-            <div class="text-sm font-bold ${active ? 'text-teal-100' : 'text-slate-400'}">${d.weekday}</div>
-            <div class="text-sm font-semibold">${d.label.slice(3)}</div>
-            ${dot ? `<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${active ? 'bg-amber-300' : 'bg-amber-500'}"></span>` : ''}
-          </button>`;
-      }).join('')}
-    </div>`;
-}
-
-function weekHeader() {
-  return `
-    <div class="flex items-center justify-between">
-      <button onclick="toast('原型固定演示 2026 年第 46 周')" class="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600">
-        <i data-lucide="chevron-left" class="w-4 h-4"></i>
-      </button>
-      <div class="text-center">
-        <div class="text-xs font-bold text-slate-800">2026 年第 46 周</div>
-        <div class="text-xs text-slate-400 mt-0.5">11-09 周一 至 11-15 周日</div>
-      </div>
-      <button onclick="toast('原型固定演示 2026 年第 46 周')" class="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600">
-        <i data-lucide="chevron-right" class="w-4 h-4"></i>
-      </button>
-    </div>`;
-}
-
-function lessonCardHTML(lesson) {
-  const isTemp = lesson.type === 'temp';
-  const base = isTemp
-    ? 'bg-yellow-400 text-gray-900 border-yellow-500'
-    : 'bg-amber-500 text-white border-amber-600';
-  const sub = isTemp ? 'text-gray-700' : 'text-amber-50';
-  return `
-    <button onclick="openLesson('${isTemp ? 'temp' : 'fixed'}')" class="relative w-full text-left rounded-2xl border ${base} p-3 shadow-sm hover:brightness-105 transition">
-      ${lesson.isTransferred ? '<span class="absolute -top-2 right-2 bg-rose-600 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow">【转】</span>' : ''}
-      <div class="flex items-center justify-between text-xs font-semibold">
-        <span>${lesson.time}</span>
-        <span>${isTemp ? '临时课' : '固定位'}</span>
-      </div>
-      <div class="mt-1 text-sm font-bold leading-tight">${lesson.course}</div>
-      <div class="text-sm ${sub}">${lesson.actualStudent || lesson.student} · ${lesson.teacher}</div>
-      ${lesson.isTransferred ? `<div class="mt-1.5 inline-flex rounded bg-white/20 px-1.5 py-0.5 text-xs">由 ${lesson.originalStudent} 转让而来</div>` : ''}
-      <div class="mt-2 flex items-center justify-between text-xs ${sub}">
-        <span>${lesson.room}</span>
-        <span class="flex items-center gap-0.5">查看详情 <i data-lucide="chevron-right" class="w-3 h-3"></i></span>
-      </div>
-    </button>`;
-}
-
-function freeSlotHTML(time) {
-  return `
-    <button onclick="toast('空闲时段可通过临时课预约')" class="w-full text-left rounded-2xl border border-emerald-200 bg-emerald-50 p-3 hover:bg-emerald-100 transition">
-      <div class="flex items-center justify-between text-xs font-semibold text-emerald-800">
-        <span>${time}</span>
-        <span>空闲可约</span>
-      </div>
-      <div class="mt-1 text-sm text-emerald-700">David Miller · 1v1 时段开放</div>
-    </button>`;
-}
-
-function clearedSlotHTML(transfer) {
-  return `
-    <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3">
-      <div class="flex items-center justify-between text-xs font-semibold text-slate-500">
-        <span>16:00-16:30</span>
-        <span>已转出</span>
-      </div>
-      <div class="mt-1 text-sm text-slate-600">原固定位已转给 ${transfer.to}，时段恢复为空闲网格</div>
-    </div>`;
-}
-
-function parentRows() {
-  const transfer = activeTransfer();
-  const student = currentStudent();
-  const rows = [];
-  rows.push({ kind: 'free', time: '15:30-16:00' });
-
-  if (S.selectedDate === '2026-11-14') {
-    if (transfer) {
-      if (student === transfer.to) rows.push({ kind: 'lesson', lesson: fixedLesson() });
-      else if (student === transfer.from) rows.push({ kind: 'cleared', transfer });
-      else rows.push({ kind: 'free', time: '16:00-16:30' });
-    } else if (student === 'AliceZ12') {
-      rows.push({ kind: 'lesson', lesson: fixedLesson() });
-    } else {
-      rows.push({ kind: 'free', time: '16:00-16:30' });
-    }
-
-    if (student === 'AliceZ12' && (!transfer || transfer.from !== student)) {
-      rows.push({ kind: 'lesson', lesson: TEMP });
-    } else {
-      rows.push({ kind: 'free', time: '17:00-17:30' });
-    }
-  } else {
-    rows.push({ kind: 'free', time: '16:00-16:30' });
-    rows.push({ kind: 'free', time: '17:00-17:30' });
-  }
-  rows.push({ kind: 'free', time: '18:00-18:30' });
-  return rows;
-}
-
-function teacherRows() {
-  const rows = [{ kind: 'free', time: '15:30-16:00' }];
-  if (S.selectedDate === '2026-11-14') {
-    rows.push({ kind: 'lesson', lesson: fixedLesson() });
-    rows.push({ kind: 'lesson', lesson: TEMP });
-  } else {
-    rows.push({ kind: 'free', time: '16:00-16:30' });
-    rows.push({ kind: 'free', time: '17:00-17:30' });
-  }
-  rows.push({ kind: 'free', time: '18:00-18:30' });
-  return rows;
-}
-
-function renderMonitor() {
-  const lesson = fixedLesson();
-  const transfer = activeTransfer();
-  const stateText = transfer ? '已完成交割' : '待协助';
-  return `
-    <div class="rounded-2xl bg-indigo-950 text-white p-4">
-      <div class="flex items-center justify-between text-xs text-indigo-200">
-        <span>班长代办工作台</span>
-        <span>${stateText}</span>
-      </div>
-      <h2 class="mt-1 text-base font-bold">${lesson.course}</h2>
-      <p class="text-sm text-indigo-200 mt-0.5">${lesson.date} ${lesson.weekday} · ${lesson.time} · ${lesson.teacher}</p>
-      <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
-        <div class="rounded-xl bg-white/10 p-2">
-          <div class="text-xs text-indigo-300">原排课学员</div>
-          <div class="font-semibold">AliceZ12</div>
-        </div>
-        <div class="rounded-xl bg-white/10 p-2">
-          <div class="text-xs text-indigo-300">资金持有方</div>
-          <div class="font-semibold">Leo 班长</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="rounded-2xl border border-slate-200 bg-white p-3 text-xs space-y-2">
-      <div class="flex items-center justify-between"><span class="text-slate-400">购课单</span><span class="font-mono text-slate-700">${lesson.orderId}</span></div>
-      <div class="flex items-center justify-between"><span class="text-slate-400">出资家长</span><span class="font-medium">Amy</span></div>
-      <div class="flex items-center justify-between"><span class="text-slate-400">资金持有方</span><span class="font-medium text-emerald-700">Leo 班长 锁定</span></div>
-      <p class="text-xs text-slate-400 leading-relaxed">转让只改实际上课学员，购课单、出资人与 holder_id 保持原值。</p>
-    </div>
-
-    <button onclick="openMonitorModal()" ${transfer ? 'disabled' : ''} class="w-full rounded-xl py-2.5 text-sm font-bold transition ${transfer ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-indigo-900 text-white hover:bg-indigo-800'}">
-      ${transfer ? '该课次已完成代办交割' : '后台协助转让'}
-    </button>
-
-    ${transfer ? `<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 leading-relaxed">已交割给 ${transfer.to}，操作人 ${transfer.operator}。审计日志已写入。</div>` : ''}
-
-    <div class="rounded-2xl border border-slate-200 bg-white p-3 text-xs space-y-2">
-      <div class="text-sm font-bold text-slate-800">最近转让审计</div>
-      ${transferRecords().length ? transferRecords().map((r) => `
-        <div class="flex items-center justify-between text-sm border-t border-slate-100 pt-2 first:border-0 first:pt-0">
-          <div>
-            <div class="font-medium text-slate-700">${r.from} 转给 ${r.to}</div>
-            <div class="text-xs text-slate-400">${r.at} · ${r.operator}</div>
-          </div>
-          <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">${r.status}</span>
-        </div>`).join('') : '<div class="text-sm text-slate-400">暂无课程转让记录</div>'}
-    </div>`;
-}
-
-function legendBar() {
-  return `
-    <div class="rounded-xl border border-slate-200 bg-white px-2 py-1.5 flex items-center gap-3 overflow-x-auto text-xs text-slate-600">
-      ${LEGEND.map(([color, label]) => `
-        <span class="inline-flex items-center gap-1 shrink-0">
-          <span class="w-2.5 h-2.5 rounded ${color}"></span>${label}
-        </span>`).join('')}
-    </div>`;
-}
-
-function buildGrid() {
-  const grid = {};
-  const transfer = activeTransfer();
-  const lesson = fixedLesson();
-  const student = currentStudent();
-  const teacherLike = S.role === 'david' || S.role === 'leo';
-
-  WEEK.forEach((day) => {
-    grid[day.date] = {};
-    TIME_SLOTS.forEach((time) => {
-      const hour = Number(time.split(':')[0]);
-      const open = hour >= 14 && hour < 18;
-      grid[day.date][time] = {
-        kind: open ? 'free' : 'rest',
-        color: open ? 'GREEN' : 'GRAY',
-        text: open ? '约' : '休',
-        title: open ? '空闲可约' : '教师未开放'
-      };
+  <script>
+    /* ------------------------------------------------------------------
+     * 演示日期与基础数据
+     * ------------------------------------------------------------------ */
+    const TODAY = '2026-11-10';
+    const WEEK_START = '2026-11-09';
+    const DAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const TIME_SLOTS = Array.from({ length: 36 }, (_, i) => {
+      const total = 6 * 60 + i * 30;
+      return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
     });
-  });
 
-  grid['2026-11-12']['17:00'] = {
-    kind: 'leave',
-    color: 'RED',
-    text: '假',
-    title: '教师已请假'
-  };
-
-  let showFixed = false;
-  let isTransferred = false;
-  if (teacherLike) {
-    showFixed = true;
-    isTransferred = lesson.isTransferred;
-  } else if (transfer) {
-    if (student === transfer.to) {
-      showFixed = true;
-      isTransferred = true;
-    }
-  } else if (student === 'AliceZ12') {
-    showFixed = true;
-  }
-
-  if (showFixed) {
-    grid['2026-11-14']['16:00'] = {
-      kind: 'fixed',
-      color: 'ORANGE',
-      text: (lesson.actualStudent || lesson.student).slice(0, 4),
-      title: `1v1 固定位 · ${lesson.actualStudent || lesson.student} · ${lesson.teacher}${isTransferred ? ' · 受让课次' : ''}`,
-      transferred: isTransferred
+    const STUDENTS = {
+      AliceZ12: { nickname: 'AliceZ12', gender: '女', age: 12, grade: '六年级', parent: 'Amy', account: 'amy', focus: '英语 KET 精读', level: 'KET 卓越', match: true },
+      BobZ10: { nickname: 'BobZ10', gender: '男', age: 10, grade: '四年级', parent: 'Amy', account: 'amy', focus: '英语 KET 基础', level: 'KET 备考', match: true },
+      CharlieZ08: { nickname: 'CharlieZ08', gender: '男', age: 8, grade: '二年级', parent: 'Amy', account: 'amy', focus: '英语启蒙', level: 'Starters', match: false },
+      TomZ11: { nickname: 'TomZ11', gender: '男', age: 11, grade: '五年级', parent: 'Helen', account: 'helen', focus: '英语 KET 精读', level: 'KET 卓越', match: true },
+      CatherineW09: { nickname: 'CatherineW09', gender: '女', age: 9, grade: '三年级', parent: 'Eva', account: 'eva', focus: '英语 PET 冲刺', level: 'PET 预备', match: false }
     };
-  } else if (transfer && student === transfer.from) {
-    grid['2026-11-14']['16:00'].title = `原固定位已转给 ${transfer.to}，恢复空闲`;
-  }
 
-  const showTemp = teacherLike || student === 'AliceZ12';
-  if (showTemp) {
-    grid['2026-11-14']['17:00'] = {
-      kind: 'temp',
-      color: 'YELLOW',
-      text: TEMP.student.slice(0, 4),
-      title: `1v1 临时课 · ${TEMP.student} · ${TEMP.teacher}`
+    const FIXED = {
+      id: 'TS_20261114_1600', date: '2026-11-14', time: '16:00', type: 'fixed',
+      course: '1v1 英语 KET 精读', teacher: 'David Miller', student: 'AliceZ12',
+      room: 'ClassIn A-302', orderId: 'ORD_20261102_0091', funder: 'Amy', holder: 'Leo 班长'
     };
-  }
+    const TEMP = {
+      id: 'TS_20261114_1700', date: '2026-11-14', time: '17:00', type: 'temp',
+      course: '1v1 临时口语强化', teacher: 'David Miller', student: 'AliceZ12',
+      room: 'ClassIn A-302', orderId: 'ORD_20261102_0091', funder: 'Amy', holder: 'Leo 班长'
+    };
+    const DEFAULT_TRANSFER = {
+      from: 'AliceZ12', to: 'TomZ11', type: 'external', scope: 'external',
+      operator: 'Amy', at: '2026-11-05 10:20',
+      note: '微信群已线下结清，转给同群 TomZ11'
+    };
 
-  return grid;
-}
+    const NAVS = {
+      amy: [
+        { id: 'home', icon: 'home', label: '首页', desc: '多孩时间流与金刚位属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=user' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', board: true },
+        { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '教师与小班选课属于 M1B / M1C。', href: 'm1c_classes.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '学员档案、账单与转让明细属于 M0 个人中心。', href: 'm0_workspace_home.html?role=user&view=me' }
+      ],
+      helen: [
+        { id: 'home', icon: 'home', label: '首页', desc: '多孩时间流与金刚位属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=user' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', board: true },
+        { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '教师与小班选课属于 M1B / M1C。', href: 'm1c_classes.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '学员档案、账单与转让明细属于 M0 个人中心。', href: 'm0_workspace_home.html?role=user&view=me' }
+      ],
+      david: [
+        { id: 'home', icon: 'home', label: '首页', desc: '教师工作台主页属于 M0。', href: 'm0_workspace_home.html?role=teacher' },
+        { id: 'schedule', icon: 'calendar-days', label: '我的课表', board: true },
+        { id: 'students', icon: 'users', label: '学员档案', desc: '学员档案与留言板属于 M1A / M1D。', href: 'm1a_student_profile.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '教师履历与课酬单属于 M1B / M5B。', href: 'm1b_teacher_monitor.html' }
+      ],
+      leo: [
+        { id: 'home', icon: 'home', label: '首页', desc: '班长主页与教务待办属于 M0 工作台。', href: 'm0_workspace_home.html?role=monitor' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '班长本人家庭课表属于 M0 / M3A。', href: 'm3a_calendar_schedule.html' },
+        { id: 'ops', icon: 'layout-grid', label: '教务中心', board: true },
+        { id: 'me', icon: 'user', label: '我的', desc: '班长周转账与家庭档案属于 M0 个人中心。', href: 'm0_workspace_home.html?role=monitor&view=me' }
+      ]
+    };
 
-function gridCellHTML(dayKey, time, cell) {
-  const color = CELL_STYLES[cell.color] || CELL_STYLES.GRAY;
-  const badge = cell.transferred
-    ? '<span class="absolute top-0 right-0.5 text-sm font-bold leading-none px-0.5 py-0.5 rounded-b bg-rose-600 text-white font-bold">【转】</span>'
-    : '';
-  return `
-    <td onclick="onCellClick('${dayKey}', '${time}')" title="${escapeHtml(cell.title)}" class="p-0.5 border-r border-b border-slate-100 text-center align-middle h-8">
-      <div class="w-full h-full rounded-md ${color} flex items-center justify-center relative overflow-hidden cursor-pointer hover:shadow-sm active:scale-95 transition">
-        <span class="text-sm font-bold font-medium tracking-tight truncate px-0.5 leading-none">${cell.text}</span>
-        ${badge}
-      </div>
-    </td>`;
-}
+    const ROLE_META = {
+      amy: { label: '家长工作台 · Amy', initial: 'A', dark: false },
+      helen: { label: '家长工作台 · Helen', initial: 'H', dark: false },
+      david: { label: '教师工作台 · David', initial: 'D', dark: true },
+      leo: { label: '班长工作台 · Leo', initial: 'L', dark: true }
+    };
 
-function excelGridHTML() {
-  const grid = buildGrid();
-  return `
-    <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-      <div id="excelScroll" class="max-h-[520px] overflow-auto">
-        <table class="w-full table-fixed border-collapse text-center select-none bg-white">
-          <thead>
-            <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
-              <th class="sticky left-0 top-0 z-40 w-[40px] py-1.5 px-0.5 bg-slate-200 border-r border-slate-300 font-bold text-xs text-slate-600">时段</th>
-              ${WEEK.map((day) => `
-                <th class="sticky top-0 z-30 py-1 px-0.5 border-r border-slate-200 bg-slate-100 ${day.date === '2026-11-14' ? 'text-amber-900' : ''}">
-                  <div class="text-sm font-bold text-slate-400 leading-none">${day.weekday.slice(-1)}</div>
-                  <div class="text-sm font-semibold leading-tight mt-0.5">${day.label.slice(3)}</div>
-                </th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${TIME_SLOTS.map((time) => `
-              <tr id="row_${time.replace(':', '')}" class="hover:bg-slate-50/40 transition">
-                <td class="sticky left-0 z-20 w-[40px] py-1 px-0.5 bg-slate-100 border-r border-b border-slate-200 text-xs font-mono font-semibold text-slate-500">${time}</td>
-                ${WEEK.map((day) => gridCellHTML(day.date, time, grid[day.date][time])).join('')}
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="flex items-center justify-between text-xs text-slate-400">
-      <span class="truncate">格内为学员昵称前 4 位，【转】为受让课次</span>
-      <span class="shrink-0 font-mono">7 天 × 23 时段</span>
-    </div>`;
-}
+    /* ------------------------------------------------------------------
+     * 状态
+     * ------------------------------------------------------------------ */
+    const state = {
+      role: 'amy',
+      view: 'calendar', // calendar | audit
+      page: 'board', // board | placeholder
+      navTab: 'schedule',
+      device: 'mobile',
+      online: 'on',
+      scenario: 'normal', // normal | locked | transferred
+      amyActive: 'AliceZ12',
+      transfer: null,
+      rescheduleCount: 0,
+      modal: null, // transfer | detail | memo | monitor | reschedule
+      confirmOpen: false,
+      lessonKind: 'fixed',
+      transferTab: 'family',
+      nickInput: 'TomZ11',
+      verified: null,
+      verifyError: null,
+      auditTab: 'out'
+    };
 
-function scrollGridToPrime() {
-  const container = $('excelScroll');
-  const row = $('row_1530');
-  if (container && row && typeof row.offsetTop === 'number') {
-    container.scrollTop = Math.max(0, row.offsetTop - 40);
-  }
-}
+    /* ------------------------------------------------------------------
+     * 工具
+     * ------------------------------------------------------------------ */
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const clone = (v) => JSON.parse(JSON.stringify(v));
 
-function onCellClick(dayKey, time) {
-  const cell = buildGrid()[dayKey][time];
-  if (cell.kind === 'fixed') return openLesson('fixed');
-  if (cell.kind === 'temp') return openLesson('temp');
-  if (cell.kind === 'free') return toast('空闲时段可通过临时课预约');
-  if (cell.kind === 'leave') return toast('该时段教师已请假');
-  return toast('教师未开放');
-}
-
-function monitorSummary() {
-  const lesson = fixedLesson();
-  const transfer = activeTransfer();
-  return `
-    <div class="rounded-2xl bg-indigo-950 text-white p-3">
-      <div class="flex items-center justify-between text-xs text-indigo-300">
-        <span>班长代办工作台</span>
-        <span>${transfer ? '已完成交割' : '待协助'}</span>
-      </div>
-      <div class="mt-1 flex items-end justify-between gap-2">
-        <div>
-          <div class="text-xs font-bold">${lesson.date} ${lesson.weekday} ${lesson.time}</div>
-          <div class="text-xs text-indigo-200 mt-0.5">${lesson.course} · ${lesson.actualStudent}</div>
-        </div>
-        <button onclick="openLesson('fixed')" class="shrink-0 rounded-lg bg-white/15 hover:bg-white/25 px-2 py-1 text-xs font-semibold transition">查看课次</button>
-      </div>
-      <div class="mt-2 grid grid-cols-3 gap-1.5 text-xs">
-        <div class="rounded-lg bg-white/10 p-1.5">
-          <div class="text-indigo-300">出资家长</div>
-          <div class="font-semibold">Amy</div>
-        </div>
-        <div class="rounded-lg bg-white/10 p-1.5">
-          <div class="text-indigo-300">资金持有方</div>
-          <div class="font-semibold">Leo 班长</div>
-        </div>
-        <div class="rounded-lg bg-white/10 p-1.5">
-          <div class="text-indigo-300">购课单</div>
-          <div class="font-mono text-sm font-bold">ORD_0091</div>
-        </div>
-      </div>
-    </div>`;
-}
-
-function renderCalendar() {
-  const transfer = activeTransfer();
-  const isTeacher = S.role === 'david';
-
-  const teacherNotice = isTeacher && transfer ? `
-    <button onclick="openMemo()" class="w-full text-left rounded-2xl border border-rose-200 bg-rose-50 p-3 hover:bg-rose-100 transition">
-      <div class="flex items-center justify-between text-xs font-semibold text-rose-700">
-        <span>学员变更通知</span>
-        <span>站内信 + 邮件</span>
-      </div>
-      <div class="mt-1 text-sm text-rose-900 leading-relaxed">${transfer.from} 已变更为 ${transfer.to}，点击查看受让学员留言板。</div>
-    </button>` : '';
-
-  const receivedNotice = S.role === 'helen' && transfer ? `
-    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
-      <div class="flex items-center justify-between text-xs font-semibold text-emerald-700">
-        <span>受让课次已到账</span>
-        <span>已交割</span>
-      </div>
-      <div class="mt-1 text-sm text-emerald-900 leading-relaxed">由 ${transfer.from} 转让而来。课表已加注【转】字角标，禁止二次转让。</div>
-    </div>` : '';
-
-  $('content').innerHTML = `
-    ${weekHeader()}
-    ${S.role === 'leo' ? monitorSummary() : ''}
-    ${teacherNotice}
-    ${receivedNotice}
-    ${legendBar()}
-    ${excelGridHTML()}`;
-  ico();
-  setTimeout(scrollGridToPrime, 0);
-}
-
-function transferRecords() {
-  const transfer = activeTransfer();
-  if (!transfer) return [];
-  const typeLabel = transfer.type === 'family' ? '同家庭直转' : transfer.type === 'proxy' ? '班长代办' : '跨家长转让';
-  return [{
-    from: transfer.from,
-    to: transfer.to,
-    type: transfer.type,
-    typeLabel,
-    operator: transfer.operator,
-    at: transfer.at,
-    note: transfer.note,
-    teacher: 'David Miller',
-    slot: '11-14 周六 16:00',
-    status: '已交割',
-    orderId: FIXED.orderId,
-    holder: FIXED.holder
-  }];
-}
-
-function filteredRecords(tab) {
-  const records = transferRecords();
-  if (S.role === 'david' || S.role === 'leo') return records;
-  const student = currentStudent();
-  if (!student) return [];
-  return records.filter((r) => (tab === 'out' ? r.from === student : r.to === student));
-}
-
-function renderAudit() {
-  const records = filteredRecords(S.auditTab);
-  const tabs = `
-    <div class="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
-      <button onclick="setAuditTab('out')" class="py-1.5 rounded-lg text-sm font-semibold transition ${S.auditTab === 'out' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">转出记录</button>
-      <button onclick="setAuditTab('in')" class="py-1.5 rounded-lg text-sm font-semibold transition ${S.auditTab === 'in' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">转入记录</button>
-    </div>`;
-
-  const list = records.length ? records.map((r) => {
-    const other = S.auditTab === 'out' ? r.to : r.from;
-    return `
-      <div class="rounded-2xl border border-slate-200 bg-white p-3 space-y-1.5 text-sm">
-        <div class="flex items-center justify-between">
-          <span class="text-slate-400">${r.at}</span>
-          <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">${r.status}</span>
-        </div>
-        <div class="flex items-center justify-between"><span class="text-slate-400">授课教师</span><span class="font-medium">${r.teacher}</span></div>
-        <div class="flex items-center justify-between"><span class="text-slate-400">原排课时段</span><span>${r.slot}</span></div>
-        <div class="flex items-center justify-between"><span class="text-slate-400">对方学员昵称</span><span class="font-mono font-semibold">${other}</span></div>
-        <div class="flex items-center justify-between"><span class="text-slate-400">转让类型</span><span>${r.typeLabel}</span></div>
-        <div class="flex items-center justify-between border-t border-slate-100 pt-1.5"><span class="text-slate-400">出资家长</span><span>Amy 不变</span></div>
-        <div class="flex items-center justify-between"><span class="text-slate-400">资金持有方</span><span class="text-emerald-700">${r.holder} 锁定</span></div>
-        <div class="rounded-lg p-2 text-xs leading-relaxed ${r.type === 'external' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}">
-          ${r.type === 'external' ? '跨家长转让：M2B 退款入口已物理锁定。' : '同家庭直转：原出资家长仍可申请退款。'}
-        </div>
-        <p class="text-xs text-slate-400 leading-relaxed">${r.note}</p>
-      </div>`;
-  }).join('') : `
-    <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
-      <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto grid place-items-center">
-        <i data-lucide="inbox" class="w-5 h-5"></i>
-      </div>
-      <div class="mt-2 text-sm font-medium text-slate-600">暂无课程转让记录</div>
-      <div class="text-xs text-slate-400 mt-0.5">转让成功后将在此留痕</div>
-    </div>`;
-
-  $('content').innerHTML = `<div class="space-y-3">${tabs}${list}</div>`;
-  ico();
-}
-
-function renderNotifications() {
-  const transfer = activeTransfer();
-  const lesson = fixedLesson();
-  const urgent = transfer ? `
-    <div class="rounded-2xl border border-rose-200 bg-rose-50 p-3 space-y-2">
-      <div class="flex items-center justify-between text-xs font-semibold text-rose-700">
-        <span>紧急学员变更</span>
-        <span>站内信 + 邮件</span>
-      </div>
-      <p class="text-sm text-rose-900 leading-relaxed">您的课程 ${lesson.date} ${lesson.time} 上课学员已由 ${transfer.from} 变更为 ${transfer.to}，请查看该学员留言备课。</p>
-      <button onclick="openMemo()" class="w-full rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold py-2 transition">查看学员留言板</button>
-    </div>
-    <div class="rounded-2xl border border-slate-200 bg-white p-3 space-y-1.5 text-sm">
-      <div class="flex items-center justify-between"><span class="text-slate-400">受让家长通知</span><span class="text-emerald-700 font-medium">已发送</span></div>
-      <div class="text-slate-700">Helen 的通知邮箱已收到排课到账邮件。</div>
-      <div class="text-xs text-slate-400">发送时间 ${transfer.at}，失败自动重试 3 次。</div>
-    </div>` : `
-    <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center">
-      <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto grid place-items-center">
-        <i data-lucide="bell-off" class="w-5 h-5"></i>
-      </div>
-      <div class="mt-2 text-sm font-medium text-slate-600">暂无学员变更通知</div>
-      <div class="text-xs text-slate-400 mt-0.5">转让生效后 5 秒内送达</div>
-    </div>
-    <div class="rounded-2xl border border-slate-200 bg-white p-3 space-y-1.5 text-sm">
-      <div class="flex items-center justify-between"><span class="text-slate-400">下一节课</span><span class="font-medium">${lesson.date} ${lesson.time}</span></div>
-      <div class="text-slate-700">${lesson.course} · ${lesson.actualStudent}</div>
-      <div class="text-xs text-slate-400">${lesson.room}</div>
-    </div>`;
-
-  $('content').innerHTML = `
-    <div class="flex items-center justify-between">
-      <div>
-        <div class="text-xs font-bold text-slate-900">通知中心</div>
-        <div class="text-xs text-slate-400 mt-0.5">授课教师 David Miller</div>
-      </div>
-      <span class="text-xs px-2 py-1 rounded-lg bg-slate-100 text-slate-600 font-medium">${transfer ? '1 条变更' : '0 条变更'}</span>
-    </div>
-    ${urgent}`;
-  ico();
-}
-
-function renderContent() {
-  if (S.view === 'audit') {
-    if (S.role === 'david') renderNotifications();
-    else renderAudit();
-    return;
-  }
-  renderCalendar();
-}
-
-function setAuditTab(tab) {
-  S.auditTab = tab;
-  renderAll();
-}
-
-function renderAll() {
-  renderControls();
-  renderHeader();
-  renderBanner();
-  renderContent();
-  ico();
-}
-
-function openLesson(kind) {
-  S.selectedLesson = kind;
-  renderDetail();
-  $('detailModal').classList.remove('hidden');
-  ico();
-}
-
-function detailActions(lesson) {
-  const isTemp = lesson.type === 'temp';
-  const isTransferred = lesson.isTransferred;
-  const canReschedule = !isTemp && lesson.rescheduleCount === 0 && lesson.hours >= 3;
-
-  if (S.role === 'david') {
-    return `<button onclick="openMemo()" class="w-full rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2.5 transition">查看学员留言板</button>`;
-  }
-  if (S.role === 'leo') {
-    if (isTemp) {
-      return `<div class="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-900 leading-relaxed">临时课仅支持请假退期待排，不可代办转让。</div>`;
+    function isoToTs(iso) { return Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))); }
+    function isoAdd(iso, days) { return new Date(isoToTs(iso) + days * 86400000).toISOString().slice(0, 10); }
+    function diffDays(a, b) { return Math.round((isoToTs(a) - isoToTs(b)) / 86400000); }
+    function weekdayLabel(iso) { return DAY_LABELS[(new Date(isoToTs(iso)).getUTCDay() + 6) % 7]; }
+    function fmtDate(iso) { return `${iso.slice(5)} (${weekdayLabel(iso)})`; }
+    function endTime(time) {
+      const [h, m] = time.split(':').map(Number);
+      const total = h * 60 + m + 30;
+      return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
     }
-    return `<button onclick="openMonitorModal()" ${isTransferred ? 'disabled' : ''} class="w-full rounded-xl text-xs font-bold py-2.5 transition ${isTransferred ? 'bg-slate-100 text-slate-400' : 'bg-indigo-900 hover:bg-indigo-800 text-white'}">${isTransferred ? '该课次已完成代办交割' : '后台协助转让'}</button>`;
-  }
+    function stamp() {
+      return `${TODAY} 10:20`;
+    }
 
-  if (isTemp) {
-    return `
-      <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-900 leading-relaxed">
-        临时课仅支持请假退期待排，不可发起转让。
-      </div>`;
-  }
+    function roleMeta() { return ROLE_META[state.role]; }
+    function navItems() { return NAVS[state.role]; }
+    function boardTab() { return state.role === 'leo' ? 'ops' : 'schedule'; }
+    function fixedStudent() { return STUDENTS.AliceZ12; }
+    function transferScope(from, to) {
+      return STUDENTS[from].account === STUDENTS[to].account ? 'family' : 'external';
+    }
+    function activeTransfer() { return state.transfer; }
+    function fixedLesson() {
+      const t = activeTransfer();
+      return {
+        ...FIXED,
+        isTransferred: !!t,
+        actualStudent: t ? t.to : FIXED.student,
+        originalStudent: t ? t.from : null,
+        hours: state.scenario === 'locked' ? 2 : 48,
+        rescheduleCount: state.rescheduleCount
+      };
+    }
+    function currentStudent() {
+      if (state.role === 'amy') return state.amyActive;
+      if (state.role === 'helen') return 'TomZ11';
+      return null;
+    }
+    function typeLabel(record) {
+      if (record.type === 'family') return '同家庭直转';
+      if (record.type === 'proxy') return '班长代办';
+      return '跨家长转让';
+    }
+    function refundNote(record) {
+      return record.scope === 'family'
+        ? '同家庭直转：原出资家长仍可对该课次在 M2B 发起退款。'
+        : '跨家长转让：原出资家长的 M2B 退款入口已物理锁定。';
+    }
+    function guardWrite() {
+      if (state.online === 'off') {
+        showToast('离线只读，暂不可执行该操作', true);
+        return false;
+      }
+      return true;
+    }
 
-  const rescheduleButton = canReschedule
-    ? `<button onclick="openReschedule()" class="w-full rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold py-2.5 transition">同师挪位，剩 1 次</button>`
-    : `<button disabled class="w-full rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold py-2.5">${lesson.rescheduleCount >= 1 ? '该课次已挪位，不可再次挪位' : '当前不可挪位'}</button>`;
+    /* ------------------------------------------------------------------
+     * 控制台
+     * ------------------------------------------------------------------ */
+    document.querySelectorAll('.ctl').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const value = btn.dataset.value;
+        if (group === 'role') setRole(value);
+        if (group === 'device') { state.device = value; renderAll(); }
+        if (group === 'online') {
+          state.online = value;
+          if (value === 'off') { state.modal = null; state.confirmOpen = false; }
+          renderAll();
+          if (value === 'off') showToast('离线只读：转让 / 验证 / 代办 / 挪位不可用', true);
+        }
+        if (group === 'scenario') setScenario(value);
+      });
+    });
+    document.getElementById('btnResetDemo').addEventListener('click', resetDemo);
 
-  if (isTransferred) {
-    return `
-      <button disabled class="w-full rounded-xl bg-slate-100 text-slate-400 text-xs font-bold py-2.5">受让课程不可二次转让</button>
-      ${rescheduleButton}`;
-  }
-  if (lesson.hours < 3) {
-    return `
-      <button disabled class="w-full rounded-xl bg-slate-100 text-slate-400 text-xs font-bold py-2.5">开课前 3 小时内锁定，禁止转让</button>`;
-  }
-  return `
-    <button onclick="openTransferModal()" class="w-full rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold py-2.5 transition">课程转让</button>
-    ${rescheduleButton}`;
-}
+    function setRole(role) {
+      state.role = role;
+      state.page = 'board';
+      state.navTab = boardTab();
+      state.modal = null;
+      state.confirmOpen = false;
+      if (role === 'helen') state.auditTab = 'in';
+      if (role === 'amy') state.auditTab = state.transfer && state.amyActive === state.transfer.to ? 'in' : 'out';
+      renderAll();
+    }
 
-function renderDetail() {
-  const lesson = S.selectedLesson === 'temp' ? TEMP : fixedLesson();
-  const transfer = activeTransfer();
-  const isTemp = lesson.type === 'temp';
-  const isTransferred = lesson.isTransferred;
-  const typeLabel = isTemp ? '临时课' : '固定位';
-  const typeCls = isTemp ? 'bg-yellow-100 text-yellow-800' : 'bg-amber-100 text-amber-800';
+    function navTo(tab) {
+      const item = navItems().find((n) => n.id === tab);
+      if (!item) return;
+      state.modal = null;
+      state.confirmOpen = false;
+      if (item.board) {
+        state.page = 'board';
+        state.navTab = tab;
+        state.view = 'calendar';
+      } else {
+        state.page = 'placeholder';
+        state.navTab = tab;
+      }
+      renderAll();
+    }
 
-  $('detailBody').innerHTML = `
-    <div class="flex items-start justify-between pb-2 border-b border-slate-100">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 rounded-xl ${isTemp ? 'bg-yellow-100 text-yellow-700' : 'bg-amber-100 text-amber-700'} grid place-items-center">
-          <i data-lucide="calendar-clock" class="w-4 h-4"></i>
-        </div>
-        <div>
-          <div class="flex items-center gap-1.5">
-            <h4 class="font-bold text-slate-900 text-sm">${lesson.course}</h4>
-            <span class="text-sm font-bold px-1.5 py-0.5 rounded ${typeCls} font-semibold">${typeLabel}</span>
-            ${isTransferred ? '<span class="text-sm font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold">【转】</span>' : ''}
+    function setView(view) {
+      state.view = view;
+      state.page = 'board';
+      state.modal = null;
+      state.confirmOpen = false;
+      renderAll();
+    }
+
+    function setAmyStudent(nickname) {
+      state.amyActive = nickname;
+      state.auditTab = state.transfer && state.transfer.to === nickname ? 'in' : 'out';
+      renderAll();
+    }
+
+    function setScenario(key) {
+      state.scenario = key;
+      state.rescheduleCount = 0;
+      state.view = 'calendar';
+      state.page = 'board';
+      state.modal = null;
+      state.confirmOpen = false;
+      if (key === 'transferred') {
+        state.transfer = clone(DEFAULT_TRANSFER);
+        state.role = 'helen';
+        state.auditTab = 'in';
+      } else {
+        state.transfer = null;
+        state.role = 'amy';
+        state.amyActive = 'AliceZ12';
+        state.auditTab = 'out';
+      }
+      state.navTab = boardTab();
+      renderAll();
+    }
+
+    function resetDemo() {
+      state.role = 'amy';
+      state.view = 'calendar';
+      state.page = 'board';
+      state.navTab = 'schedule';
+      state.device = 'mobile';
+      state.online = 'on';
+      state.scenario = 'normal';
+      state.amyActive = 'AliceZ12';
+      state.transfer = null;
+      state.rescheduleCount = 0;
+      state.modal = null;
+      state.confirmOpen = false;
+      state.lessonKind = 'fixed';
+      state.transferTab = 'family';
+      state.nickInput = 'TomZ11';
+      state.verified = null;
+      state.verifyError = null;
+      state.auditTab = 'out';
+      renderAll();
+      showToast('演示数据已重置');
+    }
+
+    function syncConsole() {
+      document.querySelectorAll('.ctl').forEach((b) => {
+        const active = String(state[b.dataset.group]) === String(b.dataset.value);
+        b.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`;
+      });
+    }
+
+    /* ------------------------------------------------------------------
+     * 外壳：顶栏 / 场景横幅 / 底部导航
+     * ------------------------------------------------------------------ */
+    function renderAll() {
+      const frame = document.getElementById('frame');
+      frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
+
+      document.getElementById('topbar').innerHTML = renderTopbar();
+      document.getElementById('scenarioBanner').innerHTML = renderScenarioBanner();
+
+      const banner = document.getElementById('offlineBanner');
+      banner.className = state.online === 'off'
+        ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-[14px] font-semibold text-amber-900'
+        : 'hidden';
+
+      document.getElementById('content').innerHTML = renderContent();
+      document.getElementById('bottomnav').innerHTML = renderNav();
+      renderOverlay();
+      syncConsole();
+      lucide.createIcons();
+      if (state.page === 'board' && state.view === 'calendar') setTimeout(scrollGridToPrime, 0);
+    }
+
+    function renderContent() {
+      if (state.page === 'placeholder') return renderPlaceholder();
+      if (state.view === 'audit') {
+        if (state.role === 'david') return renderNoticePage();
+        return renderAuditPage();
+      }
+      return renderCalendar();
+    }
+
+    function renderTopbar() {
+      const meta = roleMeta();
+      return `
+        <div class="border-b border-slate-200 bg-white/95">
+          <div class="flex h-14 items-center justify-between px-4">
+            <div class="flex min-w-0 items-center gap-2.5">
+              <div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-indigo-600 text-[14px] font-bold text-white shadow-sm">D</div>
+              <div class="min-w-0">
+                <div class="truncate text-[16px] font-bold leading-tight text-slate-900">Dream 教务</div>
+                <div class="truncate text-[12px] font-medium text-slate-400">${esc(meta.label)}</div>
+              </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <button data-action="toast" data-message="暂无新消息" class="relative grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-600" aria-label="通知">
+                ${icon('bell', 'h-[18px] w-[18px]')}
+                <span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white"></span>
+              </button>
+              <div class="grid h-9 w-9 place-items-center rounded-full ${meta.dark ? 'bg-slate-900 text-amber-300' : 'bg-indigo-600 text-white'} text-[14px] font-bold">${esc(meta.initial)}</div>
+            </div>
           </div>
-          <p class="text-xs text-slate-400 mt-0.5">${lesson.date} ${lesson.weekday} · ${lesson.time} · ${lesson.teacher}</p>
+        </div>`;
+    }
+
+    function renderScenarioBanner() {
+      let text = '距开课 48 小时，仅 1v1 固定位可发起转让';
+      let tag = '≥3h';
+      let cls = 'border-emerald-200 bg-emerald-50 text-emerald-900';
+      let tagCls = 'bg-emerald-200 text-emerald-900';
+      let iconName = 'shield-check';
+
+      if (state.role === 'david') {
+        const t = activeTransfer();
+        text = t ? `学员变更已送达：${t.from} 变更为 ${t.to}，请提前备课` : '本周课程正常，暂无学员变更通知';
+        tag = t ? '变更' : '教师端';
+        cls = t ? 'border-rose-200 bg-rose-50 text-rose-900' : 'border-slate-200 bg-slate-50 text-slate-700';
+        tagCls = t ? 'bg-rose-200 text-rose-900' : 'bg-slate-200 text-slate-700';
+        iconName = t ? 'bell' : 'calendar-check';
+      } else if (state.role === 'leo') {
+        text = '资金持有方永久锁定，转让只改实际上课学员';
+        tag = '财课分离';
+        cls = 'border-indigo-200 bg-indigo-50 text-indigo-900';
+        tagCls = 'bg-indigo-200 text-indigo-900';
+        iconName = 'lock';
+      } else if (state.scenario === 'locked') {
+        text = '距开课不足 3 小时，转让入口已物理锁死';
+        tag = '<3h';
+        cls = 'border-rose-200 bg-rose-50 text-rose-900';
+        tagCls = 'bg-rose-200 text-rose-900';
+        iconName = 'lock';
+      } else if (activeTransfer()) {
+        text = '受让课次已标记【转】，全端禁止二次转让，保留 1 次同师挪位';
+        tag = 'is_transferred';
+        cls = 'border-emerald-200 bg-emerald-50 text-emerald-900';
+        tagCls = 'bg-emerald-200 text-emerald-900';
+        iconName = 'badge-check';
+      }
+
+      return `
+        <div class="flex items-center justify-between gap-2 border-b px-3 py-2 ${cls}">
+          <div class="flex min-w-0 items-center gap-1.5 text-[12px] font-medium leading-relaxed">
+            ${icon(iconName, 'h-3.5 w-3.5 shrink-0')}
+            <span class="min-w-0">${esc(text)}</span>
+          </div>
+          <span class="shrink-0 rounded px-1.5 py-0.5 text-[12px] font-bold ${tagCls}">${esc(tag)}</span>
+        </div>`;
+    }
+
+    function renderNav() {
+      return `
+        <div class="relative z-40 border-t border-slate-200 bg-white px-1 pb-1.5 pt-1">
+          <div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">
+            ${navItems().map((item) => {
+              const on = state.navTab === item.id;
+              const dot = state.role === 'david' && item.id === 'schedule' && activeTransfer()
+                ? '<span class="absolute -right-1 -top-0.5 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white"></span>'
+                : '';
+              return `<button data-action="nav" data-tab="${item.id}" ${on ? 'aria-current="page"' : ''} class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 transition ${on ? 'text-indigo-600' : 'text-slate-400'}">
+                <span class="relative">${icon(item.icon, 'h-[18px] w-[18px]')}${dot}</span>
+                <span class="text-[12px] font-bold">${esc(item.label)}</span>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    function renderPlaceholder() {
+      const item = navItems().find((n) => n.id === state.navTab);
+      if (!item) return '<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>';
+      return `
+        <div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
+          <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
+          <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
+          <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc || '')}</p>
+          ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}
+          <button data-action="nav" data-tab="${boardTab()}" class="mt-3 text-[14px] font-semibold text-indigo-600">返回${state.role === 'leo' ? '转让代办' : '课表'}</button>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 标题行 / 视图切换
+     * ------------------------------------------------------------------ */
+    function viewOptions() {
+      if (state.role === 'david') return [['calendar', '课表'], ['audit', '通知']];
+      if (state.role === 'leo') return [['calendar', '课表'], ['audit', '转让审计']];
+      return [['calendar', '课表'], ['audit', '转让明细']];
+    }
+
+    function titleRow(title, subtitle) {
+      return `
+        <div class="flex items-end justify-between gap-2">
+          <div class="min-w-0">
+            <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${esc(title)}</h1>
+            <p class="mt-1 truncate text-[12px] font-medium text-slate-500">${esc(subtitle)}</p>
+          </div>
+          <div class="inline-flex shrink-0 rounded-lg bg-slate-100 p-0.5">
+            ${viewOptions().map(([key, label]) => `<button data-action="set-view" data-view="${key}" class="h-7 rounded-md px-2 text-[12px] font-bold transition ${state.view === key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">${label}</button>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    function pageHeading() {
+      if (state.view === 'audit') {
+        if (state.role === 'david') return ['通知中心', 'David Miller · 学员变更与备课'];
+        if (state.role === 'leo') return ['转让审计', '全平台转让流水 · 已交割留痕'];
+        return ['转让明细', '转出 / 转入记录 · 财课分离留痕'];
+      }
+      if (state.role === 'helen') return ['学生课表', `TomZ11 · 受让课次与履约 · 仅 1 次同师挪位`];
+      if (state.role === 'david') return ['我的课表', 'David Miller · 学员变更与备课提示'];
+      if (state.role === 'leo') return ['转让代办', 'Leo · 后台协助与全量审计'];
+      return ['学生课表', `${state.amyActive} · 固定位转让与权益交割`];
+    }
+
+    /* ------------------------------------------------------------------
+     * 日历主页面
+     * ------------------------------------------------------------------ */
+    function renderCalendar() {
+      const [title, subtitle] = pageHeading();
+      return `
+        <div class="mx-auto w-full max-w-[720px] space-y-3 px-4 pb-6 pt-4">
+          ${titleRow(title, subtitle)}
+          ${roleNoticeCards()}
+          ${state.role === 'amy' ? childSelector() : state.role === 'helen' ? transfereeProfile() : ''}
+          ${weekHeader()}
+          ${legendBar()}
+          ${excelGridHTML()}
+          <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-indigo-900">
+            仅 1v1 固定位可转让：同家庭直转保留原家长退款权；跨家长转让后 M2B 退款入口物理锁定。转让只改实际上课学员，出资家长与资金持有方永久不变。
+          </div>
+        </div>`;
+    }
+
+    function childSelector() {
+      return `
+        <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div class="text-[12px] font-medium text-slate-400">当前宝贝档案</div>
+          <div class="mt-2 flex gap-1.5">
+            ${['AliceZ12', 'BobZ10', 'CharlieZ08'].map((nick) => {
+              const on = state.amyActive === nick;
+              return `<button data-action="set-child" data-nick="${nick}" class="h-9 flex-1 rounded-xl text-[12px] font-bold ${on ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}">${esc(nick)}</button>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    function transfereeProfile() {
+      const s = STUDENTS.TomZ11;
+      return `
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 shadow-sm">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex min-w-0 items-center gap-2">
+              <div class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-200 text-[14px] font-bold text-emerald-800">${s.nickname.charAt(0)}</div>
+              <div class="min-w-0">
+                <div class="truncate text-[14px] font-bold text-emerald-900">${s.nickname} · ${s.gender} · ${s.age}岁</div>
+                <div class="truncate text-[12px] font-medium text-emerald-700">${s.grade} · ${s.level}</div>
+              </div>
+            </div>
+            <span class="shrink-0 rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-[12px] font-bold text-emerald-700">受让方</span>
+          </div>
+        </div>`;
+    }
+
+    function roleNoticeCards() {
+      const t = activeTransfer();
+      if (state.role === 'david' && t) {
+        return `
+          <button data-action="open-memo" class="w-full text-left rounded-2xl border border-rose-200 bg-rose-50 p-3.5 shadow-sm">
+            <div class="flex items-center justify-between text-[12px] font-bold text-rose-700">
+              <span>学员变更通知</span><span>站内信 + 邮件</span>
+            </div>
+            <div class="mt-1 text-[14px] font-medium leading-relaxed text-rose-900">${t.from} 已变更为 ${t.to}，点击查看受让学员留言板与学情。</div>
+          </button>`;
+      }
+      if (state.role === 'helen') {
+        return t ? `
+          <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5 shadow-sm">
+            <div class="flex items-center justify-between text-[12px] font-bold text-emerald-700"><span>受让课次已到账</span><span>已交割</span></div>
+            <div class="mt-1 text-[14px] font-medium leading-relaxed text-emerald-900">由 ${t.from} 转让而来，课表已加注【转】角标；禁止二次转让，保留 1 次同师挪位。</div>
+          </div>` : `
+          <div class="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm text-[14px] font-medium text-slate-500">暂无受让课次。可切换场景「已受让」查看受让方视角。</div>`;
+      }
+      if (state.role === 'leo') return monitorSummary();
+      return '';
+    }
+
+    function monitorSummary() {
+      const lesson = fixedLesson();
+      const t = activeTransfer();
+      const locked = state.scenario === 'locked';
+      const assistDisabled = !!t || locked || state.online === 'off';
+      const assistLabel = t ? '该课次已完成代办交割' : locked ? '开课前 3 小时内锁定' : state.online === 'off' ? '离线只读' : '后台协助转让';
+      return `
+        <div class="rounded-2xl bg-indigo-950 p-4 text-white shadow-sm">
+          <div class="flex items-center justify-between text-[12px] font-medium text-indigo-200">
+            <span>班长代办工作台</span><span>${t ? '已完成交割' : '待协助'}</span>
+          </div>
+          <h2 class="mt-1 text-[16px] font-bold">${esc(lesson.course)}</h2>
+          <p class="mt-0.5 text-[12px] font-medium text-indigo-200">${fmtDate(lesson.date)} · ${lesson.time} - ${endTime(lesson.time)} · ${lesson.teacher}</p>
+          <div class="mt-3 grid grid-cols-3 gap-1.5 text-[12px]">
+            <div class="rounded-xl bg-white/10 p-2"><div class="text-indigo-300">实际上课</div><div class="mt-0.5 font-semibold">${esc(lesson.actualStudent)}</div></div>
+            <div class="rounded-xl bg-white/10 p-2"><div class="text-indigo-300">资金持有</div><div class="mt-0.5 font-semibold">Leo 锁定</div></div>
+            <div class="rounded-xl bg-white/10 p-2"><div class="text-indigo-300">购课单</div><div class="mt-0.5 font-mono font-semibold">ORD_0091</div></div>
+          </div>
+          <button data-action="open-monitor" ${assistDisabled ? 'disabled' : ''} class="mt-3 h-10 w-full rounded-xl text-[14px] font-bold ${assistDisabled ? 'bg-white/10 text-indigo-200' : 'bg-white text-indigo-900'} disabled:cursor-not-allowed">${assistLabel}</button>
+        </div>`;
+    }
+
+    function weekHeader() {
+      return `
+        <div class="flex items-center justify-between gap-2">
+          <button data-action="toast" data-message="原型固定演示 2026 年第 46 周" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600">${icon('chevron-left', 'h-4 w-4')}</button>
+          <div class="text-center">
+            <div class="text-[14px] font-bold text-slate-800">2026 年第 46 周</div>
+            <div class="mt-0.5 text-[12px] font-medium text-slate-400">11-09 周一 至 11-15 周日</div>
+          </div>
+          <button data-action="toast" data-message="原型固定演示 2026 年第 46 周" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600">${icon('chevron-right', 'h-4 w-4')}</button>
+        </div>`;
+    }
+
+    function legendBar() {
+      const items = [
+        ['bg-amber-500', '固定位'], ['bg-yellow-400', '临时课'], ['bg-blue-500', '被代课'],
+        ['bg-emerald-500', '可约'], ['bg-rose-500', '请假'], ['bg-slate-200', '不可约']
+      ];
+      return `
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600">
+          ${items.map(([c, l]) => `<span class="inline-flex items-center gap-1"><span class="h-2.5 w-2.5 rounded ${c}"></span>${l}</span>`).join('')}
+          <span class="ml-auto inline-flex items-center gap-1 rounded bg-rose-600 px-1.5 py-0.5 text-[12px] font-bold text-white">转</span>
+          <span class="text-slate-500">受让课次</span>
+        </div>`;
+    }
+
+    function buildGrid() {
+      const grid = {};
+      const t = activeTransfer();
+      const lesson = fixedLesson();
+      const student = currentStudent();
+      const teacherLike = state.role === 'david' || state.role === 'leo';
+
+      for (let d = 0; d < 7; d += 1) {
+        const date = isoAdd(WEEK_START, d);
+        grid[date] = {};
+        TIME_SLOTS.forEach((time) => {
+          const hour = Number(time.slice(0, 2));
+          const open = hour >= 14 && hour < 18;
+          grid[date][time] = {
+            kind: open ? 'free' : 'rest',
+            color: open ? 'GREEN' : 'GRAY',
+            text: open ? '约' : '休',
+            title: open ? '空闲可约' : '教师未开放'
+          };
+        });
+      }
+
+      grid['2026-11-12']['17:00'] = { kind: 'leave', color: 'RED', text: '假', title: '教师已请假' };
+
+      let showFixed = false;
+      if (teacherLike) showFixed = true;
+      else if (t) showFixed = student === t.to;
+      else showFixed = student === 'AliceZ12';
+      if (showFixed) {
+        grid[FIXED.date][FIXED.time] = {
+          kind: 'fixed',
+          color: 'ORANGE',
+          text: lesson.actualStudent.slice(0, 4),
+          title: `1v1 固定位 · ${lesson.actualStudent} · ${lesson.teacher}${lesson.isTransferred ? ' · 受让课次' : ''}`,
+          transferred: lesson.isTransferred
+        };
+      } else if (t && student === t.from) {
+        grid[FIXED.date][FIXED.time].title = `原固定位已转给 ${t.to}，恢复空闲`;
+      }
+
+      const showTemp = teacherLike || student === 'AliceZ12';
+      if (showTemp) {
+        grid[TEMP.date][TEMP.time] = {
+          kind: 'temp',
+          color: 'YELLOW',
+          text: TEMP.student.slice(0, 4),
+          title: `1v1 临时课 · ${TEMP.student} · ${TEMP.teacher}`
+        };
+      }
+      return grid;
+    }
+
+    function gridCellHTML(date, time, cell) {
+      const colorCls = {
+        ORANGE: 'bg-amber-50 border-amber-300 text-amber-900',
+        YELLOW: 'bg-yellow-50 border-yellow-300 text-yellow-900',
+        BLUE: 'bg-blue-50 border-blue-300 text-blue-900',
+        GREEN: 'bg-emerald-50/80 border-emerald-200 text-emerald-700',
+        GRAY: 'bg-slate-100 border-slate-200 text-slate-400',
+        RED: 'bg-rose-50 border-rose-200 text-rose-700'
+      }[cell.color] || 'bg-slate-100 border-slate-200 text-slate-400';
+      const badge = cell.transferred
+        ? '<span class="absolute right-0.5 top-0 grid h-3.5 w-3.5 place-items-center rounded bg-rose-600 text-[11px] font-bold leading-none text-white">转</span>'
+        : '';
+      const action = cell.kind === 'fixed' || cell.kind === 'temp'
+        ? `data-action="open-lesson" data-kind="${cell.kind}"`
+        : `data-action="toast" data-message="${esc(cell.title)}"`;
+      const padding = cell.transferred ? 'pr-3' : '';
+      const displayText = cell.transferred ? cell.text.slice(0, 3) : cell.text;
+      return `<td class="border-b border-r border-slate-100 p-[2px] align-middle">
+        <button ${action} title="${esc(cell.title)}" class="relative flex h-7 w-full items-center justify-center overflow-hidden rounded-md border text-[11px] font-bold leading-none transition active:scale-95 ${colorCls}">
+          <span class="truncate px-0.5 ${padding}">${esc(displayText)}</span>${badge}
+        </button>
+      </td>`;
+    }
+
+    function excelGridHTML() {
+      const grid = buildGrid();
+      return `
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div id="excelScroll" class="max-h-[520px] overflow-auto">
+            <table class="w-full table-fixed border-collapse">
+              <thead>
+                <tr>
+                  <th class="sticky left-0 top-0 z-40 w-[40px] border-b border-r border-slate-200 bg-slate-100 px-0 py-1 text-center text-[12px] font-bold text-slate-500">时段</th>
+                  ${Array.from({ length: 7 }, (_, i) => {
+                    const date = isoAdd(WEEK_START, i);
+                    const isToday = date === TODAY;
+                    const isLessonDay = date === FIXED.date;
+                    return `<th class="sticky top-0 z-30 border-b border-r border-slate-200 ${isToday ? 'bg-amber-100 text-amber-900' : isLessonDay ? 'bg-amber-50 text-amber-900' : 'bg-slate-50 text-slate-600'} px-0.5 py-1 text-center">
+                      <div class="text-[12px] font-bold leading-tight">${DAY_LABELS[i]}</div>
+                      <div class="font-mono text-[12px] font-semibold leading-tight ${isToday ? 'text-amber-800' : 'text-slate-400'}">${date.slice(5)}</div>
+                    </th>`;
+                  }).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${TIME_SLOTS.map((time) => `
+                  <tr class="h-8">
+                    <th data-time="${time}" class="sticky left-0 z-20 w-[40px] border-b border-r border-slate-200 bg-slate-100 px-0 text-center text-[12px] font-mono font-semibold text-slate-500">${time}</th>
+                    ${Array.from({ length: 7 }, (_, i) => gridCellHTML(isoAdd(WEEK_START, i), time, grid[isoAdd(WEEK_START, i)][time])).join('')}
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-      <button onclick="closeModal('detailModal')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
-        <i data-lucide="x" class="w-3.5 h-3.5"></i>
-      </button>
-    </div>
+        <div class="flex items-center justify-between text-[12px] font-medium text-slate-400">
+          <span class="truncate">格内为学员昵称前 4 位，红底【转】为受让课次</span>
+          <span class="shrink-0 font-mono">7 天 × 36 时段</span>
+        </div>`;
+    }
 
-    ${isTransferred ? `<div class="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-sm text-rose-800">本节课由学员 ${lesson.originalStudent} 转让而来，当前上课学员 ${lesson.actualStudent}。</div>` : ''}
+    function scrollGridToPrime() {
+      const el = document.getElementById('excelScroll');
+      if (!el) return;
+      const anchor = el.querySelector('th[data-time="14:00"]');
+      if (!anchor) return;
+      const head = el.querySelector('thead');
+      const delta = anchor.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+      el.scrollTop = Math.max(0, delta - (head ? head.getBoundingClientRect().height : 40));
+    }
 
-    <div class="grid grid-cols-2 gap-2 text-sm">
-      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2">
-        <div class="text-xs text-slate-400">上课学员</div>
-        <div class="font-semibold text-slate-800 font-mono">${lesson.actualStudent || lesson.student}</div>
-      </div>
-      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2">
-        <div class="text-xs text-slate-400">授课教师</div>
-        <div class="font-semibold text-slate-800">${lesson.teacher}</div>
-      </div>
-      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2">
-        <div class="text-xs text-slate-400">教室</div>
-        <div class="font-semibold text-slate-800">${lesson.room}</div>
-      </div>
-      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2">
-        <div class="text-xs text-slate-400">距开课</div>
-        <div class="font-semibold ${lesson.hours < 3 ? 'text-rose-600' : 'text-emerald-700'}">${lesson.hours} 小时</div>
-      </div>
-    </div>
+    /* ------------------------------------------------------------------
+     * 转让明细 / 通知页
+     * ------------------------------------------------------------------ */
+    function transferRecord() {
+      const t = activeTransfer();
+      if (!t) return null;
+      return {
+        from: t.from,
+        to: t.to,
+        type: t.type,
+        scope: t.scope,
+        operator: t.operator,
+        at: t.at,
+        note: t.note,
+        teacher: FIXED.teacher,
+        slot: `${fmtDate(FIXED.date)} ${FIXED.time}`,
+        status: '已交割',
+        orderId: FIXED.orderId,
+        holder: FIXED.holder
+      };
+    }
 
-    <div class="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-1.5 text-sm">
-      <div class="flex items-center justify-between">
-        <span class="text-slate-400">出资家长</span>
-        <span class="font-medium">Amy 不变</span>
-      </div>
-      <div class="flex items-center justify-between">
-        <span class="text-slate-400">购课单</span>
-        <span class="font-mono text-slate-700">${lesson.orderId}</span>
-      </div>
-      <div class="flex items-center justify-between">
-        <span class="text-slate-400">资金持有方</span>
-        <span class="font-medium text-emerald-700">${lesson.holder} 锁定</span>
-      </div>
-      <p class="text-xs text-slate-400 leading-relaxed">财课分离：转让不改动出资人、购课单与资金持有方。</p>
-      ${isTransferred ? `<div class="rounded-lg p-2 text-xs leading-relaxed ${transfer && transfer.type === 'external' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}">
-        ${transfer && transfer.type === 'external' ? '跨家长转让：原出资家长不可对该课次申请退款。' : '同家庭直转：原出资家长仍可对该课次申请退款。'}
-      </div>` : ''}
-    </div>
+    function filteredRecords() {
+      const record = transferRecord();
+      if (!record) return [];
+      if (state.role === 'david' || state.role === 'leo') return [record];
+      const student = currentStudent();
+      if (!student) return [];
+      if (state.auditTab === 'out') return record.from === student ? [record] : [];
+      return record.to === student ? [record] : [];
+    }
 
-    <div class="space-y-2">${detailActions(lesson)}</div>
+    function renderAuditPage() {
+      const [title, subtitle] = pageHeading();
+      const records = filteredRecords();
+      const isParent = state.role === 'amy' || state.role === 'helen';
+      const tabs = isParent ? `
+        <div class="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+          ${[['out', '转出记录'], ['in', '转入记录']].map(([key, label]) => `<button data-action="audit-tab" data-tab="${key}" class="h-8 rounded-lg text-[12px] font-bold transition ${state.auditTab === key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">${label}</button>`).join('')}
+        </div>` : '';
+      const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-3' : 'space-y-3';
+      return `
+        <div class="mx-auto w-full max-w-[720px] space-y-3 px-4 pb-6 pt-4">
+          ${titleRow(title, subtitle)}
+          ${tabs}
+          <div class="${grid}">
+            ${records.length ? records.map((r) => {
+              const other = isParent ? (state.auditTab === 'out' ? r.to : r.from) : `${r.from} → ${r.to}`;
+              return `<article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="truncate text-[12px] font-medium text-slate-400">${esc(r.at)}</span>
+                  <span class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[12px] font-bold text-emerald-700">${esc(r.status)}</span>
+                </div>
+                <div class="mt-2 grid grid-cols-2 gap-1.5 text-[12px]">
+                  <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-slate-400">授课教师</div><div class="mt-0.5 text-[14px] font-semibold text-slate-800">${esc(r.teacher)}</div></div>
+                  <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-slate-400">原排课</div><div class="mt-0.5 font-mono text-[12px] font-semibold text-slate-800">${esc(r.slot)}</div></div>
+                  <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-slate-400">${isParent ? '对方学员' : '转让双方'}</div><div class="mt-0.5 font-mono text-[12px] font-semibold text-slate-800">${esc(other)}</div></div>
+                  <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-slate-400">转让类型</div><div class="mt-0.5 text-[14px] font-semibold text-slate-800">${esc(typeLabel(r))}</div></div>
+                </div>
+                <div class="mt-2 flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-[12px]">
+                  <span class="text-slate-400">出资家长</span><span class="font-semibold text-slate-700">Amy 不变</span>
+                </div>
+                <div class="mt-1 flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-[12px]">
+                  <span class="text-slate-400">资金持有方</span><span class="font-semibold text-emerald-700">${esc(r.holder)} 锁定</span>
+                </div>
+                <div class="mt-2 rounded-xl border px-3 py-2 text-[12px] font-medium leading-relaxed ${r.scope === 'family' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}">
+                  ${refundNote(r)}
+                </div>
+                <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-500">${esc(r.note)}</p>
+              </article>`;
+            }).join('') : `
+              <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center sm:col-span-2">
+                <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-50 text-slate-300">${icon('inbox', 'h-5 w-5')}</div>
+                <p class="mt-3 text-[14px] font-medium text-slate-500">暂无课程转让记录</p>
+                <p class="mt-1 text-[12px] font-medium text-slate-400">转让成功后将在此留痕</p>
+              </div>`}
+          </div>
+        </div>`;
+    }
 
-    <button onclick="closeModal('detailModal')" class="w-full rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium py-2.5 transition">关闭</button>`;
-  ico();
-}
+    function renderNoticePage() {
+      const [title, subtitle] = pageHeading();
+      const t = activeTransfer();
+      const lesson = fixedLesson();
+      return `
+        <div class="mx-auto w-full max-w-[720px] space-y-3 px-4 pb-6 pt-4">
+          ${titleRow(title, subtitle)}
+          ${t ? `
+            <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+              <div class="flex items-center justify-between text-[12px] font-bold text-rose-700"><span>紧急学员变更</span><span>站内信 + 邮件</span></div>
+              <p class="mt-1.5 text-[14px] font-medium leading-relaxed text-rose-900">您的课程 ${fmtDate(FIXED.date)} ${FIXED.time} 上课学员已由 ${t.from} 变更为 ${t.to}，请查看受让学员留言并备课。</p>
+              <button data-action="open-memo" class="mt-2 h-9 w-full rounded-xl bg-rose-600 text-[14px] font-bold text-white">查看学员留言板</button>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 text-[12px]">
+              <div class="flex items-center justify-between py-1"><span class="text-slate-400">受让家长通知</span><span class="font-bold text-emerald-700">已发送</span></div>
+              <p class="mt-1 text-[14px] font-medium leading-relaxed text-slate-600">${t.to} 的家长通知邮箱已收到排课到账邮件；发送时间 ${esc(t.at)}，失败自动重试 3 次。</p>
+            </div>` : `
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center">
+              <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-50 text-slate-300">${icon('bell-off', 'h-5 w-5')}</div>
+              <p class="mt-3 text-[14px] font-medium text-slate-500">暂无学员变更通知</p>
+              <p class="mt-1 text-[12px] font-medium text-slate-400">转让生效后 5 秒内送达</p>
+            </div>`}
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 text-[12px]">
+            <div class="flex items-center justify-between py-1"><span class="text-slate-400">下一节课</span><span class="font-semibold text-slate-800">${fmtDate(FIXED.date)} ${FIXED.time}</span></div>
+            <div class="mt-1 text-[14px] font-medium text-slate-700">${esc(FIXED.course)} · ${esc(lesson.actualStudent)}</div>
+            <div class="mt-0.5 text-[12px] font-medium text-slate-400">${esc(FIXED.room)}</div>
+          </div>
+        </div>`;
+    }
 
-function transferDialogHTML() {
-  const student = currentStudent();
-  const current = STUDENTS[student];
-  const siblings = Object.values(STUDENTS).filter((s) => s.account === current.account && s.nickname !== student);
-  const isFamily = S.transferTab === 'family';
-  const verified = S.verified;
-  const error = S.verifyError;
+    /* ------------------------------------------------------------------
+     * 弹层
+     * ------------------------------------------------------------------ */
+    function renderOverlay() {
+      const el = document.getElementById('overlay');
+      let html = '';
+      if (state.modal === 'transfer') html += renderTransferModal();
+      else if (state.modal === 'detail') html += renderDetailModal();
+      else if (state.modal === 'memo') html += renderMemoModal();
+      else if (state.modal === 'monitor') html += renderMonitorModal();
+      else if (state.modal === 'reschedule') html += renderRescheduleModal();
+      if (state.confirmOpen) html += renderConfirmModal();
+      el.innerHTML = html;
+      lucide.createIcons();
+    }
 
-  const profileCard = verified ? `
-    <div class="rounded-xl border border-emerald-300 bg-emerald-50 p-3 space-y-2">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-emerald-800">匹配成功 · 接收学员档案</span>
-        <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-200 text-emerald-900 font-mono font-bold">${verified.nickname}</span>
-      </div>
-      <div class="flex items-center gap-2.5">
-        <div class="w-10 h-10 rounded-full bg-emerald-200 text-emerald-800 grid place-items-center font-bold">${verified.nickname.charAt(0)}</div>
-        <div>
-          <div class="text-xs font-bold text-slate-800">${verified.nickname}</div>
-          <div class="text-xs text-slate-500">${verified.gender} · ${verified.age}岁 · ${verified.grade}</div>
+    function modalShell(content, width = 'max-w-[420px]', closeAction = 'close-modal') {
+      return `
+        <div class="absolute inset-0 z-50">
+          <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]" data-action="${closeAction}"></div>
+          <div class="absolute inset-x-4 top-1/2 mx-auto ${width} max-h-[90%] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">${content}</div>
+        </div>`;
+    }
+
+    function sheetShell(content) {
+      return `
+        <div class="absolute inset-0 z-50">
+          <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]" data-action="close-modal"></div>
+          <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92%] w-full max-w-[560px] flex-col overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl">
+            <div class="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-slate-200"></div>
+            ${content}
+          </div>
+        </div>`;
+    }
+
+    function modalHeader(title, subtitle = '', iconName = 'arrow-left-right', rose = false) {
+      return `
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex min-w-0 items-start gap-2.5">
+            <div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl ${rose ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'}">${icon(iconName, 'h-4 w-4')}</div>
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">${esc(title)}</h2>
+              ${subtitle ? `<p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">${esc(subtitle)}</p>` : ''}
+            </div>
+          </div>
+          <button data-action="close-modal" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 转让弹窗
+     * ------------------------------------------------------------------ */
+    function openTransferModal() {
+      if (!guardWrite()) return;
+      const lesson = fixedLesson();
+      if (lesson.type === 'temp') return showToast('临时课仅支持请假退期待排，不可转让', true);
+      if (lesson.isTransferred) return showToast('受让课程不可二次转让', true);
+      if (lesson.hours < 3) return showToast('开课前 3 小时内锁定，禁止转让', true);
+      if (state.role !== 'amy' && state.role !== 'helen') return showToast('当前角色不可发起转让', true);
+      state.modal = 'transfer';
+      state.confirmOpen = false;
+      state.transferTab = 'family';
+      state.verified = null;
+      state.verifyError = null;
+      state.nickInput = 'TomZ11';
+      renderOverlay();
+    }
+
+    function renderTransferModal() {
+      const lesson = fixedLesson();
+      const from = FIXED.student;
+      const current = STUDENTS[from];
+      const siblings = Object.values(STUDENTS).filter((s) => s.account === current.account && s.nickname !== from);
+      const isFamily = state.transferTab === 'family';
+      const verified = state.verified;
+      const error = state.verifyError;
+
+      const profileCard = verified ? `
+        <div class="rounded-xl border border-emerald-300 bg-emerald-50 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[12px] font-bold text-emerald-800">匹配成功 · 接收学员档案</span>
+            <span class="rounded bg-emerald-200 px-1.5 py-0.5 font-mono text-[12px] font-bold text-emerald-900">${esc(verified.nickname)}</span>
+          </div>
+          <div class="mt-2 flex items-center gap-2.5">
+            <div class="grid h-10 w-10 place-items-center rounded-full bg-emerald-200 text-[14px] font-bold text-emerald-800">${verified.nickname.charAt(0)}</div>
+            <div class="min-w-0">
+              <div class="text-[14px] font-bold text-slate-800">${esc(verified.nickname)}</div>
+              <div class="text-[12px] font-medium text-slate-500">${verified.gender} · ${verified.age}岁 · ${esc(verified.grade)}</div>
+            </div>
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-2 border-t border-emerald-200 pt-2 text-[12px]">
+            <span class="rounded px-1.5 py-0.5 font-semibold ${verified.match ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'}">${verified.match ? '技能匹配' : '偏好不一致，不阻断'}</span>
+            <span class="text-slate-500">${esc(verified.level)}</span>
+          </div>
+        </div>` : '';
+
+      const errorCard = error ? `
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(error)}</div>` : '';
+
+      return modalShell(`
+        ${modalHeader('固定位课程转让', `${fmtDate(FIXED.date)} · ${FIXED.time} - ${endTime(FIXED.time)} · ${FIXED.teacher}`)}
+        <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[12px]">
+          <div class="flex items-center justify-between py-0.5"><span class="text-slate-400">授课教师</span><span class="font-semibold text-slate-800">${FIXED.teacher}</span></div>
+          <div class="flex items-center justify-between py-0.5"><span class="text-slate-400">课程类型</span><span class="font-semibold text-slate-800">1v1 固定位 · ${esc(FIXED.course)}</span></div>
+          <div class="flex items-center justify-between py-0.5"><span class="text-slate-400">财课分离</span><span class="font-semibold text-emerald-700">出资 Amy / 持有 Leo 不变</span></div>
         </div>
-      </div>
-      <div class="flex items-center justify-between border-t border-emerald-200 pt-1.5 text-xs">
-        <span class="px-1.5 py-0.5 rounded ${verified.match ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'} font-semibold">${verified.match ? '技能匹配' : '偏好不一致，不阻断'}</span>
-        <span class="text-slate-500">${verified.level}</span>
-      </div>
-    </div>` : '';
 
-  const errorCard = error ? `
-    <div class="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-sm text-rose-700 flex items-start gap-1.5">
-      <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0 mt-0.5"></i>
-      <span>${error}</span>
-    </div>` : '';
-
-  return `
-    <div class="flex items-start justify-between pb-2 border-b border-slate-100">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 rounded-xl bg-teal-100 text-teal-700 grid place-items-center">
-          <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+        <div class="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+          <button data-action="transfer-tab" data-tab="family" class="h-8 rounded-lg text-[12px] font-bold transition ${isFamily ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">同家庭直转</button>
+          <button data-action="transfer-tab" data-tab="external" class="h-8 rounded-lg text-[12px] font-bold transition ${!isFamily ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">转给其他家长</button>
         </div>
-        <div>
-          <h4 class="font-bold text-slate-900 text-sm">固定位课程转让</h4>
-          <p class="text-xs text-slate-400">${FIXED.date} ${FIXED.weekday} · ${FIXED.time} · ${FIXED.teacher}</p>
+
+        ${isFamily ? `
+          <div class="mt-3 space-y-2">
+            <label for="familyRecipient" class="block text-[12px] font-medium text-slate-500">选择名下其他孩子</label>
+            <select id="familyRecipient" class="h-11 w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-[16px] font-medium text-indigo-900 outline-none">
+              ${siblings.length ? siblings.map((s) => `<option value="${s.nickname}">${esc(s.nickname)} · ${s.gender} · ${s.age}岁</option>`).join('') : '<option value="">暂无其他孩子档案</option>'}
+            </select>
+            <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">转让后该课次将直接呈现在所选孩子课表，并加注【转】角标；出资家长与资金持有方不变，原出资家长仍可退款。</div>
+            <div class="flex gap-2 pt-1">
+              <button data-action="close-modal" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">取消</button>
+              <button data-action="commit-family" ${state.online === 'off' || !siblings.length ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认划转</button>
+            </div>
+          </div>` : `
+          <div class="mt-3 space-y-2">
+            <label for="nickInput" class="block text-[12px] font-medium text-slate-500">输入接收学员规范昵称</label>
+            <div class="flex gap-1.5">
+              <input id="nickInput" value="${esc(state.nickInput)}" placeholder="例如 TomZ11" class="h-11 min-w-0 flex-1 rounded-xl border border-slate-300 px-3 font-mono text-[16px] outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+              <button data-action="verify" class="h-11 shrink-0 rounded-xl bg-slate-800 px-3 text-[14px] font-semibold text-white">${icon('search', 'h-3.5 w-3.5')}验证</button>
+            </div>
+            <p class="text-[12px] font-medium text-slate-400">格式：英文名 + 姓首字母 + 年龄，如 TomZ11。大小写不敏感。</p>
+            <div id="verifyFeedback" class="space-y-1.5">${profileCard}${errorCard}</div>
+            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">系统不介入线下资金。请确认已收到对方款项后再提交；提交后立即生效、不可撤销。</div>
+            <div class="flex gap-2 pt-1">
+              <button data-action="close-modal" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">取消</button>
+              <button id="confirmExternalBtn" data-action="show-confirm" ${verified && state.online === 'on' ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl text-[16px] font-semibold ${verified && state.online === 'on' ? 'bg-indigo-600 text-white' : 'cursor-not-allowed bg-slate-200 text-slate-400'}">确认转让给该学员</button>
+            </div>
+          </div>`}
+      `);
+    }
+
+    function renderConfirmModal() {
+      const recipient = state.verified;
+      if (!recipient) return '';
+      return `
+        <div class="absolute inset-0 z-[60]">
+          <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-[1px]" data-action="close-confirm"></div>
+          <div class="absolute inset-x-4 top-1/2 mx-auto max-w-[360px] -translate-y-1/2 rounded-2xl bg-white p-5 shadow-2xl">
+            <div class="text-center">
+              <div class="mx-auto grid h-11 w-11 place-items-center rounded-full bg-rose-100 text-rose-600">${icon('alert-octagon', 'h-5 w-5')}</div>
+              <h3 class="mt-2 text-[16px] font-bold text-slate-900">确认转让给该学员吗？</h3>
+              <p class="mt-1 text-[12px] font-medium text-slate-500">提交后立即生效，此操作不可撤销</p>
+            </div>
+            <div class="mt-3 space-y-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[12px]">
+              <div class="flex justify-between py-0.5"><span class="text-slate-400">转出课次</span><span class="font-semibold text-slate-800">${fmtDate(FIXED.date)} ${FIXED.time}</span></div>
+              <div class="flex justify-between py-0.5"><span class="text-slate-400">授课教师</span><span class="font-semibold text-slate-800">${FIXED.teacher}</span></div>
+              <div class="flex justify-between border-t border-slate-200 pt-1.5"><span class="text-slate-400">接收学员</span><span class="font-bold text-rose-700">${esc(recipient.nickname)}（${recipient.gender}，${recipient.age}岁）</span></div>
+            </div>
+            <p class="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-rose-700">请确认线下资金已交割完毕。划转后原课格清空，受让方课表加注【转】角标，全端禁止二次转让。</p>
+            <div class="mt-3 flex gap-2">
+              <button data-action="close-confirm" class="h-10 flex-1 rounded-xl bg-slate-100 text-[14px] font-semibold text-slate-700">再核对一下</button>
+              <button data-action="commit-external" ${state.online === 'off' ? 'disabled' : ''} class="h-10 flex-1 rounded-xl bg-rose-600 text-[14px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">我已核实，确认交割</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function openDetail(kind) {
+      state.lessonKind = kind;
+      state.modal = 'detail';
+      state.confirmOpen = false;
+      renderOverlay();
+    }
+
+    function renderDetailModal() {
+      const isTemp = state.lessonKind === 'temp';
+      const lesson = isTemp
+        ? { ...TEMP, isTransferred: false, actualStudent: TEMP.student, originalStudent: null, hours: state.scenario === 'locked' ? 2 : 48, rescheduleCount: state.rescheduleCount }
+        : fixedLesson();
+      const t = activeTransfer();
+      const isFixed = !isTemp;
+      const canReschedule = isFixed && lesson.rescheduleCount === 0 && lesson.hours >= 3 && state.online === 'on';
+      const canTransfer = isFixed && !lesson.isTransferred && lesson.hours >= 3 && state.online === 'on';
+      const transferred = lesson.isTransferred;
+      const scope = t ? t.scope : null;
+      const typeCls = isTemp ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : 'bg-amber-50 text-amber-800 border-amber-200';
+
+      let actions = '';
+      if (state.role === 'david') {
+        actions = `<button data-action="open-memo" class="h-11 w-full rounded-xl bg-slate-800 text-[14px] font-bold text-white">查看学员留言板</button>`;
+      } else if (state.role === 'leo') {
+        const disabled = transferred || lesson.hours < 3 || state.online === 'off';
+        actions = `<button data-action="open-monitor" ${disabled ? 'disabled' : ''} class="h-11 w-full rounded-xl text-[14px] font-bold ${disabled ? 'bg-slate-100 text-slate-400' : 'bg-indigo-900 text-white'} disabled:cursor-not-allowed">${transferred ? '该课次已完成代办交割' : lesson.hours < 3 ? '开课前 3 小时内锁定' : '后台协助转让'}</button>`;
+      } else if (isTemp) {
+        actions = `<div class="rounded-xl border border-yellow-200 bg-yellow-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-yellow-900">临时课仅支持请假退期待排，不可发起转让。</div>`;
+      } else {
+        const reschedule = canReschedule
+          ? `<button data-action="open-reschedule" class="h-10 w-full rounded-xl border border-slate-300 bg-white text-[13px] font-semibold text-slate-700">同师挪位（1 次 · 免扣配额）</button>`
+          : `<button disabled class="h-10 w-full rounded-xl bg-slate-100 text-[13px] font-semibold text-slate-400">${lesson.rescheduleCount >= 1 ? '该课次已挪位，不可再次挪位' : '当前不可挪位'}</button>`;
+        const transferBtn = transferred
+          ? `<button disabled class="h-11 w-full rounded-xl bg-slate-100 text-[14px] font-bold text-slate-400">受让课程不可二次转让</button>`
+          : lesson.hours < 3
+            ? `<button disabled class="h-11 w-full rounded-xl bg-slate-100 text-[14px] font-bold text-slate-400">开课前 3 小时内锁定，禁止转让</button>`
+            : `<button data-action="open-transfer" ${canTransfer ? '' : 'disabled'} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">课程转让</button>`;
+        actions = `${transferBtn}${reschedule}`;
+      }
+
+      return sheetShell(`
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex min-w-0 items-start gap-2.5">
+            <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl ${isTemp ? 'bg-yellow-100 text-yellow-700' : 'bg-amber-100 text-amber-700'}">${icon('calendar-clock', 'h-4 w-4')}</div>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <h2 class="text-[16px] font-bold text-slate-900">${esc(lesson.course)}</h2>
+                <span class="rounded border px-1.5 py-0.5 text-[12px] font-bold ${typeCls}">${isTemp ? '临时课' : '固定位'}</span>
+                ${transferred ? '<span class="rounded bg-rose-100 px-1.5 py-0.5 text-[12px] font-bold text-rose-700">【转】</span>' : ''}
+              </div>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">${fmtDate(lesson.date)} · ${lesson.time} - ${endTime(lesson.time)} · ${lesson.teacher}</p>
+            </div>
+          </div>
+          <button data-action="close-modal" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-100">${icon('x', 'h-5 w-5')}</button>
         </div>
-      </div>
-      <button onclick="closeModal('transferModal')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
-        <i data-lucide="x" class="w-3.5 h-3.5"></i>
-      </button>
-    </div>
 
-    <div class="rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-sm space-y-1">
-      <div class="flex items-center justify-between font-semibold text-slate-700">
-        <span class="flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3 text-emerald-600"></i>财课分离</span>
-        <span class="text-xs text-slate-400">原出资方永久绑定</span>
-      </div>
-      <p class="text-xs text-slate-500 leading-relaxed">仅变更实际上课学员，出资家长 Amy、购课单与资金持有方保持不变。</p>
-    </div>
+        ${transferred ? `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-rose-800">本节课由学员 ${esc(lesson.originalStudent)} 转让而来，当前上课学员 ${esc(lesson.actualStudent)}。</div>` : ''}
 
-    <div class="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 text-sm">
-      <button onclick="switchTransferTab('family')" class="py-1.5 rounded-lg font-semibold transition ${isFamily ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-500'}">同家庭直转</button>
-      <button onclick="switchTransferTab('external')" class="py-1.5 rounded-lg font-semibold transition ${!isFamily ? 'bg-white text-teal-800 shadow-sm' : 'text-slate-500'}">转给其他家长</button>
-    </div>
-
-    ${isFamily ? `
-      <div class="space-y-2">
-        <label class="block text-sm text-slate-600 font-medium">选择名下其他孩子</label>
-        <select id="familyRecipient" class="w-full px-3 py-2 rounded-xl border border-teal-300 bg-teal-50 text-teal-900 text-xs font-medium outline-none focus:ring-2 focus:ring-teal-500">
-          ${siblings.map((s) => `<option value="${s.nickname}">${s.nickname} · ${s.gender} · ${s.age}岁</option>`).join('')}
-        </select>
-        <div class="rounded-xl border border-teal-200 bg-teal-50 p-2.5 text-xs text-teal-800 leading-relaxed">
-          转让后，该课次将直接呈现在所选孩子的课表上，并加注【转】字角标。提交即生效。
+        <div class="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+          <div class="rounded-xl bg-slate-50 px-3 py-2"><div class="text-slate-400">上课学员</div><div class="mt-0.5 font-mono text-[14px] font-semibold text-slate-800">${esc(lesson.actualStudent)}</div></div>
+          <div class="rounded-xl bg-slate-50 px-3 py-2"><div class="text-slate-400">授课教师</div><div class="mt-0.5 text-[14px] font-semibold text-slate-800">${esc(lesson.teacher)}</div></div>
+          <div class="rounded-xl bg-slate-50 px-3 py-2"><div class="text-slate-400">教室</div><div class="mt-0.5 text-[14px] font-semibold text-slate-800">${esc(lesson.room)}</div></div>
+          <div class="rounded-xl bg-slate-50 px-3 py-2"><div class="text-slate-400">距开课</div><div class="mt-0.5 text-[14px] font-semibold ${lesson.hours < 3 ? 'text-rose-600' : 'text-emerald-700'}">${lesson.hours} 小时</div></div>
         </div>
-        <div class="flex gap-2 pt-1">
-          <button onclick="closeModal('transferModal')" class="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition">取消</button>
-          <button onclick="commitFamilyTransfer()" class="flex-1 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold transition">确认划转</button>
+
+        <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[12px]">
+          <div class="flex justify-between py-1"><span class="text-slate-400">出资家长</span><span class="font-semibold text-slate-800">Amy 不变</span></div>
+          <div class="flex justify-between py-1"><span class="text-slate-400">购课单</span><span class="font-mono font-semibold text-slate-800">${esc(lesson.orderId)}</span></div>
+          <div class="flex justify-between py-1"><span class="text-slate-400">资金持有方</span><span class="font-semibold text-emerald-700">${esc(lesson.holder)} 锁定</span></div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-400">财课分离：转让不改动出资人、购课单与资金持有方。</p>
+          ${transferred ? `<div class="mt-1.5 rounded-lg px-2.5 py-2 text-[12px] font-medium leading-relaxed ${scope === 'external' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}">${scope === 'external' ? '跨家长转让：原出资家长不可对该课次申请退款（M2B 已锁定）。' : '同家庭直转：原出资家长仍可对该课次申请退款。'}</div>` : ''}
         </div>
-      </div>` : `
-      <div class="space-y-2">
-        <label class="block text-sm text-slate-600 font-medium">输入接收学员规范昵称</label>
-        <div class="flex gap-1.5">
-          <input id="nickInput" value="${escapeHtml(S.nickInput)}" oninput="onNickInput(this.value)" placeholder="例如 TomZ11" class="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono outline-none focus:ring-2 focus:ring-teal-500">
-          <button onclick="verifyNickname()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold shrink-0 flex items-center gap-1 transition">
-            <i data-lucide="search" class="w-3.5 h-3.5"></i>验证
-          </button>
+
+        <div class="mt-3 space-y-2">${actions}</div>
+        <button data-action="close-modal" class="mt-2 h-10 w-full rounded-xl bg-slate-100 text-[14px] font-medium text-slate-600">关闭</button>
+      `);
+    }
+
+    function openMonitorModal() {
+      if (!guardWrite()) return;
+      const lesson = fixedLesson();
+      if (lesson.isTransferred) return showToast('该课次已完成交割', true);
+      if (lesson.hours < 3) return showToast('开课前 3 小时内锁定，禁止转让', true);
+      if (state.role !== 'leo') return;
+      state.modal = 'monitor';
+      state.confirmOpen = false;
+      renderOverlay();
+    }
+
+    function renderMonitorModal() {
+      const options = Object.values(STUDENTS)
+        .filter((s) => s.nickname !== FIXED.student)
+        .map((s) => `<option value="${s.nickname}">${esc(s.nickname)} · ${s.parent} 名下 · ${s.age}岁</option>`)
+        .join('');
+      return modalShell(`
+        ${modalHeader('后台协助转让', '操作人 Leo 班长 · 审计留痕', 'user-cog')}
+        <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[12px]">
+          <div class="flex justify-between py-1"><span class="text-slate-400">待转排课</span><span class="font-semibold text-slate-800">${fmtDate(FIXED.date)} ${FIXED.time}</span></div>
+          <div class="flex justify-between py-1"><span class="text-slate-400">原排课学员</span><span class="font-mono font-semibold text-slate-800">AliceZ12</span></div>
+          <div class="flex justify-between py-1"><span class="text-slate-400">资金持有方</span><span class="font-semibold text-emerald-700">Leo 班长 锁定</span></div>
         </div>
-        <p class="text-xs text-slate-400">格式：英文名 + 姓首字母 + 年龄，如 TomZ11。大小写不敏感。</p>
-        <div id="verifyFeedback">${profileCard}${errorCard}</div>
-        <div class="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 leading-relaxed">
-          系统不介入线下资金。请确认已收到对方款项后再提交。
+        <label for="monitorRecipient" class="mt-3 block text-[12px] font-medium text-slate-500">选择接收学员档案</label>
+        <select id="monitorRecipient" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-[16px] outline-none">${options}</select>
+        <label for="monitorNote" class="mt-3 block text-[12px] font-medium text-slate-500">代办转让原因及交割备注</label>
+        <textarea id="monitorNote" rows="3" maxlength="200" class="mt-1 h-24 w-full resize-none rounded-xl border border-slate-300 p-3 text-[16px] outline-none" placeholder="例如：家长微信群已结清打款，电话委托班长代办"></textarea>
+        <p class="mt-1 text-[12px] font-medium text-slate-400">1 至 200 字，备注将写入审计快照并派发协同通知。</p>
+        <div class="mt-3 flex gap-2">
+          <button data-action="close-modal" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">取消</button>
+          <button data-action="commit-monitor" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-900 text-[16px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认代办划转</button>
+        </div>`);
+    }
+
+    function openRescheduleModal() {
+      if (!guardWrite()) return;
+      const lesson = fixedLesson();
+      if (lesson.rescheduleCount >= 1) return showToast('该课次已挪位，不可再次挪位', true);
+      if (lesson.hours < 3) return showToast('开课前 3 小时内不可挪位', true);
+      state.modal = 'reschedule';
+      state.confirmOpen = false;
+      renderOverlay();
+    }
+
+    function renderRescheduleModal() {
+      const slots = [
+        { label: '11-18 (周三) 16:00 - 16:30', value: '11-18 周三 16:00' },
+        { label: '11-20 (周五) 15:00 - 15:30', value: '11-20 周五 15:00' },
+        { label: '11-21 (周六) 17:00 - 17:30', value: '11-21 周六 17:00' }
+      ];
+      return sheetShell(`
+        ${modalHeader('同师挪位', 'David Miller · 仅 1 次 · 免扣请假配额', 'calendar-range')}
+        <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-emerald-800">受让课次保留 1 次同师挪位权益；挪位不改变授课教师、出资家长与资金持有方。</div>
+        <div class="mt-3 space-y-2">
+          ${slots.map((s) => `<button data-action="commit-reschedule" data-slot="${esc(s.value)}" class="flex h-12 w-full items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-[14px] font-semibold text-emerald-900">
+            <span>${esc(s.label)}</span><span class="rounded bg-white px-2 py-0.5 text-[12px] font-bold text-emerald-700">选择</span>
+          </button>`).join('')}
         </div>
-        <div class="flex gap-2 pt-1">
-          <button onclick="closeModal('transferModal')" class="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition">取消</button>
-          <button id="confirmExternalBtn" onclick="showConfirmModal()" ${verified ? '' : 'disabled'} class="flex-1 py-2 rounded-xl text-xs font-bold transition ${verified ? 'bg-teal-700 hover:bg-teal-800 text-white' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}">确认转让给该学员</button>
+        <button data-action="close-modal" class="mt-3 h-10 w-full rounded-xl bg-slate-100 text-[14px] font-medium text-slate-600">取消</button>`);
+    }
+
+    function openMemoModal() {
+      state.modal = 'memo';
+      state.confirmOpen = false;
+      renderOverlay();
+    }
+
+    function renderMemoModal() {
+      const lesson = fixedLesson();
+      const t = activeTransfer();
+      const student = STUDENTS[lesson.actualStudent] || STUDENTS.AliceZ12;
+      return sheetShell(`
+        ${modalHeader('受让学员备课学情', `${fmtDate(FIXED.date)} ${FIXED.time} · ${FIXED.course}`, 'book-open')}
+        ${t ? `<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">学员变更：${t.from} 已转让给 ${t.to}。请按 ${t.to} 的进度备课。</div>` : ''}
+        <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-[12px]">
+          <div class="flex justify-between py-1"><span class="text-slate-400">学员昵称</span><span class="font-mono font-semibold text-slate-800">${esc(student.nickname)}</span></div>
+          <div class="flex justify-between py-1"><span class="text-slate-400">性别与年龄</span><span class="font-semibold text-slate-800">${student.gender} · ${student.age}岁</span></div>
+          <div class="flex justify-between py-1"><span class="text-slate-400">年级</span><span class="font-semibold text-slate-800">${esc(student.grade)}</span></div>
+          <div class="flex justify-between py-1"><span class="text-slate-400">当前水平</span><span class="font-semibold text-emerald-700">${esc(student.level)}</span></div>
+          <div class="flex justify-between py-1"><span class="text-slate-400">学习重点</span><span class="font-semibold text-slate-800">${esc(student.focus)}</span></div>
         </div>
-      </div>`}`;
-}
-
-function renderTransferDialog() {
-  $('transferDialog').innerHTML = transferDialogHTML();
-  ico();
-}
-
-function openTransferModal() {
-  const lesson = fixedLesson();
-  if (lesson.type === 'temp') return toast('临时课不可转让');
-  if (lesson.isTransferred) return toast('受让课程不可二次转让');
-  if (lesson.hours < 3) return toast('开课前 3 小时内锁定，禁止转让');
-  S.transferTab = 'family';
-  S.verified = null;
-  S.verifyError = null;
-  S.nickInput = 'TomZ11';
-  renderTransferDialog();
-  $('transferModal').classList.remove('hidden');
-  ico();
-}
-
-function switchTransferTab(tab) {
-  S.transferTab = tab;
-  S.verified = null;
-  S.verifyError = null;
-  renderTransferDialog();
-}
-
-function onNickInput(value) {
-  S.nickInput = value;
-  S.verified = null;
-  S.verifyError = null;
-  const feedback = $('verifyFeedback');
-  if (feedback) feedback.innerHTML = '';
-  const button = $('confirmExternalBtn');
-  if (button) {
-    button.disabled = true;
-    button.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition bg-slate-100 text-slate-400 cursor-not-allowed';
-  }
-}
-
-function verifyNickname() {
-  const raw = (S.nickInput || '').trim();
-  S.verified = null;
-  S.verifyError = null;
-
-  if (!/^[A-Za-z]+[A-Za-z][0-9]{1,2}$/.test(raw)) {
-    S.verifyError = '未找到该学员，请核对昵称格式。';
-    renderTransferDialog();
-    return;
-  }
-
-  const found = Object.values(STUDENTS).find((s) => s.nickname.toLowerCase() === raw.toLowerCase());
-  if (!found) {
-    S.verifyError = '未找到该学员，请核对昵称格式。';
-    renderTransferDialog();
-    return;
-  }
-  if (found.nickname === currentStudent()) {
-    S.verifyError = '禁止自己转给自己，请选择其他学员。';
-    renderTransferDialog();
-    return;
-  }
-
-  S.verified = found;
-  renderTransferDialog();
-}
-
-function showConfirmModal() {
-  if (!S.verified) return;
-  const lesson = fixedLesson();
-  $('confirmLessonTime').textContent = `${lesson.date} ${lesson.time}`;
-  $('confirmRecipient').textContent = `${S.verified.nickname}（${S.verified.gender}，${S.verified.age}岁）`;
-  $('confirmModal').classList.remove('hidden');
-  ico();
-}
-
-function commitExternalTransfer() {
-  if (!S.verified) return;
-  const from = currentStudent();
-  S.transfer = {
-    from,
-    to: S.verified.nickname,
-    type: 'external',
-    operator: 'Amy',
-    at: stamp(),
-    note: '家长自助转让，线下资金已结清'
-  };
-  S.rescheduleCount = 0;
-  closeAllModals();
-  S.role = 'helen';
-  S.view = 'calendar';
-  renderAll();
-  toast(`转让已生效，${S.verified.nickname} 课表已加注【转】字角标`);
-}
-
-function commitFamilyTransfer() {
-  const select = $('familyRecipient');
-  const to = select ? select.value : null;
-  if (!to) return toast('请选择接收孩子');
-  const from = currentStudent();
-  S.transfer = {
-    from,
-    to,
-    type: 'family',
-    operator: 'Amy',
-    at: stamp(),
-    note: '同家庭多孩直转，出资家长不变'
-  };
-  S.rescheduleCount = 0;
-  closeAllModals();
-  S.amyActive = to;
-  S.role = 'amy';
-  S.view = 'calendar';
-  renderAll();
-  toast(`已划转给 ${to}，二宝课表已挂载【转】字角标`);
-}
-
-function openMonitorModal() {
-  const lesson = fixedLesson();
-  if (lesson.isTransferred) return toast('该课次已完成交割');
-  const options = Object.values(STUDENTS)
-    .filter((s) => s.nickname !== 'AliceZ12')
-    .map((s) => `<option value="${s.nickname}">${s.nickname} · ${s.parent} 名下 · ${s.age}岁</option>`)
-    .join('');
-  $('monitorBody').innerHTML = `
-    <div class="flex items-start justify-between pb-2 border-b border-slate-100">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 rounded-xl bg-indigo-900 text-white grid place-items-center">
-          <i data-lucide="user-cog" class="w-4 h-4"></i>
+        <div class="mt-2 rounded-xl border border-indigo-100 bg-indigo-50/70 px-3.5 py-2.5 text-[12px] text-indigo-900">
+          <div class="flex justify-between text-[12px] font-bold text-indigo-700"><span>转让方留言</span><span>${t ? esc(t.at) : '暂无'}</span></div>
+          <p class="mt-1 font-medium leading-relaxed">${t ? esc(t.note) : '本周暂无转让留言。'}</p>
         </div>
-        <div>
-          <h4 class="font-bold text-slate-900 text-sm">后台协助转让</h4>
-          <p class="text-xs text-slate-400">操作人 Leo 班长 · 审计留痕</p>
-        </div>
-      </div>
-      <button onclick="closeModal('monitorModal')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
-        <i data-lucide="x" class="w-3.5 h-3.5"></i>
-      </button>
-    </div>
-    <div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-sm space-y-1">
-      <div class="flex items-center justify-between"><span class="text-slate-400">待转排课</span><span class="font-semibold">${lesson.date} ${lesson.time}</span></div>
-      <div class="flex items-center justify-between"><span class="text-slate-400">原排课学员</span><span class="font-mono font-semibold">AliceZ12</span></div>
-      <div class="flex items-center justify-between"><span class="text-slate-400">资金持有方</span><span class="text-emerald-700 font-medium">Leo 班长 锁定</span></div>
-    </div>
-    <label class="block text-sm text-slate-600 font-medium mt-2">选择接收学员档案</label>
-    <select id="monitorRecipient" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white outline-none focus:ring-2 focus:ring-indigo-500">${options}</select>
-    <label class="block text-sm text-slate-600 font-medium mt-2">代办转让原因及交割备注</label>
-    <textarea id="monitorNote" rows="3" maxlength="200" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:ring-2 focus:ring-indigo-500" placeholder="例如：家长微信群已结清打款，电话委托班长代办"></textarea>
-    <p class="text-xs text-slate-400 mt-1">1 至 200 字，备注将写入审计快照并派发协同通知。</p>
-    <div class="flex gap-2 pt-2">
-      <button onclick="closeModal('monitorModal')" class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition">取消</button>
-      <button onclick="commitMonitorTransfer()" class="flex-1 py-2.5 rounded-xl bg-indigo-900 hover:bg-indigo-800 text-white text-xs font-bold transition">确认代办划转</button>
-    </div>`;
-  $('monitorModal').classList.remove('hidden');
-  ico();
-}
+        <button data-action="close-modal" class="mt-3 h-10 w-full rounded-xl bg-slate-800 text-[14px] font-medium text-white">已了解学情并备课</button>`);
+    }
 
-function commitMonitorTransfer() {
-  const to = $('monitorRecipient').value;
-  const note = ($('monitorNote').value || '').trim();
-  if (note.length < 1 || note.length > 200) {
-    toast('请填写 1 至 200 字的代办备注');
-    return;
-  }
-  S.transfer = {
-    from: 'AliceZ12',
-    to,
-    type: 'proxy',
-    operator: 'Leo 班长',
-    at: stamp(),
-    note
-  };
-  S.rescheduleCount = 0;
-  closeAllModals();
-  S.role = 'leo';
-  S.view = 'calendar';
-  renderAll();
-  toast(`代办交割完成，已划转给 ${to}`);
-}
+    /* ------------------------------------------------------------------
+     * 提交动作
+     * ------------------------------------------------------------------ */
+    function verifyNickname() {
+      const raw = (state.nickInput || '').trim();
+      state.verified = null;
+      state.verifyError = null;
+      if (!/^[A-Za-z]+[A-Za-z][0-9]{1,2}$/.test(raw)) {
+        state.verifyError = '未找到该学员，请核对昵称格式。';
+        renderOverlay();
+        return;
+      }
+      const found = Object.values(STUDENTS).find((s) => s.nickname.toLowerCase() === raw.toLowerCase());
+      if (!found) {
+        state.verifyError = '未找到该学员，请核对昵称格式。';
+        renderOverlay();
+        return;
+      }
+      if (found.nickname === FIXED.student) {
+        state.verifyError = '禁止自己转给自己，请选择其他学员。';
+        renderOverlay();
+        return;
+      }
+      if (found.account === STUDENTS[FIXED.student].account) {
+        state.verifyError = '该学员与本课次同属一个家庭账号，请使用【同家庭直转】。';
+        renderOverlay();
+        return;
+      }
+      state.verified = found;
+      renderOverlay();
+    }
 
-function openMemo() {
-  const lesson = fixedLesson();
-  const student = STUDENTS[lesson.actualStudent] || STUDENTS.AliceZ12;
-  const transfer = activeTransfer();
-  $('memoBody').innerHTML = `
-    <div class="flex items-start justify-between pb-2 border-b border-slate-100">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 grid place-items-center">
-          <i data-lucide="book-open-check" class="w-4 h-4"></i>
-        </div>
-        <div>
-          <h4 class="font-bold text-slate-900 text-sm">受让学员备课学情</h4>
-          <p class="text-xs text-slate-400">${lesson.date} ${lesson.time} · ${lesson.course}</p>
-        </div>
-      </div>
-      <button onclick="closeModal('memoModal')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
-        <i data-lucide="x" class="w-3.5 h-3.5"></i>
-      </button>
-    </div>
-    ${transfer ? `
-      <div class="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-sm text-amber-900 leading-relaxed">
-        学员变更：${transfer.from} 已转让给 ${transfer.to}。请按 ${transfer.to} 的进度备课。
-      </div>` : ''}
-    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-1.5 text-sm">
-      <div class="flex items-center justify-between"><span class="text-slate-400">学员昵称</span><span class="font-mono font-semibold">${student.nickname}</span></div>
-      <div class="flex items-center justify-between"><span class="text-slate-400">性别与年龄</span><span>${student.gender} · ${student.age}岁</span></div>
-      <div class="flex items-center justify-between"><span class="text-slate-400">年级</span><span>${student.grade}</span></div>
-      <div class="flex items-center justify-between"><span class="text-slate-400">当前水平</span><span class="text-emerald-700 font-medium">${student.level}</span></div>
-      <div class="flex items-center justify-between"><span class="text-slate-400">学习重点</span><span>${student.focus}</span></div>
-    </div>
-    <div class="rounded-xl border border-teal-200 bg-teal-50 p-2.5 text-sm text-teal-900 space-y-1">
-      <div class="flex items-center justify-between text-xs text-teal-700 font-medium"><span>转让方留言</span><span>${transfer ? transfer.at : '暂无'}</span></div>
-      <p class="text-xs leading-relaxed">${transfer ? transfer.note : '本周暂无转让留言。'}</p>
-    </div>
-    <button onclick="closeModal('memoModal')" class="w-full rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium py-2.5 transition">已了解学情并备课</button>`;
-  $('memoModal').classList.remove('hidden');
-  ico();
-}
+    function commitFamilyTransfer() {
+      if (!guardWrite()) return;
+      const select = document.getElementById('familyRecipient');
+      const to = select ? select.value : '';
+      if (!to) return showToast('请选择接收孩子', true);
+      const from = FIXED.student;
+      state.transfer = {
+        from, to, type: 'family', scope: 'family', operator: 'Amy',
+        at: stamp(), note: '同家庭多孩直转，出资家长与资金持有方不变'
+      };
+      state.rescheduleCount = 0;
+      state.modal = null;
+      state.confirmOpen = false;
+      state.amyActive = to;
+      state.role = 'amy';
+      state.page = 'board';
+      state.navTab = 'schedule';
+      state.view = 'calendar';
+      state.auditTab = 'in';
+      renderAll();
+      showToast(`已划转给 ${to}，课表已挂载【转】角标；原家长退款权保留`);
+    }
 
-function openReschedule() {
-  const lesson = fixedLesson();
-  if (lesson.rescheduleCount >= 1) return toast('该课次已挪位，不可再次挪位');
-  if (lesson.hours < 3) return toast('开课前 3 小时内不可挪位');
-  const slots = [
-    { date: '11-12 周四', time: '18:00-18:30' },
-    { date: '11-16 周一', time: '16:00-16:30' },
-    { date: '11-17 周二', time: '17:30-18:00' }
-  ];
-  $('rescheduleBody').innerHTML = `
-    <div class="flex items-start justify-between pb-2 border-b border-slate-100">
-      <div>
-        <h4 class="font-bold text-slate-900 text-sm">同师挪位</h4>
-        <p class="text-xs text-slate-400">David Miller · 前后 7 天内空闲格 · 仅限 1 次</p>
-      </div>
-      <button onclick="closeModal('rescheduleModal')" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
-        <i data-lucide="x" class="w-3.5 h-3.5"></i>
-      </button>
-    </div>
-    <div class="space-y-2">
-      ${slots.map((s) => `
-        <button onclick="commitReschedule('${s.date} ${s.time}')" class="w-full flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm hover:bg-emerald-100 transition">
-          <span class="font-medium text-emerald-900">${s.date} · ${s.time}</span>
-          <span class="text-xs text-emerald-700 font-semibold">选择</span>
-        </button>`).join('')}
-    </div>
-    <p class="text-xs text-slate-400 mt-2">挪位不改变授课教师、出资家长与资金持有方。</p>`;
-  $('rescheduleModal').classList.remove('hidden');
-  ico();
-}
+    function commitExternalTransfer() {
+      if (!guardWrite()) return;
+      if (!state.verified) return showToast('请先验证接收学员', true);
+      const from = FIXED.student;
+      const to = state.verified.nickname;
+      state.transfer = {
+        from, to, type: 'external', scope: 'external', operator: 'Amy',
+        at: stamp(), note: '家长自助转让，线下资金已结清'
+      };
+      state.rescheduleCount = 0;
+      state.modal = null;
+      state.confirmOpen = false;
+      state.role = 'helen';
+      state.page = 'board';
+      state.view = 'calendar';
+      state.navTab = 'schedule';
+      state.auditTab = 'in';
+      renderAll();
+      showToast(`转让已生效，${to} 课表已加注【转】角标；原家长退款入口已锁定`);
+    }
 
-function commitReschedule(slot) {
-  S.rescheduleCount = 1;
-  closeAllModals();
-  renderAll();
-  toast(`已提交同师挪位申请：${slot}`);
-}
+    function commitMonitorTransfer() {
+      if (!guardWrite()) return;
+      const recipient = document.getElementById('monitorRecipient');
+      const noteEl = document.getElementById('monitorNote');
+      const to = recipient ? recipient.value : '';
+      const note = noteEl ? noteEl.value.trim() : '';
+      if (!to) return showToast('请选择接收学员', true);
+      if (note.length < 1 || note.length > 200) return showToast('请填写 1 至 200 字的代办备注', true);
+      const from = FIXED.student;
+      state.transfer = {
+        from, to, type: 'proxy', scope: transferScope(from, to), operator: 'Leo 班长',
+        at: stamp(), note
+      };
+      state.rescheduleCount = 0;
+      state.modal = null;
+      state.confirmOpen = false;
+      state.role = 'leo';
+      state.page = 'board';
+      state.navTab = 'ops';
+      state.view = 'calendar';
+      renderAll();
+      showToast(`代办交割完成，已划转给 ${to}；审计日志已写入`);
+    }
 
-renderAll();
-</script>
+    function commitReschedule(slot) {
+      if (!guardWrite()) return;
+      state.rescheduleCount = 1;
+      state.modal = null;
+      state.confirmOpen = false;
+      renderAll();
+      showToast(`已提交同师挪位：${slot} · 免扣请假配额`);
+    }
+
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      t.className = `pointer-events-none absolute bottom-24 left-1/2 z-[100] w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl ${isError ? 'bg-rose-600/95' : 'bg-slate-900/90'}`;
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => t.classList.add('hidden'), 2800);
+    }
+
+    /* ------------------------------------------------------------------
+     * 事件
+     * ------------------------------------------------------------------ */
+    document.getElementById('frame').addEventListener('click', (e) => {
+      const el = e.target.closest('[data-action]');
+      if (!el) return;
+      const action = el.dataset.action;
+
+      if (action === 'nav') return navTo(el.dataset.tab);
+      if (action === 'set-view') return setView(el.dataset.view);
+      if (action === 'toast') return showToast(el.dataset.message || '');
+      if (action === 'set-child') return setAmyStudent(el.dataset.nick);
+      if (action === 'audit-tab') { state.auditTab = el.dataset.tab; renderAll(); return; }
+      if (action === 'open-lesson') return openDetail(el.dataset.kind);
+      if (action === 'open-transfer') return openTransferModal();
+      if (action === 'open-reschedule') return openRescheduleModal();
+      if (action === 'open-monitor') return openMonitorModal();
+      if (action === 'open-memo') return openMemoModal();
+      if (action === 'transfer-tab') {
+        state.transferTab = el.dataset.tab;
+        state.verified = null;
+        state.verifyError = null;
+        renderOverlay();
+        return;
+      }
+      if (action === 'verify') return verifyNickname();
+      if (action === 'show-confirm') {
+        if (!state.verified) return showToast('请先验证接收学员', true);
+        state.confirmOpen = true;
+        renderOverlay();
+        return;
+      }
+      if (action === 'commit-external') return commitExternalTransfer();
+      if (action === 'commit-family') return commitFamilyTransfer();
+      if (action === 'commit-monitor') return commitMonitorTransfer();
+      if (action === 'commit-reschedule') return commitReschedule(el.dataset.slot);
+      if (action === 'close-confirm') { state.confirmOpen = false; renderOverlay(); return; }
+      if (action === 'close-modal') { state.modal = null; state.confirmOpen = false; renderOverlay(); return; }
+    });
+
+    document.getElementById('frame').addEventListener('input', (e) => {
+      if (e.target.id === 'nickInput') {
+        state.nickInput = e.target.value;
+        state.verified = null;
+        state.verifyError = null;
+        const feedback = document.getElementById('verifyFeedback');
+        if (feedback) feedback.innerHTML = '';
+        const btn = document.getElementById('confirmExternalBtn');
+        if (btn) {
+          btn.disabled = true;
+          btn.className = 'h-11 flex-[2] rounded-xl text-[16px] font-semibold cursor-not-allowed bg-slate-200 text-slate-400';
+        }
+      }
+    });
+
+    renderAll();
+  </script>
 </body>
 </html>

@@ -1,1372 +1,1656 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
 <!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<!-- 即抛型原型：M4 三级消息通知分发网络。纯前端 Mock，不连接后端，不触碰生产代码。遵循 DESIGN.md 与 docs/prd/m4_notification.md -->
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>原型 - M4 三级消息通知分发网络</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body class="bg-slate-200 text-slate-800 min-h-screen">
-
-<header class="bg-white border-b border-slate-200 px-3 py-2 sticky top-0 z-50 flex flex-wrap gap-2 items-center justify-between text-xs shadow-sm">
-  <div class="flex items-center gap-2">
-    <span class="font-bold text-slate-900 flex items-center gap-1.5">
-      <i data-lucide="bell-ring" class="w-4 h-4 text-sky-700"></i>M4 三级消息通知分发网络
-    </span>
-    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="roleSwitch"></div>
-    <div class="inline-flex rounded-lg bg-slate-100 p-0.5" id="deviceSwitch"></div>
-  </div>
-  <div class="flex items-center gap-2">
-    <span class="text-sm text-slate-400">双语站内信 + 邮件兜底 + task-relay 重试</span>
-    <button onclick="resetPrototype()" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm flex items-center gap-1 transition">
-      <i data-lucide="rotate-ccw" class="w-3 h-3"></i>重置
-    </button>
-  </div>
-</header>
-
-<main class="flex justify-center py-4">
-  <div id="frame" class="relative w-[390px] max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[840px] flex flex-col border border-slate-300/60 transition-all">
-
-    <div id="appHeader" class="bg-teal-700 text-white px-4 py-2.5 flex items-center justify-between shrink-0 transition-colors"></div>
-    <div id="content" class="flex-1 overflow-y-auto p-3.5"></div>
-    <div id="drawerRoot"></div>
-    <div id="confirmRoot"></div>
-    <div id="emailRoot"></div>
-
-    <div id="toast" class="hidden absolute left-1/2 -translate-x-1/2 bottom-12 bg-slate-900/95 text-white text-xs rounded-xl px-4 py-2.5 z-[100] shadow-xl max-w-[90%] text-center flex items-center gap-2">
-      <i data-lucide="info" class="w-4 h-4 shrink-0 text-amber-400"></i>
-      <span id="toastText">提示内容</span>
-    </div>
-
-  </div>
-</main>
-
-<script>
-const USERS = {
-  amy: { name: 'Amy', title: 'Amy · 家长工作台', sub: '出资家长 · 双语通知接收人', avatar: 'A', theme: 'bg-teal-700', badge: '家长端', email: 'amy.parent@qq.com' },
-  david: { name: 'David Miller', title: 'David Miller · 教师课表', sub: '母语外教 · 双语邮件与备课', avatar: 'D', theme: 'bg-slate-800', badge: '教师端', email: 'david.miller@gmail.com' },
-  leo: { name: 'Leo', title: 'Leo · 班长工作台', sub: '教务调度 · 紧急通知派发', avatar: 'L', theme: 'bg-indigo-900', badge: '班长端', email: 'leo.monitor@topee.top' },
-  sarah: { name: 'Sarah', title: 'Sarah · 管理员后台', sub: '通信风控 · 通知服务审计', avatar: 'S', theme: 'bg-slate-900', badge: '管理员', email: 'sarah.admin@topee.top' }
-};
-
-const BASE_NOTICES = {
-  amy: [
-    {
-      id: 'amy-transfer',
-      level: 'L3',
-      read: false,
-      minutesAgo: 5,
-      titleZh: '课程转让成功',
-      titleEn: 'Course Transfer Confirmed',
-      bodyZh: 'AliceZ12 的 11-14 周六 16:00 固定位已转让给 TomZ11，原出资家长与资金持有方保持不变。',
-      bodyEn: 'The fixed slot on Nov 14 at 16:00 has been transferred from AliceZ12 to TomZ11. The funder and fund holder remain unchanged.',
-      channels: ['inapp', 'email'],
-      emailSent: true,
-      emailStatus: 'SENT',
-      emailNote: '三级紧急通知：站内信与邮件在事务提交后 5 秒内并发派发。',
-      internal: false,
-      action: { type: 'email', labelZh: '查看紧急邮件', labelEn: 'View Urgent Email' },
-      template: 'transfer'
-    },
-    {
-      id: 'amy-batch',
-      level: 'L2',
-      read: false,
-      minutesAgo: 42,
-      titleZh: '固定位排课确认（共 4 节）',
-      titleEn: 'Fixed Slot Schedule Confirmed (4 Lessons)',
-      bodyZh: '11-09 至 11-30 的 4 周固定位已排定。系统自动聚合为 1 条通知与 1 封综合邮件，避免 4 封独立邮件轰炸。',
-      bodyEn: 'Your 4 fixed slots from Nov 09 to Nov 30 are confirmed. The 4 lessons are grouped into one notification and one email to avoid mailbox flooding.',
-      channels: ['inapp', 'email'],
-      emailSent: true,
-      emailStatus: 'SENT',
-      emailNote: '二级必达：站内信 30 分钟未读，dream-worker 已补发 1 封聚合邮件。',
-      internal: false,
-      action: { type: 'email', labelZh: '查看聚合邮件', labelEn: 'View Batch Email' },
-      template: 'batch'
-    },
-    {
-      id: 'amy-payment',
-      level: 'L2',
-      read: false,
-      minutesAgo: 31,
-      titleZh: '购课单收款确认',
-      titleEn: 'Payment Confirmed',
-      bodyZh: '购课单 ORD_20261102_0091 已确认收款，1v1 固定位课时已生成待排期 TS。若 30 分钟内未读，Worker 将补发双语邮件。',
-      bodyEn: 'Order ORD_20261102_0091 is paid. The 1v1 fixed-slot lesson is created and pending scheduling. If unread after 30 minutes, the worker will send a bilingual fallback email.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'PENDING',
-      emailNote: '未读接近 30 分钟，等待 dream-worker 扫描补发。',
-      internal: false,
-      action: { type: 'none', labelZh: '', labelEn: '' },
-      template: 'payment'
-    },
-    {
-      id: 'amy-temp-booking',
-      level: 'L2',
-      read: true,
-      minutesAgo: 120,
-      titleZh: '新约临时课成功',
-      titleEn: 'Trial Lesson Booked',
-      bodyZh: '11-15 周日 10:00 的 1v1 临时课已预约成功。您已在 30 分钟内阅读，系统未补发邮件。',
-      bodyEn: 'Your 1v1 trial lesson on Nov 15 at 10:00 is booked. You read it within 30 minutes, so no fallback email was sent.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '用户已在 30 分钟内阅读，无需补发邮件。',
-      internal: false,
-      action: { type: 'schedule', labelZh: '查看课表', labelEn: 'View Schedule' },
-      template: 'payment'
-    },
-    {
-      id: 'amy-reply',
-      level: 'L1',
-      read: false,
-      minutesAgo: 8,
-      titleZh: '公开留言回复',
-      titleEn: 'New Public Reply',
-      bodyZh: 'David 老师在 AliceZ12 的师生公开留言板回复了本周学习反馈。',
-      bodyEn: 'Teacher David replied to this week learning feedback on AliceZ12 public message board.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '一级常规通知仅站内信，严禁派发外部邮件。',
-      internal: false,
-      action: { type: 'memo', labelZh: '查看留言板', labelEn: 'View Message Board' },
-      template: 'message'
-    },
-    {
-      id: 'amy-substitute',
-      level: 'L3',
-      read: true,
-      minutesAgo: 180,
-      titleZh: '临时代课调整',
-      titleEn: 'Substitute Teacher Assigned',
-      bodyZh: '11-10 周二 19:00 课程由 Linda 老师代课，站内信与邮件已并发通知。',
-      bodyEn: 'The lesson on Nov 10 at 19:00 will be taught by Teacher Linda. In-app and email notifications were sent concurrently.',
-      channels: ['inapp', 'email'],
-      emailSent: true,
-      emailStatus: 'SENT',
-      emailNote: '三级紧急通知：已并发派发双语邮件。',
-      internal: false,
-      action: { type: 'email', labelZh: '查看邮件', labelEn: 'View Email' },
-      template: 'urgent'
-    },
-    {
-      id: 'amy-schedule',
-      level: 'L1',
-      read: true,
-      minutesAgo: 1440,
-      titleZh: '课表已生成',
-      titleEn: 'Schedule Generated',
-      bodyZh: '本周课表已生成，可在家长工作台查看 7 色日历。',
-      bodyEn: 'This week schedule is ready. Open the parent workspace to view the 7-color calendar.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '一级常规通知仅站内信。',
-      internal: false,
-      action: { type: 'schedule', labelZh: '查看课表', labelEn: 'View Schedule' },
-      template: 'message'
-    }
-  ],
-  david: [
-    {
-      id: 'david-transfer',
-      level: 'L3',
-      read: false,
-      minutesAgo: 4,
-      titleZh: '学员变更通知',
-      titleEn: 'Student Change Notice',
-      bodyZh: '11-14 周六 16:00 固定位的上课学员已由 AliceZ12 变更为 TomZ11，请提前查看受让学员留言板备课。',
-      bodyEn: 'The student for the fixed slot on Nov 14 at 16:00 has changed from AliceZ12 to TomZ11. Please review the new student board before class.',
-      channels: ['inapp', 'email'],
-      emailSent: true,
-      emailStatus: 'SENT',
-      emailNote: '三级紧急通知：站内信与 Gmail 邮件已并发派发。',
-      internal: false,
-      action: { type: 'email', labelZh: '查看变更邮件', labelEn: 'View Change Email' },
-      template: 'transfer'
-    },
-    {
-      id: 'david-substitute',
-      level: 'L3',
-      read: false,
-      minutesAgo: 12,
-      titleZh: '临时代课指派',
-      titleEn: 'Substitute Assignment',
-      bodyZh: '您已临时请假。11-10 周二 19:00 的课程已指派 Linda 老师代上，课酬计入代课教师。',
-      bodyEn: 'You are on temporary leave. The lesson on Nov 10 at 19:00 is assigned to Teacher Linda, and the lesson fee goes to the substitute teacher.',
-      channels: ['inapp', 'email'],
-      emailSent: true,
-      emailStatus: 'SENT',
-      emailNote: '三级紧急通知：已并发派发双语邮件。',
-      internal: false,
-      action: { type: 'email', labelZh: '查看代课邮件', labelEn: 'View Substitute Email' },
-      template: 'urgent'
-    },
-    {
-      id: 'david-pay',
-      level: 'L1',
-      read: false,
-      minutesAgo: 60,
-      titleZh: '周课酬节数单已生成',
-      titleEn: 'Weekly Lesson Statement Ready',
-      bodyZh: '本周课酬节数单已生成，共 12 节课，可在教师工作台查看。',
-      bodyEn: 'Your weekly lesson statement is ready. You have 12 lessons this week. Open the teacher workspace to review.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '一级常规通知仅站内信。',
-      internal: false,
-      action: { type: 'schedule', labelZh: '查看课酬单', labelEn: 'View Statement' },
-      template: 'message'
-    },
-    {
-      id: 'david-reply',
-      level: 'L1',
-      read: true,
-      minutesAgo: 300,
-      titleZh: '公开留言回复',
-      titleEn: 'New Public Reply',
-      bodyZh: 'Amy 家长在 AliceZ12 的师生公开留言板回复了您的学习反馈。',
-      bodyEn: 'Parent Amy replied to your learning feedback on AliceZ12 public message board.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '一级常规通知仅站内信。',
-      internal: false,
-      action: { type: 'memo', labelZh: '查看留言板', labelEn: 'View Message Board' },
-      template: 'message'
-    },
-    {
-      id: 'david-internal',
-      level: 'L1',
-      read: false,
-      minutesAgo: 18,
-      titleZh: '内部教学备忘',
-      titleEn: 'Internal Teaching Note',
-      bodyZh: 'AliceZ12 近期注意力易分散，建议课堂前 5 分钟做口部热身。本留言仅内部教学可见。',
-      bodyEn: 'AliceZ12 has recently shown a shorter attention span. A 5-minute warm-up is recommended. This note is internal teaching only.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '隐私防火墙：家长端零站内信、零邮件。',
-      internal: true,
-      action: { type: 'none', labelZh: '', labelEn: '' },
-      template: 'internal'
-    },
-    {
-      id: 'david-batch',
-      level: 'L1',
-      read: true,
-      minutesAgo: 90,
-      titleZh: '固定位课表生成',
-      titleEn: 'Fixed Slot Schedule Generated',
-      bodyZh: 'Amy 名下的 4 周固定位已生成，您可在教师课表查看连续排期。',
-      bodyEn: 'The 4-week fixed slots under Amy are generated. Open your teacher calendar to view the schedule.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '一级常规通知仅站内信。',
-      internal: false,
-      action: { type: 'schedule', labelZh: '查看课表', labelEn: 'View Schedule' },
-      template: 'batch'
-    }
-  ],
-  leo: [
-    {
-      id: 'leo-cancel',
-      level: 'L3',
-      read: false,
-      minutesAgo: 6,
-      titleZh: '小班课整班停课',
-      titleEn: 'Class Cancelled',
-      bodyZh: '11-12 周四 17:00 的 1v4 小班课因教师紧急请假停课，已向 5 位家长并发双语邮件。',
-      bodyEn: 'The 1v4 small class on Nov 12 at 17:00 is cancelled due to teacher emergency leave. Bilingual emails were sent to all 5 parents concurrently.',
-      channels: ['inapp', 'email'],
-      emailSent: true,
-      emailStatus: 'SENT',
-      emailNote: '三级紧急通知：5 位家长站内信与邮件已并发派发。',
-      internal: false,
-      action: { type: 'email', labelZh: '查看停课邮件', labelEn: 'View Cancellation Email' },
-      template: 'urgent'
-    },
-    {
-      id: 'leo-refund',
-      level: 'L3',
-      read: false,
-      minutesAgo: 20,
-      titleZh: '垫底退款单已生成',
-      titleEn: 'Refund Order Created',
-      bodyZh: '退款单 RFD_20261105_0012 已生成，关联 11-14 周六 16:00 固定位，等待财务确认。',
-      bodyEn: 'Refund order RFD_20261105_0012 is created for the fixed slot on Nov 14 at 16:00 and is pending finance review.',
-      channels: ['inapp', 'email'],
-      emailSent: true,
-      emailStatus: 'SENT',
-      emailNote: '三级紧急通知：站内信与邮件已并发派发。',
-      internal: false,
-      action: { type: 'email', labelZh: '查看退款邮件', labelEn: 'View Refund Email' },
-      template: 'refund'
-    },
-    {
-      id: 'leo-batch',
-      level: 'L2',
-      read: false,
-      minutesAgo: 45,
-      titleZh: '固定位 4 周连排完成',
-      titleEn: '4-Week Fixed Slots Scheduled',
-      bodyZh: 'Amy 名下的 4 周固定位已完成连排，系统已聚合为 1 条通知与 1 封综合邮件。',
-      bodyEn: 'The 4-week fixed slots under Amy are scheduled. They are aggregated into one notification and one email.',
-      channels: ['inapp', 'email'],
-      emailSent: true,
-      emailStatus: 'SENT',
-      emailNote: '二级必达：30 分钟未读，Worker 已补发聚合邮件。',
-      internal: false,
-      action: { type: 'email', labelZh: '查看聚合邮件', labelEn: 'View Batch Email' },
-      template: 'batch'
-    },
-    {
-      id: 'leo-internal',
-      level: 'L1',
-      read: false,
-      minutesAgo: 15,
-      titleZh: '内部教学备忘',
-      titleEn: 'Internal Teaching Note',
-      bodyZh: 'AliceZ12 近期注意力易分散，建议课堂前 5 分钟做口部热身。本留言仅内部教学可见。',
-      bodyEn: 'AliceZ12 has recently shown a shorter attention span. A 5-minute warm-up is recommended. This note is internal teaching only.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '隐私防火墙：家长端零站内信、零邮件。',
-      internal: true,
-      action: { type: 'none', labelZh: '', labelEn: '' },
-      template: 'internal'
-    },
-    {
-      id: 'leo-reply',
-      level: 'L1',
-      read: true,
-      minutesAgo: 400,
-      titleZh: '公开留言回复',
-      titleEn: 'New Public Reply',
-      bodyZh: 'Amy 家长在公开留言板回复了 David 老师的学习反馈。',
-      bodyEn: 'Parent Amy replied to Teacher David learning feedback on the public message board.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '一级常规通知仅站内信。',
-      internal: false,
-      action: { type: 'memo', labelZh: '查看留言板', labelEn: 'View Message Board' },
-      template: 'message'
-    }
-  ],
-  sarah: [
-    {
-      id: 'sarah-failed',
-      level: 'L3',
-      read: false,
-      minutesAgo: 50,
-      titleZh: '邮件任务永久失败',
-      titleEn: 'Email Task Permanently Failed',
-      bodyZh: '退款单邮件连续 3 次重试失败，已标记 PERMANENT_FAILED，主业务与站内信不受影响。',
-      bodyEn: 'The refund email failed after 3 retries and is marked PERMANENT_FAILED. Core business and in-app messages are unaffected.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'PERMANENT_FAILED',
-      emailNote: 'TaskRelay 终态告警。',
-      internal: false,
-      action: { type: 'none', labelZh: '', labelEn: '' },
-      template: 'message'
-    },
-    {
-      id: 'sarah-backlog',
-      level: 'L1',
-      read: false,
-      minutesAgo: 25,
-      titleZh: 'TaskRelay 队列积压告警',
-      titleEn: 'TaskRelay Queue Backlog',
-      bodyZh: '邮件队列当前积压 18 条，网关限流触发退避重试，系统未阻塞主业务线程。',
-      bodyEn: 'The email queue has 18 pending tasks. Gateway throttling triggered backoff retries, and the main business thread is not blocked.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'PENDING',
-      emailNote: '通信风控内部告警。',
-      internal: false,
-      action: { type: 'none', labelZh: '', labelEn: '' },
-      template: 'message'
-    },
-    {
-      id: 'sarah-health',
-      level: 'L1',
-      read: false,
-      minutesAgo: 3,
-      titleZh: '通知服务健康检查通过',
-      titleEn: 'Notification Service Healthy',
-      bodyZh: 'topee-notification 站内信与邮件 API 健康检查通过，SSE 通道在线。',
-      bodyEn: 'topee-notification in-app and email APIs passed the health check. The SSE channel is online.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '一级常规系统通知。',
-      internal: false,
-      action: { type: 'none', labelZh: '', labelEn: '' },
-      template: 'message'
-    },
-    {
-      id: 'sarah-scan',
-      level: 'L2',
-      read: true,
-      minutesAgo: 65,
-      titleZh: 'Worker 扫描汇总',
-      titleEn: 'Worker Scan Summary',
-      bodyZh: '上一轮扫描命中 3 条二级必达未读记录，已全部补发双语邮件并原子回写 email_sent。',
-      bodyEn: 'The last scan matched 3 unread mandatory notices. All fallback emails were sent and email_sent was updated atomically.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: 'Worker 每 5 分钟扫描，单批上限 100 条。',
-      internal: false,
-      action: { type: 'none', labelZh: '', labelEn: '' },
-      template: 'message'
-    }
-  ]
-};
-
-const BASE_RELAY = [
-  { id: 'RT-1001', notice: '紧急转让邮件 · Amy', status: 'SENT', attempt: 1, next: '-', error: '' },
-  { id: 'RT-1002', notice: '紧急转让邮件 · David', status: 'RETRYING', attempt: 1, next: '5 分钟后', error: 'EMAIL_GATEWAY_THROTTLED' },
-  { id: 'RT-1003', notice: '退款单邮件 · Leo', status: 'PERMANENT_FAILED', attempt: 3, next: '-', error: 'EMAIL_GATEWAY_THROTTLED' }
-];
-
-const LEVEL_META = {
-  L1: { zh: '一级', en: 'Regular', cls: 'bg-slate-100 text-slate-600' },
-  L2: { zh: '二级', en: 'Mandatory', cls: 'bg-amber-100 text-amber-800' },
-  L3: { zh: '三级', en: 'Urgent', cls: 'bg-rose-100 text-rose-700' }
-};
-
-const EMAIL_TEMPLATES = {
-  batch: {
-    subject: '【Dream】固定位排课确认（共 4 节）/ Fixed Slot Schedule Confirmed (4 Lessons)',
-    titleZh: '您的固定位课程排课成功（共 4 节）',
-    titleEn: 'Fixed Slot Lessons Scheduled Successfully (4 Lessons)',
-    introZh: '您好，已为您完成连续 4 周的 1v1 固定位排课。为减少打扰，系统将 4 节排期聚合为 1 封邮件。',
-    introEn: 'Your 4 consecutive weeks of 1v1 fixed slots are confirmed. The 4 lessons are grouped into one email to reduce noise.',
-    headersZh: ['日期', '星期', '时段', '学员', '教师', '教室'],
-    headersEn: ['Date', 'Day', 'Time', 'Student', 'Teacher', 'Room'],
-    rows: [
-      { zh: ['2026-11-09', '周一', '19:00-19:25', 'AliceZ12', 'David Miller', 'ClassIn A-302'], en: ['Nov 09, 2026', 'Mon', '19:00-19:25', 'AliceZ12', 'David Miller', 'ClassIn A-302'] },
-      { zh: ['2026-11-16', '周一', '19:00-19:25', 'AliceZ12', 'David Miller', 'ClassIn A-302'], en: ['Nov 16, 2026', 'Mon', '19:00-19:25', 'AliceZ12', 'David Miller', 'ClassIn A-302'] },
-      { zh: ['2026-11-23', '周一', '19:00-19:25', 'AliceZ12', 'David Miller', 'ClassIn A-302'], en: ['Nov 23, 2026', 'Mon', '19:00-19:25', 'AliceZ12', 'David Miller', 'ClassIn A-302'] },
-      { zh: ['2026-11-30', '周一', '19:00-19:25', 'AliceZ12', 'David Miller', 'ClassIn A-302'], en: ['Nov 30, 2026', 'Mon', '19:00-19:25', 'AliceZ12', 'David Miller', 'ClassIn A-302'] }
-    ],
-    ctaZh: '进入系统查看课表',
-    ctaEn: 'Open System & View Schedule'
-  },
-  transfer: {
-    subject: '【Dream】课程转让成功 / Course Transfer Confirmed',
-    titleZh: '您的课程转让已生效',
-    titleEn: 'Your Course Transfer Is Confirmed',
-    introZh: '您好，以下固定位已完成实际上课学员变更。授课教师、上课时间与教室保持不变。',
-    introEn: 'The actual student for the fixed slot below has been updated. The teacher, lesson time and room remain unchanged.',
-    headersZh: ['项目', '内容'],
-    headersEn: ['Item', 'Details'],
-    rows: [
-      { zh: ['原学员', 'AliceZ12'], en: ['Original student', 'AliceZ12'] },
-      { zh: ['受让学员', 'TomZ11'], en: ['Transferred student', 'TomZ11'] },
-      { zh: ['授课时间', '2026-11-14 周六 16:00-16:25'], en: ['Lesson time', 'Nov 14, 2026, Sat, 16:00-16:25'] },
-      { zh: ['授课教师', 'David Miller'], en: ['Teacher', 'David Miller'] },
-      { zh: ['教室', 'ClassIn A-302'], en: ['Room', 'ClassIn A-302'] }
-    ],
-    ctaZh: '进入系统查看课表',
-    ctaEn: 'Open System & View Schedule'
-  },
-  payment: {
-    subject: '【Dream】购课单收款确认 / Payment Confirmed',
-    titleZh: '购课单收款确认',
-    titleEn: 'Payment Confirmed',
-    introZh: '您好，您的购课单已确认收款，课时已生成并进入待排期。',
-    introEn: 'Your order payment is confirmed. The lesson hours are created and pending scheduling.',
-    headersZh: ['项目', '内容'],
-    headersEn: ['Item', 'Details'],
-    rows: [
-      { zh: ['购课单', 'ORD_20261102_0091'], en: ['Order', 'ORD_20261102_0091'] },
-      { zh: ['课程', '1v1 英语 KET 精读'], en: ['Course', '1v1 English KET Reading'] },
-      { zh: ['课时', '4 节'], en: ['Lessons', '4 lessons'] },
-      { zh: ['金额', '¥1,200'], en: ['Amount', 'CNY 1,200'] },
-      { zh: ['状态', '已收款'], en: ['Status', 'Paid'] },
-      { zh: ['待排期', '1 节'], en: ['Pending', '1 lesson'] }
-    ],
-    ctaZh: '进入系统查看购课单',
-    ctaEn: 'Open System & View Order'
-  },
-  urgent: {
-    subject: '【Dream】紧急课程调整 / Urgent Schedule Update',
-    titleZh: '紧急课程调整通知',
-    titleEn: 'Urgent Schedule Update',
-    introZh: '您好，以下课程发生紧急调整。系统已在事务提交后 5 秒内并发派发站内信与本邮件。',
-    introEn: 'The lesson below has an urgent update. The in-app message and this email were dispatched concurrently within 5 seconds after the transaction committed.',
-    headersZh: ['项目', '内容'],
-    headersEn: ['Item', 'Details'],
-    rows: [
-      { zh: ['上课时间', '2026-11-10 周二 19:00-19:25'], en: ['Lesson time', 'Nov 10, 2026, Tue, 19:00-19:25'] },
-      { zh: ['原教师', 'David Miller'], en: ['Original teacher', 'David Miller'] },
-      { zh: ['代课教师', 'Linda Chen'], en: ['Substitute teacher', 'Linda Chen'] },
-      { zh: ['学员', 'AliceZ12'], en: ['Student', 'AliceZ12'] },
-      { zh: ['教室', 'ClassIn A-302'], en: ['Room', 'ClassIn A-302'] },
-      { zh: ['通知方式', '站内信 + 邮件并发'], en: ['Channel', 'In-app + Email concurrent'] }
-    ],
-    ctaZh: '进入系统查看课表',
-    ctaEn: 'Open System & View Schedule'
-  },
-  refund: {
-    subject: '【Dream】退款单已生成 / Refund Order Created',
-    titleZh: '退款单已生成',
-    titleEn: 'Refund Order Created',
-    introZh: '您好，以下退款单已生成并进入财务审核。站内信与邮件已并发派发。',
-    introEn: 'The refund order below is created and pending finance review. In-app and email notifications were sent concurrently.',
-    headersZh: ['项目', '内容'],
-    headersEn: ['Item', 'Details'],
-    rows: [
-      { zh: ['退款单', 'RFD_20261105_0012'], en: ['Refund order', 'RFD_20261105_0012'] },
-      { zh: ['关联课次', '11-14 周六 16:00'], en: ['Related lesson', 'Nov 14, Sat, 16:00'] },
-      { zh: ['学员', 'AliceZ12'], en: ['Student', 'AliceZ12'] },
-      { zh: ['退款金额', '¥300'], en: ['Amount', 'CNY 300'] },
-      { zh: ['状态', '待财务确认'], en: ['Status', 'Pending finance review'] },
-      { zh: ['通知对象', '家长、教师、班长'], en: ['Recipients', 'Parent, teacher, monitor'] }
-    ],
-    ctaZh: '进入系统查看退款单',
-    ctaEn: 'Open System & View Refund'
-  },
-  message: {
-    subject: '【Dream】留言板新回复 / New Message Board Reply',
-    titleZh: '留言板有新回复',
-    titleEn: 'New Reply on Message Board',
-    introZh: '您好，学生档案留言板产生了新的公开回复。',
-    introEn: 'A new public reply is available on the student profile message board.',
-    headersZh: ['项目', '内容'],
-    headersEn: ['Item', 'Details'],
-    rows: [
-      { zh: ['留言板', 'AliceZ12 师生公开留言板'], en: ['Board', 'AliceZ12 public board'] },
-      { zh: ['回复人', 'David Miller'], en: ['Author', 'David Miller'] },
-      { zh: ['类型', '师生公开'], en: ['Type', 'Public'] },
-      { zh: ['时间', '2026-11-05 10:20'], en: ['Time', 'Nov 05, 2026, 10:20'] }
-    ],
-    ctaZh: '进入系统查看留言板',
-    ctaEn: 'Open System & View Board'
-  }
-};
-
-const INIT = {
-  role: 'amy',
-  device: 'phone',
-  drawerOpen: true,
-  force99: false,
-  confirmRead: false,
-  emailNoticeId: null,
-  blockedParentRoutes: 3,
-  workerLog: '10:35 扫描命中 1 条二级必达记录，已委托 task-relay 补发。',
-  notices: null,
-  relayTasks: null
-};
-
-let S = initialState();
-let toastTimer = null;
-
-const $ = (id) => document.getElementById(id);
-
-function initialState() {
-  return Object.assign({}, INIT, {
-    notices: JSON.parse(JSON.stringify(BASE_NOTICES)),
-    relayTasks: JSON.parse(JSON.stringify(BASE_RELAY))
-  });
-}
-
-function ico() {
-  if (window.lucide) window.lucide.createIcons();
-}
-
-function toast(message) {
-  const el = $('toast');
-  $('toastText').textContent = message;
-  el.classList.remove('hidden');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.add('hidden'), 2600);
-}
-
-function relative(minutes) {
-  if (minutes < 1) return { zh: '刚刚', en: 'just now' };
-  if (minutes < 60) return { zh: `${minutes}分钟前`, en: `${minutes} mins ago` };
-  if (minutes < 1440) {
-    const hours = Math.floor(minutes / 60);
-    return { zh: `${hours}小时前`, en: `${hours} hours ago` };
-  }
-  if (minutes < 2880) return { zh: '昨天', en: 'Yesterday' };
-  const days = Math.floor(minutes / 1440);
-  return { zh: `${days}天前`, en: `${days} days ago` };
-}
-
-function unreadCount(role = S.role) {
-  return (S.notices[role] || []).filter((n) => !n.read).length;
-}
-
-function badgeText(role = S.role) {
-  if (S.force99) return '99+';
-  const count = unreadCount(role);
-  if (count <= 0) return '';
-  return count > 99 ? '99+' : String(count);
-}
-
-function pendingMandatoryCount() {
-  let count = 0;
-  Object.keys(S.notices).forEach((role) => {
-    S.notices[role].forEach((n) => {
-      if (n.level === 'L2' && !n.read && !n.emailSent && n.minutesAgo >= 30) count += 1;
-    });
-  });
-  return count;
-}
-
-function findNotice(id) {
-  const list = S.notices[S.role] || [];
-  const current = list.find((n) => n.id === id);
-  if (current) return current;
-  for (const role of Object.keys(S.notices)) {
-    const found = S.notices[role].find((n) => n.id === id);
-    if (found) return found;
-  }
-  return null;
-}
-
-function resetPrototype() {
-  S = initialState();
-  $('frame').className = 'relative w-[390px] max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[840px] flex flex-col border border-slate-300/60 transition-all';
-  renderAll();
-  toast('原型状态已重置');
-}
-
-function setRole(role) {
-  S.role = role;
-  S.drawerOpen = role !== 'sarah';
-  S.confirmRead = false;
-  S.emailNoticeId = null;
-  S.force99 = false;
-  renderAll();
-}
-
-function setDevice(device) {
-  S.device = device;
-  $('frame').className = `relative ${device === 'tablet' ? 'w-[760px]' : 'w-[390px]'} max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[840px] flex flex-col border border-slate-300/60 transition-all`;
-  renderAll();
-}
-
-function openDrawer() {
-  S.drawerOpen = true;
-  renderAll();
-}
-
-function toggleDrawer() {
-  S.drawerOpen = !S.drawerOpen;
-  renderAll();
-}
-
-function closeDrawer() {
-  S.drawerOpen = false;
-  renderAll();
-}
-
-function markRead(id) {
-  const notice = findNotice(id);
-  if (!notice || notice.read) return;
-  notice.read = true;
-  renderAll();
-}
-
-function openConfirmAll() {
-  if (unreadCount() === 0) {
-    toast('当前没有未读消息');
-    return;
-  }
-  S.confirmRead = true;
-  renderAll();
-}
-
-function closeConfirmAll() {
-  S.confirmRead = false;
-  renderAll();
-}
-
-function markAllRead() {
-  (S.notices[S.role] || []).forEach((n) => { n.read = true; });
-  S.confirmRead = false;
-  renderAll();
-  toast('已将当前账号全部消息标为已读');
-}
-
-function openEmail(id) {
-  const notice = findNotice(id);
-  if (!notice) return;
-  notice.read = true;
-  S.emailNoticeId = id;
-  renderAll();
-}
-
-function closeEmail() {
-  S.emailNoticeId = null;
-  renderAll();
-}
-
-function noticeAction(id) {
-  const notice = findNotice(id);
-  if (!notice) return;
-  notice.read = true;
-  if (notice.action.type === 'email') {
-    openEmail(id);
-    return;
-  }
-  renderAll();
-  if (notice.action.type === 'memo') toast('已打开学生留言板（原型演示）');
-  else if (notice.action.type === 'schedule') toast('已跳转课表（原型演示）');
-}
-
-function scrollToEnglish() {
-  const target = $('emailEnglish');
-  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function simulateWorkerScan() {
-  const hits = [];
-  Object.keys(S.notices).forEach((role) => {
-    S.notices[role].forEach((n) => {
-      if (n.level === 'L2' && !n.read && !n.emailSent && n.minutesAgo >= 30) {
-        n.emailSent = true;
-        n.emailStatus = 'SENT';
-        n.emailNote = 'Worker 扫描命中，已补发中英双语邮件并原子回写 email_sent。';
-        n.channels = ['inapp', 'email'];
-        n.action = { type: 'email', labelZh: '查看兜底邮件', labelEn: 'View Fallback Email' };
-        hits.push(`${role} · ${n.titleZh}`);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>原型 · M4 三级消息通知分发网络</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
+        }
       }
-    });
-  });
-  S.workerLog = hits.length
-    ? `10:35 扫描命中 ${hits.length} 条二级必达记录，已委托 task-relay 补发。`
-    : '10:35 扫描 0 条命中，未发现超过 30 分钟未读的二级必达记录。';
-  renderAll();
-  toast(hits.length ? `Worker 已补发 ${hits.length} 封中英双语邮件` : '本次扫描无命中记录');
-}
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
 
-function simulateNetworkRecover() {
-  const task = S.relayTasks.find((t) => t.status === 'RETRYING');
-  if (!task) {
-    toast('当前没有重试中的邮件任务');
-    return;
-  }
-  task.status = 'SENT';
-  task.attempt = Math.min(3, task.attempt + 1);
-  task.next = '-';
-  task.error = '';
-  renderAll();
-  toast('网络恢复，TaskRelay 重试成功');
-}
-
-function simulateAgainFail() {
-  const task = S.relayTasks.find((t) => t.status === 'RETRYING');
-  if (!task) {
-    toast('当前没有重试中的邮件任务');
-    return;
-  }
-  task.attempt += 1;
-  if (task.attempt >= 3) {
-    task.status = 'PERMANENT_FAILED';
-    task.next = '-';
-    task.error = 'EMAIL_GATEWAY_THROTTLED';
-    toast('连续 3 次重试失败，已标记 PERMANENT_FAILED');
-  } else {
-    task.next = '15 分钟后';
-    toast(`第 ${task.attempt} 次重试仍失败，按退避策略继续`);
-  }
-  renderAll();
-}
-
-function retryPermanent() {
-  const task = S.relayTasks.find((t) => t.status === 'PERMANENT_FAILED');
-  if (!task) {
-    toast('当前没有永久失败任务');
-    return;
-  }
-  task.status = 'RETRYING';
-  task.attempt = 1;
-  task.next = '1 分钟后';
-  task.error = 'EMAIL_GATEWAY_THROTTLED';
-  renderAll();
-  toast('永久失败任务已重新压入 task-relay 队列');
-}
-
-function simulateInternalNote() {
-  const id = Date.now();
-  ['david', 'leo', 'sarah'].forEach((role) => {
-    S.notices[role].unshift({
-      id: `${role}-internal-${id}`,
-      level: 'L1',
-      read: false,
-      minutesAgo: 0,
-      titleZh: '内部教学备忘',
-      titleEn: 'Internal Teaching Note',
-      bodyZh: 'AliceZ12 近期注意力易分散，建议课堂前 5 分钟做口部热身。本留言仅内部教学可见。',
-      bodyEn: 'AliceZ12 has recently shown a shorter attention span. A 5-minute warm-up is recommended. This note is internal teaching only.',
-      channels: ['inapp'],
-      emailSent: false,
-      emailStatus: 'NONE',
-      emailNote: '隐私防火墙：家长端零站内信、零邮件。',
-      internal: true,
-      action: { type: 'none', labelZh: '', labelEn: '' },
-      template: 'internal'
-    });
-  });
-  S.blockedParentRoutes += 1;
-  renderAll();
-  toast('内部留言已派发教师、班长与管理员，家长路由被物理拦截');
-}
-
-function toggleForce99() {
-  S.force99 = !S.force99;
-  renderAll();
-  toast(S.force99 ? '铃铛角标已模拟显示 99+' : '铃铛角标已恢复真实未读数');
-}
-
-function renderControls() {
-  const roles = [
-    ['amy', 'Amy 家长'],
-    ['david', 'David 教师'],
-    ['leo', 'Leo 班长'],
-    ['sarah', 'Sarah 管理员']
-  ];
-  $('roleSwitch').innerHTML = roles.map(([key, label]) => (
-    `<button onclick="setRole('${key}')" class="px-2 py-1 rounded-md transition ${S.role === key ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}">${label}</button>`
-  )).join('');
-
-  $('deviceSwitch').innerHTML = [['phone', '手机'], ['tablet', '平板']].map(([key, label]) => (
-    `<button onclick="setDevice('${key}')" class="px-2 py-1 rounded-md transition ${S.device === key ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-800'}">${label}</button>`
-  )).join('');
-}
-
-function bellHTML() {
-  const badge = badgeText();
-  return `
-    <button onclick="toggleDrawer()" class="relative w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 grid place-items-center transition" title="消息中心 / Notifications">
-      <i data-lucide="bell" class="w-4 h-4"></i>
-      ${badge ? `<span class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-600 text-white text-sm font-bold font-bold grid place-items-center leading-none">${badge}</span>` : ''}
-    </button>`;
-}
-
-function renderHeader() {
-  const user = USERS[S.role];
-  const header = $('appHeader');
-  header.className = `${user.theme} text-white px-4 py-2.5 flex items-center justify-between shrink-0 transition-colors`;
-  header.innerHTML = `
-    <div class="flex items-center gap-2.5">
-      <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold text-sm">${user.avatar}</div>
-      <div>
-        <div class="text-xs font-semibold leading-tight">${user.title}</div>
-        <div class="text-xs text-white/70">${user.sub}</div>
+  <!-- 原型控制台（不属于产品界面） -->
+  <header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-[12px]">
+      <div class="flex items-center gap-2">
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-indigo-600 text-[12px] font-bold text-white">M4</span>
+        <span class="text-[14px] font-bold text-slate-900">三级消息通知分发网络</span>
+        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">双语站内信 · Email 兜底 · TaskRelay 重试</span>
       </div>
-    </div>
-    <div class="flex items-center gap-1.5">
-      ${bellHTML()}
-      <span class="text-xs px-2 py-0.5 rounded-full bg-white/20 font-medium">${user.badge}</span>
-    </div>`;
-}
 
-function noticeCard(n) {
-  const level = LEVEL_META[n.level];
-  const rel = relative(n.minutesAgo);
-  const unread = !n.read;
-  const emailBadge = n.emailSent
-    ? `<span class="inline-flex items-center gap-0.5 text-emerald-700"><i data-lucide="mail-check" class="w-3 h-3"></i>邮件已发</span>`
-    : n.level === 'L2'
-      ? n.read
-        ? `<span class="inline-flex items-center gap-0.5 text-emerald-700"><i data-lucide="check" class="w-3 h-3"></i>已读免补发</span>`
-        : `<span class="inline-flex items-center gap-0.5 text-amber-700"><i data-lucide="clock" class="w-3 h-3"></i>邮件待补发</span>`
-      : n.internal
-        ? `<span class="inline-flex items-center gap-0.5 text-rose-700"><i data-lucide="lock" class="w-3 h-3"></i>仅内部</span>`
-        : `<span class="inline-flex items-center gap-0.5 text-slate-400"><i data-lucide="inbox" class="w-3 h-3"></i>仅站内信</span>`;
-
-  const action = n.action && n.action.type !== 'none'
-    ? `<button onclick="event.stopPropagation(); noticeAction('${n.id}')" class="shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition">${n.action.labelZh} / ${n.action.labelEn}</button>`
-    : '';
-
-  return `
-    <article onclick="markRead('${n.id}')" class="relative rounded-2xl border p-3 cursor-pointer transition ${unread ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-50 border-slate-100'} ${n.internal ? 'border-l-2 border-l-rose-400' : ''}">
-      <div class="flex items-start gap-2">
-        <span class="mt-1.5 w-2 h-2 rounded-full shrink-0 ${unread ? 'bg-blue-500' : 'bg-transparent'}"></span>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0">
-              <h3 class="text-[17px] font-bold text-slate-900 leading-tight">${n.titleZh}</h3>
-              <p class="text-xs text-slate-400 leading-tight mt-0.5">${n.titleEn}</p>
-            </div>
-            <span class="shrink-0 text-sm font-bold px-1.5 py-0.5 rounded ${level.cls} font-semibold">${level.zh} ${level.en}</span>
-          </div>
-          <div class="mt-1 text-xs text-slate-400">${rel.zh} / ${rel.en}</div>
-          <p class="mt-1.5 text-sm leading-relaxed text-slate-700">${n.bodyZh}</p>
-          <p class="mt-1 text-xs leading-relaxed text-slate-400">${n.bodyEn}</p>
-          <div class="mt-2 flex items-end justify-between gap-2">
-            <div class="flex flex-wrap items-center gap-2 text-sm font-bold">
-              <span class="inline-flex items-center gap-0.5 text-slate-500"><i data-lucide="inbox" class="w-3 h-3"></i>站内信</span>
-              ${emailBadge}
-            </div>
-            ${action}
-          </div>
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">角色</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="role" data-value="amy" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">家长 Amy</button>
+          <button data-group="role" data-value="david" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">教师 David</button>
+          <button data-group="role" data-value="leo" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">班长 Leo</button>
+          <button data-group="role" data-value="sarah" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">管理员 Sarah</button>
         </div>
       </div>
-    </article>`;
-}
 
-function renderDrawer() {
-  const root = $('drawerRoot');
-  if (!S.drawerOpen) {
-    root.innerHTML = '';
-    return;
-  }
-  const list = (S.notices[S.role] || []).slice().sort((a, b) => a.minutesAgo - b.minutesAgo);
-  const unread = unreadCount();
-  const panelWidth = S.device === 'tablet' ? 'w-[420px]' : 'w-[88%] max-w-[360px]';
-  root.innerHTML = `
-    <div class="absolute inset-x-0 top-[52px] bottom-0 z-40">
-      <div onclick="closeDrawer()" class="absolute inset-0 bg-slate-900/40"></div>
-      <aside class="absolute inset-y-0 right-0 ${panelWidth} bg-slate-50 shadow-2xl rounded-l-3xl flex flex-col overflow-hidden">
-        <header class="bg-white px-4 py-3 border-b border-slate-100 flex items-start justify-between shrink-0">
-          <div>
-            <h2 class="text-[17px] font-bold text-slate-900">消息中心</h2>
-            <p class="text-xs text-slate-400 mt-0.5">Notifications · ${unread} 条未读</p>
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">设备</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="device" data-value="mobile" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">手机</button>
+          <button data-group="device" data-value="tablet" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">平板</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">网络</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="online" data-value="on" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">在线</button>
+          <button data-group="online" data-value="off" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">离线</button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button id="btnOpenCenter" class="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 font-semibold text-indigo-700 hover:bg-indigo-100">消息中心</button>
+        <button id="btnScanWorker" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-600 hover:bg-slate-50">Worker 扫描</button>
+        <button id="btnInternalNote" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-rose-700 hover:bg-rose-50">隐私拦截</button>
+        <button id="btnToggle99" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-600 hover:bg-slate-50">99+</button>
+        <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
+      </div>
+
+      <a href="../docs/prd/m4_notification.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
+        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M4 PRD
+      </a>
+    </div>
+  </header>
+
+  <main class="flex justify-center px-4 py-6">
+    <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
+      <div id="topbar" class="shrink-0"></div>
+      <div id="offlineBanner" class="hidden">
+        <i data-lucide="wifi-off" class="h-4 w-4 shrink-0 text-amber-600"></i>
+        <span>离线只读：可查看端内缓存通知；标为已读与邮件重试需联网生效</span>
+      </div>
+      <div id="content" class="flex-1 overflow-y-auto"></div>
+      <nav id="bottomnav" class="shrink-0"></nav>
+      <div id="confirmRoot"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-20 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
+    </div>
+  </main>
+
+  <!-- Tailwind CDN 动态类安全垫 -->
+  <div class="hidden">
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-w-[640px]"></span>
+    <span class="grid-cols-2 grid-cols-3 grid-cols-4"></span>
+    <span class="bg-indigo-600 bg-indigo-50 bg-indigo-100 bg-indigo-950 text-indigo-600 text-indigo-700 text-indigo-900 border-indigo-100 border-indigo-200 ring-indigo-100"></span>
+    <span class="bg-slate-900 text-amber-300 bg-slate-100 text-slate-500 text-slate-600 text-slate-700 border-slate-200 bg-slate-50 bg-slate-50/95"></span>
+    <span class="bg-amber-50 text-amber-700 text-amber-800 border-amber-200 bg-amber-500 bg-amber-600"></span>
+    <span class="bg-rose-50 text-rose-600 text-rose-700 text-rose-800 text-rose-900 border-rose-200 bg-rose-500 bg-rose-600"></span>
+    <span class="bg-emerald-50 text-emerald-600 text-emerald-700 border-emerald-200 bg-emerald-500"></span>
+    <span class="bg-slate-900/40 bg-slate-900/60 backdrop-blur-[1px]"></span>
+    <span class="h-8 h-12 min-w-[520px] whitespace-nowrap whitespace-pre-line divide-y divide-slate-100 overflow-x-auto"></span>
+  </div>
+
+  <script>
+    /* ------------------------------------------------------------------
+     * 角色与导航：物理隔离，底栏最多 4 Tab
+     * ------------------------------------------------------------------ */
+    const ROLE_META = {
+      amy: {
+        label: '家长 Amy', short: '家长端', brand: 'Dream 教务', name: 'Amy',
+        title: 'Amy · 2 个孩子', titleEn: 'Amy · 2 Children',
+        subtitle: '出资家长 · 双语通知接收人', initial: 'A', dark: false,
+        email: 'amy.parent@qq.com', boardTab: 'home'
+      },
+      david: {
+        label: '教师 David', short: '教师端', brand: 'Teacher Center', name: 'David Miller',
+        title: 'David · 今日 6 节', titleEn: 'David · 6 Lessons Today',
+        subtitle: '母语外教 · 双语邮件与备课', initial: 'D', dark: false,
+        email: 'david.miller@gmail.com', boardTab: 'home'
+      },
+      leo: {
+        label: '班长 Leo', short: '班长+家长', brand: 'Leo 的教务域', name: 'Leo',
+        title: '所辖50生 · 自家2娃', titleEn: '50 Students · 2 Own Kids',
+        subtitle: '教务调度 · 紧急通知派发', initial: 'L', dark: true,
+        email: 'leo.monitor@topee.top', boardTab: 'home'
+      },
+      sarah: {
+        label: '管理员 Sarah', short: '平台中枢', brand: 'Dream 运营中枢', name: 'Sarah',
+        title: '全域大盘 · 通信风控', titleEn: 'Platform · Comms Risk',
+        subtitle: '通信风控 · 通知服务审计', initial: 'S', dark: true,
+        email: 'sarah.admin@topee.top', boardTab: 'settings'
+      }
+    };
+
+    const NAVS = {
+      amy: [
+        { id: 'home', icon: 'home', label: '首页', en: 'Home', desc: '通知中心与家庭工作台属于 M0 主页。', board: true },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', en: 'Schedule', desc: '7 色课表与多孩锚点属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
+        { id: 'hall', icon: 'plus-circle', label: '约课大厅', en: 'Classes', desc: '小班选班与 1v1 自由约课属于 M1C。', href: 'm1c_classes.html' },
+        { id: 'me', icon: 'user', label: '我的', en: 'Me', desc: '学生档案与通知设置属于 M0 个人中心。', href: 'm0_workspace_home.html?role=user&view=me' }
+      ],
+      david: [
+        { id: 'home', icon: 'home', label: '首页', en: 'Home', desc: '通知中心与教师主页属于 M0 工作台。', board: true },
+        { id: 'schedule', icon: 'calendar-days', label: '课表', en: 'Schedule', desc: '7 色课表与代课双视角属于 M3A。', descEn: 'The 7-color calendar and substitute views live in M3A.', href: 'm3a_calendar_schedule.html' },
+        { id: 'me', icon: 'user', label: '我的', en: 'Me', desc: '课酬单与通知邮箱属于 M0 个人中心。', descEn: 'Payroll statement and notification email live in the M0 workspace.', href: 'm0_workspace_home.html?role=teacher&view=me' }
+      ],
+      leo: [
+        { id: 'home', icon: 'home', label: '首页', en: 'Home', desc: '班长教务待办与通知中心属于 M0 工作台。', board: true },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', en: 'Schedule', desc: '自家与所辖学员课表属于 M3A。', href: 'm3a_calendar_schedule.html' },
+        { id: 'ops', icon: 'layout-grid', label: '教务中心', en: 'Ops', desc: '转让、排班与退款调度属于 M0 / M3A。', href: 'm0_workspace_home.html?role=monitor&view=ops' },
+        { id: 'me', icon: 'user', label: '我的', en: 'Me', desc: '班长周转账与档案属于 M0 个人中心。', href: 'm0_workspace_home.html?role=monitor&view=me' }
+      ],
+      sarah: [
+        { id: 'home', icon: 'home', label: '首页', en: 'Home', desc: '平台结算与运营大盘属于 M0 工作台。', href: 'm0_workspace_home.html?role=admin' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', en: 'Schedule', desc: '全局课表透视属于 M3A。', href: 'm3a_calendar_schedule.html' },
+        { id: 'ops', icon: 'layout-grid', label: '教务调度', en: 'Ops', desc: '全域资源调度属于 M0 / M3A。', href: 'm0_workspace_home.html?role=admin&view=ops' },
+        { id: 'settings', icon: 'settings', label: '管理与设置', en: 'Admin', desc: '通信风控与通知服务审计。', board: true }
+      ]
+    };
+
+    /* ------------------------------------------------------------------
+     * 通知数据（Mock）
+     * ------------------------------------------------------------------ */
+    const NOTICES = {
+      amy: [
+        {
+          id: 'amy-transfer', category: 'billing', level: 'L3', read: false, minutesAgo: 5,
+          titleZh: '课程转让成功', titleEn: 'Course Transfer Confirmed',
+          bodyZh: 'AliceZ12 的 11-14 周六 16:00 固定位已转让给 TomZ11，原出资家长与资金持有方保持不变。',
+          bodyEn: 'The fixed slot on Nov 14 at 16:00 has been transferred from AliceZ12 to TomZ11. The funder and fund holder remain unchanged.',
+          emailStatus: 'SENT', emailNote: '三级紧急通知：站内信与邮件在事务提交后 5 秒内并发派发。',
+          internal: false, action: { type: 'email', labelZh: '查看紧急邮件', labelEn: 'View Urgent Email' }, template: 'transfer'
+        },
+        {
+          id: 'amy-batch', category: 'schedule', level: 'L2', read: false, minutesAgo: 42,
+          titleZh: '固定位排课确认（共 4 节）', titleEn: 'Fixed Slot Schedule Confirmed (4 Lessons)',
+          bodyZh: '尊敬的家长您好：学员 AliceZ12 的下一轮 4 周 1v1 固定位课程已由负责班长排定成功。首节课将于 2026-11-09 周一 19:00 开课，授课教师为 David Miller，ClassIn 教室号为 A-302。为减少打扰，系统已将 4 节排期聚合为 1 条站内信与 1 封综合邮件，避免连续发送 4 封独立邮件。请您准时督促孩子进入 ClassIn 教室上课。如有突发冲突，可在开课前 3 小时于系统内办理同师挪位或课程转让。排期明细与英文说明请查看下方表格。',
+          bodyEn: 'Dear Parent: The next 4-week 1v1 fixed slot schedule for AliceZ12 has been confirmed by the responsible monitor. The first lesson starts on Monday, Nov 09, 2026 at 19:00 with Teacher David Miller in ClassIn room A-302. To reduce noise, the 4 lessons are grouped into one in-app message and one consolidated email instead of 4 separate emails. Please make sure your child joins the ClassIn classroom on time. If a conflict occurs, you may request a same-teacher reschedule or a course transfer in the system at least 3 hours before the lesson. See the table below for the full schedule.',
+          emailStatus: 'SENT', emailNote: '二级必达：站内信 30 分钟未读，dream-worker 已补发 1 封聚合邮件。',
+          internal: false, action: { type: 'schedule', labelZh: '查看孩子课表', labelEn: 'View Child Schedule' }, template: 'batch'
+        },
+        {
+          id: 'amy-payment', category: 'billing', level: 'L2', read: false, minutesAgo: 31,
+          titleZh: '购课单收款确认', titleEn: 'Payment Confirmed',
+          bodyZh: '购课单 ORD_20261102_0091 已确认收款，1v1 固定位课时已生成待排期 TS。若 30 分钟内未读，Worker 将补发双语邮件。',
+          bodyEn: 'Order ORD_20261102_0091 is paid. The 1v1 fixed-slot lesson is created and pending scheduling. If unread after 30 minutes, the worker will send a bilingual fallback email.',
+          emailStatus: 'PENDING', emailNote: '未读已超过 30 分钟，等待 dream-worker 扫描补发。',
+          internal: false, action: { type: 'none', labelZh: '', labelEn: '' }, template: 'payment'
+        },
+        {
+          id: 'amy-temp-booking', category: 'schedule', level: 'L2', read: true, minutesAgo: 120,
+          titleZh: '新约临时课成功', titleEn: 'Trial Lesson Booked',
+          bodyZh: '11-15 周日 10:00 的 1v1 临时课已预约成功。您已在 30 分钟内阅读，系统未补发邮件。',
+          bodyEn: 'Your 1v1 trial lesson on Nov 15 at 10:00 is booked. You read it within 30 minutes, so no fallback email was sent.',
+          emailStatus: 'NONE', emailNote: '用户已在 30 分钟内阅读，无需补发邮件。',
+          internal: false, action: { type: 'schedule', labelZh: '查看课表', labelEn: 'View Schedule' }, template: 'payment'
+        },
+        {
+          id: 'amy-reply', category: 'system', level: 'L1', read: false, minutesAgo: 8,
+          titleZh: '公开留言回复', titleEn: 'New Public Reply',
+          bodyZh: 'David 老师在 AliceZ12 的师生公开留言板回复了本周学习反馈。',
+          bodyEn: 'Teacher David replied to this week learning feedback on the AliceZ12 public message board.',
+          emailStatus: 'NONE', emailNote: '一级常规通知仅站内信，严禁派发外部邮件。',
+          internal: false, action: { type: 'memo', labelZh: '查看留言板', labelEn: 'View Message Board' }, template: 'message'
+        },
+        {
+          id: 'amy-substitute', category: 'schedule', level: 'L3', read: true, minutesAgo: 180,
+          titleZh: '临时代课调整', titleEn: 'Substitute Teacher Assigned',
+          bodyZh: '11-10 周二 19:00 课程由 Linda 老师代课，站内信与邮件已并发通知。',
+          bodyEn: 'The lesson on Nov 10 at 19:00 will be taught by Teacher Linda. In-app and email notifications were sent concurrently.',
+          emailStatus: 'SENT', emailNote: '三级紧急通知：已并发派发双语邮件。',
+          internal: false, action: { type: 'email', labelZh: '查看邮件', labelEn: 'View Email' }, template: 'urgent'
+        },
+        {
+          id: 'amy-schedule', category: 'schedule', level: 'L1', read: true, minutesAgo: 1440,
+          titleZh: '课表已生成', titleEn: 'Schedule Generated',
+          bodyZh: '本周课表已生成，可在家长工作台查看 7 色日历。',
+          bodyEn: 'This week schedule is ready. Open the parent workspace to view the 7-color calendar.',
+          emailStatus: 'NONE', emailNote: '一级常规通知仅站内信。',
+          internal: false, action: { type: 'schedule', labelZh: '查看课表', labelEn: 'View Schedule' }, template: 'message'
+        }
+      ],
+      david: [
+        {
+          id: 'david-transfer', category: 'schedule', level: 'L3', read: false, minutesAgo: 4,
+          titleZh: '学员变更通知', titleEn: 'Student Change Notice',
+          bodyZh: '11-14 周六 16:00 固定位的上课学员已由 AliceZ12 变更为 TomZ11，请提前查看受让学员留言板备课。',
+          bodyEn: 'The student for the fixed slot on Nov 14 at 16:00 has changed from AliceZ12 to TomZ11. Please review the new student board before class.',
+          emailStatus: 'SENT', emailNote: '三级紧急通知：站内信与 Gmail 邮件已并发派发。',
+          internal: false, action: { type: 'email', labelZh: '查看变更邮件', labelEn: 'View Change Email' }, template: 'transfer'
+        },
+        {
+          id: 'david-substitute', category: 'schedule', level: 'L3', read: false, minutesAgo: 12,
+          titleZh: '临时代课指派', titleEn: 'Substitute Assignment',
+          bodyZh: '您已临时请假。11-10 周二 19:00 的课程已指派 Linda 老师代上，课酬计入代课教师。',
+          bodyEn: 'You are on temporary leave. The lesson on Nov 10 at 19:00 is assigned to Teacher Linda, and the lesson fee goes to the substitute teacher.',
+          emailStatus: 'SENT', emailNote: '三级紧急通知：已并发派发双语邮件。',
+          internal: false, action: { type: 'email', labelZh: '查看代课邮件', labelEn: 'View Substitute Email' }, template: 'urgent'
+        },
+        {
+          id: 'david-pay', category: 'billing', level: 'L1', read: false, minutesAgo: 60,
+          titleZh: '周课酬节数单已生成', titleEn: 'Weekly Lesson Statement Ready',
+          bodyZh: '本周课酬节数单已生成，共 12 节课，可在教师工作台查看。',
+          bodyEn: 'Your weekly lesson statement is ready. You have 12 lessons this week. Open the teacher workspace to review.',
+          emailStatus: 'NONE', emailNote: '一级常规通知仅站内信。',
+          internal: false, action: { type: 'schedule', labelZh: '查看课酬单', labelEn: 'View Statement' }, template: 'message'
+        },
+        {
+          id: 'david-reply', category: 'system', level: 'L1', read: true, minutesAgo: 300,
+          titleZh: '公开留言回复', titleEn: 'New Public Reply',
+          bodyZh: 'Amy 家长在 AliceZ12 的师生公开留言板回复了您的学习反馈。',
+          bodyEn: 'Parent Amy replied to your learning feedback on the AliceZ12 public message board.',
+          emailStatus: 'NONE', emailNote: '一级常规通知仅站内信。',
+          internal: false, action: { type: 'memo', labelZh: '查看留言板', labelEn: 'View Message Board' }, template: 'message'
+        },
+        {
+          id: 'david-internal', category: 'system', level: 'L1', read: false, minutesAgo: 18,
+          titleZh: '内部教学备忘', titleEn: 'Internal Teaching Note',
+          bodyZh: 'AliceZ12 近期注意力易分散，建议课堂前 5 分钟做口部热身。本留言仅内部教学可见。',
+          bodyEn: 'AliceZ12 has recently shown a shorter attention span. A 5-minute warm-up is recommended. This note is internal teaching only.',
+          emailStatus: 'NONE', emailNote: '隐私防火墙：家长端零站内信、零邮件。',
+          internal: true, action: { type: 'none', labelZh: '', labelEn: '' }, template: 'internal'
+        },
+        {
+          id: 'david-batch', category: 'schedule', level: 'L1', read: true, minutesAgo: 90,
+          titleZh: '固定位课表生成', titleEn: 'Fixed Slot Schedule Generated',
+          bodyZh: 'Amy 名下的 4 周固定位已生成，您可在教师课表查看连续排期。',
+          bodyEn: 'The 4-week fixed slots under Amy are generated. Open your teacher calendar to view the schedule.',
+          emailStatus: 'NONE', emailNote: '一级常规通知仅站内信。',
+          internal: false, action: { type: 'schedule', labelZh: '查看课表', labelEn: 'View Schedule' }, template: 'batch'
+        }
+      ],
+      leo: [
+        {
+          id: 'leo-cancel', category: 'schedule', level: 'L3', read: false, minutesAgo: 6,
+          titleZh: '小班课整班停课', titleEn: 'Class Cancelled',
+          bodyZh: '11-12 周四 17:00 的 1v4 小班课因教师紧急请假停课，已向 5 位家长并发双语邮件。',
+          bodyEn: 'The 1v4 small class on Nov 12 at 17:00 is cancelled due to teacher emergency leave. Bilingual emails were sent to all 5 parents concurrently.',
+          emailStatus: 'SENT', emailNote: '三级紧急通知：5 位家长站内信与邮件已并发派发。',
+          internal: false, action: { type: 'email', labelZh: '查看停课邮件', labelEn: 'View Cancellation Email' }, template: 'urgent'
+        },
+        {
+          id: 'leo-refund', category: 'billing', level: 'L3', read: false, minutesAgo: 20,
+          titleZh: '垫底退款单已生成', titleEn: 'Refund Order Created',
+          bodyZh: '退款单 RFD_20261105_0012 已生成，关联 11-14 周六 16:00 固定位，等待财务确认。',
+          bodyEn: 'Refund order RFD_20261105_0012 is created for the fixed slot on Nov 14 at 16:00 and is pending finance review.',
+          emailStatus: 'SENT', emailNote: '三级紧急通知：站内信与邮件已并发派发。',
+          internal: false, action: { type: 'email', labelZh: '查看退款邮件', labelEn: 'View Refund Email' }, template: 'refund'
+        },
+        {
+          id: 'leo-batch', category: 'schedule', level: 'L2', read: false, minutesAgo: 45,
+          titleZh: '固定位 4 周连排完成', titleEn: '4-Week Fixed Slots Scheduled',
+          bodyZh: 'Amy 名下的 4 周固定位已完成连排，系统已聚合为 1 条通知与 1 封综合邮件。',
+          bodyEn: 'The 4-week fixed slots under Amy are scheduled. They are aggregated into one notification and one email.',
+          emailStatus: 'SENT', emailNote: '二级必达：30 分钟未读，Worker 已补发聚合邮件。',
+          internal: false, action: { type: 'email', labelZh: '查看聚合邮件', labelEn: 'View Batch Email' }, template: 'batch'
+        },
+        {
+          id: 'leo-internal', category: 'system', level: 'L1', read: false, minutesAgo: 15,
+          titleZh: '内部教学备忘', titleEn: 'Internal Teaching Note',
+          bodyZh: 'AliceZ12 近期注意力易分散，建议课堂前 5 分钟做口部热身。本留言仅内部教学可见。',
+          bodyEn: 'AliceZ12 has recently shown a shorter attention span. A 5-minute warm-up is recommended. This note is internal teaching only.',
+          emailStatus: 'NONE', emailNote: '隐私防火墙：家长端零站内信、零邮件。',
+          internal: true, action: { type: 'none', labelZh: '', labelEn: '' }, template: 'internal'
+        },
+        {
+          id: 'leo-reply', category: 'system', level: 'L1', read: true, minutesAgo: 400,
+          titleZh: '公开留言回复', titleEn: 'New Public Reply',
+          bodyZh: 'Amy 家长在公开留言板回复了 David 老师的学习反馈。',
+          bodyEn: 'Parent Amy replied to Teacher David learning feedback on the public message board.',
+          emailStatus: 'NONE', emailNote: '一级常规通知仅站内信。',
+          internal: false, action: { type: 'memo', labelZh: '查看留言板', labelEn: 'View Message Board' }, template: 'message'
+        }
+      ],
+      sarah: [
+        {
+          id: 'sarah-failed', category: 'system', level: 'L3', read: false, minutesAgo: 50,
+          titleZh: '邮件任务永久失败', titleEn: 'Email Task Permanently Failed',
+          bodyZh: '退款单邮件连续 3 次重试失败，已标记 PERMANENT_FAILED，主业务与站内信不受影响。',
+          bodyEn: 'The refund email failed after 3 retries and is marked PERMANENT_FAILED. Core business and in-app messages are unaffected.',
+          emailStatus: 'PERMANENT_FAILED', emailNote: 'TaskRelay 终态告警。',
+          internal: false, action: { type: 'none', labelZh: '', labelEn: '' }, template: 'message'
+        },
+        {
+          id: 'sarah-backlog', category: 'system', level: 'L1', read: false, minutesAgo: 25,
+          titleZh: 'TaskRelay 队列积压告警', titleEn: 'TaskRelay Queue Backlog',
+          bodyZh: '邮件队列当前积压 18 条，网关限流触发退避重试，系统未阻塞主业务线程。',
+          bodyEn: 'The email queue has 18 pending tasks. Gateway throttling triggered backoff retries, and the main business thread is not blocked.',
+          emailStatus: 'NONE', emailNote: '通信风控内部告警。',
+          internal: false, action: { type: 'none', labelZh: '', labelEn: '' }, template: 'message'
+        },
+        {
+          id: 'sarah-health', category: 'system', level: 'L1', read: false, minutesAgo: 3,
+          titleZh: '通知服务健康检查通过', titleEn: 'Notification Service Healthy',
+          bodyZh: 'topee-notification 站内信与邮件 API 健康检查通过，SSE 通道在线。',
+          bodyEn: 'topee-notification in-app and email APIs passed the health check. The SSE channel is online.',
+          emailStatus: 'NONE', emailNote: '一级常规系统通知。',
+          internal: false, action: { type: 'none', labelZh: '', labelEn: '' }, template: 'message'
+        },
+        {
+          id: 'sarah-scan', category: 'system', level: 'L1', read: true, minutesAgo: 65,
+          titleZh: 'Worker 扫描汇总', titleEn: 'Worker Scan Summary',
+          bodyZh: '上一轮扫描命中 3 条二级必达未读记录，已全部补发双语邮件并原子回写 email_sent。',
+          bodyEn: 'The last scan matched 3 unread mandatory notices. All fallback emails were sent and email_sent was updated atomically.',
+          emailStatus: 'NONE', emailNote: 'Worker 每 5 分钟扫描，单批上限 100 条。',
+          internal: false, action: { type: 'none', labelZh: '', labelEn: '' }, template: 'message'
+        }
+      ]
+    };
+
+    const RELAY_TASKS = [
+      { id: 'RT-1001', notice: '紧急转让邮件 · Amy', status: 'SENT', attempt: 1, next: '-', error: '' },
+      { id: 'RT-1002', notice: '紧急转让邮件 · David', status: 'RETRYING', attempt: 1, next: '5 分钟后', error: 'EMAIL_GATEWAY_THROTTLED' },
+      { id: 'RT-1003', notice: '退款单邮件 · Leo', status: 'PERMANENT_FAILED', attempt: 3, next: '-', error: 'EMAIL_GATEWAY_THROTTLED' }
+    ];
+
+    const LEVEL_META = {
+      L1: { zh: '一级', en: 'Regular', cls: 'border-slate-200 bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
+      L2: { zh: '二级', en: 'Mandatory', cls: 'border-amber-200 bg-amber-50 text-amber-800', dot: 'bg-amber-500' },
+      L3: { zh: '三级', en: 'Urgent', cls: 'border-rose-200 bg-rose-50 text-rose-700', dot: 'bg-rose-500' }
+    };
+
+    const RELAY_CLS = {
+      SENT: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      RETRYING: 'border-amber-200 bg-amber-50 text-amber-800',
+      PERMANENT_FAILED: 'border-rose-200 bg-rose-50 text-rose-700'
+    };
+
+    const TEXT = {
+      zh: {
+        notifications: '消息中心',
+        unread: '未读', urgent: '三级紧急', pending: '待补发',
+        openCenter: '打开消息中心', recent: '最近通知', viewAll: '查看全部',
+        markAll: '全部标为已读', cancel: '取消', confirmRead: '确认全部已读',
+        noMessages: '暂无新消息', loaded: '没有更多消息了',
+        backToCenter: '返回消息中心',
+        backWorkspace: '返回工作台', backToList: '返回消息列表',
+        statusAll: '全部', unreadOnly: '仅看未读', allTypes: '全部类型',
+        catSchedule: '课表与代课', catBilling: '账单与资产',
+        viewDetail: '查看详情', noMatch: '暂无符合条件的消息', read: '已读'
+      },
+      en: {
+        notifications: 'Notifications',
+        unread: 'Unread', urgent: 'Urgent', pending: 'Email pending',
+        openCenter: 'Open Notifications', recent: 'Recent', viewAll: 'View all',
+        markAll: 'Mark all read', cancel: 'Cancel', confirmRead: 'Confirm',
+        noMessages: 'No notifications yet', loaded: 'No more messages',
+        backToCenter: 'Back to Notifications',
+        backWorkspace: 'Back to Workspace', backToList: 'Back to Notifications',
+        statusAll: 'All', unreadOnly: 'Unread only', allTypes: 'All Types',
+        catSchedule: 'Schedule', catBilling: 'Billing',
+        viewDetail: 'View details', noMatch: 'No matching notifications', read: 'Read'
+      }
+    };
+
+    const HOME_TIPS = {
+      amy: {
+        icon: 'languages', tone: 'indigo',
+        zh: {
+          title: '双语通知标准',
+          short: '三级紧急通知在事务提交后 5 秒内并发派发站内信与双语邮件。',
+          text: '邮件中文在上、英文在下；二级必达通知 30 分钟未读，由 dream-worker 自动补发兜底邮件。'
+        },
+        en: {
+          title: 'Bilingual Standard',
+          short: 'Urgent notices dispatch in-app and bilingual email within 5 seconds of commit.',
+          text: 'Email is Chinese first, English below. Mandatory notices fall back to email if unread for 30 minutes.'
+        }
+      },
+      david: {
+        icon: 'shield-check', tone: 'rose',
+        zh: {
+          title: '隐私防火墙',
+          short: '仅内部教学可见的备忘不会触达家长端。',
+          text: '家长账号被物理拦截：零站内信、零邮件。内部备忘仅教师、代课教师、班长与管理员可见。'
+        },
+        en: {
+          title: 'Privacy Firewall',
+          short: 'Internal teaching notes never reach the parent account.',
+          text: 'Parents are physically blocked: zero in-app messages and zero emails. Notes stay with teachers, substitutes, monitors and admins.'
+        }
+      },
+      leo: {
+        icon: 'send', tone: 'indigo',
+        zh: {
+          title: '聚合与异步重试',
+          short: '4 周固定位连排聚合为 1 条通知与 1 封综合邮件。',
+          text: '邮件任务统一委托 task-relay，按 1 / 5 / 15 分钟退避重试；主业务线程零阻塞。'
+        },
+        en: {
+          title: 'Aggregation & Retry',
+          short: 'Four weekly fixed slots become one notification and one email.',
+          text: 'Email jobs are delegated to task-relay with 1 / 5 / 15 minute backoff. The main thread never blocks.'
+        }
+      }
+    };
+
+    const TONE = {
+      indigo: { card: 'border-indigo-100 bg-indigo-50/70', icon: 'bg-indigo-100 text-indigo-700', title: 'text-indigo-950', body: 'text-indigo-900/80' },
+      rose: { card: 'border-rose-200 bg-rose-50', icon: 'bg-rose-100 text-rose-700', title: 'text-rose-950', body: 'text-rose-800' }
+    };
+
+    const BATCH_TABLE = {
+      headersZh: ['周次', '上课日期', '星期', '授课时段', '授课教师', 'ClassIn 教室'],
+      headersEn: ['Week', 'Date', 'Day', 'Time', 'Teacher', 'ClassIn Room'],
+      rows: [
+        { zh: ['第 1 周', '2026-11-09', '周一', '19:00-19:25', 'David Miller', 'A-302'], en: ['Week 1', 'Nov 09, 2026', 'Mon', '19:00-19:25', 'David Miller', 'A-302'] },
+        { zh: ['第 2 周', '2026-11-16', '周一', '19:00-19:25', 'David Miller', 'A-302'], en: ['Week 2', 'Nov 16, 2026', 'Mon', '19:00-19:25', 'David Miller', 'A-302'] },
+        { zh: ['第 3 周', '2026-11-23', '周一', '19:00-19:25', 'David Miller', 'A-302'], en: ['Week 3', 'Nov 23, 2026', 'Mon', '19:00-19:25', 'David Miller', 'A-302'] },
+        { zh: ['第 4 周', '2026-11-30', '周一', '19:00-19:25', 'David Miller', 'A-302'], en: ['Week 4', 'Nov 30, 2026', 'Mon', '19:00-19:25', 'David Miller', 'A-302'] }
+      ]
+    };
+
+    const CATEGORY_META = {
+      schedule: { icon: '📅', zh: '课表与代课', en: 'Schedule & Substitutes' },
+      billing: { icon: '💳', zh: '账单与资产', en: 'Billing & Assets' },
+      system: { icon: '⚙️', zh: '系统消息', en: 'System' }
+    };
+
+    /* ------------------------------------------------------------------
+     * 状态
+     * ------------------------------------------------------------------ */
+    const clone = (v) => JSON.parse(JSON.stringify(v));
+
+    function initialState() {
+      return {
+        role: 'amy', device: 'mobile', online: 'on',
+        page: 'workspace', navTab: 'home', lang: 'zh',
+        statusFilter: 'all', categoryFilter: 'all',
+        selectedNoticeId: null, listScrollTop: 0,
+        force99: false, confirmRead: false,
+        workerLog: '10:35 扫描命中 1 条二级必达记录，已委托 task-relay 补发。',
+        blockedParentRoutes: 3,
+        notices: clone(NOTICES), relayTasks: clone(RELAY_TASKS)
+      };
+    }
+
+    let state = initialState();
+
+    const params = new URLSearchParams(location.search);
+    if (params.get('role') && ROLE_META[params.get('role')]) {
+      state.role = params.get('role');
+      state.navTab = ROLE_META[state.role].boardTab;
+    }
+    if (params.get('device') === 'tablet') state.device = 'tablet';
+    if (params.get('lang') === 'en') state.lang = 'en';
+    if (params.get('tab')) state.navTab = params.get('tab');
+    {
+      const initialItem = (NAVS[state.role] || []).find((n) => n.id === state.navTab);
+      state.page = initialItem && initialItem.board ? 'workspace' : 'placeholder';
+    }
+
+    /* ------------------------------------------------------------------
+     * 工具
+     * ------------------------------------------------------------------ */
+    const $ = (id) => document.getElementById(id);
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const ico = () => { if (window.lucide) window.lucide.createIcons(); };
+
+    function roleMeta() { return ROLE_META[state.role]; }
+
+    function currentLang() {
+      return state.role === 'david' && state.lang === 'en' ? 'en' : 'zh';
+    }
+
+    function tr(key) { return TEXT[currentLang()][key] || TEXT.zh[key] || key; }
+
+    function relative(minutes) {
+      if (minutes < 1) return { zh: '刚刚', en: 'just now' };
+      if (minutes < 60) return { zh: `${minutes}分钟前`, en: `${minutes} min${minutes > 1 ? 's' : ''} ago` };
+      if (minutes < 1440) {
+        const hours = Math.floor(minutes / 60);
+        return { zh: `${hours}小时前`, en: `${hours} hour${hours > 1 ? 's' : ''} ago` };
+      }
+      if (minutes < 2880) return { zh: '昨天', en: 'Yesterday' };
+      const days = Math.floor(minutes / 1440);
+      return { zh: `${days}天前`, en: `${days} day${days > 1 ? 's' : ''} ago` };
+    }
+
+    // 固定演示时刻 2026-11-08 10:35（展示时区 +08:00），由 minutesAgo 反推绝对发送时间
+    const MOCK_NOW_UTC = Date.UTC(2026, 10, 8, 10, 35);
+    function absoluteTime(minutes) {
+      const d = new Date(MOCK_NOW_UTC - minutes * 60000);
+      const pad = (v) => String(v).padStart(2, '0');
+      return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+    }
+
+    function isLongNotice(n) {
+      return Array.from(String(n.bodyZh || '')).length >= 120;
+    }
+
+    function summaryZh(n, size = 80) {
+      return Array.from(String(n.bodyZh || '')).slice(0, size).join('') + '...';
+    }
+
+    function filteredNotices() {
+      let list = sortedNotices();
+      if (state.statusFilter === 'unread') list = list.filter((n) => !n.read);
+      if (state.categoryFilter !== 'all') list = list.filter((n) => n.category === state.categoryFilter);
+      return list;
+    }
+
+    function noticeList(role = state.role) { return state.notices[role] || []; }
+
+    function sortedNotices(role = state.role) {
+      return noticeList(role).slice().sort((a, b) => a.minutesAgo - b.minutesAgo);
+    }
+
+    function unreadCount(role = state.role) {
+      return noticeList(role).filter((n) => !n.read).length;
+    }
+
+    function badgeText() {
+      if (state.force99) return '99+';
+      const count = unreadCount();
+      if (count <= 0) return '';
+      return count > 99 ? '99+' : String(count);
+    }
+
+    function pendingMandatoryCount() {
+      let count = 0;
+      Object.keys(state.notices).forEach((role) => {
+        noticeList(role).forEach((n) => {
+          if (n.level === 'L2' && !n.read && n.emailStatus === 'PENDING' && n.minutesAgo >= 30) count += 1;
+        });
+      });
+      return count;
+    }
+
+    function findNotice(id) {
+      const own = noticeList().find((n) => n.id === id);
+      if (own) return own;
+      for (const role of Object.keys(state.notices)) {
+        const found = noticeList(role).find((n) => n.id === id);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function toast(message) {
+      const el = $('toast');
+      el.textContent = message;
+      el.classList.remove('hidden');
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => el.classList.add('hidden'), 2600);
+    }
+
+    function syncConsole() {
+      document.querySelectorAll('.ctl').forEach((btn) => {
+        const active = state[btn.dataset.group] === btn.dataset.value;
+        btn.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`;
+      });
+    }
+
+    /* ------------------------------------------------------------------
+     * 顶部栏与底栏
+     * ------------------------------------------------------------------ */
+    function renderTopbar() {
+      const meta = roleMeta();
+      const lang = currentLang();
+      const title = lang === 'en' ? meta.titleEn : meta.title;
+      const short = lang === 'en' ? 'Teacher' : meta.short;
+      const avatarCls = meta.dark ? 'bg-slate-900 text-amber-300' : 'bg-indigo-600 text-white';
+      const badge = badgeText();
+
+      return `
+        <div class="border-b border-slate-200 bg-white/95">
+          <div class="flex h-14 items-center justify-between gap-2 px-4">
+            <div class="flex min-w-0 items-center gap-2.5">
+              <div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl ${avatarCls} text-[14px] font-bold shadow-sm">${meta.initial}</div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="truncate text-[16px] font-bold tracking-tight text-slate-900">${esc(meta.brand)}</span>
+                  <span class="shrink-0 rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(short)}</span>
+                </div>
+                <div class="truncate text-[12px] font-medium text-slate-400">${esc(title)}</div>
+              </div>
+            </div>
+
+            <div class="flex shrink-0 items-center gap-1.5">
+              ${state.role === 'david' ? `
+                <button data-action="toggle-lang" class="inline-flex h-8 items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 text-[12px] font-bold text-slate-700 shadow-sm hover:bg-slate-50">
+                  ${icon('globe', 'h-3.5 w-3.5')}<span>${state.lang === 'zh' ? 'EN' : '中'}</span>
+                </button>` : ''}
+              <button data-action="open-notifications" class="relative grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200" aria-label="${tr('notifications')}">
+                ${icon('bell', 'h-4 w-4')}
+                ${badge ? `<span class="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-600 px-1 text-[12px] font-bold leading-none text-white ring-2 ring-white">${badge}</span>` : ''}
+              </button>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <button onclick="openConfirmAll()" class="text-xs font-semibold text-teal-700 hover:text-teal-900">全部标为已读</button>
-            <button onclick="closeDrawer()" class="w-7 h-7 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 grid place-items-center">
-              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </div>`;
+    }
+
+    function renderNav() {
+      const items = NAVS[state.role] || [];
+      const lang = currentLang();
+      const unread = unreadCount();
+      const relayAlert = state.relayTasks.filter((t) => t.status !== 'SENT').length;
+
+      return `
+        <div class="relative z-40 border-t border-slate-200 bg-white px-1 pb-1.5 pt-1">
+          <div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">
+            ${items.map((item) => {
+              const on = state.navTab === item.id;
+              const label = lang === 'en' ? (item.en || item.label) : item.label;
+              let dot = '';
+              if (item.id === roleMeta().boardTab && unread > 0) {
+                dot = '<span class="absolute -right-1 top-0 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white"></span>';
+              } else if (item.id === 'settings' && relayAlert > 0) {
+                dot = '<span class="absolute -right-1 top-0 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"></span>';
+              }
+              return `
+                <button data-action="nav" data-tab="${item.id}" class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 transition ${on ? 'font-bold text-indigo-600' : 'font-medium text-slate-400 hover:text-slate-600'}">
+                  <span class="relative">
+                    ${icon(item.icon, `h-[18px] w-[18px] ${on ? '' : 'opacity-80'}`)}
+                    ${dot}
+                  </span>
+                  <span class="text-[12px] font-bold leading-tight">${esc(label)}</span>
+                </button>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 工作台首页：消息中心摘要
+     * ------------------------------------------------------------------ */
+    function renderNotificationHome() {
+      const lang = currentLang();
+      const tip = HOME_TIPS[state.role] || HOME_TIPS.amy;
+      const tipText = tip[lang] || tip.zh;
+      const tone = TONE[tip.tone] || TONE.indigo;
+      const list = sortedNotices();
+      const unread = unreadCount();
+      const urgent = list.filter((n) => n.level === 'L3' && !n.read).length;
+      const pending = list.filter((n) => n.level === 'L2' && !n.read && n.emailStatus === 'PENDING').length;
+      const badge = badgeText();
+      const greetingZh = { amy: '下午好，Amy', david: '下午好，David', leo: '下午好，Leo' };
+      const greeting = lang === 'en' ? 'Good afternoon, David' : (greetingZh[state.role] || '下午好');
+      const date = lang === 'en' ? 'Nov 5, 2026 · Thu' : '2026-11-05 周四';
+
+      return `
+        <div class="mx-auto w-full max-w-[640px] space-y-3.5 px-4 py-4 pb-10">
+          <div class="flex items-end justify-between gap-3">
+            <div class="min-w-0">
+              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${esc(greeting)}</h1>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">${esc(date)} · ${esc(lang === 'en' ? 'Teacher' : roleMeta().short)}</p>
+            </div>
+            <span class="shrink-0 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[12px] font-bold text-indigo-700">${esc(lang === 'en' ? 'Teacher' : roleMeta().short)}</span>
+          </div>
+
+          <section class="overflow-hidden rounded-2xl border border-indigo-100 bg-white shadow-sm">
+            <div class="h-1 bg-indigo-600"></div>
+            <div class="p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 text-[12px] font-bold text-indigo-700">
+                    ${icon('bell', 'h-3.5 w-3.5')}${tr('notifications')}
+                  </div>
+                  <div class="mt-1 flex items-baseline gap-2">
+                    <span class="font-mono text-[18px] font-bold text-slate-900">${unread}</span>
+                    <span class="text-[12px] font-medium text-slate-400">${lang === 'en' ? 'unread' : '条未读 / Unread'}</span>
+                  </div>
+                </div>
+                <span class="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[12px] font-bold text-amber-800">${urgent} ${lang === 'en' ? 'urgent' : '条三级紧急'}</span>
+              </div>
+              <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-600">${esc(tipText.short)}</p>
+              <button data-action="open-notifications" class="mt-3 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.99]">
+                ${icon('inbox', 'h-4 w-4')}${tr('openCenter')}
+                ${badge ? `<span class="rounded-full bg-white/20 px-1.5 py-0.5 font-mono text-[12px] font-bold">${badge}</span>` : ''}
+              </button>
+            </div>
+          </section>
+
+          <section class="grid grid-cols-3 gap-2">
+            <div class="rounded-2xl border border-slate-200/80 bg-white p-3">
+              <div class="text-[12px] font-medium text-slate-400">${tr('unread')}</div>
+              <div class="mt-1 font-mono text-[18px] font-bold text-slate-900">${unread}</div>
+            </div>
+            <div class="rounded-2xl border border-rose-200 bg-rose-50 p-3">
+              <div class="text-[12px] font-medium text-rose-700">${tr('urgent')}</div>
+              <div class="mt-1 font-mono text-[18px] font-bold text-rose-700">${urgent}</div>
+            </div>
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+              <div class="text-[12px] font-medium text-amber-700">${tr('pending')}</div>
+              <div class="mt-1 font-mono text-[18px] font-bold text-amber-800">${pending}</div>
+            </div>
+          </section>
+
+          <section class="space-y-2">
+            <div class="flex items-center justify-between px-1">
+              <div class="flex items-center gap-1.5 text-[16px] font-bold text-slate-900">
+                ${icon('history', 'h-4 w-4 text-indigo-600')}${tr('recent')}
+              </div>
+              <button data-action="open-notifications" class="text-[12px] font-semibold text-indigo-600 hover:text-indigo-800">${tr('viewAll')}</button>
+            </div>
+            ${list.slice(0, 3).map(miniNoticeCard).join('')}
+          </section>
+
+          <section class="rounded-2xl border p-3.5 ${tone.card}">
+            <div class="flex items-center gap-2">
+              <span class="grid h-8 w-8 place-items-center rounded-xl ${tone.icon}">${icon(tip.icon, 'h-4 w-4')}</span>
+              <h3 class="text-[14px] font-bold ${tone.title}">${esc(tipText.title)}</h3>
+            </div>
+            <p class="mt-2 text-[12px] leading-relaxed ${tone.body}">${esc(tipText.text)}</p>
+          </section>
+        </div>`;
+    }
+
+    function miniNoticeCard(n) {
+      const level = LEVEL_META[n.level];
+      const rel = relative(n.minutesAgo);
+      return `
+        <button data-action="open-notifications" class="flex w-full items-start gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3 text-left shadow-sm transition active:scale-[0.99]">
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.read ? 'bg-slate-200' : 'bg-indigo-600'}"></span>
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center justify-between gap-2">
+              <span class="truncate text-[14px] font-bold text-slate-900">${esc(n.titleZh)}</span>
+              <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${level.cls}">${level.zh}</span>
+            </span>
+            <span class="mt-0.5 block truncate text-[12px] text-slate-400">${esc(n.titleEn)}</span>
+            <span class="mt-1 flex items-center justify-between text-[12px]">
+              <span class="text-slate-400">${rel.zh} / ${rel.en}</span>
+              <span class="font-semibold ${channelColor(n)}">${channelLabel(n)}</span>
+            </span>
+          </span>
+        </button>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 管理员：通知服务审计看板
+     * ------------------------------------------------------------------ */
+    function renderAdminConsole() {
+      const pending = pendingMandatoryCount();
+      const retrying = state.relayTasks.filter((t) => t.status === 'RETRYING').length;
+      const failed = state.relayTasks.filter((t) => t.status === 'PERMANENT_FAILED').length;
+      const cols = state.device === 'tablet' ? 'grid-cols-4' : 'grid-cols-2';
+      const badge = badgeText();
+      const routes = [
+        { level: '一级', en: 'Regular', dot: 'bg-slate-400', chip: 'border-slate-200 bg-slate-100 text-slate-600', chipText: '仅站内信', channel: '站内信 / In-App only', scenes: '课表生成 · 周课酬单 · 公开留言回复', rule: '严禁外部邮件' },
+        { level: '二级', en: 'Mandatory', dot: 'bg-amber-500', chip: 'border-amber-200 bg-amber-50 text-amber-800', chipText: '30 分钟兜底', channel: '站内信 + 30 分钟未读兜底邮件', scenes: '购课确认 · 新排课 · 24h 外请假/挪位', rule: 'Worker 每 5 分钟扫描' },
+        { level: '三级', en: 'Urgent', dot: 'bg-rose-500', chip: 'border-rose-200 bg-rose-50 text-rose-700', chipText: '5 秒并发', channel: '站内信 + 邮件并发即时派发', scenes: '24h 内改期 · 转让 · 整班停课 · 代课 · 退款', rule: '事务提交后 5 秒内' }
+      ];
+
+      return `
+        <div class="mx-auto w-full max-w-[720px] space-y-3 px-4 py-4 pb-10">
+          <div class="flex items-end justify-between gap-3">
+            <div class="min-w-0">
+              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">通知服务审计</h1>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">topee-notification · task-relay · dream-worker</p>
+            </div>
+            <span class="shrink-0 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[12px] font-bold text-indigo-700">管理员</span>
+          </div>
+
+          <section class="rounded-2xl bg-slate-900 p-4 text-white shadow-sm">
+            <div class="flex items-center justify-between text-[12px] text-slate-300">
+              <span>通信风控看板</span>
+              <span class="font-mono">SSE · ONLINE</span>
+            </div>
+            <h2 class="mt-1 text-[18px] font-bold">通知分发网络运行正常</h2>
+            <p class="mt-1 text-[12px] leading-relaxed text-slate-300">统一委托 topee-notification；不私建 SMTP，不私建站内信表。</p>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <button data-action="open-notifications" class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-white/10 px-3 text-[12px] font-bold text-white ring-1 ring-white/15 transition hover:bg-white/20">
+                ${icon('bell', 'h-3.5 w-3.5')}系统消息
+                ${badge ? `<span class="rounded-full bg-rose-600 px-1.5 py-0.5 font-mono text-[12px]">${badge}</span>` : ''}
+              </button>
+              <button data-action="toggle-99" class="inline-flex h-9 items-center rounded-xl bg-white/10 px-3 text-[12px] font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/20">${state.force99 ? '恢复真实未读' : '模拟 99+'}</button>
+            </div>
+          </section>
+
+          <section class="grid ${cols} gap-2">
+            <div class="rounded-2xl border border-slate-200/80 bg-white p-3">
+              <div class="text-[12px] font-medium text-slate-400">今日站内信</div>
+              <div class="mt-1 font-mono text-[18px] font-bold text-slate-900">128</div>
+            </div>
+            <div class="rounded-2xl border border-slate-200/80 bg-white p-3">
+              <div class="text-[12px] font-medium text-slate-400">今日邮件</div>
+              <div class="mt-1 font-mono text-[18px] font-bold text-slate-900">42</div>
+            </div>
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+              <div class="text-[12px] font-medium text-amber-700">待补发</div>
+              <div class="mt-1 font-mono text-[18px] font-bold text-amber-800">${pending}</div>
+            </div>
+            <div class="rounded-2xl border border-rose-200 bg-rose-50 p-3">
+              <div class="text-[12px] font-medium text-rose-700">重试 / 失败</div>
+              <div class="mt-1 font-mono text-[18px] font-bold text-rose-800">${retrying} / ${failed}</div>
+            </div>
+          </section>
+
+          <section class="space-y-2 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h3 class="text-[16px] font-bold text-slate-900">三级分发矩阵</h3>
+              <span class="text-[12px] font-bold text-slate-400">Routing Matrix</span>
+            </div>
+            ${routes.map((r) => `
+              <div class="rounded-xl border border-slate-100 bg-slate-50 p-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5">
+                    <span class="h-2 w-2 rounded-full ${r.dot}"></span>
+                    <span class="text-[14px] font-bold text-slate-800">${r.level} · ${r.en}</span>
+                  </div>
+                  <span class="shrink-0 rounded border px-1.5 py-0.5 text-[12px] font-bold ${r.chip}">${r.chipText}</span>
+                </div>
+                <div class="mt-1 text-[12px] font-medium text-slate-600">${r.channel}</div>
+                <div class="mt-0.5 text-[12px] text-slate-400">${r.scenes} · ${r.rule}</div>
+              </div>`).join('')}
+          </section>
+
+          <section class="space-y-2 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-[16px] font-bold text-slate-900">dream-worker 扫描</h3>
+              <span class="shrink-0 text-[12px] font-medium text-slate-400">每 5 分钟 · 单批 100</span>
+            </div>
+            <div class="rounded-xl bg-slate-50 p-2.5 text-[12px] leading-relaxed text-slate-600">
+              命中：二级必达 + 未读 + 未发邮件 + 落盘超过 30 分钟。命中后委托 task-relay 补发，并原子回写 email_sent。
+            </div>
+            <div class="text-[12px] text-slate-500">${esc(state.workerLog)}</div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[12px] font-semibold text-amber-700">当前待扫描 ${pending} 条</span>
+              <button data-action="scan-worker" class="rounded-lg bg-slate-900 px-2.5 py-1.5 text-[12px] font-semibold text-white transition hover:bg-slate-800">模拟 Worker 扫描</button>
+            </div>
+          </section>
+
+          <section class="space-y-2 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-[16px] font-bold text-slate-900">task-relay 邮件任务</h3>
+              <span class="shrink-0 text-[12px] font-medium text-slate-400">退避 1 / 5 / 15 分钟</span>
+            </div>
+            ${state.relayTasks.map((t) => `
+              <div class="rounded-xl border border-slate-100 p-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-mono text-[12px] text-slate-500">${t.id}</span>
+                  <span class="rounded border px-1.5 py-0.5 text-[12px] font-bold ${RELAY_CLS[t.status]}">${t.status}</span>
+                </div>
+                <div class="mt-1 text-[14px] font-semibold text-slate-800">${t.notice}</div>
+                <div class="mt-0.5 flex items-center justify-between gap-2 text-[12px] text-slate-400">
+                  <span>尝试 ${t.attempt}/3 · 下次 ${t.next}</span>
+                  <span class="truncate">${t.error || '投递成功'}</span>
+                </div>
+              </div>`).join('')}
+            <div class="flex flex-wrap gap-1.5 pt-1">
+              <button data-action="simulate-recover" class="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[12px] font-semibold text-emerald-700 transition hover:bg-emerald-100">模拟网络恢复</button>
+              <button data-action="simulate-fail" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[12px] font-semibold text-amber-800 transition hover:bg-amber-100">模拟再次失败</button>
+              <button data-action="requeue" class="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[12px] font-semibold text-rose-700 transition hover:bg-rose-100">失败任务重新入队</button>
+            </div>
+            <p class="text-[12px] leading-relaxed text-slate-400">邮箱格式非法时标记 INVALID_EMAIL 并丢弃；网关不可达时任务留在持久化队列。</p>
+          </section>
+
+          <section class="space-y-2 rounded-2xl border border-rose-200 bg-rose-50 p-3.5">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="text-[14px] font-bold text-rose-900">隐私防火墙</h3>
+              <span class="shrink-0 font-mono text-[12px] font-bold text-rose-700">internal_teaching_only</span>
+            </div>
+            <p class="text-[12px] leading-relaxed text-rose-800">家长端已拦截 ${state.blockedParentRoutes} 条内部教学通知，站内信 0 条、邮件 0 封。</p>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[12px] font-semibold text-rose-700">教师、班长、管理员可见</span>
+              <button data-action="internal-note" class="rounded-lg bg-rose-700 px-2.5 py-1.5 text-[12px] font-semibold text-white transition hover:bg-rose-800">模拟内部留言</button>
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
+            <h3 class="text-[16px] font-bold text-slate-900">生命周期与保留</h3>
+            <div class="mt-2 space-y-1.5 text-[12px]">
+              <div class="flex items-center justify-between text-slate-600"><span>已读站内信</span><span>保留 90 天 · 当前 1,284 条</span></div>
+              <div class="flex items-center justify-between text-slate-600"><span>未读站内信</span><span>保留 180 天 · 当前 37 条</span></div>
+              <div class="flex items-center justify-between text-slate-400"><span>下次清理</span><span>每日 02:00</span></div>
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
+            <h3 class="text-[16px] font-bold text-slate-900">服务边界</h3>
+            <div class="mt-2 space-y-2">
+              <div class="flex items-center gap-2 text-[12px] text-slate-600">${icon('server', 'h-3.5 w-3.5 text-slate-400')}站内信与邮件统一调用 topee-notification API</div>
+              <div class="flex items-center gap-2 text-[12px] text-slate-600">${icon('radio', 'h-3.5 w-3.5 text-slate-400')}SSE 长连接在线，站内信 5 秒内推送铃铛</div>
+              <div class="flex items-center gap-2 text-[12px] text-slate-600">${icon('refresh-cw', 'h-3.5 w-3.5 text-slate-400')}异步任务统一委托 @topeetop/task-relay-client</div>
+              <div class="flex items-center gap-2 text-[12px] text-rose-700">${icon('ban', 'h-3.5 w-3.5 text-rose-500')}严禁私建 SMTP 与通知数据表</div>
+            </div>
+          </section>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 其他 Tab 占位：跳转对应模块原型
+     * ------------------------------------------------------------------ */
+    function renderPlaceholder() {
+      const item = (NAVS[state.role] || []).find((n) => n.id === state.navTab);
+      if (!item) return '<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>';
+      const lang = currentLang();
+      const title = lang === 'en' ? (item.en || item.label) : item.label;
+      const desc = lang === 'en' ? (item.descEn || 'This module is covered by another prototype.') : item.desc;
+      return `
+        <div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
+          <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
+          <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(title)}</h2>
+          <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(desc)}</p>
+          ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white shadow-sm">${lang === 'en' ? 'Open prototype' : '打开对应原型'}</a>` : ''}
+          <button data-action="nav" data-tab="${roleMeta().boardTab}" class="mt-3 text-[14px] font-semibold text-indigo-600">${tr('backToCenter')}</button>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 通知列表页 / 独立详情页（双页流转）
+     * ------------------------------------------------------------------ */
+    function channelLabel(n) {
+      if (n.internal) return '仅内部';
+      if (n.emailStatus === 'SENT') return '邮件已发';
+      if (n.emailStatus === 'PENDING') return '邮件待补发';
+      if (n.emailStatus === 'PERMANENT_FAILED') return '邮件失败';
+      if (n.level === 'L2' && n.read) return '已读免补发';
+      return '仅站内信';
+    }
+
+    function channelColor(n) {
+      if (n.internal) return 'text-rose-700';
+      if (n.emailStatus === 'SENT') return 'text-emerald-700';
+      if (n.emailStatus === 'PENDING') return 'text-amber-700';
+      if (n.emailStatus === 'PERMANENT_FAILED') return 'text-rose-700';
+      if (n.level === 'L2' && n.read) return 'text-emerald-700';
+      return 'text-slate-400';
+    }
+
+    function emailBadge(n) {
+      if (n.internal) return `<span class="inline-flex items-center gap-1 font-semibold text-rose-700">${icon('lock', 'h-3.5 w-3.5')}仅内部</span>`;
+      if (n.emailStatus === 'SENT') return `<span class="inline-flex items-center gap-1 font-semibold text-emerald-700">${icon('mail-check', 'h-3.5 w-3.5')}邮件已发</span>`;
+      if (n.emailStatus === 'PENDING') return `<span class="inline-flex items-center gap-1 font-semibold text-amber-700">${icon('clock', 'h-3.5 w-3.5')}邮件待补发</span>`;
+      if (n.emailStatus === 'PERMANENT_FAILED') return `<span class="inline-flex items-center gap-1 font-semibold text-rose-700">${icon('mail-x', 'h-3.5 w-3.5')}邮件永久失败</span>`;
+      if (n.level === 'L2' && n.read) return `<span class="inline-flex items-center gap-1 font-semibold text-emerald-700">${icon('check', 'h-3.5 w-3.5')}已读免补发</span>`;
+      return '';
+    }
+
+    function categoryChip(n) {
+      const cat = CATEGORY_META[n.category] || CATEGORY_META.system;
+      const label = currentLang() === 'en' ? cat.en : cat.zh;
+      return `<span class="inline-flex items-center gap-1 font-semibold text-slate-500">${cat.icon} ${esc(label)}</span>`;
+    }
+
+    function quickActionLabel(n) {
+      const lang = currentLang();
+      if (n.action && n.action.type === 'email') return lang === 'en' ? 'View details' : '查看详情';
+      if (n.action && n.action.type !== 'none') {
+        return lang === 'en' ? (n.action.labelEn || n.action.labelZh) : n.action.labelZh;
+      }
+      return lang === 'en' ? 'Mark read' : '标为已读';
+    }
+
+    function quickActionButton(n) {
+      const hasAction = n.action && n.action.type !== 'none';
+      return `
+        <button data-action="${hasAction ? 'quick-action' : 'mark-read'}" data-id="${n.id}" class="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[12px] font-bold text-indigo-700 shadow-sm transition hover:bg-indigo-100 active:scale-[0.98]">
+          ${esc(quickActionLabel(n))}
+        </button>`;
+    }
+
+    /* ---- 顶部栏 ---- */
+    function renderListTopbar() {
+      const title = currentLang() === 'en' ? 'Notifications' : '消息中心 / Notifications';
+      return `
+        <div class="border-b border-slate-200 bg-white/95">
+          <div class="flex h-14 items-center gap-2 px-3">
+            <button data-action="back-workspace" class="inline-flex h-9 shrink-0 items-center gap-0.5 rounded-xl bg-slate-100 px-2.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-200" aria-label="${tr('backWorkspace')}">
+              ${icon('chevron-left', 'h-4 w-4')}<span>${currentLang() === 'en' ? 'Workspace' : '工作台'}</span>
+            </button>
+            <div class="min-w-0 flex-1 text-center">
+              <span class="whitespace-nowrap text-[16px] font-bold tracking-tight text-slate-900">${esc(title)}</span>
+            </div>
+            <button data-action="open-confirm" class="shrink-0 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-indigo-600 transition hover:bg-indigo-50">${tr('markAll')}</button>
+          </div>
+        </div>`;
+    }
+
+    function renderDetailTopbar() {
+      return `
+        <div class="border-b border-slate-200 bg-white/95">
+          <div class="flex h-14 items-center px-3">
+            <button data-action="back-to-list" class="inline-flex h-9 items-center gap-1 rounded-xl bg-slate-100 px-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-200">
+              ${icon('chevron-left', 'h-4 w-4')}<span>${tr('backToList')}</span>
             </button>
           </div>
-        </header>
-        <div data-drawer-scroll class="flex-1 overflow-y-auto p-3 space-y-2">
-          ${list.length ? list.map(noticeCard).join('') : `
-            <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center mt-6">
-              <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto grid place-items-center">
-                <i data-lucide="bell-off" class="w-6 h-6"></i>
+        </div>`;
+    }
+
+    /* ---- 轻量分段过滤条 ---- */
+    function filterChip(active) {
+      return active
+        ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
+        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
+    }
+
+    function renderListFilters() {
+      const unread = unreadCount();
+      return `
+        <div class="sticky top-0 z-10 -mx-4 border-b border-slate-200 bg-slate-50/95 px-4 py-2 backdrop-blur">
+          <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="status filter">
+            <button data-action="filter-status" data-value="all" class="h-8 rounded-full border px-3 text-[12px] font-bold transition ${filterChip(state.statusFilter === 'all')}">${tr('statusAll')}</button>
+            <button data-action="filter-status" data-value="unread" class="h-8 rounded-full border px-3 text-[12px] font-bold transition ${filterChip(state.statusFilter === 'unread')}">${tr('unreadOnly')} (${unread})</button>
+          </div>
+          <div class="mt-1.5 flex flex-wrap items-center gap-1.5" role="group" aria-label="category filter">
+            <button data-action="filter-category" data-value="all" class="h-8 rounded-full border px-3 text-[12px] font-bold transition ${filterChip(state.categoryFilter === 'all')}">${tr('allTypes')}</button>
+            <button data-action="filter-category" data-value="schedule" class="h-8 rounded-full border px-3 text-[12px] font-bold transition ${filterChip(state.categoryFilter === 'schedule')}">📅 ${tr('catSchedule')}</button>
+            <button data-action="filter-category" data-value="billing" class="h-8 rounded-full border px-3 text-[12px] font-bold transition ${filterChip(state.categoryFilter === 'billing')}">💳 ${tr('catBilling')}</button>
+          </div>
+        </div>`;
+    }
+
+    /* ---- 分支 A：120 字以内直读卡片 ---- */
+    function shortNoticeCard(n) {
+      const level = LEVEL_META[n.level];
+      const rel = relative(n.minutesAgo);
+      const unread = !n.read;
+      return `
+        <article data-action="mark-read" data-id="${n.id}" class="cursor-pointer rounded-2xl border p-3.5 shadow-sm transition active:scale-[0.995] ${unread ? 'border-slate-200 bg-white' : 'border-slate-100 bg-slate-50/80'}">
+          <div class="flex items-start gap-2.5">
+            <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${unread ? 'bg-indigo-600' : 'bg-slate-200'}"></span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <h3 class="text-[16px] font-bold leading-snug text-slate-900">${esc(n.titleZh)}</h3>
+                  <p class="mt-0.5 text-[12px] leading-tight text-slate-400">${esc(n.titleEn)}</p>
+                </div>
+                <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${level.cls}">${level.zh}</span>
               </div>
-              <div class="mt-2 text-sm font-medium text-slate-600">暂无新消息</div>
-              <div class="text-xs text-slate-400 mt-0.5">No notifications yet</div>
-            </div>`}
-        </div>
-        <footer class="bg-white border-t border-slate-100 px-4 py-2 text-center text-xs text-slate-400 shrink-0">
-          已加载全部消息 / All messages loaded
-        </footer>
-      </aside>
-    </div>`;
-}
-
-function renderConfirm() {
-  const root = $('confirmRoot');
-  if (!S.confirmRead) {
-    root.innerHTML = '';
-    return;
-  }
-  const unread = unreadCount();
-  root.innerHTML = `
-    <div class="absolute inset-0 z-[70] bg-slate-900/60 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl p-4 w-full max-w-xs shadow-2xl space-y-3 text-xs">
-        <div class="text-center space-y-1">
-          <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-700 mx-auto grid place-items-center">
-            <i data-lucide="check-check" class="w-5 h-5"></i>
+              <div class="mt-1 flex flex-wrap items-center gap-2 text-[12px] font-medium text-slate-400">
+                <span>${rel.zh} / ${rel.en}</span>
+                ${unread ? '' : `<span class="rounded-full bg-slate-100 px-1.5 py-0.5 font-bold text-slate-500">${tr('read')}</span>`}
+              </div>
+              <p class="mt-1.5 text-[14px] leading-relaxed text-slate-700">${esc(n.bodyZh)}</p>
+              <p class="mt-1 text-[12px] leading-relaxed text-slate-500">${esc(n.bodyEn)}</p>
+              <div class="mt-2.5 flex items-end justify-between gap-2 border-t border-slate-100 pt-2">
+                <div class="flex min-w-0 flex-wrap items-center gap-2 text-[12px]">
+                  ${categoryChip(n)}
+                  <span class="inline-flex items-center gap-1 text-slate-500">${icon('inbox', 'h-3.5 w-3.5 text-slate-400')}站内信</span>
+                  ${emailBadge(n)}
+                </div>
+                ${quickActionButton(n)}
+              </div>
+            </div>
           </div>
-          <h4 class="font-bold text-slate-900 text-sm">全部标为已读</h4>
-          <p class="text-xs text-slate-400">Mark All as Read</p>
-        </div>
-        <p class="text-sm text-slate-600 leading-relaxed">将当前账号的 ${unread} 条未读消息全部置为已读，顶部铃铛红点将清零。此操作不可撤销。</p>
-        <p class="text-xs text-slate-400 leading-relaxed">All ${unread} unread messages will be marked as read. The bell badge will be cleared.</p>
-        <div class="flex gap-2 pt-1">
-          <button onclick="closeConfirmAll()" class="flex-1 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition">取消</button>
-          <button onclick="markAllRead()" class="flex-1 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold transition">确认全部已读</button>
-        </div>
-      </div>
-    </div>`;
-}
+        </article>`;
+    }
 
-function emailTable(headers, rows, lang) {
-  return `
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-[440px] border-collapse text-left text-xs">
-        <thead>
-          <tr class="bg-slate-100">
-            ${headers.map((h) => `<th class="border border-slate-200 px-1.5 py-1 font-semibold text-slate-600">${h}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.map((row) => `
-            <tr>
-              ${row[lang].map((cell) => `<td class="border border-slate-200 px-1.5 py-1 text-slate-700">${cell}</td>`).join('')}
-            </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
-}
-
-function renderEmail() {
-  const root = $('emailRoot');
-  if (!S.emailNoticeId) {
-    root.innerHTML = '';
-    return;
-  }
-  const notice = findNotice(S.emailNoticeId);
-  const template = notice ? EMAIL_TEMPLATES[notice.template] : null;
-  if (!notice || !template) {
-    root.innerHTML = '';
-    return;
-  }
-  const user = USERS[S.role];
-  const emailType = notice.level === 'L2' ? '二级必达兜底邮件' : notice.level === 'L3' ? '三级紧急邮件' : '通知邮件';
-
-  root.innerHTML = `
-    <div class="absolute inset-0 z-[80] bg-slate-900/60 flex items-center justify-center p-2">
-      <div class="bg-white rounded-2xl w-full max-w-[640px] max-h-full flex flex-col overflow-hidden shadow-2xl border border-slate-200">
-        <header class="px-4 py-2.5 bg-slate-900 text-white flex items-center justify-between shrink-0">
-          <div>
-            <div class="text-xs font-bold">邮件预览</div>
-            <div class="text-sm font-bold text-slate-300">Email Preview · ${emailType}</div>
+    /* ---- 分支 B：120 字及以上摘要跳转型卡片 ---- */
+    function longNoticeCard(n) {
+      const level = LEVEL_META[n.level];
+      const rel = relative(n.minutesAgo);
+      const unread = !n.read;
+      return `
+        <article data-action="open-detail" data-id="${n.id}" class="cursor-pointer rounded-2xl border p-3.5 shadow-sm transition active:scale-[0.995] ${unread ? 'border-indigo-200 bg-white ring-1 ring-indigo-100' : 'border-slate-100 bg-slate-50/80'}">
+          <div class="flex items-start gap-2.5">
+            <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${unread ? 'bg-indigo-600' : 'bg-slate-200'}"></span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <h3 class="text-[16px] font-bold leading-snug text-slate-900">${esc(n.titleZh)}</h3>
+                  <p class="mt-0.5 text-[12px] leading-tight text-slate-400">${esc(n.titleEn)}</p>
+                </div>
+                <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${level.cls}">${level.zh}</span>
+              </div>
+              <div class="mt-1 flex flex-wrap items-center gap-2 text-[12px] font-medium text-slate-400">
+                <span>${rel.zh} / ${rel.en}</span>
+                ${unread ? '' : `<span class="rounded-full bg-slate-100 px-1.5 py-0.5 font-bold text-slate-500">${tr('read')}</span>`}
+              </div>
+              <p class="mt-1.5 text-[14px] leading-relaxed text-slate-700">${esc(summaryZh(n, 80))}</p>
+              <div class="mt-2.5 flex items-end justify-between gap-2 border-t border-slate-100 pt-2">
+                <div class="flex min-w-0 flex-wrap items-center gap-2 text-[12px]">
+                  ${categoryChip(n)}
+                  <span class="inline-flex items-center gap-1 text-slate-500">${icon('inbox', 'h-3.5 w-3.5 text-slate-400')}站内信</span>
+                </div>
+                <span class="shrink-0 text-[12px] font-bold text-indigo-600">${tr('viewDetail')} &gt;</span>
+              </div>
+            </div>
           </div>
-          <button onclick="closeEmail()" class="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 grid place-items-center">
-            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </article>`;
+    }
+
+    function renderNotificationList() {
+      const list = filteredNotices();
+      const empty = `
+        <div class="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+          <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-50 text-slate-300">${icon('inbox', 'h-6 w-6')}</div>
+          <p class="mt-3 text-[14px] font-bold text-slate-700">${tr('noMatch')}</p>
+          <p class="mt-0.5 text-[12px] text-slate-400">No matching notifications</p>
+          <button data-action="reset-filters" class="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">重置筛选 / Reset filters</button>
+        </div>`;
+      return `
+        <div class="mx-auto w-full max-w-[640px] px-4 py-3 pb-10">
+          ${renderListFilters()}
+          <div class="mt-3 space-y-2.5">
+            ${list.length ? list.map((n) => (isLongNotice(n) ? longNoticeCard(n) : shortNoticeCard(n))).join('') : empty}
+          </div>
+          ${list.length ? `<footer class="pb-2 pt-5 text-center text-[12px] font-medium text-slate-400">${tr('loaded')}</footer>` : ''}
+        </div>`;
+    }
+
+    /* ---- 详情页 ---- */
+    function detailTable(lang = 'zh') {
+      const headers = lang === 'en' ? BATCH_TABLE.headersEn : BATCH_TABLE.headersZh;
+      return `
+        <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full min-w-[520px] border-collapse text-left text-[12px]">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50">
+                ${headers.map((h) => `<th class="px-2.5 py-2 font-bold text-slate-700">${esc(h)}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              ${BATCH_TABLE.rows.map((row) => `
+                <tr class="hover:bg-slate-50/60">
+                  ${row[lang].map((cell) => `<td class="whitespace-nowrap px-2.5 py-2 text-slate-700">${esc(cell)}</td>`).join('')}
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-1 text-right text-[12px] text-slate-400">左右滑动查看完整排期 / Swipe to see all columns</p>`;
+    }
+
+    function genericDetailBlock(n) {
+      const level = LEVEL_META[n.level];
+      return `
+        <div class="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 text-[12px]">
+          <div class="rounded-lg bg-slate-50 p-2">
+            <div class="text-slate-400">发送时间 / Sent</div>
+            <div class="mt-0.5 font-semibold text-slate-700">${absoluteTime(n.minutesAgo)}</div>
+          </div>
+          <div class="rounded-lg bg-slate-50 p-2">
+            <div class="text-slate-400">通知等级 / Level</div>
+            <div class="mt-0.5 font-semibold text-slate-700">${level.zh} · ${level.en}</div>
+          </div>
+        </div>`;
+    }
+
+    function detailCtaLabel(n) {
+      const lang = currentLang();
+      if (n.action && n.action.type === 'schedule') {
+        if (lang === 'en') return 'View Schedule';
+        return state.role === 'amy' ? '查看孩子课表' : '查看课表';
+      }
+      if (n.action && n.action.type === 'memo') return lang === 'en' ? 'View Message Board' : '查看留言板';
+      return lang === 'en' ? 'Got it' : '知道了';
+    }
+
+    function detailCtaIcon(n) {
+      if (n.action && n.action.type === 'schedule') return 'calendar-days';
+      if (n.action && n.action.type === 'memo') return 'message-square';
+      return 'check';
+    }
+
+    function renderNotificationDetail() {
+      const n = findNotice(state.selectedNoticeId);
+      if (!n) {
+        return `<div class="p-8 text-center text-[14px] font-medium text-slate-400">${tr('noMessages')}</div>`;
+      }
+      const level = LEVEL_META[n.level];
+      const rel = relative(n.minutesAgo);
+      const cat = CATEGORY_META[n.category] || CATEGORY_META.system;
+      const isBatch = n.template === 'batch';
+      return `
+        <div class="mx-auto w-full max-w-[640px] px-4 py-4 pb-8">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="rounded-full border px-2.5 py-1 text-[12px] font-bold ${level.cls}">${level.zh} · ${level.en}</span>
+            <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[12px] font-bold text-emerald-700">${icon('check', 'h-3.5 w-3.5')}${tr('read')}</span>
+          </div>
+
+          <div class="mt-3 text-[12px] font-medium text-slate-400">${absoluteTime(n.minutesAgo)} · ${rel.zh} / ${rel.en}</div>
+          <div class="mt-1 flex items-center gap-1.5 text-[12px] font-semibold text-indigo-600">${cat.icon} ${esc(cat.zh)} / ${esc(cat.en)}</div>
+
+          <h1 class="mt-3 text-[18px] font-bold leading-snug text-slate-900">${esc(n.titleZh)}</h1>
+          <p class="mt-1 text-[14px] font-semibold text-slate-500">${esc(n.titleEn)}</p>
+
+          <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="whitespace-pre-line text-[14px] leading-relaxed text-slate-700">${esc(n.bodyZh)}</p>
+            ${isBatch ? detailTable('zh') : genericDetailBlock(n)}
+          </section>
+
+          <div class="my-5 flex items-center gap-2">
+            <span class="h-px flex-1 bg-slate-200"></span>
+            <span class="whitespace-nowrap text-[12px] font-bold text-slate-400">English Version Below</span>
+            <span class="h-px flex-1 bg-slate-200"></span>
+          </div>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="text-[12px] font-bold text-slate-400">${esc(n.titleEn)}</p>
+            <p class="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-slate-600">${esc(n.bodyEn)}</p>
+            ${isBatch ? detailTable('en') : ''}
+          </section>
+
+          <button data-action="detail-cta" data-id="${n.id}" class="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-[16px] font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.99]">
+            ${icon(detailCtaIcon(n), 'h-5 w-5')}${detailCtaLabel(n)}
           </button>
-        </header>
-        <div class="flex-1 overflow-y-auto bg-[#F5F7FA] p-3">
-          <div class="mx-auto max-w-[600px] bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-            <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between gap-2">
-              <div>
-                <div class="text-sm font-bold leading-tight">Dream</div>
-                <div class="text-sm font-bold text-slate-300">教务排班与分账系统 / Scheduling & Settlement</div>
-              </div>
-              <button onclick="scrollToEnglish()" class="text-sm font-bold text-amber-300 underline shrink-0">[English Version Below]</button>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 全部已读确认
+     * ------------------------------------------------------------------ */
+    function renderConfirm() {
+      const root = $('confirmRoot');
+      if (!state.confirmRead) {
+        root.innerHTML = '';
+        return;
+      }
+      const unread = unreadCount();
+      const lang = currentLang();
+      const body = lang === 'en'
+        ? `All ${unread} unread messages on this account will be marked as read. The bell badge will be cleared.`
+        : `将当前账号的 ${unread} 条未读消息全部置为已读，顶部铃铛红点将清零。此操作不可撤销。`;
+      const sub = lang === 'en'
+        ? `将当前账号的 ${unread} 条未读消息全部置为已读。`
+        : `All ${unread} unread messages will be marked as read.`;
+
+      root.innerHTML = `
+        <div class="absolute inset-0 z-[70] flex items-center justify-center p-4">
+          <div data-action="close-confirm" class="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px]"></div>
+          <div class="relative w-full max-w-xs space-y-3.5 rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <div class="space-y-1 text-center">
+              <div class="mx-auto grid h-11 w-11 place-items-center rounded-2xl border border-indigo-100 bg-indigo-50 text-indigo-600 shadow-sm">${icon('check-check', 'h-5 w-5')}</div>
+              <h4 class="text-[16px] font-bold text-slate-900">${tr('markAll')}</h4>
+              <p class="text-[12px] text-slate-400">Mark All as Read</p>
             </div>
-
-            <div class="p-4 space-y-3">
-              <div class="text-xs text-slate-400">收件人 / To: ${user.email}</div>
-              <div class="text-xs text-slate-600"><span class="text-slate-400">主题 / Subject:</span> ${template.subject}</div>
-              <div class="rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 leading-relaxed">${notice.emailNote}</div>
-
-              <section class="space-y-2 pt-1">
-                <h3 class="text-[17px] font-bold text-slate-900">${template.titleZh}</h3>
-                <p class="text-sm text-slate-500">亲爱的 ${user.name}，您好：</p>
-                <p class="text-sm text-slate-600 leading-relaxed">${template.introZh}</p>
-                ${emailTable(template.headersZh, template.rows, 'zh')}
-                <button class="w-full rounded-lg bg-teal-700 text-white text-sm font-semibold py-2">${template.ctaZh}</button>
-              </section>
-
-              <div class="border-t border-dashed border-slate-300 pt-3 text-center text-xs text-slate-400">
-                --- English Version Below ---
-              </div>
-
-              <section id="emailEnglish" class="space-y-2 scroll-mt-2">
-                <h3 class="text-[17px] font-bold text-slate-900">${template.titleEn}</h3>
-                <p class="text-sm text-slate-500">Dear ${user.name},</p>
-                <p class="text-sm text-slate-600 leading-relaxed">${template.introEn}</p>
-                ${emailTable(template.headersEn, template.rows, 'en')}
-                <button class="w-full rounded-lg bg-slate-800 text-white text-sm font-semibold py-2">${template.ctaEn}</button>
-              </section>
-
-              <footer class="border-t border-slate-200 pt-3 space-y-1 text-sm font-bold text-slate-400 leading-relaxed">
-                <p>本邮件由 Dream 系统自动发送，请勿直接回复。 / This email was sent automatically by Dream. Please do not reply.</p>
-                <p>ClassIn 技术支持：support@topee.top ｜ 本邮件为教务必要通知，无法退订。 / ClassIn support: support@topee.top | This is a required service email and cannot be unsubscribed.</p>
-                <p>© 2024-2026 Topee. All rights reserved.</p>
-              </footer>
+            <p class="text-[14px] leading-relaxed text-slate-600">${body}</p>
+            <p class="text-[12px] leading-relaxed text-slate-400">${sub}</p>
+            <div class="flex gap-2.5 pt-1">
+              <button data-action="close-confirm" class="h-11 flex-1 rounded-xl bg-slate-100 text-[16px] font-semibold text-slate-700 transition hover:bg-slate-200">${tr('cancel')}</button>
+              <button data-action="mark-all-read" class="h-11 flex-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white shadow-sm transition hover:bg-indigo-700">${tr('confirmRead')}</button>
             </div>
           </div>
-        </div>
-      </div>
-    </div>`;
-}
+        </div>`;
+    }
 
-function workspaceContent() {
-  const unread = unreadCount();
-  const user = USERS[S.role];
-  const openButton = `
-    <button onclick="openDrawer()" class="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-white/15 hover:bg-white/25 px-3 py-2 text-sm font-semibold transition">
-      <i data-lucide="bell" class="w-3.5 h-3.5"></i>打开消息中心
-      ${unread ? `<span class="ml-1 rounded-full bg-rose-600 px-1.5 py-0.5 text-sm font-bold font-bold">${unread}</span>` : ''}
-    </button>`;
+    /* ------------------------------------------------------------------
+     * 渲染
+     * ------------------------------------------------------------------ */
+    function renderAll() {
+      const frame = $('frame');
+      frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
 
-  if (S.role === 'amy') {
-    return `
-      <div class="space-y-3">
-        <div class="rounded-2xl bg-teal-700 text-white p-4">
-          <div class="text-xs text-teal-100">2026-11-05 周四</div>
-          <h2 class="mt-1 text-base font-bold">Amy，下午好</h2>
-          <p class="mt-0.5 text-sm text-teal-100">${unread} 条未读 · 含三级紧急通知</p>
-          ${openButton}
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div class="rounded-2xl border border-slate-200 bg-white p-3">
-            <div class="text-xs text-slate-400">本周固定位</div>
-            <div class="mt-1 text-lg font-bold text-slate-900">4 节</div>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-3">
-            <div class="text-xs text-slate-400">未读消息</div>
-            <div class="mt-1 text-lg font-bold text-rose-600">${unread} 条</div>
-          </div>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-3">
-          <div class="flex items-center justify-between text-xs text-slate-400">
-            <span>下一节课</span><span>11-14 周六</span>
-          </div>
-          <div class="mt-1 text-xs font-bold text-slate-900">16:00-16:25 · 1v1 英语 KET 精读</div>
-          <div class="mt-0.5 text-xs text-slate-500">AliceZ12 · David Miller · ClassIn A-302</div>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-3">
-          <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
-            <i data-lucide="languages" class="w-4 h-4 text-teal-700"></i>双语通知标准
-          </div>
-          <p class="mt-1 text-xs text-slate-500 leading-relaxed">邮件中文在上、英文在下；站内信标题与正文均提供中英对照。紧急通知 5 秒内并发邮件。</p>
-        </div>
-      </div>`;
-  }
+      const contentEl = $('content');
+      const contentTop = contentEl.scrollTop;
 
-  if (S.role === 'david') {
-    return `
-      <div class="space-y-3">
-        <div class="rounded-2xl bg-slate-800 text-white p-4">
-          <div class="text-xs text-slate-300">2026-11-05 周四</div>
-          <h2 class="mt-1 text-base font-bold">David，本周 12 节课</h2>
-          <p class="mt-0.5 text-sm text-slate-300">${unread} 条未读 · 双语邮件同步 Gmail</p>
-          ${openButton}
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div class="rounded-2xl border border-slate-200 bg-white p-3">
-            <div class="text-xs text-slate-400">待备课学员</div>
-            <div class="mt-1 text-lg font-bold text-slate-900">2 人</div>
-          </div>
-          <div class="rounded-2xl border border-slate-200 bg-white p-3">
-            <div class="text-xs text-slate-400">本周课酬</div>
-            <div class="mt-1 text-lg font-bold text-emerald-700">12 节</div>
-          </div>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-3">
-          <div class="flex items-center justify-between text-xs text-slate-400">
-            <span>下一节课</span><span>11-10 周二</span>
-          </div>
-          <div class="mt-1 text-xs font-bold text-slate-900">19:00-19:25 · AliceZ12</div>
-          <div class="mt-0.5 text-xs text-slate-500">1v1 英语 KET 精读 · ClassIn A-302</div>
-        </div>
-        <div class="rounded-2xl border border-rose-200 bg-rose-50 p-3">
-          <div class="flex items-center gap-2 text-sm font-semibold text-rose-900">
-            <i data-lucide="lock" class="w-4 h-4 text-rose-600"></i>内部教学备忘
-          </div>
-          <p class="mt-1 text-xs text-rose-800 leading-relaxed">仅内部教学可见的学情记录不会向家长产生任何站内信或邮件。</p>
-        </div>
-      </div>`;
-  }
+      $('offlineBanner').className = state.online === 'off'
+        ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[12px] font-semibold text-amber-900'
+        : 'hidden';
 
-  return `
-    <div class="space-y-3">
-      <div class="rounded-2xl bg-indigo-900 text-white p-4">
-        <div class="text-xs text-indigo-200">2026-11-05 周四</div>
-        <h2 class="mt-1 text-base font-bold">Leo，今日 3 项调度待办</h2>
-        <p class="mt-0.5 text-sm text-indigo-200">${unread} 条未读 · 含三级紧急通知</p>
-        ${openButton}
-      </div>
-      <div class="grid grid-cols-2 gap-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-3">
-          <div class="text-xs text-slate-400">紧急派发</div>
-          <div class="mt-1 text-lg font-bold text-rose-600">2 条</div>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-3">
-          <div class="text-xs text-slate-400">待协助转让</div>
-          <div class="mt-1 text-lg font-bold text-slate-900">1 条</div>
-        </div>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-3">
-        <div class="flex items-center justify-between text-xs text-slate-400">
-          <span>最近调度</span><span>11-12 周四</span>
-        </div>
-        <div class="mt-1 text-xs font-bold text-slate-900">17:00 小班课整班停课</div>
-        <div class="mt-0.5 text-xs text-slate-500">已向 5 位家长并发站内信与双语邮件</div>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-3">
-        <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
-          <i data-lucide="send" class="w-4 h-4 text-indigo-700"></i>异步派发
-        </div>
-        <p class="mt-1 text-xs text-slate-500 leading-relaxed">邮件任务统一委托 task-relay，1 分钟、5 分钟、15 分钟退避重试，主业务线程零阻塞。</p>
-      </div>
-    </div>`;
-}
+      if (state.page === 'notifications') {
+        $('topbar').innerHTML = renderListTopbar();
+        contentEl.innerHTML = renderNotificationList();
+        $('bottomnav').innerHTML = '';
+      } else if (state.page === 'detail') {
+        $('topbar').innerHTML = renderDetailTopbar();
+        contentEl.innerHTML = renderNotificationDetail();
+        $('bottomnav').innerHTML = '';
+      } else {
+        $('topbar').innerHTML = renderTopbar();
+        contentEl.innerHTML = state.page === 'workspace'
+          ? (state.role === 'sarah' ? renderAdminConsole() : renderNotificationHome())
+          : renderPlaceholder();
+        $('bottomnav').innerHTML = renderNav();
+      }
 
-function adminDashboard() {
-  const pending = pendingMandatoryCount();
-  const retrying = S.relayTasks.filter((t) => t.status === 'RETRYING').length;
-  const failed = S.relayTasks.filter((t) => t.status === 'PERMANENT_FAILED').length;
-  const deviceCols = S.device === 'tablet' ? 'grid-cols-4' : 'grid-cols-2';
-  const routes = [
-    { level: '一级', en: 'Regular', cls: 'bg-slate-100 text-slate-700', dot: 'bg-slate-400', channel: '仅站内信 / In-app only', scene: '课表生成 · 周课酬节数单 · 公开留言回复', rule: '严禁外部邮件' },
-    { level: '二级', en: 'Mandatory', cls: 'bg-amber-100 text-amber-800', dot: 'bg-amber-500', channel: '站内信 + 30 分钟未读兜底邮件', scene: '购课确认 · 新排课 · 24h 外请假或挪位', rule: 'Worker 每 5 分钟扫描' },
-    { level: '三级', en: 'Urgent', cls: 'bg-rose-100 text-rose-700', dot: 'bg-rose-500', channel: '站内信 + 邮件并发即时派发', scene: '24h 内改期 · 转让 · 整班停课 · 代课 · 退款', rule: '事务提交后 5 秒内' }
-  ];
-  const relayCls = {
-    SENT: 'bg-emerald-100 text-emerald-700',
-    RETRYING: 'bg-amber-100 text-amber-800',
-    PERMANENT_FAILED: 'bg-rose-100 text-rose-700'
-  };
+      renderConfirm();
+      syncConsole();
 
-  return `
-    <div class="space-y-3">
-      <div class="rounded-2xl bg-slate-900 text-white p-4">
-        <div class="flex items-center justify-between text-xs text-slate-300">
-          <span>通信风控看板</span><span>topee-notification · task-relay</span>
-        </div>
-        <h2 class="mt-1 text-base font-bold">通知分发网络运行正常</h2>
-        <p class="mt-0.5 text-sm text-slate-300">不私建 SMTP，不私建站内信表，异步重试与审计全链路留痕。</p>
-        <div class="mt-3 flex flex-wrap items-center gap-2">
-          <button onclick="openDrawer()" class="inline-flex items-center gap-1.5 rounded-xl bg-white/15 hover:bg-white/25 px-3 py-2 text-sm font-semibold transition">
-            <i data-lucide="bell" class="w-3.5 h-3.5"></i>系统消息
-            ${badgeText() ? `<span class="rounded-full bg-rose-600 px-1.5 py-0.5 text-sm font-bold font-bold">${badgeText()}</span>` : ''}
-          </button>
-          <button onclick="toggleForce99()" class="rounded-xl bg-white/10 hover:bg-white/20 px-3 py-2 text-xs font-medium transition">${S.force99 ? '恢复真实未读数' : '模拟 99+ 未读'}</button>
-        </div>
-      </div>
+      contentEl.scrollTop = contentTop;
+      ico();
+    }
 
-      <div class="grid ${deviceCols} gap-2">
-        <div class="rounded-2xl border border-slate-200 bg-white p-3">
-          <div class="text-xs text-slate-400">今日站内信</div>
-          <div class="mt-1 text-lg font-bold text-slate-900">128</div>
-        </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-3">
-          <div class="text-xs text-slate-400">今日邮件</div>
-          <div class="mt-1 text-lg font-bold text-slate-900">42</div>
-        </div>
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
-          <div class="text-xs text-amber-700">待补发</div>
-          <div class="mt-1 text-lg font-bold text-amber-800">${pending}</div>
-        </div>
-        <div class="rounded-2xl border border-rose-200 bg-rose-50 p-3">
-          <div class="text-xs text-rose-700">重试 / 失败</div>
-          <div class="mt-1 text-lg font-bold text-rose-800">${retrying} / ${failed}</div>
-        </div>
-      </div>
+    /* ------------------------------------------------------------------
+     * 交互
+     * ------------------------------------------------------------------ */
+    function setRole(role) {
+      if (!ROLE_META[role]) return;
+      state.role = role;
+      state.page = 'workspace';
+      state.navTab = ROLE_META[role].boardTab;
+      state.selectedNoticeId = null;
+      state.statusFilter = 'all';
+      state.categoryFilter = 'all';
+      state.listScrollTop = 0;
+      state.confirmRead = false;
+      state.force99 = false;
+      state.lang = 'zh';
+      renderAll();
+      $('content').scrollTop = 0;
+      toast(`已切换到${ROLE_META[role].label}`);
+    }
 
-      <div class="rounded-2xl border border-slate-200 bg-white p-3 space-y-2">
-        <div class="flex items-center justify-between">
-          <div class="text-[17px] font-bold text-slate-900">三级分发矩阵</div>
-          <span class="text-sm font-bold text-slate-400">Routing Matrix</span>
-        </div>
-        ${routes.map((r) => `
-          <div class="rounded-xl border border-slate-100 bg-slate-50 p-2.5">
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full ${r.dot}"></span>
-                <span class="text-sm font-semibold text-slate-800">${r.level} · ${r.en}</span>
-              </div>
-              <span class="text-sm font-bold px-1.5 py-0.5 rounded ${r.cls} font-semibold">${r.rule}</span>
-            </div>
-            <div class="mt-1 text-xs text-slate-600">${r.channel}</div>
-            <div class="mt-0.5 text-sm font-bold text-slate-400">${r.scene}</div>
-          </div>`).join('')}
-      </div>
+    function setDevice(device) {
+      state.device = device;
+      renderAll();
+    }
 
-      <div class="rounded-2xl border border-slate-200 bg-white p-3 space-y-2">
-        <div class="flex items-center justify-between">
-          <div class="text-[17px] font-bold text-slate-900">dream-worker 扫描</div>
-          <span class="text-sm font-bold text-slate-400">每 5 分钟 · 单批 100 条</span>
-        </div>
-        <div class="rounded-xl bg-slate-50 p-2 text-xs text-slate-600 leading-relaxed">
-          命中条件：二级必达 + 未读 + 未发邮件 + 落盘超过 30 分钟。<br>
-          命中后委托 task-relay 补发，原子回写 email_sent = true 与 email_dispatched_at。
-        </div>
-        <div class="text-xs text-slate-500">${S.workerLog}</div>
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-xs text-amber-700">当前待扫描 ${pending} 条</span>
-          <button onclick="simulateWorkerScan()" class="rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-2.5 py-1.5 transition">模拟 Worker 扫描</button>
-        </div>
-      </div>
+    function setOnline(online) {
+      state.online = online;
+      if (online === 'off') state.confirmRead = false;
+      renderAll();
+      toast(online === 'off'
+        ? '离线只读：仅展示端内缓存通知，标为已读与邮件重试需联网生效'
+        : '网络已恢复，通知通道在线');
+    }
 
-      <div class="rounded-2xl border border-slate-200 bg-white p-3 space-y-2">
-        <div class="flex items-center justify-between">
-          <div class="text-[17px] font-bold text-slate-900">task-relay 邮件任务</div>
-          <span class="text-sm font-bold text-slate-400">退避 1 / 5 / 15 分钟</span>
-        </div>
-        ${S.relayTasks.map((t) => `
-          <div class="rounded-xl border border-slate-100 p-2">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-mono text-slate-500">${t.id}</span>
-              <span class="text-sm font-bold px-1.5 py-0.5 rounded ${relayCls[t.status]} font-semibold">${t.status}</span>
-            </div>
-            <div class="mt-1 text-xs text-slate-700">${t.notice}</div>
-            <div class="mt-0.5 flex items-center justify-between text-sm font-bold text-slate-400">
-              <span>尝试 ${t.attempt}/3 · 下次 ${t.next}</span>
-              <span>${t.error || '投递成功'}</span>
-            </div>
-          </div>`).join('')}
-        <div class="flex flex-wrap gap-1.5 pt-1">
-          <button onclick="simulateNetworkRecover()" class="rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold px-2 py-1 transition">模拟网络恢复</button>
-          <button onclick="simulateAgainFail()" class="rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-1 transition">模拟再次失败</button>
-          <button onclick="retryPermanent()" class="rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-semibold px-2 py-1 transition">失败任务重新入队</button>
-        </div>
-        <p class="text-sm font-bold text-slate-400 leading-relaxed">邮箱格式非法时标记 INVALID_EMAIL 并丢弃，不进入无效重试；网关不可达时任务留在持久化队列。</p>
-      </div>
+    function navTo(tab) {
+      const item = (NAVS[state.role] || []).find((n) => n.id === tab);
+      if (!item) return;
+      state.navTab = tab;
+      state.page = item.board ? 'workspace' : 'placeholder';
+      state.selectedNoticeId = null;
+      state.confirmRead = false;
+      renderAll();
+      $('content').scrollTop = 0;
+    }
 
-      <div class="rounded-2xl border border-rose-200 bg-rose-50 p-3 space-y-2">
-        <div class="flex items-center justify-between">
-          <div class="text-sm font-bold text-rose-900">隐私防火墙</div>
-          <span class="text-sm font-bold text-rose-700 font-mono">internal_teaching_only</span>
-        </div>
-        <p class="text-xs text-rose-800 leading-relaxed">家长端已拦截 ${S.blockedParentRoutes} 条内部教学通知，站内信 0 条、邮件 0 封。</p>
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-sm font-bold text-rose-700">教师、班长、管理员可见</span>
-          <button onclick="simulateInternalNote()" class="rounded-lg bg-rose-700 hover:bg-rose-800 text-white text-xs font-semibold px-2.5 py-1.5 transition">模拟内部教学留言</button>
-        </div>
-      </div>
+    /* ---- 双页流转：工作台 → 列表 → 详情 ---- */
+    function openNotifications() {
+      state.page = 'notifications';
+      state.selectedNoticeId = null;
+      state.statusFilter = 'all';
+      state.categoryFilter = 'all';
+      state.listScrollTop = 0;
+      state.confirmRead = false;
+      renderAll();
+      $('content').scrollTop = 0;
+    }
 
-      <div class="rounded-2xl border border-slate-200 bg-white p-3 space-y-1.5">
-        <div class="text-[17px] font-bold text-slate-900">生命周期与保留策略</div>
-        <div class="flex items-center justify-between text-xs text-slate-600"><span>已读站内信</span><span>保留 90 天 · 当前 1,284 条</span></div>
-        <div class="flex items-center justify-between text-xs text-slate-600"><span>未读站内信</span><span>保留 180 天 · 当前 37 条</span></div>
-        <div class="flex items-center justify-between text-xs text-slate-400"><span>下次清理</span><span>每日 02:00</span></div>
-      </div>
+    function backToWorkspace() {
+      state.page = 'workspace';
+      state.selectedNoticeId = null;
+      state.listScrollTop = 0;
+      state.confirmRead = false;
+      renderAll();
+      $('content').scrollTop = 0;
+    }
 
-      <div class="rounded-2xl border border-slate-200 bg-white p-3 space-y-1.5">
-        <div class="text-[17px] font-bold text-slate-900">服务边界</div>
-        <div class="flex items-center gap-2 text-xs text-slate-600"><i data-lucide="server" class="w-3.5 h-3.5 text-slate-400"></i>站内信与邮件统一调用 topee-notification API</div>
-        <div class="flex items-center gap-2 text-xs text-slate-600"><i data-lucide="radio" class="w-3.5 h-3.5 text-slate-400"></i>SSE 长连接在线，站内信 5 秒内推送铃铛</div>
-        <div class="flex items-center gap-2 text-xs text-slate-600"><i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-slate-400"></i>异步任务统一委托 @topeetop/task-relay-client</div>
-        <div class="flex items-center gap-2 text-xs text-rose-700"><i data-lucide="ban" class="w-3.5 h-3.5 text-rose-500"></i>严禁私建 SMTP 与通知数据表</div>
-      </div>
-    </div>`;
-}
+    function openDetail(id) {
+      const notice = findNotice(id);
+      if (!notice) return;
+      if (state.page === 'notifications') state.listScrollTop = $('content').scrollTop;
+      notice.read = true; // 进入详情页立即核销未读
+      state.selectedNoticeId = id;
+      state.page = 'detail';
+      state.confirmRead = false;
+      renderAll();
+      $('content').scrollTop = 0;
+      if (state.online === 'off') toast('离线模式：端内已标已读，联网后同步');
+    }
 
-function renderContent() {
-  $('content').innerHTML = S.role === 'sarah' ? adminDashboard() : workspaceContent();
-}
+    function backToList() {
+      state.page = 'notifications';
+      state.selectedNoticeId = null;
+      renderAll();
+      $('content').scrollTop = state.listScrollTop;
+    }
 
-function renderAll() {
-  const contentEl = $('content');
-  const contentTop = contentEl && typeof contentEl.scrollTop === 'number' ? contentEl.scrollTop : 0;
-  const drawerEl = document.querySelector('[data-drawer-scroll]');
-  const drawerTop = drawerEl ? drawerEl.scrollTop : 0;
+    function setListStatus(value) {
+      state.statusFilter = value;
+      state.listScrollTop = 0;
+      renderAll();
+      $('content').scrollTop = 0;
+    }
 
-  renderControls();
-  renderHeader();
-  renderContent();
-  renderDrawer();
-  renderConfirm();
-  renderEmail();
+    function setListCategory(value) {
+      state.categoryFilter = value;
+      state.listScrollTop = 0;
+      renderAll();
+      $('content').scrollTop = 0;
+    }
 
-  const nextContent = $('content');
-  if (nextContent && typeof nextContent.scrollTop === 'number') nextContent.scrollTop = contentTop;
-  const nextDrawer = document.querySelector('[data-drawer-scroll]');
-  if (nextDrawer) nextDrawer.scrollTop = drawerTop;
+    function resetListFilters() {
+      state.statusFilter = 'all';
+      state.categoryFilter = 'all';
+      state.listScrollTop = 0;
+      renderAll();
+      $('content').scrollTop = 0;
+    }
 
-  ico();
-}
+    function markRead(id) {
+      const notice = findNotice(id);
+      if (!notice || notice.read) return;
+      notice.read = true;
+      renderAll();
+      toast(state.online === 'off' ? '离线模式：端内已标已读，联网后同步' : '已标为已读');
+    }
 
-renderAll();
-</script>
+    function quickAction(id) {
+      const notice = findNotice(id);
+      if (!notice) return;
+      if (notice.action && notice.action.type === 'email') {
+        openDetail(id);
+        return;
+      }
+      notice.read = true;
+      if (notice.action && notice.action.type === 'schedule') {
+        navTo('schedule');
+        toast('已跳转至学生课表视图');
+        return;
+      }
+      renderAll();
+      if (notice.action && notice.action.type === 'memo') {
+        toast('已打开学生公开留言板（原型演示）');
+      } else {
+        toast(state.online === 'off' ? '离线模式：端内已标已读，联网后同步' : '已标为已读');
+      }
+    }
+
+    function handleDetailCta(id) {
+      const notice = findNotice(id);
+      if (!notice) return;
+      if (notice.action && notice.action.type === 'schedule') {
+        navTo('schedule');
+        toast('已跳转至学生课表视图');
+        return;
+      }
+      if (notice.action && notice.action.type === 'memo') {
+        toast('已打开学生公开留言板（原型演示）');
+        return;
+      }
+      toast('已确认收到通知');
+    }
+
+    function openConfirmAll() {
+      if (state.online === 'off') {
+        toast('离线模式只读：无法执行一键标为已读');
+        return;
+      }
+      if (unreadCount() === 0) {
+        toast('当前没有未读消息');
+        return;
+      }
+      state.confirmRead = true;
+      renderAll();
+    }
+
+    function closeConfirmAll() {
+      state.confirmRead = false;
+      renderAll();
+    }
+
+    function markAllRead() {
+      if (state.online === 'off') {
+        toast('离线模式只读：无法同步状态');
+        return;
+      }
+      noticeList().forEach((n) => { n.read = true; });
+      state.confirmRead = false;
+      if (state.statusFilter === 'unread') state.listScrollTop = 0;
+      renderAll();
+      toast('已将当前账号全部消息标为已读');
+    }
+
+    function simulateWorkerScan() {
+      if (state.online === 'off') {
+        toast('离线模式：后台 Worker 无法向网关推送邮件');
+        return;
+      }
+      const hits = [];
+      Object.keys(state.notices).forEach((role) => {
+        noticeList(role).forEach((n) => {
+          if (n.level === 'L2' && !n.read && n.emailStatus === 'PENDING' && n.minutesAgo >= 30) {
+            n.emailStatus = 'SENT';
+            n.emailNote = 'Worker 扫描命中，已补发中英双语邮件并原子回写 email_sent。';
+            n.action = { type: 'email', labelZh: '查看兜底邮件', labelEn: 'View Fallback Email' };
+            hits.push(`${role} · ${n.titleZh}`);
+          }
+        });
+      });
+      state.workerLog = hits.length
+        ? `10:35 扫描命中 ${hits.length} 条二级必达记录，已委托 task-relay 补发。`
+        : '10:35 扫描 0 条命中，未发现超过 30 分钟未读的二级必达记录。';
+      renderAll();
+      toast(hits.length ? `Worker 已补发 ${hits.length} 封中英双语邮件` : '本次扫描无命中记录');
+    }
+
+    function simulateInternalNote() {
+      const id = Date.now();
+      ['david', 'leo', 'sarah'].forEach((role) => {
+        if (!state.notices[role]) return;
+        state.notices[role].unshift({
+          id: `${role}-internal-${id}`,
+          category: 'system', level: 'L1', read: false, minutesAgo: 0,
+          titleZh: '内部教学备忘', titleEn: 'Internal Teaching Note',
+          bodyZh: 'AliceZ12 近期注意力易分散，建议课堂前 5 分钟做口部热身。本留言仅内部教学可见。',
+          bodyEn: 'AliceZ12 has recently shown a shorter attention span. A 5-minute warm-up is recommended. This note is internal teaching only.',
+          emailStatus: 'NONE', emailNote: '隐私防火墙：家长端零站内信、零邮件。',
+          internal: true, action: { type: 'none', labelZh: '', labelEn: '' }, template: 'internal'
+        });
+      });
+      state.blockedParentRoutes += 1;
+      renderAll();
+      toast('内部留言已派发教师、班长与管理员，家长端物理隔离 0 站内信 0 邮件');
+    }
+
+    function simulateNetworkRecover() {
+      const task = state.relayTasks.find((t) => t.status === 'RETRYING');
+      if (!task) {
+        toast('当前没有重试中的邮件任务');
+        return;
+      }
+      task.status = 'SENT';
+      task.attempt = Math.min(3, task.attempt + 1);
+      task.next = '-';
+      task.error = '';
+      renderAll();
+      toast('网络恢复，TaskRelay 重试成功');
+    }
+
+    function simulateAgainFail() {
+      const task = state.relayTasks.find((t) => t.status === 'RETRYING');
+      if (!task) {
+        toast('当前没有重试中的邮件任务');
+        return;
+      }
+      task.attempt += 1;
+      if (task.attempt >= 3) {
+        task.status = 'PERMANENT_FAILED';
+        task.next = '-';
+        task.error = 'EMAIL_GATEWAY_THROTTLED';
+        toast('连续 3 次重试失败，已标记 PERMANENT_FAILED');
+      } else {
+        task.next = '15 分钟后';
+        toast(`第 ${task.attempt} 次重试仍失败，按退避策略继续`);
+      }
+      renderAll();
+    }
+
+    function retryPermanent() {
+      if (state.online === 'off') {
+        toast('离线模式无法重新入队');
+        return;
+      }
+      const task = state.relayTasks.find((t) => t.status === 'PERMANENT_FAILED');
+      if (!task) {
+        toast('当前没有永久失败任务');
+        return;
+      }
+      task.status = 'RETRYING';
+      task.attempt = 1;
+      task.next = '1 分钟后';
+      task.error = 'EMAIL_GATEWAY_THROTTLED';
+      renderAll();
+      toast('永久失败任务已重新压入 task-relay 队列');
+    }
+
+    function toggleForce99() {
+      state.force99 = !state.force99;
+      renderAll();
+      toast(state.force99 ? '铃铛角标已模拟显示 99+' : '铃铛角标已恢复真实未读数');
+    }
+
+    function toggleLang() {
+      if (state.role !== 'david') return;
+      state.lang = state.lang === 'zh' ? 'en' : 'zh';
+      renderAll();
+      toast(state.lang === 'zh' ? '已切换为中文' : 'Language: English');
+    }
+
+    function resetDemo() {
+      state = initialState();
+      renderAll();
+      toast('演示数据已重置');
+    }
+
+    /* ------------------------------------------------------------------
+     * 事件绑定
+     * ------------------------------------------------------------------ */
+    document.querySelectorAll('.ctl').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const value = btn.dataset.value;
+        if (group === 'role') setRole(value);
+        if (group === 'device') setDevice(value);
+        if (group === 'online') setOnline(value);
+      });
+    });
+
+    $('btnOpenCenter').addEventListener('click', openNotifications);
+    $('btnScanWorker').addEventListener('click', simulateWorkerScan);
+    $('btnInternalNote').addEventListener('click', simulateInternalNote);
+    $('btnToggle99').addEventListener('click', toggleForce99);
+    $('btnResetDemo').addEventListener('click', resetDemo);
+
+    $('frame').addEventListener('click', (event) => {
+      const el = event.target.closest('[data-action]');
+      if (!el) return;
+      const action = el.dataset.action;
+      const id = el.dataset.id;
+
+      if (action === 'nav') return navTo(el.dataset.tab);
+      if (action === 'open-notifications') return openNotifications();
+      if (action === 'back-workspace') return backToWorkspace();
+      if (action === 'back-to-list') return backToList();
+      if (action === 'open-detail') return openDetail(id);
+      if (action === 'filter-status') return setListStatus(el.dataset.value);
+      if (action === 'filter-category') return setListCategory(el.dataset.value);
+      if (action === 'reset-filters') return resetListFilters();
+      if (action === 'mark-read') return markRead(id);
+      if (action === 'quick-action') return quickAction(id);
+      if (action === 'detail-cta') return handleDetailCta(id);
+      if (action === 'open-confirm') return openConfirmAll();
+      if (action === 'close-confirm') return closeConfirmAll();
+      if (action === 'mark-all-read') return markAllRead();
+      if (action === 'scan-worker') return simulateWorkerScan();
+      if (action === 'internal-note') return simulateInternalNote();
+      if (action === 'simulate-recover') return simulateNetworkRecover();
+      if (action === 'simulate-fail') return simulateAgainFail();
+      if (action === 'requeue') return retryPermanent();
+      if (action === 'toggle-99') return toggleForce99();
+      if (action === 'toggle-lang') return toggleLang();
+    });
+
+    /* ------------------------------------------------------------------
+     * 首屏
+     * ------------------------------------------------------------------ */
+    renderAll();
+  </script>
 </body>
 </html>

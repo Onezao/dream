@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
-<!-- 即抛型原型：m1b 子模块 教师团队与多媒体履历（家长端选课大厅与教师卡片）。纯前端 Mock，不连接后端，不触碰生产代码。 -->
+<!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<!-- 即抛型原型：M1B 家长端教师公开履历与选课大厅。纯前端 Mock，不连接后端，不触碰生产代码。 -->
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>原型 · m1b 教师履历（家长选课端）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>原型 · M1B 教师履历（家长选课端）</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -13,417 +13,543 @@
       theme: {
         extend: {
           colors: {
-            brand: { 50: '#f0fdfa', 100: '#ccfbf1', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e' }
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif']
           }
         }
       }
     }
   </script>
 </head>
-<body class="bg-stone-100 text-slate-800 min-h-screen antialiased">
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
 
-  <!-- 原型控制台（测试用控制器） -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-[60]">
-    <div class="max-w-6xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-y-2 text-sm">
-          <button onclick="filterCourse('all')" id="tag-all" class="tag-filter px-3.5 py-1.5 rounded-full text-sm font-semibold bg-slate-900 text-white shrink-0 font-medium">全部科目</button>
-          <button onclick="filterCourse('少儿英语')" id="tag-少儿英语" class="tag-filter px-3.5 py-1.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">少儿英语</button>
-          <button onclick="filterCourse('KET备考')" id="tag-KET备考" class="tag-filter px-3.5 py-1.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">KET备考</button>
-          <button onclick="filterCourse('自然拼读')" id="tag-自然拼读" class="tag-filter px-3.5 py-1.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">自然拼读</button>
-          <button onclick="filterCourse('生活口语')" id="tag-生活口语" class="tag-filter px-3.5 py-1.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0">生活口语</button>
+  <header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">1B</span>
+        <span class="text-[14px] font-bold text-slate-900">家长端教师履历</span>
+        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">最新 PRD · 底栏 ≤ 4 Tab</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">设备</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="device" data-value="mobile" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">手机</button>
+          <button data-group="device" data-value="tablet" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">平板</button>
         </div>
       </div>
-
-      <!-- 教师卡片渲染容器 -->
-      <div id="content" class="flex-1 overflow-y-auto p-3.5 space-y-3.5"></div>
-
-      <!-- 移动端 ClassIn 二维码 Bottom Sheet 抽屉浮层 -->
-      <div id="qrSheet" class="absolute inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end transition-opacity">
-        <div class="bg-white rounded-t-3xl p-5 w-full text-center shadow-2xl space-y-4">
-          <div class="w-10 h-1 bg-slate-200 rounded-full mx-auto -mt-1 mb-2"></div>
-          
-          <div class="flex justify-between items-center pb-2 border-b border-slate-100">
-            <div class="text-left">
-              <h3 class="text-sm font-bold text-slate-900" id="qrTeacherName">添加教师 ClassIn</h3>
-              <p class="text-sm text-slate-400 mt-0.5">课前备课沟通与电子教材派发</p>
-            </div>
-            <button onclick="closeQrSheet()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 grid place-items-center">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-          </div>
-
-          <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 inline-block shadow-inner">
-            <img id="qrSheetImg" src="" class="w-44 h-44 object-contain rounded-xl mx-auto" alt="ClassIn QR Code">
-          </div>
-
-          <div class="text-xs text-slate-500 leading-relaxed bg-indigo-50/70 p-3 rounded-xl border border-indigo-100 text-left flex items-start gap-2">
-            <i data-lucide="info" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
-            <span>长按图片保存或截图，使用 <strong class="text-indigo-700">ClassIn App</strong> 扫码添加教师。</span>
-          </div>
-
-          <button onclick="closeQrSheet()" class="w-full h-11 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition">
-            我知道了
-          </button>
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">网络</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="online" data-value="on" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">在线</button>
+          <button data-group="online" data-value="off" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">离线</button>
         </div>
       </div>
+      <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置演示</button>
+      <a href="../docs/prd/m1b_teacher_profile.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
+        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M1B PRD
+      </a>
+    </div>
+  </header>
 
-      <!-- Toast 提示 -->
-      <div id="toast" class="absolute left-1/2 -translate-x-1/2 bottom-5 z-[100] hidden px-4 py-2.5 rounded-xl bg-slate-900/90 text-white text-xs shadow-lg whitespace-nowrap"></div>
+  <main class="flex justify-center px-4 py-6">
+    <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
+      <div id="topbar" class="shrink-0"></div>
+      <div id="offlineBanner" class="hidden">
+        <i data-lucide="wifi-off" class="h-4 w-4 shrink-0 text-amber-600"></i>
+        离线只读：教师公开列表来自 L3 缓存，预约需联网
+      </div>
+      <div id="content" class="flex-1 overflow-y-auto"></div>
+      <nav id="bottomnav" class="shrink-0"></nav>
+      <div id="overlay"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-24 left-1/2 z-[80] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
     </div>
   </main>
 
+  <div class="hidden">
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-w-[560px] max-h-[85%]"></span>
+    <span class="grid grid-cols-1 grid-cols-2"></span>
+    <span class="bg-indigo-600 bg-indigo-50 text-indigo-700 border-indigo-100 text-indigo-950"></span>
+    <span class="bg-emerald-50 text-emerald-600 text-emerald-700 border-emerald-200"></span>
+    <span class="bg-amber-50 text-amber-600 text-amber-800 border-amber-200"></span>
+    <span class="bg-slate-100 text-slate-500 text-slate-600 border-slate-200 bg-slate-900 text-amber-300"></span>
+    <span class="bg-slate-900/40 backdrop-blur-[1px] bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-700 aspect-video"></span>
+  </div>
+
   <script>
-    // 假数据：完全符合 AC-1B-01 ~ AC-1B-11 业务规格
-    const mockTeachers = [
+    const SAMPLE_VIDEO = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
+    const COURSE_TYPES = ['少儿英语', '生活口语', '旅游口语', '自然拼读', 'KET', 'PET', '雅思', '托福'];
+    const PARENT_CHILDREN = [{ name: 'AliceZ12', age: 12 }, { name: 'BobZ10', age: 10 }];
+
+    /* 原型内联示例照片（原创 SVG 占位，不依赖外网图片） */
+    function demoPhoto(label, from, to, w = 800, h = 600) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs>
+        <rect width="${w}" height="${h}" fill="url(#g)"/>
+        <circle cx="${w * 0.74}" cy="${h * 0.28}" r="${h * 0.16}" fill="#ffffff" opacity="0.20"/>
+        <path d="M0 ${h * 0.72} Q ${w * 0.28} ${h * 0.5} ${w * 0.55} ${h * 0.74} T ${w} ${h * 0.6} V ${h} H 0 Z" fill="#0f172a" opacity="0.18"/>
+        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="system-ui, sans-serif" font-size="${Math.round(h * 0.09)}" font-weight="700" fill="#ffffff" opacity="0.94">${label}</text>
+        <text x="50%" y="64%" text-anchor="middle" dominant-baseline="middle" font-family="system-ui, sans-serif" font-size="${Math.round(h * 0.035)}" font-weight="500" fill="#ffffff" opacity="0.72">Dream Teacher Gallery</text>
+      </svg>`;
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+
+    function demoAlbum(prefix, specs) {
+      return specs.map(([label, from, to], i) => ({
+        id: `ph_${prefix}_${i + 1}`,
+        name: `${prefix}_${i + 1}.webp`,
+        dataUrl: demoPhoto(label, from, to)
+      }));
+    }
+
+    const DEMO = {
+      david: demoAlbum('david', [
+        ['教学瞬间', '#6366f1', '#0ea5e9'],
+        ['课堂互动', '#0ea5e9', '#22c55e'],
+        ['阅读时光', '#f59e0b', '#ef4444'],
+        ['户外活动', '#8b5cf6', '#ec4899']
+      ]),
+      sarah: demoAlbum('sarah', [
+        ['绘本课堂', '#0ea5e9', '#14b8a6'],
+        ['口语练习', '#f97316', '#f59e0b'],
+        ['旅行英语', '#6366f1', '#0ea5e9']
+      ]),
+      michael: demoAlbum('michael', [
+        ['语法课堂', '#6366f1', '#4338ca'],
+        ['KET 备考', '#0ea5e9', '#6366f1']
+      ]),
+      emma: demoAlbum('emma', [
+        ['雅思口语', '#ec4899', '#8b5cf6'],
+        ['学术英语', '#f59e0b', '#f97316']
+      ])
+    };
+
+    const TEACHERS = [
       {
-        id: 'tc_david000001',
-        name: 'David Miller',
-        level: 'Senior',
-        levelBadgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-        skills: ['少儿英语', 'KET备考', '自然拼读'],
-        monitorName: 'Leo',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-        videoDuration: '01:45',
-        videoPoster: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=600&auto=format&fit=crop&q=80',
-        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
-        qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ClassIn:DavidMiller_Teacher_ID',
-        currentLang: 'zh', // 'zh' | 'en'
-        introZh: 'David 老师来自英国伦敦，拥有牛津大学教育学背景与 8 年少儿一线教学经验（CELTA 认证）。擅长通过高频游戏化互动与自然拼读教学法激发孩子语言潜能，累计辅导超 200 名学员高分通过 KET/PET 剑桥五级考试。上课风格幽默亲切、肢体语言极其丰富，深得低龄宝贝喜爱。',
-        introEn: 'Teacher David comes from London, UK, holding a degree in Education and CELTA certification with over 8 years of ESL teaching experience. He specializes in gamified phonics and Cambridge KET exam preparation. His warm, engaging, and highly expressive teaching style creates an immersive native English atmosphere for young learners.'
+        id: 'tc_david000001', name: 'David Miller', level: 'Senior', monitor: 'Leo',
+        skills: ['少儿英语', 'KET', '自然拼读'], videoDuration: '01:45', videoUrl: SAMPLE_VIDEO,
+        photos: DEMO.david, avatarPhotoId: DEMO.david[0].id, avatarDataUrl: DEMO.david[0].dataUrl,
+        introZh: 'David 老师来自英国伦敦，拥有牛津大学教育学背景与 8 年少儿一线教学经验（CELTA 认证）。擅长通过高频游戏化互动与自然拼读教学法激发孩子语言潜能，累计辅导超 200 名学员高分通过 KET/PET 剑桥五级考试。',
+        introEn: 'Teacher David comes from London, UK, holding a degree in Education and CELTA certification with over 8 years of ESL teaching experience. He specializes in gamified phonics and Cambridge KET exam preparation.'
       },
       {
-        id: 'tc_sarah000002',
-        name: 'Sarah Jenkins',
-        level: 'Standard',
-        levelBadgeColor: 'bg-blue-100 text-blue-800 border-blue-200',
-        skills: ['生活口语', '少儿英语', '绘本阅读'],
-        monitorName: 'Leo',
-        avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80',
-        videoDuration: '01:15',
-        videoPoster: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&auto=format&fit=crop&q=80',
-        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
-        qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ClassIn:SarahJenkins_Teacher_ID',
-        currentLang: 'zh',
+        id: 'tc_sarah000002', name: 'Sarah Jenkins', level: 'Standard', monitor: 'Leo',
+        skills: ['生活口语', '少儿英语', '自然拼读'], videoDuration: '01:15', videoUrl: SAMPLE_VIDEO,
+        photos: DEMO.sarah, avatarPhotoId: DEMO.sarah[0].id, avatarDataUrl: DEMO.sarah[0].dataUrl,
         introZh: 'Sarah 老师拥有 5 年少儿国际学校教育背景，擅长运用生动的经典英文绘本与趣味角色扮演带孩子开口。善于捕捉孩子的闪光点并给予积极正向激励，能有效攻克“不敢开口”难题。',
         introEn: 'Sarah is an enthusiastic educator with 5 years of international school experience. She specializes in picture book storytelling and situational role-play, focusing on building kids confidence in daily spoken English.'
       },
       {
-        id: 'tc_michael0003',
-        name: 'Michael Chen',
-        level: 'Senior',
-        levelBadgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
-        skills: ['KET备考', '自然拼读'],
-        monitorName: 'Emily',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
-        videoDuration: '02:00',
-        videoPoster: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&auto=format&fit=crop&q=80',
-        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
-        qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=ClassIn:MichaelChen_Teacher_ID',
-        currentLang: 'en',
+        id: 'tc_michael0003', name: 'Michael Chen', level: 'Senior', monitor: 'Emily',
+        skills: ['KET', '自然拼读'], videoDuration: '02:00', videoUrl: SAMPLE_VIDEO,
+        photos: DEMO.michael, avatarPhotoId: DEMO.michael[0].id, avatarDataUrl: DEMO.michael[0].dataUrl,
         introZh: 'Michael 老师毕业于外语名校，英语专业八级，拥有 7 年英语语法与剑桥 KET 备考执教经历。教学逻辑严密，独创“发音词根记忆网”，帮助学生扎实打牢语法词汇基本功。',
-        introEn: 'Michael graduated from a top foreign languages university with TEM-8 certification. With 7 years of specialized grammar and KET preparation teaching, he utilizes systematic phonics diagrams to build solid language foundations.'
+        introEn: 'Michael graduated from a top foreign languages university with TEM-8 certification. With 7 years of specialized grammar and KET preparation teaching, he uses systematic phonics diagrams to build solid language foundations.'
+      },
+      {
+        id: 'tc_emma000004', name: 'Emma Watson', level: 'Master', monitor: 'Amy',
+        skills: ['雅思', '生活口语'], videoDuration: '01:08', videoUrl: SAMPLE_VIDEO,
+        photos: DEMO.emma, avatarPhotoId: DEMO.emma[0].id, avatarDataUrl: DEMO.emma[0].dataUrl,
+        introZh: 'Emma 老师拥有 10 年雅思口语与学术英语教学经验，深谙中国考生的表达痛点。课堂以真实话题讨论与高频纠音为主，帮助学生在自然表达中稳步提升流利度与分数。',
+        introEn: 'Emma has 10 years of IELTS speaking and academic English teaching experience. Her classes focus on authentic topic discussion and pronunciation coaching, helping students improve fluency and scores naturally.'
       }
     ];
 
-    // 运行状态
+    const NAVS = [
+      { id: 'home', icon: 'home', label: '首页', desc: '多孩时间流与金刚位属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=user' },
+      { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '7 色课表与多孩锚点属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
+      { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '教师公开履历与选课大厅', board: true },
+      { id: 'me', icon: 'user', label: '我的', desc: '多孩档案与购课账单属于 M1A / M0。', href: 'm1a_student_profile.html' }
+    ];
+
     const state = {
-      variant: 'A', // A: 流式卡片, B: 双栏平铺聚焦
-      device: 'mobile', // mobile (390px) | tablet (768px)
+      page: 'hall', // hall | detail | placeholder
+      navTab: 'hall',
+      device: 'mobile',
       online: 'on',
+      teachers: JSON.parse(JSON.stringify(TEACHERS)),
+      activeTeacherId: 'tc_david000001',
+      child: 'AliceZ12',
       filter: 'all',
-      teachers: JSON.parse(JSON.stringify(mockTeachers)),
-      playingVideoId: null
+      lang: 'zh',
+      playingVideo: false,
+      overlay: null
     };
 
-    function syncControls() {
-      document.querySelectorAll('.ctl').forEach(btn => {
-        const group = btn.dataset.group;
-        const val = btn.dataset.value;
-        const isActive = (group === 'variant' && state.variant === val) ||
-                         (group === 'device' && state.device === val) ||
-                         (group === 'online' && state.online === val);
-        btn.className = isActive 
-          ? 'ctl px-3 py-1.5 rounded-lg font-medium bg-white text-slate-900 shadow-sm transition' 
-          : 'ctl px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition';
-      });
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const clone = (v) => JSON.parse(JSON.stringify(v));
 
-      // 手机优先与平板画框尺寸自适应
+    function teacherById(id) { return state.teachers.find((t) => t.id === id) || state.teachers[0]; }
+    function activeTeacher() { return teacherById(state.activeTeacherId); }
+    function childLabel() { return state.child; }
+
+    function mainPhotoId(t) {
+      if (t.avatarPhotoId) return t.avatarPhotoId;
+      return t.photos && t.photos[0] ? t.photos[0].id : null;
+    }
+
+    function mainPhoto(t) {
+      return (t.photos || []).find((p) => p.id === mainPhotoId(t)) || (t.photos || [])[0] || null;
+    }
+
+    function avatar(t, size = 'h-14 w-14', text = 'text-[18px]') {
+      const initial = (t.name || '?').trim().charAt(0).toUpperCase();
+      const photo = mainPhoto(t);
+      const src = t.avatarDataUrl || (photo ? photo.dataUrl : '');
+      if (src) {
+        return `<img src="${src}" class="shrink-0 rounded-full object-cover ring-1 ring-slate-200 ${size}" alt="${esc(t.name)}">`;
+      }
+      return `<div class="grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-50 to-slate-100 ${size} ${text} font-bold text-indigo-700 ring-1 ring-indigo-100">${esc(initial)}</div>`;
+    }
+
+    function renderPhotoGrid(t) {
+      const photos = t.photos || [];
+      if (!photos.length) return '';
+      const mainId = mainPhotoId(t);
+      return `<section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-[16px] font-bold text-slate-900">教师风采相册</h2>
+          <span class="text-[12px] font-medium text-slate-400">共 ${photos.length} 张 · 点击看大图</span>
+        </div>
+        <div class="mt-3 grid grid-cols-3 gap-2">
+          ${photos.map((p, i) => `
+            <button data-action="open-photo" data-id="${esc(t.id)}" data-index="${i}" class="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100" aria-label="查看第 ${i + 1} 张风采照片">
+              <img src="${p.dataUrl}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" alt="${esc(t.name)} 风采照片 ${i + 1}">
+              ${p.id === mainId ? '<span class="absolute left-1 top-1 rounded-md bg-indigo-600 px-1.5 py-0.5 text-[12px] font-bold text-white shadow-sm">主头像</span>' : ''}
+              <span class="absolute bottom-1 right-1 grid h-6 w-6 place-items-center rounded-md bg-slate-900/55 text-white opacity-0 transition group-hover:opacity-100">${icon('maximize-2', 'h-3.5 w-3.5')}</span>
+            </button>`).join('')}
+        </div>
+        <p class="mt-2 text-[12px] font-medium text-slate-400">点击任意缩略图全屏查看，支持左右切换与高清放大。</p>
+      </section>`;
+    }
+
+    function levelBadge(level) {
+      const map = {
+        Senior: 'border-indigo-100 bg-indigo-50 text-indigo-700',
+        Standard: 'border-slate-200 bg-slate-100 text-slate-600',
+        Master: 'border-slate-800 bg-slate-900 text-amber-300',
+        Junior: 'border-slate-200 bg-slate-50 text-slate-500'
+      };
+      return `<span class="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[12px] font-bold ${map[level] || map.Standard}">${esc(level)}</span>`;
+    }
+
+    function qrSvg(seed) {
+      const n = 9; let h = 0;
+      for (const ch of String(seed)) h = (h * 131 + ch.charCodeAt(0)) >>> 0;
+      const isFinder = (x, y, ox, oy) => x >= ox && x < ox + 3 && y >= oy && y < oy + 3
+        && (x === ox || x === ox + 2 || y === oy || y === oy + 2 || (x === ox + 1 && y === oy + 1));
+      let rects = '';
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        const on = isFinder(x, y, 0, 0) || isFinder(x, y, 6, 0) || isFinder(x, y, 0, 6)
+          ? true : ((h >> ((x + y * 3) % 30)) & 1) === 1;
+        if (on) rects += `<rect x="${x * 10}" y="${y * 10}" width="10" height="10"/>`;
+      }
+      return `<svg viewBox="0 0 90 90" class="h-full w-full text-slate-900" fill="currentColor" aria-hidden="true">${rects}</svg>`;
+    }
+
+    function renderAll() {
       const frame = document.getElementById('frame');
-      const content = document.getElementById('content');
-      if (state.device === 'tablet') {
-        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[768px] h-[860px] transition-all duration-300';
-        content.className = 'flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-4 space-y-0';
-      } else {
-        frame.className = 'relative bg-slate-50 rounded-3xl ring-1 ring-slate-300 shadow-2xl overflow-hidden flex flex-col w-[390px] h-[812px] transition-all duration-300';
-        content.className = 'flex-1 overflow-y-auto p-3.5 space-y-3.5';
+      frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
+      document.getElementById('topbar').innerHTML = renderTopbar();
+      const banner = document.getElementById('offlineBanner');
+      banner.className = state.online === 'off'
+        ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-[14px] font-semibold text-amber-900'
+        : 'hidden';
+      document.getElementById('content').innerHTML = renderContent();
+      document.getElementById('bottomnav').innerHTML = renderNav();
+      renderOverlay();
+      syncConsole();
+      lucide.createIcons();
+    }
+
+    function renderContentOnly() {
+      document.getElementById('content').innerHTML = renderContent();
+      lucide.createIcons();
+    }
+
+    function renderContent() {
+      if (state.page === 'placeholder') return renderPlaceholder();
+      if (state.page === 'detail') return renderDetail();
+      return renderHall();
+    }
+
+    function renderTopbar() {
+      if (state.page === 'detail') return topbarSub('教师履历');
+      if (state.page === 'placeholder') {
+        const item = NAVS.find((n) => n.id === state.navTab);
+        return topbarBase('Dream 教务', `家长工作台 · ${item ? item.label : '其他模块'}`, false);
       }
-
-      // 离线横幅
-      document.getElementById('offlineBanner').classList.toggle('hidden', state.online === 'on');
+      return topbarBase('Dream 教务', '家长工作台 · Amy', true);
     }
 
-    // 切换卡片中英简介
-    function switchTeacherLang(teacherId, lang, event) {
-      if (event) event.stopPropagation();
-      const tc = state.teachers.find(t => t.id === teacherId);
-      if (tc) {
-        tc.currentLang = lang;
-        render();
-      }
+    function topbarBase(title, subtitle, showAvatar) {
+      return `<div class="border-b border-slate-200 bg-white/95"><div class="flex h-14 items-center justify-between px-4"><div class="flex min-w-0 items-center gap-2.5"><div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-indigo-600 text-[14px] font-bold text-white shadow-sm">D</div><div class="min-w-0"><div class="truncate text-[16px] font-bold leading-tight text-slate-900">${esc(title)}</div><div class="truncate text-[12px] font-medium text-slate-400">${esc(subtitle)}</div></div></div><div class="flex shrink-0 items-center gap-2"><button data-action="toast" data-message="暂无新消息" class="relative grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-600" aria-label="通知">${icon('bell', 'h-[18px] w-[18px]')}<span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white"></span></button>${showAvatar ? '<div class="grid h-9 w-9 place-items-center rounded-full bg-indigo-600 text-[14px] font-bold text-white">A</div>' : ''}</div></div></div>`;
     }
 
-    // 方案 B 折叠展开
-    function toggleExpand(teacherId) {
-      const tc = state.teachers.find(t => t.id === teacherId);
-      if (tc) {
-        tc.isExpanded = !tc.isExpanded;
-        render();
-      }
+    function topbarSub(title) {
+      return `<div class="border-b border-slate-200 bg-white/95"><div class="grid h-14 grid-cols-[44px_1fr_44px] items-center px-2"><button data-action="go-back" class="grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" aria-label="返回">${icon('chevron-left', 'h-5 w-5')}</button><div class="truncate text-center text-[16px] font-bold text-slate-900">${esc(title)}</div><button data-action="toast" data-message="暂无新消息" class="relative grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" aria-label="通知">${icon('bell', 'h-[18px] w-[18px]')}<span class="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white"></span></button></div></div>`;
     }
 
-    // 播放试讲视频（卡片内就地展开 HTML5 播放器）
-    function playVideo(teacherId, event) {
-      if (event) event.stopPropagation();
-      state.playingVideoId = teacherId;
-      render();
+    function renderNav() {
+      return `<div class="relative z-40 border-t border-slate-200 bg-white px-1 pb-1.5 pt-1"><div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">${NAVS.map((item) => { const on = state.navTab === item.id; return `<button data-action="nav" data-tab="${item.id}" class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 transition ${on ? 'text-indigo-600' : 'text-slate-400'}">${icon(item.icon, `h-[18px] w-[18px] ${on ? '' : 'opacity-80'}`)}<span class="text-[12px] font-bold">${item.label}</span></button>`; }).join('')}</div></div>`;
     }
 
-    // 打开 ClassIn 移动端抽屉浮层
-    function openQrSheet(teacherId, event) {
-      if (event) event.stopPropagation();
-      const tc = state.teachers.find(t => t.id === teacherId);
-      if (!tc) return;
-      document.getElementById('qrTeacherName').textContent = `${tc.name} · ClassIn`;
-      document.getElementById('qrSheetImg').src = tc.qrUrl;
-      document.getElementById('qrSheet').classList.remove('hidden');
+    function navTo(tab) {
+      const item = NAVS.find((n) => n.id === tab);
+      if (!item) return;
+      state.navTab = tab;
+      state.page = item.board ? 'hall' : 'placeholder';
+      state.overlay = null;
+      renderAll();
     }
 
-    function closeQrSheet() {
-      document.getElementById('qrSheet').classList.add('hidden');
-    }
-
-    function filterCourse(courseName) {
-      state.filter = courseName;
-      document.querySelectorAll('.tag-filter').forEach(btn => {
-        btn.className = 'tag-filter px-3.5 py-1.5 rounded-full text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0';
+    function syncConsole() {
+      document.querySelectorAll('.ctl').forEach((b) => {
+        const active = state[b.dataset.group] === b.dataset.value;
+        b.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`;
       });
-      const activeBtn = document.getElementById(`tag-${courseName}`);
-      if (activeBtn) {
-        activeBtn.className = 'tag-filter px-3.5 py-1.5 rounded-full text-sm font-semibold bg-slate-900 text-white shrink-0 font-medium';
-      }
-      render();
     }
+
+    function resetDemo() {
+      state.teachers = clone(TEACHERS);
+      state.page = 'hall'; state.navTab = 'hall'; state.device = 'mobile'; state.online = 'on';
+      state.activeTeacherId = 'tc_david000001'; state.child = 'AliceZ12'; state.filter = 'all';
+      state.lang = 'zh'; state.playingVideo = false; state.overlay = null;
+      renderAll(); showToast('演示数据已重置');
+    }
+
+    function renderHall() {
+      const list = state.filter === 'all' ? state.teachers : state.teachers.filter((t) => t.skills.includes(state.filter));
+      const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-3' : 'space-y-3';
+      return `<div class="mx-auto w-full max-w-[720px] space-y-4 px-4 pb-6 pt-4">
+        <div class="px-1"><h1 class="text-[18px] font-bold tracking-tight text-slate-900">选老师</h1><p class="mt-1 text-[14px] font-medium text-slate-500">为 ${esc(childLabel())} 选外教 · 公开脱敏履历</p></div>
+        ${childSelector()}
+        <div class="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+          ${['all', ...COURSE_TYPES].map((c) => `<button data-action="set-filter" data-value="${esc(c)}" class="h-8 shrink-0 rounded-full px-3 text-[12px] font-semibold transition ${state.filter === c ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">${c === 'all' ? '全部科目' : esc(c)}</button>`).join('')}
+        </div>
+        <div class="flex items-center justify-between px-1"><span class="text-[14px] font-semibold text-slate-700">外教团队</span><span class="text-[12px] font-medium text-slate-400">共 ${list.length} 位</span></div>
+        ${list.length ? `<div class="${grid}">${list.map(renderTeacherCard).join('')}</div>` : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center"><div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-50 text-slate-300">${icon('search-x', 'h-5 w-5')}</div><p class="mt-3 text-[14px] font-medium text-slate-400">暂无符合该科目的教师</p></div>`}
+        <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-indigo-900">公开履历已脱敏，不展示教师邮箱、账号与课酬；弱网时读取 L3 缓存快照。</div>
+      </div>`;
+    }
+
+    function childSelector() {
+      return `<div class="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm"><div class="text-[12px] font-medium text-slate-400">当前选课宝贝</div><div class="mt-2 flex gap-2">${PARENT_CHILDREN.map((ch) => { const on = ch.name === state.child; return `<button data-action="select-child" data-child="${ch.name}" class="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl text-[14px] font-semibold ${on ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}"><span class="grid h-6 w-6 place-items-center rounded-full ${on ? 'bg-white/15 text-white' : 'bg-white text-indigo-700'} text-[12px] font-bold">${esc(ch.name.charAt(0))}</span>${esc(ch.name)}</button>`; }).join('')}</div></div>`;
+    }
+
+    function renderTeacherCard(t) {
+      return `<article data-action="open-teacher" data-id="${t.id}" role="button" tabindex="0" class="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-200">
+        <div class="flex items-start gap-3">
+          ${avatar(t, 'h-14 w-14', 'text-[19px]')}
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-1.5"><span class="truncate text-[16px] font-bold text-slate-900">${esc(t.name)}</span>${levelBadge(t.level)}</div>
+            <div class="mt-1 flex items-center gap-1 text-[12px] font-medium text-slate-500">${icon('lock', 'h-3 w-3 text-slate-400')}负责班长 ${esc(t.monitor)}</div>
+            <div class="mt-2 flex flex-wrap gap-1.5">${t.skills.map((s) => `<span class="rounded-md bg-slate-100 px-2 py-0.5 text-[12px] font-semibold text-slate-600">${esc(s)}</span>`).join('')}</div>
+          </div>
+        </div>
+        <p class="mt-3 line-clamp-2 text-[14px] font-medium leading-relaxed text-slate-600">${esc(t.introZh)}</p>
+        <div class="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+          <button data-action="open-qr" data-id="${t.id}" class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600" aria-label="ClassIn 二维码">${icon('qr-code', 'h-4 w-4')}</button>
+          <div class="flex items-center gap-1.5"><button data-action="open-teacher" data-id="${t.id}" class="h-9 rounded-lg border border-slate-200 px-3 text-[12px] font-semibold text-slate-700">查看履历</button><button data-action="book" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-9 rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">预约</button></div>
+        </div>
+      </article>`;
+    }
+
+    function renderDetail() {
+      const t = activeTeacher();
+      const isZh = state.lang === 'zh';
+      const intro = isZh ? t.introZh : t.introEn;
+      return `<div class="mx-auto w-full max-w-[640px] space-y-4 px-4 pb-6 pt-4">
+        ${childSelector()}
+        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div class="flex items-start gap-4">
+            ${avatar(t, 'h-20 w-20', 'text-[26px]')}
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2"><h1 class="truncate text-[18px] font-bold tracking-tight text-slate-900">${esc(t.name)}</h1>${levelBadge(t.level)}<span class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[12px] font-bold text-emerald-700">可约</span></div>
+              <div class="mt-1 text-[12px] font-medium text-slate-500">负责班长 ${esc(t.monitor)}</div>
+              <div class="mt-2 flex flex-wrap gap-1.5">${t.skills.map((s) => `<span class="rounded-md border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[12px] font-semibold text-indigo-700">${esc(s)}</span>`).join('')}</div>
+            </div>
+          </div>
+        </section>
+
+        ${renderPhotoGrid(t)}
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between gap-2"><h2 class="text-[16px] font-bold text-slate-900">教师简介</h2><div class="inline-flex rounded-xl bg-slate-100 p-1"><button data-action="set-lang" data-lang="zh" class="h-8 rounded-lg px-3 text-[12px] font-bold ${isZh ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">中文简介</button><button data-action="set-lang" data-lang="en" class="h-8 rounded-lg px-3 text-[12px] font-bold ${!isZh ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">English</button></div></div>
+          <p id="introText" class="mt-3 whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-700">${esc(intro)}</p>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between"><h2 class="text-[16px] font-bold text-slate-900">试讲视频</h2><span class="font-mono text-[12px] font-medium text-slate-400">${esc(t.videoDuration)}</span></div>
+          <div class="mt-3 overflow-hidden rounded-xl border border-slate-200">
+            ${state.playingVideo ? `<video controls autoplay playsinline class="aspect-video w-full bg-black" src="${esc(t.videoUrl)}"></video>` : `<button data-action="play-video" class="block w-full"><div class="relative flex aspect-video w-full items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-700"><span class="grid h-14 w-14 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/30">${icon('play', 'ml-1 h-6 w-6')}</span><span class="absolute bottom-2 right-2 rounded-md bg-slate-900/80 px-1.5 py-0.5 font-mono text-[12px] font-semibold text-white">${esc(t.videoDuration)}</span></div><div class="flex items-center justify-between bg-white px-3 py-2"><span class="text-[14px] font-semibold text-slate-800">点击就地播放试讲视频</span><span class="text-[12px] font-medium text-slate-400">MP4</span></div></button>`}
+          </div>
+          <p class="mt-2 text-[12px] font-medium text-slate-400">公共示例视频 · 正式环境为教师 MP4 试讲</p>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between"><h2 class="text-[16px] font-bold text-slate-900">ClassIn 二维码</h2><span class="text-[12px] font-medium text-slate-400">点击放大</span></div>
+          <button data-action="open-qr" data-id="${t.id}" class="mt-3 flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
+            <div class="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-white p-1 ring-1 ring-slate-200">${qrSvg(t.name)}</div>
+            <div class="min-w-0"><div class="text-[14px] font-semibold text-slate-800">${esc(t.name)} · ClassIn</div><p class="mt-0.5 text-[12px] font-medium text-slate-500">长按识别或截图，使用 ClassIn App 扫码添加</p></div>
+          </button>
+        </section>
+
+        <button data-action="book" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-12 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">为 ${esc(childLabel())} 预约 ${esc(t.name)}</button>
+        <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-indigo-900">公开履历已脱敏；预约将打开该教师的 7 色可约时段（原型模拟）。</div>
+      </div>`;
+    }
+
+    function renderPlaceholder() {
+      const item = NAVS.find((n) => n.id === state.navTab);
+      if (!item) return '<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>';
+      return `<div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center"><div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div><h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2><p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc)}</p>${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}<button data-action="nav" data-tab="hall" class="mt-3 text-[14px] font-semibold text-indigo-600">返回选课大厅</button></div>`;
+    }
+
+    function renderOverlay() {
+      const el = document.getElementById('overlay');
+      if (!state.overlay) { el.innerHTML = ''; return; }
+      if (state.overlay.type === 'photo') { el.innerHTML = renderPhotoLightbox(); return; }
+      if (state.overlay.type !== 'qr') { el.innerHTML = ''; return; }
+      const t = teacherById(state.overlay.teacherId);
+      el.innerHTML = `<div class="absolute inset-0 z-50"><div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div><div class="absolute inset-x-6 top-1/2 mx-auto max-w-[340px] -translate-y-1/2 rounded-2xl bg-white p-5 text-center shadow-2xl"><div class="flex justify-end"><button data-action="close-overlay" class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button></div><div class="mx-auto mt-1 h-56 w-56 rounded-2xl border border-slate-200 bg-white p-3">${qrSvg(t.name)}</div><div class="mt-3 text-[16px] font-bold text-slate-900">${esc(t.name)}</div><p class="mt-1 text-[12px] font-medium text-slate-500">长按识别 / 使用 ClassIn 扫码添加</p><p class="mt-1 text-[12px] font-medium text-slate-400">原型占位二维码 · 正式环境为教师真实 ClassIn 码</p></div></div>`;
+    }
+
+    function renderPhotoLightbox() {
+      const overlay = state.overlay;
+      const t = teacherById(overlay.teacherId);
+      const photos = (t && t.photos) || [];
+      if (!photos.length) return '';
+      const total = photos.length;
+      const index = ((overlay.index % total) + total) % total;
+      const photo = photos[index];
+      const mainId = mainPhotoId(t);
+      return `<div class="absolute inset-0 z-[70] overflow-hidden bg-slate-950/95">
+        <div class="absolute inset-0" data-action="close-overlay"></div>
+
+        <div class="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 px-4 py-3">
+          <div class="min-w-0 text-white">
+            <div class="truncate text-[14px] font-bold">${esc(t.name)} · 风采相册</div>
+            <div class="mt-1 flex items-center gap-1.5 text-[12px] font-medium text-slate-300">
+              ${photo.id === mainId ? '<span class="rounded bg-indigo-500 px-1.5 py-0.5 text-[12px] font-bold text-white">主头像</span>' : ''}
+              <span>生活 / 教学照片</span>
+            </div>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <span class="rounded-full bg-white/10 px-2.5 py-1 font-mono text-[12px] font-semibold text-white">${index + 1} / ${total}</span>
+            <button data-action="close-overlay" class="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-white hover:bg-white/20" aria-label="关闭大图">${icon('x', 'h-5 w-5')}</button>
+          </div>
+        </div>
+
+        <div class="pointer-events-none relative z-10 flex h-full items-center justify-center px-4 pb-20 pt-20">
+          <img data-action="photo-stage" src="${photo.dataUrl}" class="pointer-events-auto max-h-full max-w-full rounded-xl object-contain shadow-2xl" alt="${esc(t.name)} 风采照片 ${index + 1}">
+        </div>
+
+        ${total > 1 ? `
+          <button data-action="photo-prev" class="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20" aria-label="上一张">${icon('chevron-left', 'h-6 w-6')}</button>
+          <button data-action="photo-next" class="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20" aria-label="下一张">${icon('chevron-right', 'h-6 w-6')}</button>` : ''}
+
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 py-3 text-center text-[12px] font-medium text-slate-300">点击暗色背景或按 Esc 退出${total > 1 ? ' · 使用 ← → 切换照片' : ''}</div>
+      </div>`;
+    }
+
+    function setLang(lang) {
+      state.lang = lang;
+      const t = activeTeacher();
+      const text = document.getElementById('introText');
+      if (text) text.textContent = lang === 'zh' ? t.introZh : t.introEn;
+      document.querySelectorAll('[data-action="set-lang"]').forEach((b) => {
+        const on = b.dataset.lang === lang;
+        b.className = `h-8 rounded-lg px-3 text-[12px] font-bold ${on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`;
+      });
+    }
+
+    function openTeacher(id) {
+      state.activeTeacherId = id;
+      state.page = 'detail';
+      state.navTab = 'hall';
+      state.playingVideo = false;
+      state.overlay = null;
+      renderAll();
+    }
+
+    function book(id) {
+      if (state.online === 'off') return showToast('离线模式下不可预约，请联网后重试');
+      const t = teacherById(id);
+      showToast(`已为 ${state.child} 打开 ${t.name} 的 7 色可约时段（原型模拟）`);
+    }
+
+    document.getElementById('frame').addEventListener('click', (e) => {
+      const el = e.target.closest('[data-action]');
+      if (!el) return;
+      const action = el.dataset.action;
+      if (action === 'nav') return navTo(el.dataset.tab);
+      if (action === 'toast') return showToast(el.dataset.message || '');
+      if (action === 'go-back') { state.page = 'hall'; state.navTab = 'hall'; state.playingVideo = false; state.overlay = null; renderAll(); return; }
+      if (action === 'set-filter') { state.filter = el.dataset.value; renderContentOnly(); return; }
+      if (action === 'select-child') { state.child = el.dataset.child; renderContentOnly(); return; }
+      if (action === 'open-teacher') return openTeacher(el.dataset.id);
+      if (action === 'open-qr') { state.overlay = { type: 'qr', teacherId: el.dataset.id }; renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'open-photo') {
+        state.overlay = { type: 'photo', teacherId: el.dataset.id, index: Number(el.dataset.index) || 0 };
+        renderOverlay();
+        lucide.createIcons();
+        return;
+      }
+      if (action === 'photo-prev' || action === 'photo-next') {
+        if (!state.overlay || state.overlay.type !== 'photo') return;
+        const t = teacherById(state.overlay.teacherId);
+        const total = (t && t.photos && t.photos.length) || 0;
+        if (!total) return;
+        state.overlay.index = (state.overlay.index + (action === 'photo-next' ? 1 : -1) + total) % total;
+        renderOverlay();
+        lucide.createIcons();
+        return;
+      }
+      if (action === 'photo-stage') return;
+      if (action === 'close-overlay') { state.overlay = null; renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'set-lang') return setLang(el.dataset.lang);
+      if (action === 'play-video') { state.playingVideo = true; renderContentOnly(); return; }
+      if (action === 'book') return book(el.dataset.id);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (!state.overlay || state.overlay.type !== 'photo') return;
+      const t = teacherById(state.overlay.teacherId);
+      const total = (t && t.photos && t.photos.length) || 0;
+      if (e.key === 'Escape') {
+        state.overlay = null;
+        renderOverlay();
+        lucide.createIcons();
+      } else if (total > 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        state.overlay.index = (state.overlay.index + (e.key === 'ArrowRight' ? 1 : -1) + total) % total;
+        renderOverlay();
+        lucide.createIcons();
+      }
+    });
+
+    document.getElementById('btnResetDemo').addEventListener('click', resetDemo);
+    document.querySelectorAll('.ctl').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const value = btn.dataset.value;
+        if (group === 'device') { state.device = value; renderAll(); }
+        if (group === 'online') { state.online = value; renderAll(); if (value === 'off') showToast('离线只读：预约需联网'); }
+      });
+    });
 
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.textContent = msg;
       t.classList.remove('hidden');
-      setTimeout(() => t.classList.add('hidden'), 2200);
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => t.classList.add('hidden'), 2600);
     }
 
-    // 核心渲染函数 (优先适配手机触控，平板自适应双列)
-    function render() {
-      const container = document.getElementById('content');
-      const filtered = state.teachers.filter(t => {
-        if (state.filter === 'all') return true;
-        return t.skills.includes(state.filter);
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="col-span-2 text-center py-16 text-slate-400">
-            <i data-lucide="search-x" class="w-10 h-10 mx-auto mb-2 text-slate-300"></i>
-            <p class="text-xs">暂无符合该科目的教师</p>
-          </div>
-        `;
-        lucide.createIcons();
-        return;
-      }
-
-      if (state.variant === 'A') {
-        // 方案 A：沉浸流式纵向卡片 (手机端大触控面积，图文与视频一体化)
-        container.innerHTML = filtered.map(t => {
-          const isPlaying = state.playingVideoId === t.id;
-          const isZh = t.currentLang === 'zh';
-          const introText = isZh ? t.introZh : t.introEn;
-
-          return `
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col justify-between">
-              <div>
-                <!-- 卡片头部：教师照片与主信息 (头像精致紧凑，姓名独立单行杜绝截断) -->
-                <div class="p-3.5 flex gap-3 items-start">
-                  <img src="${t.avatarUrl}" class="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200 shrink-0 mt-0.5" alt="${t.name}">
-                  <div class="flex-1 min-w-0">
-                    <!-- 第一行：外教姓名独占一行，充足展示空间避免截断 -->
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight">${t.name}</h3>
-
-                    <!-- 第二行：定级徽标与负责班长 -->
-                    <div class="flex items-center gap-2 mt-1">
-                      <span class="text-xs px-1.5 py-0.2 rounded-md font-semibold border ${t.levelBadgeColor}">${t.level} 外教</span>
-                      <span class="text-sm text-slate-400">负责班长: <strong class="text-slate-600 font-medium">${t.monitorName}</strong></span>
-                    </div>
-
-                    <!-- 第三行：擅长课程标签 -->
-                    <div class="flex flex-wrap gap-1 mt-1.5">
-                      ${t.skills.map(s => `<span class="text-xs px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">${s}</span>`).join('')}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 中英双语切换器与自我介绍 -->
-                <div class="px-3.5 pb-2.5">
-                  <div class="bg-slate-50/80 rounded-xl p-3 border border-slate-100 space-y-1.5">
-                    <div class="flex items-center justify-between">
-                      <span class="text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <i data-lucide="book-open" class="w-3 h-3 text-indigo-600"></i>教师简介
-                      </span>
-                      <div class="inline-flex rounded-lg bg-slate-200/70 p-0.5 text-xs">
-                        <button onclick="switchTeacherLang('${t.id}', 'zh', event)" class="px-2 py-0.5 rounded-md font-medium transition ${isZh ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'}">中文</button>
-                        <button onclick="switchTeacherLang('${t.id}', 'en', event)" class="px-2 py-0.5 rounded-md font-medium transition ${!isZh ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'}">English</button>
-                      </div>
-                    </div>
-                    <p class="text-xs text-slate-600 leading-relaxed">${introText}</p>
-                  </div>
-                </div>
-
-                <!-- 试讲视频区域 (就地播放 HTML5) -->
-                <div class="px-3.5 pb-3">
-                  <div class="rounded-xl overflow-hidden bg-slate-900 border border-slate-200 relative">
-                    ${isPlaying ? `
-                      <video controls autoplay class="w-full h-40 object-cover" src="${t.videoUrl}">
-                        您的移动设备支持原生播放
-                      </video>
-                    ` : `
-                      <div onclick="playVideo('${t.id}', event)" class="relative cursor-pointer group h-32">
-                        <img src="${t.videoPoster}" class="w-full h-full object-cover" alt="Video Poster">
-                        <div class="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
-                          <div class="w-10 h-10 rounded-full bg-white/95 text-indigo-700 grid place-items-center shadow-lg">
-                            <i data-lucide="play" class="w-4 h-4 fill-current ml-0.5"></i>
-                          </div>
-                        </div>
-                        <div class="absolute bottom-1.5 left-2.5 right-2.5 flex items-center justify-between text-white text-xs">
-                          <span class="flex items-center gap-1 font-medium"><i data-lucide="video" class="w-3 h-3"></i> 试讲视频 (原位试看)</span>
-                          <span class="bg-black/60 px-1 py-0.2 rounded font-mono">${t.videoDuration}</span>
-                        </div>
-                      </div>
-                    `}
-                  </div>
-                </div>
-              </div>
-
-              <!-- 卡片底部动作条：ClassIn 二维码与约课主操作 -->
-              <div class="px-3.5 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button onclick="openQrSheet('${t.id}', event)" class="h-9 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 flex items-center gap-1.5 text-xs font-medium shadow-2xs">
-                  <i data-lucide="qr-code" class="w-3.5 h-3.5 text-indigo-600"></i>
-                  <span>ClassIn</span>
-                </button>
-                <div class="flex items-center gap-2">
-                  <button onclick="showToast('已加入心愿单')" class="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-rose-500 grid place-items-center">
-                    <i data-lucide="heart" class="w-4 h-4"></i>
-                  </button>
-                  <button onclick="showToast('正在打开 ${t.name} 的 7 色日历...')" class="h-9 px-4 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 shadow-xs">
-                    去约课
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-      } else {
-        // 方案 B：紧凑展开卡片 (移动端折叠手风琴，默认精炼，点击展开完整双语及视频)
-        container.innerHTML = filtered.map(t => {
-          const isPlaying = state.playingVideoId === t.id;
-          const isZh = t.currentLang === 'zh';
-          const introText = isZh ? t.introZh : t.introEn;
-          const expanded = t.isExpanded;
-
-          return `
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden transition-all">
-              <div onclick="toggleExpand('${t.id}')" class="p-3.5 cursor-pointer flex items-center justify-between hover:bg-slate-50/50">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <img src="${t.avatarUrl}" class="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200 shrink-0" alt="${t.name}">
-                  <div class="min-w-0">
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight">${t.name}</h3>
-                    <div class="flex items-center gap-1.5 mt-1">
-                      <span class="text-xs px-1.5 py-0.2 rounded-md font-semibold border ${t.levelBadgeColor}">${t.level}</span>
-                      <div class="flex gap-1">
-                        ${t.skills.slice(0, 2).map(s => `<span class="text-xs px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">${s}</span>`).join('')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-2 shrink-0">
-                  <button onclick="openQrSheet('${t.id}', event)" class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:text-indigo-600 grid place-items-center">
-                    <i data-lucide="qr-code" class="w-4 h-4"></i>
-                  </button>
-                  <i data-lucide="${expanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-slate-400"></i>
-                </div>
-              </div>
-
-              ${expanded ? `
-                <div class="px-3.5 pb-3.5 pt-1 space-y-3 border-t border-slate-100">
-                  <!-- 语言切换 -->
-                  <div class="flex items-center justify-between text-xs pt-1">
-                    <span class="text-sm text-slate-400">负责班长: <strong class="text-slate-700">${t.monitorName}</strong></span>
-                    <div class="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs">
-                      <button onclick="switchTeacherLang('${t.id}', 'zh', event)" class="px-2 py-0.5 rounded font-medium ${isZh ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-400'}">中</button>
-                      <button onclick="switchTeacherLang('${t.id}', 'en', event)" class="px-2 py-0.5 rounded font-medium ${!isZh ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-400'}">EN</button>
-                    </div>
-                  </div>
-
-                  <p class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed">
-                    ${introText}
-                  </p>
-
-                  <!-- 视频播放 -->
-                  <div class="rounded-xl overflow-hidden bg-slate-900 relative">
-                    ${isPlaying ? `
-                      <video controls autoplay class="w-full h-36 object-cover" src="${t.videoUrl}"></video>
-                    ` : `
-                      <div onclick="playVideo('${t.id}', event)" class="h-28 relative cursor-pointer flex items-center justify-center">
-                        <img src="${t.videoPoster}" class="w-full h-full object-cover" alt="Poster">
-                        <div class="absolute inset-0 bg-slate-900/40 flex items-center justify-center">
-                          <div class="w-9 h-9 rounded-full bg-white text-indigo-700 grid place-items-center shadow">
-                            <i data-lucide="play" class="w-4 h-4 fill-current ml-0.5"></i>
-                          </div>
-                        </div>
-                      </div>
-                    `}
-                  </div>
-
-                  <button onclick="showToast('正在进入 ${t.name} 的排课日历...')" class="w-full h-10 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-xs">
-                    立即约课排班
-                  </button>
-                </div>
-              ` : `
-                <div class="px-3.5 pb-2.5 text-sm text-slate-400 line-clamp-1">
-                  ${t.introZh}
-                </div>
-              `}
-            </div>
-          `;
-        }).join('');
-      }
-
-      lucide.createIcons();
-    }
-
-    // 初始化事件绑定
-    document.querySelectorAll('.ctl').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const group = btn.dataset.group;
-        const val = btn.dataset.value;
-        if (group === 'variant') state.variant = val;
-        if (group === 'device') state.device = val;
-        if (group === 'online') state.online = val;
-        syncControls();
-        render();
-      });
-    });
-
-    // 初始执行
-    syncControls();
-    render();
+    renderAll();
   </script>
 </body>
 </html>

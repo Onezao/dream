@@ -1,805 +1,2421 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
 <!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<!-- 即抛型原型：M3A 7 色周度日历、临时课连约、固定位四周排课与周模板。纯前端 Mock，不连接后端。 -->
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>原型 - M3A 7色周度Excel日历(学生缩写+精细卡片流+连约2-4节)</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<script>
-tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#4f46e5', 600: '#4338ca', 700: '#3730a3' }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>原型 · M3A 7 色日历与排班抢位</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif']
+          }
+        }
       }
     }
-  }
-}
-</script>
-<style>
-/* 冻结首列与表头 */
-.freeze-col {
-  position: sticky;
-  left: 0;
-  z-index: 20;
-}
-.freeze-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-}
-.freeze-corner {
-  position: sticky;
-  left: 0;
-  top: 0;
-  z-index: 40;
-}
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
+  </script>
 </head>
-<body class="bg-slate-200 text-slate-800 min-h-screen">
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
 
-<!-- 原型全局控制台 -->
-<header class="bg-white border-b border-slate-200 px-3 py-2 sticky top-0 z-50 flex flex-wrap gap-2 items-center justify-between text-xs shadow-sm">
-  <div class="flex items-center gap-2">
-    <a href="m0_workspace_home.html" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 text-slate-700 hover:bg-slate-50 font-semibold text-xs">
-      <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>M0 工作台
-    </a>
-    <span class="font-bold text-slate-800 flex items-center gap-1.5">
-      <i data-lucide="calendar" class="w-4 h-4 text-brand-600"></i>7色周度日历 (精细卡片·单屏7天)
-    </span>
-    <div class="inline-flex rounded-lg bg-slate-100 p-1" id="roleSwitch"></div>
-    <div class="inline-flex rounded-lg bg-slate-100 p-1" id="deviceSwitch"></div>
+  <!-- 原型控制台（不属于产品界面） -->
+  <header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">3A</span>
+        <span class="text-[14px] font-bold text-slate-900">7 色日历与排班抢位</span>
+        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">演示日 11-10 周二 · 底栏 ≤ 4 Tab · 每个页面常驻导航</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">角色</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="role" data-value="parent" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">家长</button>
+          <button data-group="role" data-value="monitor" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">班长</button>
+          <button data-group="role" data-value="teacher" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">教师</button>
+          <button data-group="role" data-value="sub_teacher" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">代课</button>
+          <button data-group="role" data-value="admin" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">管理员</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">设备</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="device" data-value="mobile" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">手机</button>
+          <button data-group="device" data-value="tablet" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">平板</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">网络</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="online" data-value="on" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">在线</button>
+          <button data-group="online" data-value="off" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">离线</button>
+        </div>
+      </div>
+
+      <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置演示</button>
+
+      <a href="../docs/prd/m3a_calendar_schedule.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
+        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M3A PRD
+      </a>
+    </div>
+  </header>
+
+  <main class="flex justify-center px-4 py-6">
+    <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
+      <div id="topbar" class="shrink-0"></div>
+      <div id="offlineBanner" class="hidden">
+        <i data-lucide="wifi-off" class="h-4 w-4 shrink-0 text-amber-600"></i>
+        离线只读：可查看课表与详情，约课 / 排课 / 模板保存不可用
+      </div>
+      <div id="content" class="flex-1 overflow-y-auto"></div>
+      <nav id="bottomnav" class="shrink-0"></nav>
+      <div id="overlay"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-24 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
+    </div>
+  </main>
+
+  <!-- Tailwind CDN 动态类安全垫 -->
+  <div class="hidden">
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-h-[92%] max-h-[85%] max-w-[560px]"></span>
+    <span class="grid grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4"></span>
+    <span class="bg-amber-50 border-amber-300 text-amber-900 bg-amber-50/70 border-amber-400 text-amber-800"></span>
+    <span class="bg-yellow-50 border-yellow-300 text-yellow-900 bg-amber-100 text-amber-900"></span>
+    <span class="bg-blue-50 border-blue-300 text-blue-900 bg-blue-600 bg-purple-50 border-purple-300 text-purple-900 bg-purple-600"></span>
+    <span class="bg-slate-100 border-slate-200 text-slate-400 bg-emerald-50/80 border-emerald-200 text-emerald-700"></span>
+    <span class="bg-rose-50 border-rose-200 text-rose-700 bg-indigo-600 bg-indigo-50 text-indigo-700 border-indigo-100"></span>
+    <span class="bg-emerald-50 border-emerald-200 text-emerald-800 bg-slate-900 text-amber-300"></span>
+    <span class="bg-slate-900/40 backdrop-blur-[1px]"></span>
+    <span class="min-h-[160px] h-[22px] max-h-[146px] ring-indigo-400 bg-indigo-50/60 bg-indigo-50/70 bg-white/70 border-white/70 active:scale-[0.99]"></span>
+    <span class="bg-emerald-50 text-emerald-800 bg-rose-50 text-rose-800 border-rose-200 border-amber-200 bg-amber-50/80 text-amber-900"></span>
   </div>
-  <div class="text-sm text-slate-500 hidden sm:block">
-    学生名缩写(3-4字) · 约课显示“约” · 连约2/3/4节
-  </div>
-</header>
 
-<main class="flex justify-center py-4">
-  <div id="frame" class="relative w-[390px] max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[820px] flex flex-col border border-slate-300/60">
-
-    <!-- 顶部工作台标题栏 -->
-    <div class="bg-brand-700 text-white px-4 py-2.5 flex items-center justify-between shrink-0">
-      <div class="flex items-center gap-2.5">
-        <div id="roleAvatar" class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center font-bold text-sm">A</div>
-        <div>
-          <div id="roleName" class="text-xs font-semibold leading-tight">Amy · 家长工作台</div>
-          <div id="roleSub" class="text-xs text-indigo-200">Teacher David · 单屏7天周课表</div>
-        </div>
-      </div>
-      <div id="topActions" class="flex items-center gap-1.5"></div>
-    </div>
-
-    <!-- 周切换导航栏 (上一周 / 下一周 / 本周指示) -->
-    <div class="bg-slate-50 border-b border-slate-200 px-3 py-2 flex items-center justify-between shrink-0">
-      <button onclick="changeWeek(-1)" class="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 active:scale-95 text-xs flex items-center gap-0.5">
-        <i data-lucide="chevron-left" class="w-4 h-4"></i>上周
-      </button>
-      <div class="text-center">
-        <div class="flex items-center gap-1.5 justify-center">
-          <span id="weekTitle" class="text-xs font-bold text-slate-800">2026年第46周</span>
-          <span id="currentWeekTag" class="text-sm font-bold px-1.5 py-0.5 rounded bg-brand-100 text-brand-700 font-semibold">当周</span>
-        </div>
-        <div id="weekRangeSub" class="text-xs text-slate-400 mt-0.5">11-09 (周一) ~ 11-15 (周日)</div>
-      </div>
-      <div class="flex items-center gap-1">
-        <button onclick="goTodayWeek()" class="px-2 py-1 rounded-lg border border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100 text-xs font-medium">本周</button>
-        <button onclick="changeWeek(1)" class="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 active:scale-95 text-xs flex items-center gap-0.5">
-          下周<i data-lucide="chevron-right" class="w-4 h-4"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- 7 色图例栏 (呼吸感图例卡片) -->
-    <div class="bg-white border-b border-slate-100 px-3 py-1.5 text-xs flex items-center justify-between overflow-x-auto no-scrollbar shrink-0 text-slate-600">
-      <div class="flex items-center gap-2 shrink-0">
-        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-500"></span>固定位🟠</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded border border-dashed border-amber-500 bg-amber-100 text-amber-800 text-sm font-bold font-bold px-0.5">预</span>续费预占</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-yellow-400"></span>临时课🟡</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-blue-500"></span>被代课🔵</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-purple-600"></span>代上课🟣</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-200"></span>休息⚪</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-emerald-500"></span>可约🟢</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-500"></span>请假🔴</span>
-      </div>
-      <span class="text-sm font-bold text-brand-600 font-medium shrink-0 ml-2" id="tempQuotaBadge">临时课: 4 节</span>
-    </div>
-
-    <!-- Excel 风格周度网格容器 (单屏容纳 7 列，留白卡片设计) -->
-    <div id="excelScrollContainer" class="flex-1 overflow-y-auto bg-slate-50 relative">
-      <table id="excelTable" class="w-full table-fixed border-collapse text-center select-none bg-white">
-        <!-- 动态生成: 时段列(40px) + 7 列周一至周日(每列约50px，单屏完整显示) -->
-      </table>
-    </div>
-
-    <!-- 底部状态指示条 -->
-    <div class="bg-white border-t border-slate-200 px-3 py-1.5 flex items-center justify-between text-xs text-slate-400 shrink-0">
-      <span class="truncate">💡 格内显示学员前3-4字，空闲显“约”；点击可连约 2/3/4 次课</span>
-      <span class="shrink-0 font-mono">7天 × 23时段</span>
-    </div>
-
-    <!-- 全局轻量 Toast -->
-    <div id="toast" class="hidden absolute left-1/2 -translate-x-1/2 bottom-12 bg-slate-900/95 text-white text-xs rounded-xl px-4 py-2.5 z-[80] shadow-xl max-w-[90%] text-center transition-opacity flex items-center gap-2">
-      <i id="toastIcon" data-lucide="info" class="w-4 h-4 shrink-0 text-amber-400"></i>
-      <span id="toastText">提示内容</span>
-    </div>
-
-    <!-- 半透明遮罩 -->
-    <div id="mask" onclick="closeAll()" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] z-40"></div>
-
-    <!-- 弹窗：单元格详情 / 代课文本 / 连约配置器 (Bottom Sheet) -->
-    <section id="cellDetailModal" class="hidden absolute inset-x-2 bottom-3 bg-white rounded-2xl z-50 shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[88%]">
-      <!-- 弹窗顶栏 -->
-      <div id="modalHeader" class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span id="modalColorBadge" class="w-3 h-3 rounded bg-emerald-500"></span>
-          <h3 id="modalTitle" class="font-semibold text-xs">时段详情</h3>
-        </div>
-        <button onclick="closeAll()" class="text-slate-400 hover:text-white p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
-      </div>
-
-      <div class="p-4 space-y-3.5 overflow-y-auto text-xs">
-        <!-- 基础信息卡片 -->
-        <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 space-y-1.5">
-          <div class="flex justify-between items-center text-slate-500">
-            <span>选定时段</span>
-            <span id="detailTime" class="font-mono font-bold text-slate-800 text-xs">2026-11-10 14:00 - 14:30</span>
-          </div>
-          <div class="flex justify-between items-center text-slate-500">
-            <span>授课教师</span>
-            <span id="detailTeacher" class="font-medium text-slate-800">Teacher David (T3 级)</span>
-          </div>
-          <div class="flex justify-between items-center text-slate-500">
-            <span>当前状态</span>
-            <span id="detailStatus" class="font-bold text-slate-700">空闲可约 🟢</span>
-          </div>
-          <div id="detailStudentRow" class="flex justify-between items-center text-slate-500 hidden">
-            <span>上课学员</span>
-            <span id="detailStudent" class="font-bold text-brand-700">AliceZ12 (完整昵称)</span>
-          </div>
-        </div>
-
-        <!-- 代课详情文本卡片 (有代课时动态展开) -->
-        <div id="substituteAlertBox" class="hidden rounded-xl border p-3 text-xs space-y-1.5">
-          <div class="flex items-center gap-1.5 font-bold" id="subAlertTitle">
-            <i data-lucide="arrow-right-left" class="w-4 h-4"></i>
-            <span>代课交接与结算说明</span>
-          </div>
-          <p id="subAlertText" class="text-sm leading-relaxed">
-            代课说明文案
-          </p>
-          <div class="text-xs pt-1 border-t opacity-80" id="subAlertFooter">
-            财务结算：课酬计入代课老师 Linda 周结单，原授课老师课酬为 0。
-          </div>
-        </div>
-
-        <!-- 续费预占详情卡片 (HOLD 时动态展开, AC-3A-07a~c) -->
-        <div id="holdAlertBox" class="hidden rounded-xl border border-amber-300 bg-amber-50/90 p-3 text-xs space-y-1.5 text-amber-950">
-          <div class="flex items-center justify-between font-bold text-amber-900">
-            <span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-4 h-4 text-amber-600"></i>系统自动续费预占中</span>
-            <span class="text-xs px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-semibold">排他预占保护</span>
-          </div>
-          <p id="holdAlertText" class="text-sm leading-relaxed">
-            <b>关联预排单：</b><a href="m2a_course_orders.html" class="font-mono text-indigo-700 underline font-semibold">ord_20261105_renew01</a> (8节 · 336分)<br>
-            <b>外教定级变动：</b>考核晋升 Senior (40分/节，+10分升级调价)<br>
-            <b>继承预排时段：</b>继承本轮最后一周固定排班 (周二/四 19:00)，已排除单日请假<br>
-            <b>硬性失效规则：</b>距开课前 24 小时未确认收款，预占位将自动释放为 🟢 空闲可约。
-          </p>
-          <div class="pt-1.5 border-t border-amber-200 text-xs text-amber-800 flex justify-between items-center">
-            <span>倒计时：还剩 68 小时 40 分</span>
-            <a href="m2a_course_orders.html" class="px-2 py-0.5 rounded bg-amber-600 text-white font-medium hover:bg-amber-700 transition">前往购课单核实</a>
-          </div>
-        </div>
-
-        <!-- 连约配置面板 (仅当为绿色可约格时展示) -->
-        <div id="bookingActionBox" class="hidden space-y-3">
-          <div>
-            <label class="block text-slate-600 font-semibold mb-1.5">选择预约课节数 (支持连续预约)</label>
-            <div class="grid grid-cols-4 gap-1.5" id="consecutiveBtns">
-              <!-- 动态生成 连约1节 / 连约2节 / 连约3节 / 连约4节 按钮 -->
-            </div>
-            <p id="consecutiveTip" class="text-xs text-slate-400 mt-1">单节课为 25 分钟教学 + 5 分钟课间缓冲。</p>
-          </div>
-
-          <!-- 连约汇总与扣减明细 -->
-          <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3 space-y-1.5">
-            <div class="flex items-center justify-between text-emerald-900 font-bold">
-              <span id="bookRangeText">连续排课: 14:00 - 14:30 (共 1 节)</span>
-              <span class="text-xs text-emerald-700" id="bookDeductText">扣减 1 节临时课</span>
-            </div>
-            <div class="text-sm text-emerald-700 flex justify-between">
-              <span>扣减方式：按购课单创建时间 FIFO 自动拣选</span>
-              <span id="remainQuotaPreview">预约后剩余: 3 节</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="p-3 border-t border-slate-200 bg-slate-50 flex gap-2">
-        <button onclick="closeAll()" class="flex-1 border border-slate-300 rounded-xl py-2.5 text-xs text-slate-600 font-medium">关闭</button>
-        <button id="btnModalBook" onclick="doConfirmBook()" class="hidden flex-[2] bg-emerald-600 text-white rounded-xl py-2.5 text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-[0.99] flex items-center justify-center gap-1 disabled:bg-slate-300 disabled:shadow-none">
-          <i data-lucide="check" class="w-4 h-4"></i>确认预约
-        </button>
-      </div>
-    </section>
-
-  </div>
-</main>
-
-<script>
-/** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
-
-// 7 色状态与精细轻量卡片样式定义 (告别铺满色块，采用呼吸感浅底+细边框+清晰文字)
-const COLOR_CONFIG = {
-  ORANGE: {
-    cardCls: 'bg-amber-100/90 text-amber-900 border border-amber-300 font-bold',
-    badgeCls: 'bg-amber-500',
-    name: '固定位🟠',
-    defaultChar: '固'
-  },
-  HOLD: {
-    cardCls: 'bg-amber-50/90 text-amber-900 border border-dashed border-amber-400 font-bold',
-    badgeCls: 'bg-amber-400',
-    name: '续费预占🟠',
-    defaultChar: '预'
-  },
-  YELLOW: {
-    cardCls: 'bg-yellow-100 text-yellow-900 border border-yellow-300 font-bold',
-    badgeCls: 'bg-yellow-400',
-    name: '临时课🟡',
-    defaultChar: '临'
-  },
-  BLUE: {
-    cardCls: 'bg-blue-100 text-blue-900 border border-blue-300 font-bold',
-    badgeCls: 'bg-blue-500',
-    name: '被代课🔵',
-    defaultChar: '代'
-  },
-  PURPLE: {
-    cardCls: 'bg-purple-100 text-purple-900 border border-purple-300 font-bold',
-    badgeCls: 'bg-purple-600',
-    name: '代上课🟣',
-    defaultChar: '替'
-  },
-  GRAY: {
-    cardCls: 'bg-slate-50 text-slate-300 border border-slate-100 font-normal',
-    badgeCls: 'bg-slate-300',
-    name: '休息⚪',
-    defaultChar: '休'
-  },
-  GREEN: {
-    cardCls: 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-bold',
-    badgeCls: 'bg-emerald-500',
-    name: '可约🟢',
-    defaultChar: '约'
-  },
-  RED: {
-    cardCls: 'bg-rose-50 text-rose-700 border border-rose-200 font-bold',
-    badgeCls: 'bg-rose-500',
-    name: '请假🔴',
-    defaultChar: '假'
-  }
-};
-
-// 状态中心
-const S = {
-  role: 'parent', // 'parent' | 'monitor' | 'teacher' | 'sub_teacher'
-  device: 'phone', // 'phone' (390px) | 'tablet' (768px)
-  weekOffset: 0, // -1: 上周(第45周), 0: 本周(第46周), 1: 下周(第47周)
-  tempQuota: 4, // 临时课待排期资产余额
-  selectedCount: 1, // 当前连约节数 (1/2/3/4)
-  activeCell: null // 当前点击选中的格子信息
-};
-
-// 代表性营业半小时时段（08:00 - 21:30 共 23 个半小时网格）
-const TIME_SLOTS = [
-  '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
-  '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'
-];
-
-// 多周数据仓储 (Week 45, 46, 47)
-const WEEKS_DATA = {
-  '-1': {
-    weekNum: 45,
-    title: '2026年第45周',
-    rangeSub: '11-02 (周一) ~ 11-08 (周日)',
-    isCurrent: false,
-    days: [
-      { key: '2026-11-02', label: '11-02', week: '一', isPast: true },
-      { key: '2026-11-03', label: '11-03', week: '二', isPast: true },
-      { key: '2026-11-04', label: '11-04', week: '三', isPast: true },
-      { key: '2026-11-05', label: '11-05', week: '四 (今天)', isPast: true },
-      { key: '2026-11-06', label: '11-06', week: '五', isPast: false, inWindow: true },
-      { key: '2026-11-07', label: '11-07', week: '六', isPast: false, inWindow: true },
-      { key: '2026-11-08', label: '11-08', week: '日', isPast: false, inWindow: true }
-    ],
-    cells: {}
-  },
-  '0': {
-    weekNum: 46,
-    title: '2026年第46周',
-    rangeSub: '11-09 (周一) ~ 11-15 (周日)',
-    isCurrent: true,
-    days: [
-      { key: '2026-11-09', label: '11-09', week: '一', inWindow: true },
-      { key: '2026-11-10', label: '11-10', week: '二', inWindow: true },
-      { key: '2026-11-11', label: '11-11', week: '三', inWindow: true },
-      { key: '2026-11-12', label: '11-12', week: '四', inWindow: true },
-      { key: '2026-11-13', label: '11-13', week: '五', inWindow: false },
-      { key: '2026-11-14', label: '11-14', week: '六', inWindow: false },
-      { key: '2026-11-15', label: '11-15', week: '日', inWindow: false }
-    ],
-    cells: {}
-  },
-  '1': {
-    weekNum: 47,
-    title: '2026年第47周',
-    rangeSub: '11-16 (周一) ~ 11-22 (周日)',
-    isCurrent: false,
-    days: [
-      { key: '2026-11-16', label: '11-16', week: '一', inWindow: false },
-      { key: '2026-11-17', label: '11-17', week: '二', inWindow: false },
-      { key: '2026-11-18', label: '11-18', week: '三', inWindow: false },
-      { key: '2026-11-19', label: '11-19', week: '四', inWindow: false },
-      { key: '2026-11-20', label: '11-20', week: '五', inWindow: false },
-      { key: '2026-11-21', label: '11-21', week: '六', inWindow: false },
-      { key: '2026-11-22', label: '11-22', week: '日', inWindow: false }
-    ],
-    cells: {}
-  }
-};
-
-// 初始化各周各单元格状态
-[-1, 0, 1].forEach(offset => {
-  const week = WEEKS_DATA[String(offset)];
-  week.cells = {};
-  week.days.forEach(day => {
-    week.cells[day.key] = {};
-    TIME_SLOTS.forEach(time => {
-      const [h] = time.split(':').map(Number);
-      let color = 'GRAY';
-      let info = '教师未开放';
-      let student = '';
-      let sub = null;
-
-      // 14:00 - 18:00 常规开放空闲 🟢，方便测试连约
-      if (h >= 14 && h < 18) {
-        color = 'GREEN';
-        info = '可约 (25m正课)';
-      }
-
-      // 预置典型排课学员数据
-      if (day.key === '2026-11-10' && time === '16:00') {
-        color = 'BLUE';
-        info = '被代课 (Linda代)';
-        student = 'AliceZ12';
-        sub = {
-          originalTeacher: 'Teacher David',
-          actualTeacher: 'Teacher Linda',
-          reason: 'Teacher David 因急性咽喉炎请假，已指派同定级外教 Teacher Linda 代上。',
-          memo: '学员此前已完成 Lesson 12 自然拼读，本节需进入 Lesson 13 短元音练习。'
-        };
-      } else if (day.key === '2026-11-10' && time === '19:00') {
-        color = 'ORANGE';
-        info = '1v1 固定位';
-        student = 'AliceZ12';
-      } else if (day.key === '2026-11-11' && time === '15:30') {
-        color = 'YELLOW';
-        info = '1v1 临时课';
-        student = 'BobZ10';
-      } else if (day.key === '2026-11-12' && time === '17:00') {
-        color = 'RED';
-        info = '教师请假';
-      } else if (day.key === '2026-11-12' && time === '19:00') {
-        color = 'HOLD';
-        info = '系统续费预占 (待确认收款)';
-        student = 'AliceZ12';
-      } else if (day.key === '2026-11-17' && time === '19:00') {
-        color = 'HOLD';
-        info = '系统续费预占 (下轮排课预排)';
-        student = 'AliceZ12';
-      } else if (day.key === '2026-11-19' && time === '19:00') {
-        color = 'HOLD';
-        info = '系统续费预占 (下轮排课预排)';
-        student = 'AliceZ12';
-      }
-
-      week.cells[day.key][time] = { time, color, info, student, sub };
+  <script>
+    /* ------------------------------------------------------------------
+     * 演示日期与基础字典
+     * ------------------------------------------------------------------ */
+    const TODAY = '2026-11-10';            // 演示日：2026-11-10 周二
+    const BASE_MONDAY = '2026-11-09';      // 第 46 周周一
+    const DAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const TIME_SLOTS = Array.from({ length: 36 }, (_, i) => {
+      const total = 6 * 60 + i * 30;
+      return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
     });
-  });
-});
 
-const $ = id => document.getElementById(id);
-const ico = () => lucide.createIcons();
-const toast = (text, isError = false) => {
-  const el = $('toast');
-  $('toastText').textContent = text;
-  $('toastIcon').className = isError ? 'w-4 h-4 shrink-0 text-red-400' : 'w-4 h-4 shrink-0 text-amber-400';
-  el.classList.remove('hidden');
-  setTimeout(() => el.classList.add('hidden'), 2600);
-};
+    const TEACHERS = [
+      { id: 'david', name: 'David Miller', level: 'SENIOR', levelLabel: 'Senior', rate: 40, managedBy: 'leo' },
+      { id: 'linda', name: 'Linda Chen', level: 'STANDARD', levelLabel: 'Standard', rate: 30, managedBy: 'leo' },
+      { id: 'nina', name: 'Nina Park', level: 'STANDARD', levelLabel: 'Standard', rate: 30, managedBy: 'mia' }
+    ];
+    const CURRENT_MONITOR_ID = 'leo';
 
-const seg = (el, items, cur, fn) => {
-  $(el).innerHTML = items.map(([k, l]) =>
-    `<button onclick="${fn}('${k}')" class="px-2.5 py-1 rounded-md font-medium transition ${k === cur ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">${l}</button>`
-  ).join('');
-};
+    const STUDENTS = [
+      { key: 'alice', name: 'AliceZ12', nickname: 'Alice', pinyin: 'alisi anlisi', phone: '13800001212', tag: '大宝 · 12岁', className: 'KET 冲刺精讲小班', tempOrder: 'ord_alice_temp04 · 创建于 10-12' },
+      { key: 'bob', name: 'BobZ10', nickname: 'Bob', pinyin: 'baobo bob', phone: '13900001010', tag: '二宝 · 10岁', className: '自然拼读启蒙班', tempOrder: 'ord_bob_temp02 · 创建于 10-20' },
+      { key: 'charlie', name: 'CharlieC09', nickname: 'Charlie', pinyin: 'chali charlie', phone: '13700000909', tag: '9岁 · 他班学员', className: '自然拼读启蒙班', tempOrder: 'ord_charlie_temp09 · 创建于 10-28' },
+      { key: 'leo', name: 'LeoW8', nickname: 'Leo', pinyin: 'liao leo', phone: '13600000808', tag: '试课待认领 · UNBOUND', className: '待认领试课', trial: true, tempOrder: 'ord_leo_temp01 · 创建于 11-01' }
+    ];
 
-/* ===== 控制台切换 ===== */
-function renderControls() {
-  seg('roleSwitch', [
-    ['parent', '家长 Amy'],
-    ['monitor', '班长 Leo'],
-    ['teacher', '教师 David'],
-    ['sub_teacher', '代课 Linda']
-  ], S.role, 'setRole');
+    const CLASSES = [
+      { id: 'cls_ket001', name: 'KET 冲刺精讲小班', teacherId: 'david', weekday: 5, time: '10:00', size: 4 },
+      { id: 'cls_phonics02', name: '自然拼读启蒙班', teacherId: 'linda', weekday: 2, time: '15:00', size: 3 }
+    ];
 
-  seg('deviceSwitch', [
-    ['phone', '📱 手机 390'],
-    ['tablet', '📟 平板 768']
-  ], S.device, 'setDevice');
-}
+    const SUB_INFO = {
+      original: 'David Miller',
+      actual: 'Linda Chen',
+      level: 'Senior → Standard（同级外教）',
+      reason: 'David 老师急性咽喉炎，已获批临时请假',
+      memo: 'Lesson 12 已完成，本节进入 Lesson 13 短元音组合练习',
+      finance: '课酬 100% 结算至代课老师 Linda 周结单，原教师课酬为 0'
+    };
 
-function setRole(r) {
-  S.role = r;
-  if (r === 'parent') {
-    $('roleAvatar').textContent = 'A';
-    $('roleName').textContent = 'Amy · 家长工作台';
-    $('roleSub').textContent = '学生：AliceZ12 · 单屏7天周课表';
-    $('topActions').innerHTML = '';
-  } else if (r === 'monitor') {
-    $('roleAvatar').textContent = 'L';
-    $('roleName').textContent = 'Leo · 班长调度台';
-    $('roleSub').textContent = '全局排班与代课协调';
-    $('topActions').innerHTML = `<span class="text-xs px-2 py-0.5 rounded bg-amber-500 text-white font-medium">全景经办</span>`;
-  } else if (r === 'teacher') {
-    $('roleAvatar').textContent = 'D';
-    $('roleName').textContent = 'David · 授课教师';
-    $('roleSub').textContent = '本人课表 (遇代课显示被代🔵)';
-    $('topActions').innerHTML = `<span class="text-xs px-2 py-0.5 rounded bg-emerald-600 text-white font-medium">原教师视角</span>`;
-  } else {
-    $('roleAvatar').textContent = 'L';
-    $('roleName').textContent = 'Linda · 代课教师';
-    $('roleSub').textContent = '替班课表 (代上课显示紫色🟣)';
-    $('topActions').innerHTML = `<span class="text-xs px-2 py-0.5 rounded bg-purple-600 text-white font-medium">代课老师视角</span>`;
-  }
-  renderAll();
-}
+    const HOLD_INFO = {
+      orderId: 'ord_20261105_renew01',
+      lessons: 8,
+      points: 336,
+      countdown: '68 小时 40 分',
+      slots: '每周二、周四 19:00（继承本轮最后一周常规排期，已排除单次请假）'
+    };
 
-function setDevice(d) {
-  S.device = d;
-  $('frame').className = `relative ${d === 'phone' ? 'w-[390px]' : 'w-[768px]'} max-w-full bg-white rounded-2xl shadow-xl overflow-hidden min-h-[820px] flex flex-col border border-slate-300/60 transition-all`;
-  renderControls();
-  renderAll();
-}
+    const COLOR = {
+      ORANGE: { name: '固定位', cls: 'bg-amber-50 border-amber-300 text-amber-900', char: '固', dot: 'bg-amber-500' },
+      HOLD: { name: '续费预占', cls: 'bg-amber-50/70 border-amber-400 border-dashed text-amber-800', char: '预', dot: 'bg-amber-400' },
+      YELLOW: { name: '临时课', cls: 'bg-yellow-50 border-yellow-300 text-yellow-900', char: '临', dot: 'bg-yellow-400' },
+      BLUE: { name: '被代课', cls: 'bg-blue-50 border-blue-300 text-blue-900', char: '代', dot: 'bg-blue-500' },
+      PURPLE: { name: '代上课', cls: 'bg-purple-50 border-purple-300 text-purple-900', char: '替', dot: 'bg-purple-600' },
+      GRAY: { name: '休息不可约', cls: 'bg-slate-100 border-slate-200 text-slate-400', char: '休', dot: 'bg-slate-300' },
+      GREEN: { name: '空闲可约', cls: 'bg-emerald-50/80 border-emerald-200 text-emerald-700', char: '约', dot: 'bg-emerald-500' },
+      RED: { name: '已请假', cls: 'bg-rose-50 border-rose-200 text-rose-700', char: '假', dot: 'bg-rose-500' }
+    };
 
-function changeWeek(delta) {
-  const next = S.weekOffset + delta;
-  if (next < -1 || next > 1) {
-    toast(delta > 0 ? '最多查阅未来 12 周，原型已预载至下周' : '已到达最早可查阅周');
-    return;
-  }
-  S.weekOffset = next;
-  renderAll();
-  toast(`已切换至 ${WEEKS_DATA[String(S.weekOffset)].title}`);
-}
+    const ROLE_META = {
+      parent: { label: '家长工作台 · Amy', initial: 'A', dark: false },
+      monitor: { label: '班长工作台 · Leo', initial: 'L', dark: true },
+      teacher: { label: '教师工作台 · David', initial: 'D', dark: true },
+      sub_teacher: { label: '教师工作台 · Linda（代课）', initial: 'L', dark: true },
+      admin: { label: '平台管理员 · Sarah', initial: 'S', dark: true }
+    };
 
-function goTodayWeek() {
-  S.weekOffset = 0;
-  renderAll();
-  toast('已回到当前周');
-}
+    const NAVS = {
+      parent: [
+        { id: 'home', icon: 'home', label: '首页', desc: '多孩时间流与金刚位属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=user' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', board: true },
+        { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '教师与小班选课属于 M1B / M1C。', href: 'm1c_classes.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '学员档案与账单属于 M0 个人中心。', href: 'm0_workspace_home.html?role=user&view=me' }
+      ],
+      monitor: [
+        { id: 'home', icon: 'home', label: '首页', desc: '班长主页与教务待办属于 M0 工作台。', href: 'm0_workspace_home.html?role=monitor' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', board: true },
+        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '购课单、退款与学员教务属于 M0 / M2。', href: 'm0_workspace_home.html?role=monitor&view=ops' },
+        { id: 'me', icon: 'user', label: '我的', desc: '班长周转账与家庭档案属于 M0 个人中心。', href: 'm0_workspace_home.html?role=monitor&view=me' }
+      ],
+      teacher: [
+        { id: 'home', icon: 'home', label: '首页', desc: '教师工作台主页属于 M0。', href: 'm0_workspace_home.html?role=teacher' },
+        { id: 'schedule', icon: 'calendar-days', label: '我的课表', board: true },
+        { id: 'students', icon: 'users', label: '学员档案', desc: '学员档案与留言板属于 M1A / M1D。', href: 'm1a_student_profile.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '教师履历与课酬单属于 M1B / M5B。', href: 'm1b_teacher_monitor.html' }
+      ],
+      admin: [
+        { id: 'home', icon: 'home', label: '首页', desc: '平台结算待办与运营大盘属于 M0 工作台。', href: 'm0_workspace_home.html?role=admin' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', board: true },
+        { id: 'ops', icon: 'layout-grid', label: '教务调度', desc: '全局排班看板与调度入口属于 M0 / M3A。', href: 'm0_workspace_home.html?role=admin&view=ops' },
+        { id: 'settings', icon: 'settings', label: '管理与设置', desc: '班长、教师定级与字典参数属于 M0。', href: 'm0_workspace_home.html?role=admin&view=settings' }
+      ]
+    };
+    NAVS.sub_teacher = NAVS.teacher;
 
-/* ===== 核心：7列单屏精细卡片网格渲染 ===== */
-function renderExcelGrid() {
-  const curWeek = WEEKS_DATA[String(S.weekOffset)];
-  $('weekTitle').textContent = curWeek.title;
-  $('weekRangeSub').textContent = curWeek.rangeSub;
-  $('currentWeekTag').classList.toggle('hidden', !curWeek.isCurrent);
-  $('tempQuotaBadge').textContent = `临时课: ${S.tempQuota} 节`;
+    /* ------------------------------------------------------------------
+     * 日期工具
+     * ------------------------------------------------------------------ */
+    function isoToTs(iso) { return Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))); }
+    function isoAdd(iso, days) { return new Date(isoToTs(iso) + days * 86400000).toISOString().slice(0, 10); }
+    function diffDays(a, b) { return Math.round((isoToTs(a) - isoToTs(b)) / 86400000); }
+    function dateLabel(iso) { return iso.slice(5); }
+    function weekdayLabel(iso) { return DAY_LABELS[(new Date(isoToTs(iso)).getUTCDay() + 6) % 7]; }
+    function inBookingWindow(iso) { const d = diffDays(iso, TODAY); return d >= 1 && d <= 7; }
+    function endTime(time, count) {
+      const [h, m] = time.split(':').map(Number);
+      const total = h * 60 + m + count * 30;
+      return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+    }
+    function nextSlot(time) {
+      const idx = TIME_SLOTS.indexOf(time);
+      return idx >= 0 && idx + 1 < TIME_SLOTS.length ? TIME_SLOTS[idx + 1] : null;
+    }
 
-  let html = '';
+    /* ------------------------------------------------------------------
+     * 周数据构建
+     * ------------------------------------------------------------------ */
+    function buildWeek(teacherId, offset) {
+      const monday = isoAdd(BASE_MONDAY, offset * 7);
+      const days = DAY_LABELS.map((label, index) => {
+        const iso = isoAdd(monday, index);
+        return { iso, index, label, dateLabel: dateLabel(iso) };
+      });
+      const cells = {};
+      days.forEach((day) => {
+        cells[day.iso] = {};
+        TIME_SLOTS.forEach((time) => {
+          const h = Number(time.slice(0, 2));
+          let status = 'GRAY';
+          if (day.index <= 3 && h >= 14 && h < 18) status = 'GREEN';
+          if (day.index === 5 && h >= 10 && h < 12) status = 'GREEN';
+          cells[day.iso][time] = {
+            status, student: '', teacherId, orderId: '', tsId: '', className: '',
+            classId: '', holder: '', bookedAt: '', note: '', sub: null, hold: null
+          };
+        });
+      });
+      return { offset, monday, weekNo: 46 + offset, days, cells };
+    }
 
-  // 1. 表头 (时间列 40px + 7 天各均分 50px)
-  html += `
-    <thead>
-      <tr class="freeze-header bg-slate-100 border-b border-slate-200 text-slate-700 text-xs shadow-xs">
-        <th class="freeze-corner w-[40px] py-1.5 px-0.5 bg-slate-200 border-r border-slate-300 font-bold text-xs text-slate-600">
-          时段
-        </th>
-        ${curWeek.days.map(d => {
-          const isToday = d.key === '2026-11-05';
-          return `
-            <th class="py-1 px-0.5 border-r border-slate-200 ${isToday ? 'bg-amber-100/70 text-amber-900 font-bold' : ''}">
-              <div class="text-sm font-bold text-slate-400 leading-none">周${d.week.slice(0, 1)}</div>
-              <div class="text-sm font-semibold leading-tight mt-0.5">${d.label}</div>
-            </th>
-          `;
-        }).join('')}
-      </tr>
-    </thead>
-  `;
+    function setCell(week, dayIndex, time, patch) {
+      const iso = week.days[dayIndex].iso;
+      Object.assign(week.cells[iso][time], patch);
+    }
 
-  // 2. 表体：卡片流呈现 (排班显示学生前3-4字，空闲显“约”，休息显“休”)
-  html += '<tbody class="divide-y divide-slate-100">';
-  TIME_SLOTS.forEach(time => {
-    html += `
-      <tr class="hover:bg-slate-50/40 transition">
-        <!-- 冻结左侧时间轴 -->
-        <td class="freeze-col w-[40px] py-1 px-0.5 bg-slate-100 border-r border-slate-200 text-xs font-mono font-semibold text-slate-500">
-          ${time}
-        </td>
-    `;
-
-    curWeek.days.forEach(day => {
-      const cell = curWeek.cells[day.key][time];
-
-      // 代课双视角染色推断
-      let displayColor = cell.color;
-      let isSub = false;
-
-      if (cell.sub) {
-        isSub = true;
-        displayColor = S.role === 'sub_teacher' ? 'PURPLE' : 'BLUE';
+    function buildWeeksFor(teacherId) {
+      const weeks = {};
+      for (let o = -16; o <= 16; o += 1) weeks[String(o)] = buildWeek(teacherId, o);
+      if (teacherId === 'david') {
+        setCell(weeks['0'], 1, '16:00', { status: 'BLUE', student: 'AliceZ12', sub: SUB_INFO, orderId: 'ord_alice_fixed01', tsId: 'ts_alice_fixed01_03' });
+        setCell(weeks['0'], 1, '19:00', { status: 'ORANGE', student: 'AliceZ12', orderId: 'ord_alice_fixed01', tsId: 'ts_alice_fixed01_04', holder: 'Leo' });
+        setCell(weeks['0'], 2, '15:30', { status: 'YELLOW', student: 'BobZ10', orderId: 'ord_bob_temp02', tsId: 'ts_bob_temp02_03', holder: 'Leo', bookedAt: '11-06 14:15' });
+        setCell(weeks['0'], 3, '17:00', { status: 'RED', note: '教师临时请假（已获批），该时段不开放' });
+        setCell(weeks['0'], 3, '19:00', { status: 'HOLD', student: 'AliceZ12', hold: HOLD_INFO });
+        setCell(weeks['0'], 5, '10:00', { status: 'ORANGE', className: 'KET 冲刺精讲小班', classId: 'cls_ket001' });
+        setCell(weeks['0'], 5, '10:30', { status: 'ORANGE', className: 'KET 冲刺精讲小班', classId: 'cls_ket001' });
+        setCell(weeks['1'], 0, '19:00', { status: 'HOLD', student: 'AliceZ12', hold: HOLD_INFO });
+        setCell(weeks['1'], 1, '19:00', { status: 'HOLD', student: 'AliceZ12', hold: HOLD_INFO });
+        setCell(weeks['1'], 2, '19:00', { status: 'HOLD', student: 'AliceZ12', hold: HOLD_INFO });
+        setCell(weeks['-1'], 0, '14:00', { status: 'YELLOW', student: 'AliceZ12', orderId: 'ord_alice_temp05', tsId: 'ts_alice_temp05_01', holder: 'Leo' });
+        setCell(weeks['-1'], 1, '15:00', { status: 'ORANGE', student: 'BobZ10', orderId: 'ord_bob_temp02', tsId: 'ts_bob_temp02_01', holder: 'Leo' });
+      } else {
+        setCell(weeks['0'], 0, '15:00', { status: 'ORANGE', student: 'CharlieC09', orderId: 'ord_charlie_fixed03', tsId: 'ts_charlie_fixed03_01', holder: 'Leo' });
+        setCell(weeks['0'], 1, '16:00', { status: 'PURPLE', student: 'AliceZ12', sub: SUB_INFO, orderId: 'ord_alice_fixed01', tsId: 'ts_alice_fixed01_03' });
+        setCell(weeks['1'], 1, '16:00', { status: 'PURPLE', student: 'AliceZ12', sub: SUB_INFO, orderId: 'ord_alice_fixed01', tsId: 'ts_alice_fixed01_03' });
       }
+      return weeks;
+    }
 
-      const cfg = COLOR_CONFIG[displayColor];
+    function buildAllWeeks() {
+      const all = {};
+      TEACHERS.forEach((t) => { all[t.id] = buildWeeksFor(t.id); });
+      return all;
+    }
 
-      // 格内显示内容生成：排班显示学生名(前3-4字)，无学生显示单字(如“约”、“休”)
-      let displayText = '';
+    function buildTemplate() {
+      const grid = {};
+      for (let d = 0; d < 7; d += 1) {
+        grid[d] = {};
+        TIME_SLOTS.forEach((time) => {
+          const h = Number(time.slice(0, 2));
+          /* 典型外教作息：工作日上午 09-12 + 下午 14-20，周六上午 09-12，周日休息 */
+          grid[d][time] = (d <= 4 && ((h >= 9 && h < 12) || (h >= 14 && h < 20)))
+            || (d === 5 && h >= 9 && h < 12);
+        });
+      }
+      return grid;
+    }
+
+    function buildAllTemplates() {
+      const all = {};
+      TEACHERS.forEach((t) => { all[t.id] = buildTemplate(); });
+      return all;
+    }
+
+    /* ------------------------------------------------------------------
+     * 状态
+     * ------------------------------------------------------------------ */
+    const state = {
+      role: 'parent',
+      page: 'schedule', // schedule | availability | batch | smallgroup | placeholder
+      navTab: 'schedule',
+      device: 'mobile',
+      online: 'on',
+      teacherId: 'david',
+      weekOffset: 0,
+      child: 'alice',
+      parentView: 'agenda',           // agenda | calendar
+      weeks: null,
+      credits: { alice: 4, bob: 2, charlie: 0, leo: 2 },
+      fixed: { alice: 8, bob: 0, charlie: 2, leo: 0 },
+      monitorStudentKey: 'alice',
+      monitorSearch: '',
+      holdSuppressed: {},
+      expandedGaps: new Set(),
+      fullDay: false,
+      availTeacher: 'david',
+      availByTeacher: null,
+      availExpandEarly: false,
+      availExpandLate: false,
+      overlay: null,
+      booking: null,
+      batch: { studentKey: 'alice', startWeek: 0, weekday: 1, time: '15:00', simulate: false },
+      small: { classId: 'cls_ket001', startWeek: 1, weekday: 5, time: '10:00' }
+    };
+    state.weeks = buildAllWeeks();
+    state.availByTeacher = buildAllTemplates();
+
+    /* ------------------------------------------------------------------
+     * 工具
+     * ------------------------------------------------------------------ */
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    function roleMeta() { return ROLE_META[state.role]; }
+    function navItems() { return NAVS[state.role] || NAVS.parent; }
+    function teacherById(id) { return TEACHERS.find((t) => t.id === id) || TEACHERS[0]; }
+    function studentByKey(key) { return STUDENTS.find((s) => s.key === key) || STUDENTS[0]; }
+    function classById(id) { return CLASSES.find((c) => c.id === id) || CLASSES[0]; }
+    function currentWeeks() { return state.weeks[state.teacherId]; }
+    function currentWeek() { return currentWeeks()[String(state.weekOffset)]; }
+    function currentTeacher() { return teacherById(state.teacherId); }
+    function getCell(dayIso, time) {
+      const week = currentWeek();
+      return (week.cells[dayIso] && week.cells[dayIso][time]) || null;
+    }
+    function teacherForCell(cell) { return teacherById(cell.teacherId || state.teacherId); }
+    function quotaOf(key) { return state.credits[key] || 0; }
+    function canBookRole() { return state.role === 'parent' || state.role === 'admin' || state.role === 'monitor'; }
+    function bookingStudentKey() {
+      return state.role === 'parent' ? state.child : (state.booking ? state.booking.studentKey : 'alice');
+    }
+    function isManagedTeacher(teacherId) {
+      const t = teacherById(teacherId);
+      return !!t && t.managedBy === CURRENT_MONITOR_ID;
+    }
+    function studentMatches(s, query) {
+      if (!query) return true;
+      const q = query.trim().toLowerCase();
+      if (!q) return true;
+      return [s.name, s.nickname, s.pinyin, s.phone, s.tag, s.className].join(' ').toLowerCase().includes(q);
+    }
+    function teacherInitial(name) { return String(name || '?').slice(0, 1).toUpperCase(); }
+
+    /* 学生本周课程聚合：跨教师去重（BLUE/PURPLE 同一节课只保留一张卡） */
+    function collectStudentLessons(offset) {
+      const student = studentByKey(state.child);
+      const out = [];
+      const seen = new Set();
+      TEACHERS.forEach((t) => {
+        const week = state.weeks[t.id][String(offset)];
+        if (!week) return;
+        week.days.forEach((day) => {
+          TIME_SLOTS.forEach((time) => {
+            const cell = week.cells[day.iso][time];
+            if (cell.student !== student.name) return;
+            if (!['ORANGE', 'YELLOW', 'BLUE', 'PURPLE', 'HOLD'].includes(cell.status)) return;
+            const key = `${day.iso}-${time}-${cell.orderId || cell.classId || cell.student}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            out.push({ day, time, cell, teacherId: t.id, teacher: teacherById(t.id) });
+          });
+        });
+      });
+      out.sort((a, b) => a.day.iso.localeCompare(b.day.iso) || a.time.localeCompare(b.time));
+      return out;
+    }
+
+    function originalHoldSlots(studentName) {
+      const slots = new Set();
+      TEACHERS.forEach((t) => {
+        Object.values(state.weeks[t.id]).forEach((week) => {
+          week.days.forEach((day) => {
+            TIME_SLOTS.forEach((time) => {
+              const cell = week.cells[day.iso][time];
+              if (cell.status === 'HOLD' && cell.student === studentName) slots.add(`${day.label} ${time}`);
+            });
+          });
+        });
+      });
+      return Array.from(slots);
+    }
+
+    /* 智能外接时间窗：模板开放时段 ∪ 实际排课，最小保底 6 小时 */
+    function scheduleBounds(teacherId, week) {
+      const tpl = state.availByTeacher[teacherId] || buildTemplate();
+      let min = Infinity;
+      let max = -Infinity;
+      week.days.forEach((day) => {
+        TIME_SLOTS.forEach((time, idx) => {
+          const cell = week.cells[day.iso][time];
+          const scheduled = ['ORANGE', 'YELLOW', 'BLUE', 'PURPLE', 'HOLD', 'RED'].includes(cell.status);
+          if (tpl[day.index][time] || scheduled) {
+            min = Math.min(min, idx);
+            max = Math.max(max, idx + 1);
+          }
+        });
+      });
+      if (!isFinite(min)) {
+        min = TIME_SLOTS.indexOf('08:00');
+        max = TIME_SLOTS.indexOf('20:00');
+      }
+      if (max - min < 12) {
+        const center = (min + max) / 2;
+        min = Math.max(0, Math.floor(center - 6));
+        max = Math.min(36, min + 12);
+        if (max - min < 12) min = Math.max(0, max - 12);
+      }
+      return { start: min, end: max };
+    }
+
+    function slotBoundary(idx) { return idx >= TIME_SLOTS.length ? '24:00' : TIME_SLOTS[idx]; }
+
+    /* 连续 ≥ 4 个半小时格（2h）全周皆休 → 折叠条 */
+    function gapRuns(week, start, end) {
+      const runs = [];
+      let runStart = null;
+      for (let i = start; i < end; i += 1) {
+        const allGray = week.days.every((day) => week.cells[day.iso][TIME_SLOTS[i]].status === 'GRAY');
+        if (allGray) {
+          if (runStart === null) runStart = i;
+        } else if (runStart !== null) {
+          if (i - runStart >= 4 && runStart >= 4 && i <= 30) runs.push({ start: runStart, end: i });
+          runStart = null;
+        }
+      }
+      if (runStart !== null && end - runStart >= 4 && runStart >= 4 && end <= 30) runs.push({ start: runStart, end });
+      return runs;
+    }
+
+    function gapKey(start, end) { return `${start}-${end}`; }
+    function hoursLabel(slots) { return (slots * 0.5).toFixed(slots % 2 === 0 ? 0 : 1); }
+
+    function consecutiveOk(dayIso, time, count) {
+      const idx = TIME_SLOTS.indexOf(time);
+      if (idx < 0 || idx + count > TIME_SLOTS.length) return false;
+      for (let i = 0; i < count; i += 1) {
+        const cell = getCell(dayIso, TIME_SLOTS[idx + i]);
+        if (!cell || cell.status !== 'GREEN') return false;
+      }
+      return true;
+    }
+
+    function cellInner(cell) {
+      if (cell.className) {
+        const short = cell.className.split(' ')[0] + '班';
+        return `<span class="truncate">${esc(short)}</span>`;
+      }
       if (cell.student) {
-        // 截取前 3-4 个字符
-        displayText = cell.student.length > 4 ? cell.student.slice(0, 4) : cell.student;
+        const short = esc(cell.student.slice(0, 4));
+        if (cell.status === 'HOLD') return `<span class="truncate">${short}<span class="text-amber-700">预</span></span>`;
+        if (cell.status === 'BLUE' || cell.status === 'PURPLE') {
+          const dot = cell.status === 'BLUE' ? 'bg-blue-600' : 'bg-purple-600';
+          return `<span class="truncate">${short}</span><span class="ml-0.5 inline-block h-1 w-1 shrink-0 rounded-full ${dot}"></span>`;
+        }
+        return `<span class="truncate">${short}</span>`;
+      }
+      return `<span>${COLOR[cell.status].char}</span>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 控制台
+     * ------------------------------------------------------------------ */
+    document.querySelectorAll('.ctl').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const value = btn.dataset.value;
+        if (group === 'role') setRole(value);
+        if (group === 'device') { state.device = value; renderAll(); }
+        if (group === 'online') {
+          state.online = value;
+          if (value === 'off') state.overlay = null;
+          renderAll();
+          if (value === 'off') showToast('离线只读：约课 / 排课 / 模板保存不可用');
+        }
+      });
+    });
+    document.getElementById('btnResetDemo').addEventListener('click', resetDemo);
+
+    function setRole(role) {
+      state.role = role;
+      state.page = 'schedule';
+      state.navTab = 'schedule';
+      state.weekOffset = 0;
+      state.overlay = null;
+      state.booking = null;
+      state.availTeacher = role === 'sub_teacher' ? 'linda' : 'david';
+      state.teacherId = role === 'sub_teacher' ? 'linda' : 'david';
+      state.child = 'alice';
+      state.parentView = 'agenda';
+      state.fullDay = false;
+      state.expandedGaps = new Set();
+      state.monitorStudentKey = 'alice';
+      state.monitorSearch = '';
+      renderAll();
+    }
+
+    function navTo(tab) {
+      const item = navItems().find((n) => n.id === tab);
+      if (!item) return;
+      state.overlay = null;
+      if (item.board) {
+        state.page = 'schedule';
+        state.navTab = 'schedule';
       } else {
-        displayText = cfg.defaultChar;
+        state.navTab = tab;
+        state.page = 'placeholder';
+      }
+      renderAll();
+    }
+
+    function syncConsole() {
+      document.querySelectorAll('.ctl').forEach((b) => {
+        const active = state[b.dataset.group] === b.dataset.value;
+        b.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`;
+      });
+    }
+
+    function resetDemo() {
+      state.role = 'parent';
+      state.page = 'schedule';
+      state.navTab = 'schedule';
+      state.device = 'mobile';
+      state.online = 'on';
+      state.teacherId = 'david';
+      state.weekOffset = 0;
+      state.child = 'alice';
+      state.parentView = 'agenda';
+      state.weeks = buildAllWeeks();
+      state.credits = { alice: 4, bob: 2, charlie: 0, leo: 2 };
+      state.fixed = { alice: 8, bob: 0, charlie: 2, leo: 0 };
+      state.monitorStudentKey = 'alice';
+      state.monitorSearch = '';
+      state.holdSuppressed = {};
+      state.expandedGaps = new Set();
+      state.fullDay = false;
+      state.availTeacher = 'david';
+      state.availByTeacher = buildAllTemplates();
+      state.availExpandEarly = false;
+      state.availExpandLate = false;
+      state.overlay = null;
+      state.booking = null;
+      state.batch = { studentKey: 'alice', startWeek: 0, weekday: 1, time: '15:00', simulate: false };
+      state.small = { classId: 'cls_ket001', startWeek: 1, weekday: 5, time: '10:00' };
+      renderAll();
+      showToast('演示数据已重置');
+    }
+
+    /* ------------------------------------------------------------------
+     * 外壳：顶栏 / 底部导航（所有页面常驻）
+     * ------------------------------------------------------------------ */
+    function renderAll() {
+      const frame = document.getElementById('frame');
+      frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
+
+      const prevGrid = document.getElementById('gridScroll');
+      const gridTop = prevGrid ? prevGrid.scrollTop : 0;
+      const prevAvail = document.getElementById('availScroll');
+      const availTop = prevAvail ? prevAvail.scrollTop : 0;
+
+      document.getElementById('topbar').innerHTML = renderTopbar();
+
+      const banner = document.getElementById('offlineBanner');
+      banner.className = state.online === 'off'
+        ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-[14px] font-semibold text-amber-900'
+        : 'hidden';
+
+      document.getElementById('content').innerHTML = renderContent();
+      document.getElementById('bottomnav').innerHTML = renderNav();
+      renderOverlay();
+      syncConsole();
+
+      restoreScroll('gridScroll', gridTop);
+      restoreScroll('availScroll', availTop);
+
+      lucide.createIcons();
+    }
+
+    /* 保留滚动位置；首次进入定位到智能时间窗首行（无需再跳过凌晨废格） */
+    function restoreScroll(id, top) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (top > 0) { el.scrollTop = top; return; }
+      if (id === 'availScroll') { el.scrollTop = 0; return; }
+      requestAnimationFrame(() => {
+        const anchor = el.id === 'availScroll'
+          ? (el.querySelector('th[data-time="08:00"]') || el.querySelector('th[data-time]'))
+          : el.querySelector('th[data-time]');
+        if (!anchor) return;
+        const head = el.querySelector('thead');
+        const headH = head ? head.getBoundingClientRect().height : 40;
+        const delta = anchor.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+        el.scrollTop = Math.max(0, delta - headH);
+      });
+    }
+
+    function renderContentOnly() {
+      const prevGrid = document.getElementById('gridScroll');
+      const gridTop = prevGrid ? prevGrid.scrollTop : 0;
+      const prevAvail = document.getElementById('availScroll');
+      const availTop = prevAvail ? prevAvail.scrollTop : 0;
+      document.getElementById('content').innerHTML = renderContent();
+      restoreScroll('gridScroll', gridTop);
+      restoreScroll('availScroll', availTop);
+      lucide.createIcons();
+    }
+
+    function renderContent() {
+      if (state.page === 'placeholder') return renderPlaceholder();
+      if (state.page === 'availability') return renderAvailability();
+      if (state.page === 'batch') return renderBatch();
+      if (state.page === 'smallgroup') return renderSmallGroup();
+      return renderSchedule();
+    }
+
+    function renderTopbar() {
+      const meta = roleMeta();
+      if (state.page === 'availability') return topbarSub('可授课时段模板');
+      if (state.page === 'batch') return topbarSub('固定位四周批量排课');
+      if (state.page === 'smallgroup') return topbarSub('小班课整班排课');
+      if (state.page === 'placeholder') {
+        const item = navItems().find((n) => n.id === state.navTab);
+        return topbarBase(`${meta.label} · ${item ? item.label : '其他模块'}`, meta.initial, meta.dark);
+      }
+      return topbarBase(meta.label, meta.initial, meta.dark);
+    }
+
+    function topbarBase(subtitle, initial, dark) {
+      return `
+        <div class="border-b border-slate-200 bg-white/95">
+          <div class="flex h-14 items-center justify-between px-4">
+            <div class="flex min-w-0 items-center gap-2.5">
+              <div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-indigo-600 text-[14px] font-bold text-white shadow-sm">D</div>
+              <div class="min-w-0">
+                <div class="truncate text-[16px] font-bold leading-tight text-slate-900">Dream 教务</div>
+                <div class="truncate text-[12px] font-medium text-slate-400">${esc(subtitle)}</div>
+              </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <button data-action="toast" data-message="暂无新消息" class="relative grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-600" aria-label="通知">
+                ${icon('bell', 'h-[18px] w-[18px]')}
+                <span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white"></span>
+              </button>
+              <div class="grid h-9 w-9 place-items-center rounded-full ${dark ? 'bg-slate-900 text-amber-300' : 'bg-indigo-600 text-white'} text-[14px] font-bold">${esc(initial)}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function topbarSub(title) {
+      return `
+        <div class="border-b border-slate-200 bg-white/95">
+          <div class="grid h-14 grid-cols-[44px_1fr_44px] items-center px-2">
+            <button data-action="go-schedule" class="grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" aria-label="返回课表">${icon('chevron-left', 'h-5 w-5')}</button>
+            <div class="truncate text-center text-[16px] font-bold text-slate-900">${esc(title)}</div>
+            <button data-action="toast" data-message="暂无新消息" class="relative grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" aria-label="通知">
+              ${icon('bell', 'h-[18px] w-[18px]')}
+              <span class="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white"></span>
+            </button>
+          </div>
+        </div>`;
+    }
+
+    /* 底部导航：课表 / 周模板 / 固定位 / 小班 / 占位页均常驻 */
+    function renderNav() {
+      return `
+        <div class="relative z-40 border-t border-slate-200 bg-white px-1 pb-1.5 pt-1">
+          <div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">
+            ${navItems().map((item) => {
+              const on = state.navTab === item.id;
+              return `<button data-action="nav" data-tab="${item.id}" ${on ? 'aria-current="page"' : ''} class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 transition ${on ? 'text-indigo-600' : 'text-slate-400'}">
+                ${icon(item.icon, 'h-[18px] w-[18px]')}
+                <span class="text-[12px] font-bold">${esc(item.label)}</span>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    function renderPlaceholder() {
+      const item = navItems().find((n) => n.id === state.navTab);
+      if (!item) return '<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>';
+      return `
+        <div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
+          <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
+          <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
+          <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc)}</p>
+          ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}
+          <button data-action="nav" data-tab="schedule" class="mt-3 text-[14px] font-semibold text-indigo-600">返回课表</button>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 主课表：周导航 / 角色工具栏 / 7 色图例 / Excel 网格
+     * ------------------------------------------------------------------ */
+    function renderSchedule() {
+      const week = currentWeek();
+      if (state.role === 'parent' && state.parentView === 'agenda') {
+        return `
+          <div class="flex h-full min-h-0 flex-col bg-slate-50">
+            ${renderAgendaWeekBar()}
+            ${renderScheduleToolbar()}
+            ${renderParentAgenda(week)}
+          </div>`;
+      }
+      return `
+        <div class="flex h-full min-h-0 flex-col bg-slate-50">
+          ${renderWeekBar(week)}
+          ${renderScheduleToolbar()}
+          ${renderLegend()}
+          <div id="gridScroll" class="min-h-0 flex-1 overflow-auto bg-white">
+            <table class="w-full table-fixed border-collapse">
+              <thead>${renderGridHead(week)}</thead>
+              <tbody>${renderGridBody(week)}</tbody>
+            </table>
+          </div>
+          ${renderScheduleFooter()}
+        </div>`;
+    }
+
+    /* 家长端默认视图：本周日程清单（2-4 卡零滚动直读） */
+    function renderParentAgenda(week) {
+      const student = studentByKey(state.child);
+      const lessons = collectStudentLessons(state.weekOffset);
+      const weekName = state.weekOffset === 0 ? '本周' : `第 ${week.weekNo} 周`;
+      const rooms = ['A-203', 'B-105', 'A-301', 'C-208'];
+      const statusLabel = { ORANGE: '固定位', YELLOW: '临时课', BLUE: '被代课', PURPLE: '代上课', HOLD: '续费预占' };
+      const accent = {
+        ORANGE: 'border-amber-200 bg-amber-50 text-amber-900',
+        YELLOW: 'border-yellow-200 bg-yellow-50 text-yellow-900',
+        BLUE: 'border-blue-200 bg-blue-50 text-blue-900',
+        PURPLE: 'border-purple-200 bg-purple-50 text-purple-900',
+        HOLD: 'border-amber-300 bg-amber-50/80 text-amber-900'
+      };
+
+      if (!lessons.length) {
+        return `
+          <div id="agendaScroll" class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center">
+              <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-400">${icon('calendar-x', 'h-6 w-6')}</div>
+              <p class="mt-3 text-[14px] font-bold text-slate-700">${weekName}暂无已排课程</p>
+              <p class="mt-1 text-[12px] font-medium text-slate-400">切换到周度日历可为 ${esc(student.name)} 约 1-7 天内的临时课。</p>
+              <button data-action="parent-view" data-view="calendar" class="mt-3 h-9 rounded-xl bg-indigo-600 px-4 text-[12px] font-bold text-white">去周度日历约课</button>
+            </div>
+          </div>`;
       }
 
-      // 规则置灰：家长端非 1-7 天窗口
-      const isOutOfWindow = (S.role === 'parent' && cell.color === 'GREEN' && (!day.inWindow || day.isPast));
-      const opacityCls = isOutOfWindow ? 'opacity-30 grayscale cursor-not-allowed' : 'cursor-pointer hover:shadow-xs active:scale-95';
-      const isHold = (displayColor === 'HOLD');
-
-      html += `
-        <td onclick="onCellClick('${day.key}', '${time}')" class="p-0.5 border-r border-slate-100 text-center align-middle h-8">
-          <div class="w-full h-full rounded-md ${cfg.cardCls} ${opacityCls} flex items-center justify-center transition overflow-hidden relative">
-            <span class="text-xs tracking-tight truncate leading-none px-0.5">${displayText}</span>
-            ${isSub ? '<span class="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-blue-600 ring-1 ring-white"></span>' : ''}
-            ${isHold ? '<span class="absolute top-0.2 right-0.2 text-sm font-bold px-0.5 rounded bg-amber-500 text-white font-bold leading-none scale-90">预</span>' : ''}
+      return `
+        <div id="agendaScroll" class="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          <div class="mb-2.5 flex items-center justify-between gap-2 px-1">
+            <div class="min-w-0">
+              <div class="truncate text-[14px] font-bold text-slate-900">${esc(student.name)} 的${weekName}日程</div>
+              <div class="mt-0.5 text-[12px] font-medium text-slate-400">共 ${lessons.length} 节课 · 点击卡片查看详情</div>
+            </div>
+            <span class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[12px] font-bold text-emerald-700">零滚动直读</span>
           </div>
-        </td>
-      `;
+          <div class="space-y-3">
+            ${lessons.map((lesson, index) => {
+              const cfg = COLOR[lesson.cell.status];
+              const isSub = lesson.cell.status === 'BLUE' || lesson.cell.status === 'PURPLE';
+              const cardTeacher = isSub && lesson.cell.sub ? lesson.cell.sub.actual : lesson.teacher.name;
+              const level = isSub && lesson.cell.sub ? '代课教师' : lesson.teacher.levelLabel;
+              return `
+                <button data-action="agenda-open" data-teacher="${lesson.teacherId}" data-day="${lesson.day.iso}" data-time="${lesson.time}"
+                  class="flex min-h-[158px] w-full flex-col justify-between rounded-2xl border ${accent[lesson.cell.status] || 'border-slate-200 bg-white text-slate-900'} p-3.5 text-left shadow-sm transition active:scale-[0.99]">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex min-w-0 items-center gap-2.5">
+                      <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-white/70 bg-white/70">
+                        <span class="text-[12px] font-bold leading-tight">${lesson.day.label}</span>
+                        <span class="font-mono text-[14px] font-bold leading-tight">${lesson.day.dateLabel}</span>
+                      </div>
+                      <div class="min-w-0">
+                        <div class="truncate font-mono text-[16px] font-bold leading-tight">${lesson.time} - ${endTime(lesson.time, 1)}</div>
+                        <div class="mt-1 flex flex-wrap items-center gap-1">
+                          <span class="rounded-md border border-white/70 bg-white/70 px-1.5 py-0.5 text-[12px] font-bold">${statusLabel[lesson.cell.status] || cfg.name}</span>
+                          <span class="text-[12px] font-medium opacity-80">1v1 · 30m</span>
+                        </div>
+                        <div class="mt-0.5 truncate text-[12px] font-medium opacity-80">${esc(lesson.cell.className || '1v1 专属课')}</div>
+                      </div>
+                    </div>
+                    <div class="grid h-8 w-8 shrink-0 place-items-center rounded-full ${cfg.dot} text-[12px] font-bold text-white">${teacherInitial(cardTeacher)}</div>
+                  </div>
+                  <div class="mt-2.5 flex items-center justify-between gap-3 border-t border-white/70 pt-2.5">
+                    <div class="min-w-0">
+                      <div class="truncate text-[14px] font-bold">${esc(cardTeacher)}</div>
+                      <div class="truncate text-[12px] font-medium opacity-75">${esc(level)}${isSub ? ' · 原 ' + esc(lesson.cell.sub.original) : ''}</div>
+                    </div>
+                    <div class="shrink-0 text-right">
+                      <div class="text-[12px] font-bold">ClassIn ${rooms[index % rooms.length]}</div>
+                      <div class="font-mono text-[12px] opacity-70">${esc(lesson.cell.orderId || lesson.cell.classId || 'TS')}</div>
+                    </div>
+                  </div>
+                </button>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 多教师负荷透视 / 4 周一轮极速导航
+     * ------------------------------------------------------------------ */
+    function roundStartOf(offset) {
+      return Math.floor(offset / 4) * 4;
+    }
+
+    function weekAt(offset) {
+      return state.weeks[state.teacherId][String(offset)] || state.weeks[state.teacherId]['0'];
+    }
+
+    function weekLoadFor(teacherId, offset) {
+      const week = state.weeks[teacherId][String(offset)];
+      let scheduled = 0;
+      if (week) {
+        Object.values(week.cells).forEach((day) => {
+          Object.values(day).forEach((c) => {
+            if (['ORANGE', 'YELLOW', 'BLUE', 'PURPLE', 'HOLD'].includes(c.status)) scheduled += 1;
+          });
+        });
+      }
+      const total = 24;
+      return { scheduled, free: Math.max(0, total - scheduled), total };
+    }
+
+    function loadBarHtml(scheduled, total = 24, tone = 'indigo') {
+      const filled = Math.max(0, Math.min(10, Math.round((scheduled / total) * 10)));
+      const on = tone === 'amber' ? 'bg-amber-500' : 'bg-indigo-600';
+      return `<span class="grid grid-cols-10 gap-0.5">${Array.from({ length: 10 }, (_, i) => `<span class="h-1.5 rounded-full ${i < filled ? on : 'bg-slate-200'}"></span>`).join('')}</span>`;
+    }
+
+    function weekDotClass(offset) {
+      if (state.role === 'parent') {
+        const lessons = collectStudentLessons(offset);
+        if (lessons.some((l) => ['ORANGE', 'HOLD'].includes(l.cell.status))) return 'bg-amber-500';
+        if (lessons.length) return 'bg-yellow-400';
+        return 'bg-emerald-500';
+      }
+      const week = state.weeks[state.teacherId][String(offset)];
+      if (!week) return 'bg-emerald-500';
+      let hasRed = false;
+      let hasFixed = false;
+      let hasTemp = false;
+      Object.values(week.cells).forEach((day) => {
+        Object.values(day).forEach((c) => {
+          if (c.status === 'RED') hasRed = true;
+          if (c.status === 'ORANGE' || c.status === 'HOLD') hasFixed = true;
+          if (['YELLOW', 'BLUE', 'PURPLE'].includes(c.status)) hasTemp = true;
+        });
+      });
+      if (hasRed) return 'bg-rose-500';
+      if (hasFixed) return 'bg-amber-500';
+      if (hasTemp) return 'bg-yellow-400';
+      return 'bg-emerald-500';
+    }
+
+    function renderWeekBar(week) {
+      const start = roundStartOf(state.weekOffset);
+      const first = weekAt(start);
+      const last = weekAt(start + 3);
+      const firstDate = `${first.days[0].iso.slice(0, 4)}.${dateLabel(first.days[0].iso).replace('-', '.')}`;
+      const lastDate = dateLabel(last.days[6].iso).replace('-', '.');
+      const canPrev = start > -12;
+      const canNext = start < 12;
+      const isCurrent = state.weekOffset === 0;
+
+      return `
+        <div class="shrink-0 border-b border-slate-200 bg-white px-2.5 py-2">
+          <div class="flex items-center justify-between gap-1">
+            <button data-action="cycle-prev" ${canPrev ? '' : 'disabled'} class="flex h-8 shrink-0 items-center gap-0.5 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-bold text-slate-600 active:scale-95 disabled:cursor-not-allowed disabled:text-slate-300">
+              ${icon('chevron-left', 'h-3.5 w-3.5')}上一轮
+            </button>
+            <div class="min-w-0 text-center">
+              <div class="truncate text-[14px] font-bold text-slate-900">第 ${first.weekNo} ~ ${last.weekNo} 周</div>
+              <div class="mt-0.5 truncate text-[12px] font-medium text-slate-400">${firstDate} - ${lastDate}</div>
+            </div>
+            <button data-action="cycle-next" ${canNext ? '' : 'disabled'} class="flex h-8 shrink-0 items-center gap-0.5 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-bold text-slate-600 active:scale-95 disabled:cursor-not-allowed disabled:text-slate-300">
+              下一轮${icon('chevron-right', 'h-3.5 w-3.5')}
+            </button>
+          </div>
+
+          <div class="mt-2 flex items-center gap-1">
+            <button data-action="week-prev" class="grid h-10 w-6 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-slate-100" aria-label="上一周">${icon('chevron-left', 'h-4 w-4')}</button>
+            <div class="grid flex-1 grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1">
+              ${[0, 1, 2, 3].map((i) => {
+                const offset = start + i;
+                const w = weekAt(offset);
+                const active = state.weekOffset === offset;
+                return `
+                  <button data-action="week-goto" data-offset="${offset}" class="relative flex h-9 flex-col items-center justify-center rounded-lg text-[12px] font-bold leading-tight transition ${active ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:bg-white/60'}">
+                    <span>第${i + 1}周</span>
+                    <span class="font-mono text-[12px] font-medium ${active ? 'text-indigo-500' : 'text-slate-400'}">${dateLabel(w.days[0].iso).replace('-', '/')}</span>
+                    <span class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${weekDotClass(offset)}"></span>
+                  </button>`;
+              }).join('')}
+            </div>
+            <button data-action="week-next" class="grid h-10 w-6 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-slate-100" aria-label="下一周">${icon('chevron-right', 'h-4 w-4')}</button>
+          </div>
+
+          <div class="mt-1 flex items-center justify-center gap-2 text-[12px]">
+            <span class="text-slate-400">第 ${week.weekNo} 周</span>
+            ${isCurrent
+              ? '<span class="rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 font-bold text-indigo-700">本周</span>'
+              : '<button data-action="week-current" class="font-bold text-indigo-600">回到本周</button>'}
+          </div>
+        </div>`;
+    }
+
+    /* 家长日程清单：紧凑 4 周分段条，保留零滚动直读 */
+    function renderAgendaWeekBar() {
+      const start = roundStartOf(state.weekOffset);
+      return `
+        <div class="shrink-0 border-b border-slate-200 bg-white px-2.5 py-1.5">
+          <div class="flex items-center gap-1">
+            <button data-action="week-prev" class="grid h-10 w-6 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-slate-100" aria-label="上一周">${icon('chevron-left', 'h-4 w-4')}</button>
+            <div class="grid flex-1 grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1">
+              ${[0, 1, 2, 3].map((i) => {
+                const offset = start + i;
+                const w = weekAt(offset);
+                const active = state.weekOffset === offset;
+                return `
+                  <button data-action="week-goto" data-offset="${offset}" class="relative flex h-9 flex-col items-center justify-center rounded-lg text-[12px] font-bold leading-tight transition ${active ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">
+                    <span>第${i + 1}周</span>
+                    <span class="font-mono text-[12px] font-medium ${active ? 'text-indigo-500' : 'text-slate-400'}">${dateLabel(w.days[0].iso).replace('-', '/')}</span>
+                    <span class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full ${weekDotClass(offset)}"></span>
+                  </button>`;
+              }).join('')}
+            </div>
+            <button data-action="week-next" class="grid h-10 w-6 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-slate-100" aria-label="下一周">${icon('chevron-right', 'h-4 w-4')}</button>
+            ${state.weekOffset === 0
+              ? '<span class="shrink-0 text-[12px] font-bold text-slate-400">本周</span>'
+              : '<button data-action="week-current" class="shrink-0 text-[12px] font-bold text-indigo-600">本周</button>'}
+          </div>
+        </div>`;
+    }
+
+    /* 顶部教师状态卡（手机） */
+    function renderTeacherStatusCard() {
+      const t = currentTeacher();
+      const load = weekLoadFor(t.id, state.weekOffset);
+      const managed = state.role !== 'monitor' || isManagedTeacher(t.id);
+      return `
+        <button data-action="open-teacher-sheet" class="flex w-full items-center gap-2.5 rounded-2xl border border-slate-200 bg-white p-2.5 text-left shadow-sm transition active:scale-[0.995]">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-50 text-[14px] font-bold text-indigo-700">${teacherInitial(t.name)}</span>
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center gap-1.5">
+              <span class="truncate text-[14px] font-bold text-slate-900">${esc(t.name)}</span>
+              <span class="shrink-0 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">${esc(t.levelLabel)}</span>
+              ${state.role === 'monitor' ? `<span class="shrink-0 rounded border px-1.5 py-0.5 text-[12px] font-bold ${managed ? 'border-indigo-100 bg-indigo-50 text-indigo-700' : 'border-rose-200 bg-rose-50 text-rose-700'}">${managed ? '管辖' : '非管辖'}</span>` : ''}
+            </span>
+            <span class="mt-1 flex items-center gap-2 text-[12px] text-slate-500">
+              <span>当周已排 <b class="font-mono text-slate-900">${load.scheduled}</b>/${load.total} 节</span>
+              <span>空闲 ${load.free} 节</span>
+              <span class="ml-auto flex items-center gap-0.5 font-semibold text-indigo-600">切换 ${icon('chevron-down', 'h-3.5 w-3.5')}</span>
+            </span>
+            <span class="mt-1.5 block">${loadBarHtml(load.scheduled)}</span>
+          </span>
+        </button>`;
+    }
+
+    /* 宽屏教师负荷标签栏 */
+    function renderTeacherLoadTabs() {
+      return `
+        <div class="flex items-center gap-1 overflow-x-auto">
+          ${TEACHERS.map((t) => {
+            const load = weekLoadFor(t.id, state.weekOffset);
+            const on = state.teacherId === t.id;
+            const label = load.scheduled === 0 ? '0·空闲' : String(load.scheduled);
+            return `<button data-action="set-teacher" data-id="${t.id}" class="flex h-9 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[12px] font-bold transition ${on ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">${esc(t.name.split(' ')[0])} (${label})</button>`;
+          }).join('')}
+        </div>`;
+    }
+
+    /* 半屏教师切换抽屉 */
+    function renderTeacherSheet() {
+      const current = currentTeacher();
+      return `
+        <div class="absolute inset-0 z-[60] flex items-end">
+          <div data-action="close-overlay" class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"></div>
+          <div class="relative flex max-h-[62%] w-full flex-col overflow-hidden rounded-t-3xl border-t border-slate-200 bg-white shadow-2xl">
+            <div class="shrink-0 border-b border-slate-100 px-4 pb-2 pt-3">
+              <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300"></div>
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <h3 class="text-[16px] font-bold text-slate-900">切换外教</h3>
+                  <p class="mt-0.5 text-[12px] font-medium text-slate-400">${state.role === 'monitor' ? '管辖 2 位 · 全校 3 位' : '查看各外教当周排课负荷'}</p>
+                </div>
+                <button data-action="close-overlay" class="grid h-8 w-8 place-items-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="关闭">${icon('x', 'h-4 w-4')}</button>
+              </div>
+            </div>
+            <div data-scroll class="flex-1 space-y-1 overflow-y-auto p-2">
+              ${TEACHERS.map((t) => {
+                const load = weekLoadFor(t.id, state.weekOffset);
+                const on = state.teacherId === t.id;
+                const managed = state.role !== 'monitor' || isManagedTeacher(t.id);
+                return `
+                  <button data-action="set-teacher" data-id="${t.id}" class="flex h-14 w-full items-center gap-3 rounded-xl border px-3 py-1.5 text-left transition ${on ? 'border-indigo-200 bg-indigo-50/60' : 'border-transparent bg-white hover:bg-slate-50'}">
+                    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-900 text-[12px] font-bold text-amber-300">${teacherInitial(t.name)}</span>
+                    <span class="min-w-0 flex-1">
+                      <span class="flex items-center gap-1.5">
+                        <span class="truncate text-[14px] font-bold text-slate-900">${esc(t.name)}</span>
+                        <span class="shrink-0 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">${esc(t.levelLabel)}</span>
+                        ${state.role === 'monitor' ? `<span class="shrink-0 rounded border px-1.5 py-0.5 text-[12px] font-bold ${managed ? 'border-indigo-100 bg-indigo-50 text-indigo-700' : 'border-rose-200 bg-rose-50 text-rose-700'}">${managed ? '管辖' : '非管辖'}</span>` : ''}
+                      </span>
+                      <span class="mt-1 flex items-center gap-2 text-[12px] text-slate-500">
+                        <span class="shrink-0">已排 <b class="font-mono text-slate-900">${load.scheduled}</b> · 空闲 ${load.free}</span>
+                        <span class="min-w-0 flex-1">${loadBarHtml(load.scheduled, load.total)}</span>
+                        <span class="shrink-0 font-mono text-slate-400">${load.scheduled}/${load.total}</span>
+                      </span>
+                    </span>
+                    ${on ? `<span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-indigo-600 text-white">${icon('check', 'h-3.5 w-3.5')}</span>` : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
+                  </button>`;
+              }).join('')}
+            </div>
+            <div class="shrink-0 border-t border-slate-100 px-4 py-2 text-center text-[12px] text-slate-400">选择后保持当前周次与滚动位置</div>
+          </div>
+        </div>`;
+    }
+
+    function renderScheduleToolbar() {
+      if (state.role === 'parent') {
+        const view = state.parentView;
+        return `
+          <div class="shrink-0 border-b border-slate-100 bg-white">
+            <div class="flex items-center gap-1 overflow-x-auto px-3 py-1.5">
+              ${['alice', 'bob'].map((key) => {
+                const s = studentByKey(key);
+                const on = state.child === key;
+                return `<button data-action="set-child" data-key="${key}" class="flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[12px] font-bold transition ${on ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}">
+                  ${esc(s.name)}<span class="rounded px-1 text-[12px] ${on ? 'bg-white/20 text-white' : 'bg-white text-indigo-700'}">${quotaOf(key)} 节</span>
+                </button>`;
+              }).join('')}
+              <div class="ml-auto inline-flex shrink-0 rounded-lg bg-slate-100 p-0.5">
+                <button data-action="parent-view" data-view="agenda" class="flex h-7 items-center gap-1 rounded-md px-1.5 text-[12px] font-bold transition ${view === 'agenda' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">${icon('list', 'h-3.5 w-3.5')}日程清单</button>
+                <button data-action="parent-view" data-view="calendar" class="flex h-7 items-center gap-1 rounded-md px-1.5 text-[12px] font-bold transition ${view === 'calendar' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">${icon('calendar-days', 'h-3.5 w-3.5')}周度日历</button>
+              </div>
+            </div>
+            ${view === 'calendar'
+              ? (state.device === 'tablet'
+                ? `<div class="border-t border-slate-100 px-3 py-1.5">${renderTeacherLoadTabs()}</div>`
+                : `<div class="border-t border-slate-100 px-3 py-2">${renderTeacherStatusCard()}<div class="mt-1.5 text-[12px] font-medium text-slate-400">提前 1-7 天可约 · 点击状态卡切换外教</div></div>`)
+              : ''}
+          </div>`;
+      }
+      if (state.role === 'monitor') {
+        return `
+          <div class="shrink-0 border-b border-slate-100 bg-white">
+            <div class="px-3 py-2">${state.device === 'tablet' ? renderTeacherLoadTabs() : renderTeacherStatusCard()}</div>
+            <div class="flex items-center gap-1.5 overflow-x-auto px-3 pb-1.5">
+              <button data-action="open-batch" class="h-8 shrink-0 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white">固定位排课</button>
+              <button data-action="open-smallgroup" class="h-8 shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-bold text-slate-700">小班排课</button>
+              <button data-action="open-availability" class="h-8 shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-bold text-slate-700">周模板</button>
+            </div>
+            <div class="flex items-center gap-1 border-t border-slate-100 px-3 py-1 text-[12px] font-medium text-slate-400">
+              <span class="rounded bg-indigo-50 px-1.5 py-0.5 font-bold text-indigo-700">代约模式</span>
+              <span class="truncate">仅所辖教师可代约 · 学员全校跨班检索</span>
+            </div>
+          </div>`;
+      }
+      if (state.role === 'teacher' || state.role === 'sub_teacher') {
+        const t = currentTeacher();
+        return `
+          <div class="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-slate-100 bg-white px-3 py-1.5">
+            <span class="shrink-0 text-[12px] font-semibold text-slate-700">${esc(t.name)} · ${esc(t.levelLabel)}</span>
+            ${state.role === 'sub_teacher' ? '<span class="shrink-0 rounded border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[12px] font-bold text-purple-700">代课视角</span>' : ''}
+            <button data-action="open-availability" class="ml-auto h-8 shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-bold text-slate-700">设置可授课模板</button>
+          </div>`;
+      }
+      return `
+        <div class="shrink-0 border-b border-slate-100 bg-white">
+          <div class="px-3 py-2">${state.device === 'tablet' ? renderTeacherLoadTabs() : renderTeacherStatusCard()}</div>
+          <div class="px-3 pb-1.5">
+            <span class="shrink-0 rounded border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">代约临时课模式</span>
+          </div>
+        </div>`;
+    }
+
+    function renderLegend() {
+      const items = [
+        ['ORANGE', '固定位'], ['HOLD', '续费预占'], ['YELLOW', '临时课'], ['BLUE', '被代课'],
+        ['PURPLE', '代上课'], ['GRAY', '休息'], ['GREEN', '可约'], ['RED', '请假']
+      ];
+      return `
+        <div class="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-slate-100 bg-white px-3 py-1.5 text-[12px] font-medium text-slate-600">
+          ${items.map(([key, label]) => `<span class="inline-flex shrink-0 items-center gap-1">
+            ${key === 'HOLD'
+              ? '<span class="grid h-2.5 w-2.5 place-items-center rounded-sm border border-dashed border-amber-500 bg-amber-50"></span>'
+              : `<span class="h-2.5 w-2.5 rounded ${COLOR[key].dot}"></span>`}
+            ${label}${key === 'HOLD' ? '<span class="text-[12px] font-bold text-amber-700">预</span>' : ''}
+          </span>`).join('')}
+        </div>`;
+    }
+
+    function renderGridHead(week) {
+      return `
+        <tr>
+          <th class="sticky left-0 top-0 z-40 w-[40px] border-b border-r border-slate-200 bg-slate-100 px-0 py-1 text-center text-[12px] font-bold text-slate-500">时段</th>
+          ${week.days.map((day) => {
+            const today = day.iso === TODAY;
+            return `<th class="sticky top-0 z-30 border-b border-r border-slate-200 ${today ? 'bg-amber-100 text-amber-900' : 'bg-slate-50 text-slate-600'} px-0.5 py-1 text-center">
+              <div class="text-[12px] font-bold leading-tight">${day.label}</div>
+              <div class="font-mono text-[12px] font-semibold leading-tight ${today ? 'text-amber-800' : 'text-slate-400'}">${day.dateLabel}</div>
+            </th>`;
+          }).join('')}
+        </tr>`;
+    }
+
+    function gridTimeRow(week, time) {
+      return `
+        <tr class="h-8">
+          <th data-time="${time}" class="sticky left-0 z-20 w-[40px] border-b border-r border-slate-200 bg-slate-100 px-0 text-center align-middle text-[12px] font-mono font-semibold text-slate-500">${time}</th>
+          ${week.days.map((day) => {
+            const cell = week.cells[day.iso][time];
+            const cfg = COLOR[cell.status];
+            const out = canBookRole() && cell.status === 'GREEN' && !inBookingWindow(day.iso);
+            return `<td class="border-b border-r border-slate-100 p-[2px] align-middle">
+              <button data-action="cell" data-day="${day.iso}" data-time="${time}" aria-label="${day.dateLabel} ${time} ${cfg.name}" class="relative flex h-7 w-full items-center justify-center overflow-hidden rounded-md border text-[11px] font-bold leading-none transition active:scale-95 ${cfg.cls} ${out ? 'opacity-35' : ''}">
+                ${cellInner(cell)}
+              </button>
+            </td>`;
+          }).join('')}
+        </tr>`;
+    }
+
+    function gridGapRow(start, end) {
+      const key = gapKey(start, end);
+      const from = TIME_SLOTS[start];
+      const to = slotBoundary(end);
+      const slots = end - start;
+      return `
+        <tr>
+          <td colspan="8" class="border-b border-slate-100 bg-slate-50 p-0">
+            <button data-action="toggle-gap" data-key="${key}" class="flex h-[22px] w-full items-center justify-center gap-1.5 px-2 text-[12px] font-medium text-slate-500 hover:bg-slate-100">
+              <span class="font-mono text-slate-300">┄┄</span>
+              <span class="font-mono font-semibold text-slate-600">${from} - ${to}</span>
+              <span>休息时段（共 ${hoursLabel(slots)} 小时已折叠）</span>
+              <span class="ml-0.5 font-bold text-indigo-600">点击展开</span>
+              <span class="font-mono text-slate-300">┄┄</span>
+            </button>
+          </td>
+        </tr>`;
+    }
+
+    function gridGapExpandedRow(start, end) {
+      const key = gapKey(start, end);
+      const from = TIME_SLOTS[start];
+      const to = slotBoundary(end);
+      return `
+        <tr>
+          <td colspan="8" class="border-b border-slate-100 bg-slate-50 p-0">
+            <button data-action="toggle-gap" data-key="${key}" class="flex h-[22px] w-full items-center justify-center gap-1.5 px-2 text-[12px] font-medium text-slate-400 hover:bg-slate-100">
+              <span class="font-mono">${from} - ${to}</span>
+              <span>休息时段已展开</span>
+              <span class="font-bold text-indigo-600">收起空档 ▴</span>
+            </button>
+          </td>
+        </tr>`;
+    }
+
+    function renderGridBody(week) {
+      const bounds = state.fullDay ? { start: 0, end: TIME_SLOTS.length } : scheduleBounds(state.teacherId, week);
+      const gaps = state.fullDay ? [] : gapRuns(week, bounds.start, bounds.end);
+      const gapMap = new Map(gaps.map((gap) => [gap.start, gap]));
+      let html = '';
+      let i = bounds.start;
+      while (i < bounds.end) {
+        const gap = gapMap.get(i);
+        if (gap) {
+          const key = gapKey(gap.start, gap.end);
+          if (state.expandedGaps.has(key)) {
+            html += gridGapExpandedRow(gap.start, gap.end);
+            for (let j = gap.start; j < gap.end; j += 1) html += gridTimeRow(week, TIME_SLOTS[j]);
+          } else {
+            html += gridGapRow(gap.start, gap.end);
+          }
+          i = gap.end;
+        } else {
+          html += gridTimeRow(week, TIME_SLOTS[i]);
+          i += 1;
+        }
+      }
+      return html;
+    }
+
+    function renderScheduleFooter() {
+      const week = currentWeek();
+      const bounds = state.fullDay ? { start: 0, end: TIME_SLOTS.length } : scheduleBounds(state.teacherId, week);
+      const rows = bounds.end - bounds.start;
+      const pct = Math.max(0, Math.round((1 - rows / TIME_SLOTS.length) * 100));
+      const hints = {
+        parent: '点击绿色格约课 · 提前 1-7 天',
+        monitor: '点击绿色格代约 · 仅所辖教师 · 学员全校可检索',
+        teacher: '蓝色格为被代课 · 点击看交接',
+        sub_teacher: '紫色格课酬计入本人周结单',
+        admin: '绿色格可代约临时课（含试课学员）'
+      };
+      return `
+        <div class="shrink-0 border-t border-slate-200 bg-white px-3 py-1 text-[12px] font-medium text-slate-400">
+          <div class="flex items-center justify-between gap-2">
+            <span class="truncate">${hints[state.role]}</span>
+            <button data-action="toggle-full-day" class="shrink-0 rounded-lg border border-slate-200 px-2 py-0.5 text-[12px] font-bold text-indigo-600">${state.fullDay ? '收起智能时间窗' : '展开全天 06:00-24:00'}</button>
+          </div>
+          <div class="mt-0.5 flex items-center justify-between gap-2">
+            <span class="truncate">${state.fullDay ? '完整全天视图' : '智能外接时间窗 · 首尾废格已剔除'}</span>
+            <span class="shrink-0 font-mono">${slotBoundary(bounds.start)}-${slotBoundary(bounds.end)} · ${rows} 格${state.fullDay ? '' : ` · 裁剪 ${pct}%`}</span>
+          </div>
+        </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 单元格点击 / 详情 / 预约抽屉
+     * ------------------------------------------------------------------ */
+    function onCellClick(dayIso, time) {
+      const cell = getCell(dayIso, time);
+      if (!cell) return;
+
+      if (cell.status === 'GREEN' && canBookRole()) {
+        if (state.role === 'monitor') {
+          /* 班长：即使超出 1-7 天窗或教师非管辖，也进入代约抽屉展示约束说明 */
+          openBooking(dayIso, time);
+          return;
+        }
+        const studentKey = state.role === 'parent' ? state.child : 'alice';
+        if (!inBookingWindow(dayIso)) {
+          showToast('仅可预约未来 1-7 天内的时段', true);
+          return;
+        }
+        if (quotaOf(studentKey) <= 0) {
+          openCell(dayIso, time);
+          showToast('暂无可用临时课课时，请先购课', true);
+          return;
+        }
+        openBooking(dayIso, time);
+        return;
+      }
+      openCell(dayIso, time);
+    }
+
+    function openCell(dayIso, time) {
+      state.overlay = { type: 'cell', day: dayIso, time };
+      renderAll();
+    }
+
+    function openBooking(dayIso, time) {
+      if (state.online === 'off') return showToast('离线只读，暂不可预约', true);
+      const week = currentWeek();
+      const clickedDay = week.days.findIndex((d) => d.iso === dayIso);
+      const defaultStudent = state.role === 'parent'
+        ? state.child
+        : (state.role === 'monitor' ? (state.monitorStudentKey || 'alice') : 'alice');
+      state.booking = {
+        day: dayIso,
+        time,
+        count: 1,
+        studentKey: defaultStudent,
+        search: '',
+        mode: 'temp',                 // temp | fixed（班长）
+        simulate: false,
+        fixed: {
+          teacherId: isManagedTeacher(state.teacherId) ? state.teacherId : 'david',
+          startWeek: state.weekOffset >= 2 ? 2 : 1,
+          weekday: clickedDay >= 0 ? clickedDay : 1,
+          time,
+          suppressHold: true
+        }
+      };
+      state.overlay = { type: 'booking' };
+      renderAll();
+    }
+
+    function bottomSheet(content) {
+      return `
+        <div class="absolute inset-0 z-50">
+          <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+          <div class="absolute inset-x-0 bottom-0 mx-auto max-h-[92%] w-full max-w-[560px] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl" data-scroll>
+            <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200"></div>
+            ${content}
+          </div>
+        </div>`;
+    }
+
+    function sheetHeader(title, subtitle = '') {
+      return `
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h2 class="text-[16px] font-bold text-slate-900">${esc(title)}</h2>
+            ${subtitle ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">${esc(subtitle)}</p>` : ''}
+          </div>
+          <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+        </div>`;
+    }
+
+    function detailRow(label, value, strong = false) {
+      return `<div class="flex items-start justify-between gap-3 py-1.5">
+        <span class="shrink-0 text-[12px] font-medium text-slate-400">${esc(label)}</span>
+        <span class="min-w-0 text-right text-[14px] ${strong ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'}">${esc(value)}</span>
+      </div>`;
+    }
+
+    function renderCellModal() {
+      const { day, time } = state.overlay;
+      const cell = getCell(day, time);
+      if (!cell) return '';
+      const cfg = COLOR[cell.status];
+      const teacher = teacherForCell(cell);
+      const dateText = `${day} ${weekdayLabel(day)}`;
+      const student = cell.student ? studentByKey(STUDENTS.find((s) => s.name === cell.student)?.key) : null;
+      const fullStudent = cell.student || '';
+
+      let body = '';
+      if (cell.status === 'ORANGE' && cell.className) {
+        body = `
+          <div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-amber-900">
+            <div class="flex items-center justify-between"><span class="font-bold">小班整班课</span><span class="rounded bg-amber-200 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">连续 2 格</span></div>
+            <p class="mt-1">${esc(cell.className)} · 全班统一排期，学生端无个人挪位入口。授课 50 分钟 + 课间 10 分钟。</p>
+            <p class="mt-1 font-mono text-[12px] text-amber-800">${esc(cell.classId || '')}</p>
+          </div>`;
+      } else if (cell.status === 'ORANGE') {
+        body = `
+          <div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-amber-900">
+            <div class="font-bold">1v1 固定位 · 四周一轮买 4 排 4</div>
+            <p class="mt-1">最高锁位优先级，已排期 TS 已绑定具体日期与时段，不可被临时课插队。</p>
+            <div class="mt-2 space-y-0.5 font-mono text-[12px] text-amber-800">
+              <div>原购课单：${esc(cell.orderId || 'ord_alice_fixed01')}</div>
+              <div>TS 编号：${esc(cell.tsId || '')}</div>
+              <div>资金持有：${esc(cell.holder || 'Leo')}</div>
+            </div>
+            <a href="m2a_course_orders.html" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-amber-800 underline">查看购课单 (M2A)</a>
+          </div>`;
+      } else if (cell.status === 'YELLOW') {
+        body = `
+          <div class="mt-3 rounded-xl border border-yellow-200 bg-yellow-50 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-yellow-900">
+            <div class="font-bold">1v1 临时课 · FIFO 自动拣选</div>
+            <p class="mt-1">按购课单创建时间先进先出，自动扣减该学员最老的临时课待排期 TS。</p>
+            <div class="mt-2 space-y-0.5 font-mono text-[12px] text-yellow-800">
+              <div>原购课单：${esc(cell.orderId || '')}</div>
+              <div>TS 编号：${esc(cell.tsId || '')}</div>
+              <div>预约时间：${esc(cell.bookedAt || '—')}</div>
+            </div>
+            <a href="m2a_course_orders.html" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-yellow-800 underline">查看购课单 (M2A)</a>
+          </div>`;
+      } else if (cell.status === 'HOLD') {
+        const hold = cell.hold || HOLD_INFO;
+        body = `
+          <div class="mt-3 rounded-xl border border-amber-300 bg-amber-50/90 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-amber-950">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-bold text-amber-900">续费预占（HOLD） · 排他锁定</span>
+              <span class="shrink-0 rounded bg-amber-200 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">倒计时 ${esc(hold.countdown)}</span>
+            </div>
+            <p class="mt-1.5"><b>关联续费单：</b><span class="font-mono">${esc(hold.orderId)}</span>（${hold.lessons} 节 · ${hold.points} 分）</p>
+            <p class="mt-1"><b>继承预排：</b>${esc(hold.slots)}</p>
+            <p class="mt-1"><b>释放规则：</b>距开课前 24h 未确认收款，或班长在 M2A 主动取消固定，未来 4 周网格自动全额释放为 🟢 空闲可约。</p>
+            <a href="m2a_course_orders.html" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-amber-800 underline">前往 M2A 核实收款</a>
+          </div>`;
+      } else if (cell.status === 'BLUE' || cell.status === 'PURPLE') {
+        const sub = cell.sub || SUB_INFO;
+        const isPurple = cell.status === 'PURPLE';
+        body = `
+          <div class="mt-3 rounded-xl border ${isPurple ? 'border-purple-300 bg-purple-50 text-purple-900' : 'border-blue-300 bg-blue-50 text-blue-900'} px-3.5 py-3 text-[12px] font-medium leading-relaxed">
+            <div class="flex items-center gap-1.5 font-bold">
+              ${icon(isPurple ? 'arrow-right-left' : 'info', 'h-4 w-4')}
+              ${isPurple ? '代上课交接 · 课酬计入本人周结单' : '代课通知 · 原教师请假，由 Linda 老师授课'}
+            </div>
+            <div class="mt-2 space-y-1">
+              <p><b>原授课老师：</b>${esc(sub.original)}（${esc(sub.level)}，已获批请假）</p>
+              <p><b>实际代课老师：</b>${esc(sub.actual)}</p>
+              <p><b>调课缘由：</b>${esc(sub.reason)}</p>
+              <p><b>交接备忘：</b>${esc(sub.memo)}</p>
+            </div>
+            <p class="mt-2 border-t ${isPurple ? 'border-purple-200' : 'border-blue-200'} pt-1.5">${esc(sub.finance)}；家长端明确提示教学进度不受影响。</p>
+            <a href="m3b_attendance_substitution.html" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold underline">查看代课调度 (M3B)</a>
+          </div>`;
+      } else if (cell.status === 'RED') {
+        body = `
+          <div class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-rose-800">
+            <div class="font-bold">教师已请假 · 该时段不开放</div>
+            <p class="mt-1">${esc(cell.note || '教师临时请假（已获批）')}。请假与销假、同师改期归属 M3B。</p>
+            <a href="m3b_attendance_substitution.html" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold underline">查看请假调度 (M3B)</a>
+          </div>`;
+      } else if (cell.status === 'GREEN') {
+        const windowOk = inBookingWindow(day);
+        const detailStudent = state.role === 'parent' ? state.child : (state.role === 'monitor' ? (state.monitorStudentKey || 'alice') : 'alice');
+        const q = canBookRole() ? quotaOf(detailStudent) : 0;
+        body = `
+          <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-emerald-800">
+            <div class="font-bold">该时段空闲可约</div>
+            <p class="mt-1">1v1 授课 25 分钟 + 课间 5 分钟缓冲，占用 1 个 30 分钟网格。</p>
+            <p class="mt-1">${canBookRole() ? (windowOk ? `当前可用临时课 TS：${q} 节` : '仅可预约未来 1-7 天内的时段') : '仅家长、班长与管理员可发起临时课预约。'}</p>
+            ${state.role === 'monitor' ? `<p class="mt-1">${isManagedTeacher(teacher.id) ? '所辖教师可代约' : '非本班长管辖教师，代约已阻断'}</p>` : ''}
+          </div>`;
+      } else {
+        body = `
+          <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-slate-600">
+            <div class="font-bold text-slate-700">教师未开放该时段</div>
+            <p class="mt-1">全天营业窗 06:00-24:00，教师周模板中该格保持不可约/休息。</p>
+          </div>`;
+      }
+
+      const detailKey = state.role === 'parent' ? state.child : (state.role === 'monitor' ? (state.monitorStudentKey || 'alice') : 'alice');
+      const canBookHere = cell.status === 'GREEN' && canBookRole() && inBookingWindow(day)
+        && quotaOf(detailKey) > 0;
+      const bookingBtn = cell.status === 'GREEN' && canBookRole()
+        ? `<button data-action="book-from-detail" data-day="${day}" data-time="${time}" ${state.online === 'off' || !canBookHere ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">${!inBookingWindow(day) ? '仅可约 1-7 天内时段' : quotaOf(detailKey) <= 0 ? '暂无可用临时课课时' : (state.role === 'monitor' ? '代约此时间' : '预约此时间')}</button>`
+        : '';
+
+      return bottomSheet(`
+        ${sheetHeader(`${cfg.name} · ${time}`, fullStudent ? `完整学员昵称：${fullStudent}` : '')}
+        <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2">
+          ${detailRow('日期', dateText)}
+          ${detailRow('时段', `${time} - ${endTime(time, 1)}`)}
+          ${detailRow('授课教师', `${teacher.name} · ${teacher.levelLabel}`)}
+          ${detailRow('当前状态', cfg.name, true)}
+          ${fullStudent ? detailRow('上课学员', `${fullStudent}（格内缩写 ${fullStudent.slice(0, 4)}）`) : ''}
+          ${cell.className ? detailRow('班级', cell.className) : ''}
+        </div>
+        ${body}
+        <div class="mt-4 flex gap-2">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">关闭</button>
+          ${bookingBtn}
+        </div>`);
+    }
+
+    function renderBookingSheet() {
+      const b = state.booking;
+      const cell = getCell(b.day, b.time);
+      if (!cell) return '';
+      const teacher = currentTeacher();
+      const student = studentByKey(b.studentKey);
+      const q = quotaOf(b.studentKey);
+      const dateText = `${b.day} ${weekdayLabel(b.day)}`;
+      if (state.role === 'monitor') return renderMonitorBookingSheet(b, teacher, dateText);
+      const end = endTime(b.time, b.count);
+      const ok = consecutiveOk(b.day, b.time, b.count);
+      const enough = q >= b.count;
+      const disabled = state.online === 'off' || !ok || !enough || q <= 0;
+
+      return bottomSheet(`
+        ${sheetHeader(state.role === 'admin' ? '代约 1v1 临时课' : '预约 1v1 临时课', `${dateText} · ${teacher.name} · ${b.time} - ${endTime(b.time, 1)}`)}
+        <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2">
+          ${state.role === 'admin' ? `
+            <div class="flex items-center justify-between gap-3 py-1.5">
+              <span class="shrink-0 text-[12px] font-medium text-slate-400">上课学员</span>
+              <select id="bookingStudent" class="h-9 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[16px] text-slate-900 outline-none">
+                ${STUDENTS.map((s) => `<option value="${s.key}" ${b.studentKey === s.key ? 'selected' : ''}>${esc(s.name)}${s.trial ? ' · UNBOUND' : ''}</option>`).join('')}
+              </select>
+            </div>` : detailRow('上课学员', `${student.name} · ${student.tag}`)}
+          ${detailRow('授课教师', `${teacher.name} · ${teacher.levelLabel}`)}
+          <div class="flex items-center justify-between gap-3 py-1.5">
+            <span class="shrink-0 text-[12px] font-medium text-slate-400">可用临时课 TS</span>
+            <span class="text-[14px] font-bold ${q > 0 ? 'text-emerald-600' : 'text-rose-600'}">${q} 节</span>
+          </div>
+        </div>
+
+        ${student.trial ? `
+          <div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">
+            UNBOUND 待认领试课学员：确认后由管理员线下发送上课时间、外教简介与 ClassIn 进门信息；认领后历史课表完整透出。
+          </div>` : ''}
+
+        <div class="mt-4">
+          <div class="text-[14px] font-semibold text-slate-700">选择连续课节数</div>
+          <div class="mt-2 grid grid-cols-4 gap-1.5">
+            ${[1, 2, 3, 4].map((n) => {
+              const seqOk = consecutiveOk(b.day, b.time, n);
+              const quotaOk = q >= n;
+              const selectable = seqOk && quotaOk;
+              const selected = b.count === n;
+              const tag = !seqOk ? '后段已占' : !quotaOk ? '资产不足' : `${n * 30}m`;
+              return `<button data-action="book-count" data-count="${n}" ${selectable ? '' : 'disabled'} class="flex flex-col items-center justify-center rounded-xl border px-1 py-2 text-center transition ${selected ? 'border-indigo-300 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500' : selectable ? 'border-slate-200 bg-white text-slate-700' : 'border-slate-100 bg-slate-50 text-slate-300'}">
+                <span class="text-[14px] font-bold leading-tight">${n} 节</span>
+                <span class="mt-0.5 text-[12px] font-semibold ${selectable ? '' : 'opacity-80'}">${tag}</span>
+              </button>`;
+            }).join('')}
+          </div>
+          <p class="mt-1.5 text-[12px] font-medium text-slate-400">单节 30 分钟网格（授课 25 分钟 + 课间 5 分钟）；连约需后段连续空闲。</p>
+        </div>
+
+        <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
+          <div class="flex items-center justify-between gap-2 text-[14px] font-bold text-emerald-900">
+            <span>连续排课 ${b.time} - ${end}</span>
+            <span>${b.count} 节</span>
+          </div>
+          <div class="mt-1 flex items-center justify-between gap-2 text-[12px] font-medium text-emerald-700">
+            <span>FIFO 扣减最老临时课 TS</span>
+            <span>预约后剩余 ${Math.max(0, q - b.count)} 节</span>
+          </div>
+        </div>
+
+        <label class="mt-2 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2">
+          <span class="text-[12px] font-medium text-slate-600">模拟并发抢占（演示 409 TIME_SLOT_ALREADY_BOOKED）</span>
+          <input id="simulateConflict" type="checkbox" ${b.simulate ? 'checked' : ''} class="h-4 w-4 shrink-0 accent-rose-600">
+        </label>
+
+        ${!ok ? '<p class="mt-2 text-[12px] font-medium text-rose-600">所选连约后段已被占用，请减少节数或更换起始时段。</p>' : ''}
+        ${q <= 0 ? '<p class="mt-2 text-[12px] font-medium text-rose-600">暂无可用临时课课时，请先购课。</p>' : ''}
+
+        <div class="mt-4 flex gap-2">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">取消</button>
+          <button data-action="confirm-book" ${disabled ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认预约 ${b.count} 节（消耗 ${b.count} 节 TS）</button>
+        </div>`);
+    }
+
+    /* ------------------------- 班长代约抽屉 ------------------------- */
+    function proxyStudentResultsHtml() {
+      const b = state.booking;
+      const list = STUDENTS.filter((s) => studentMatches(s, b.search || ''));
+      if (!list.length) {
+        return '<p class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-2 py-2 text-center text-[12px] font-medium text-slate-400">未找到匹配学员，请尝试昵称 / 拼音 / 手机号</p>';
+      }
+      return list.map((s) => {
+        const on = b.studentKey === s.key;
+        const q = quotaOf(s.key);
+        return `<button data-action="proxy-student" data-key="${s.key}" class="flex w-full items-center justify-between gap-2 rounded-lg border px-2 py-1.5 text-left transition ${on ? 'border-indigo-300 bg-indigo-50 ring-1 ring-indigo-400' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+          <div class="min-w-0">
+            <div class="flex min-w-0 items-center gap-1">
+              <span class="truncate text-[12px] font-bold text-slate-900">${esc(s.name)}</span>
+              <span class="shrink-0 rounded bg-slate-100 px-1 text-[12px] font-semibold text-slate-500">${esc(s.className)}</span>
+              ${s.trial ? '<span class="shrink-0 rounded bg-amber-100 px-1 text-[12px] font-bold text-amber-700">UNBOUND</span>' : ''}
+            </div>
+            <div class="mt-0.5 truncate text-[12px] font-medium text-slate-400">${esc(s.phone)} · ${esc(s.tag)}</div>
+          </div>
+          <span class="shrink-0 text-[12px] font-bold ${q > 0 ? 'text-emerald-600' : 'text-rose-500'}">${q} 节</span>
+        </button>`;
+      }).join('');
+    }
+
+    function fixedBookingTargets(b) {
+      const f = b.fixed;
+      return [0, 1, 2, 3].map((i) => {
+        const offset = f.startWeek + i;
+        const week = state.weeks[f.teacherId] ? state.weeks[f.teacherId][String(offset)] : null;
+        if (!week) return { weekNo: i + 1, offset, iso: '—', conflict: '超出原型预载周范围', cell: null };
+        const day = week.days[f.weekday];
+        const cell = week.cells[day.iso][f.time];
+        let conflict = '';
+        if (!cell) conflict = '时段不存在';
+        else if (cell.status !== 'GREEN') conflict = statusConflictLabel(cell.status);
+        return { weekNo: i + 1, offset, iso: day.iso, day, cell, conflict };
+      });
+    }
+
+    function windowConstraintText(dayIso) {
+      const delta = diffDays(dayIso, TODAY);
+      if (delta < 1) return '所选日期为当天或已过期，严禁代约当天课次';
+      if (delta > 7) return `所选日期距当前 ${delta} 天，已超过 7 天预约窗口`;
+      return '';
+    }
+
+    function renderMonitorBookingSheet(b, teacher, dateText) {
+      const student = studentByKey(b.studentKey);
+      const managed = isManagedTeacher(teacher.id);
+      const windowOk = inBookingWindow(b.day);
+      const windowMsg = windowConstraintText(b.day);
+      const q = quotaOf(b.studentKey);
+      const ok = consecutiveOk(b.day, b.time, b.count);
+      const enough = q >= b.count;
+      const holdSlots = originalHoldSlots(student.name);
+      const title = b.mode === 'fixed' ? '班长代约 · 下一轮固定位' : '班长代约 · 1v1 临时课';
+      const modeBtn = (mode, label) => `<button data-action="booking-mode" data-mode="${mode}" class="h-9 rounded-lg text-[12px] font-bold transition ${b.mode === mode ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">${label}</button>`;
+      const orderLabel = b.mode === 'fixed'
+        ? `ord_${b.studentKey}_fixed01 · 创建于 09-28`
+        : student.tempOrder;
+
+      const searchStep = `
+        <div class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5">
+              <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-600 text-[12px] font-bold text-white">1</span>
+              <span class="text-[14px] font-bold text-slate-900">检索选择学员</span>
+            </div>
+            <span class="rounded-full border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">全校跨班</span>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-400">面向全平台 ACTIVE 学员开放，不受出资班长归属限制；支持昵称、拼音、手机号模糊检索。</p>
+          <div class="relative mt-1.5">
+            <span class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">${icon('search', 'h-4 w-4')}</span>
+            <input id="proxyStudentSearch" value="${esc(b.search || '')}" placeholder="输入昵称 / 拼音 / 手机号" class="h-10 w-full rounded-xl border border-slate-200 bg-white pl-8 pr-2 text-[16px] text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+          </div>
+          <div id="proxyStudentResults" class="mt-1.5 max-h-[146px] space-y-1 overflow-y-auto">${proxyStudentResultsHtml()}</div>
+          <div class="mt-2 rounded-xl border border-indigo-100 bg-indigo-50/60 px-2.5 py-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="min-w-0 truncate text-[12px] font-bold text-slate-900">已选：${esc(student.name)}</span>
+              <span class="shrink-0 text-[12px] font-semibold text-indigo-700">${esc(student.className)}</span>
+            </div>
+            <div class="mt-1 flex items-center justify-between gap-2 text-[12px] font-medium text-slate-500">
+              <span class="truncate">${esc(orderLabel)}</span>
+              <span class="shrink-0 font-bold ${q > 0 ? 'text-emerald-600' : 'text-rose-600'}">临时课 ${q} 节 / 固定位 ${state.fixed[b.studentKey] || 0} 节</span>
+            </div>
+          </div>
+        </div>`;
+
+      const constraint = !managed ? `
+        <div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-rose-800">
+          <div class="flex items-center gap-1 font-bold">${icon('lock', 'h-4 w-4')} 管辖边界阻断</div>
+          <p class="mt-0.5">班长仅可在当前管辖的在职教师（${esc(TEACHERS.filter((t) => isManagedTeacher(t.id)).map((t) => t.name.split(' ')[0]).join(' / '))}）日历中代约。${esc(teacher.name)} 非本班长管辖，提交已禁用。</p>
+        </div>` : '';
+
+      let modeBody = '';
+      if (b.mode === 'temp') {
+        const end = endTime(b.time, b.count);
+        modeBody = `
+          ${windowOk ? `
+            <div class="mt-2 flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] font-semibold text-emerald-800">
+              ${icon('check-circle-2', 'h-4 w-4 shrink-0')} 1-7 天时间窗校验通过（${dateText}）
+            </div>` : `
+            <div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-rose-800">
+              <div class="flex items-center gap-1 font-bold">${icon('clock-alert', 'h-4 w-4')} 1-7 天时间窗限制</div>
+              <p class="mt-0.5">${esc(windowMsg)}。仅可代约距当前 1-7 天内的空闲时段，提交按钮已置灰。</p>
+            </div>`}
+          <div class="mt-3">
+            <div class="text-[14px] font-semibold text-slate-700">选择连续课节数</div>
+            <div class="mt-2 grid grid-cols-4 gap-1.5">
+              ${[1, 2, 3, 4].map((n) => {
+                const seqOk = consecutiveOk(b.day, b.time, n);
+                const quotaOk = q >= n;
+                const selectable = seqOk && quotaOk;
+                const selected = b.count === n;
+                const tag = !seqOk ? '后段已占' : !quotaOk ? '资产不足' : `${n * 30}m`;
+                return `<button data-action="book-count" data-count="${n}" ${selectable ? '' : 'disabled'} class="flex flex-col items-center justify-center rounded-xl border px-1 py-2 text-center transition ${selected ? 'border-indigo-300 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500' : selectable ? 'border-slate-200 bg-white text-slate-700' : 'border-slate-100 bg-slate-50 text-slate-300'}">
+                  <span class="text-[14px] font-bold leading-tight">${n} 节</span>
+                  <span class="mt-0.5 text-[12px] font-semibold ${selectable ? '' : 'opacity-80'}">${tag}</span>
+                </button>`;
+              }).join('')}
+            </div>
+            <p class="mt-1.5 text-[12px] font-medium text-slate-400">单节 30 分钟网格（授课 25 分钟 + 课间 5 分钟）；连约需后段连续空闲。</p>
+          </div>
+          <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
+            <div class="flex items-center justify-between gap-2 text-[14px] font-bold text-emerald-900">
+              <span>连续排课 ${b.time} - ${end}</span><span>${b.count} 节</span>
+            </div>
+            <div class="mt-1 flex items-center justify-between gap-2 text-[12px] font-medium text-emerald-700">
+              <span>FIFO 扣减最老临时课 TS</span>
+              <span>预约后剩余 ${Math.max(0, q - b.count)} 节</span>
+            </div>
+          </div>
+          ${!ok ? '<p class="mt-2 text-[12px] font-medium text-rose-600">所选连约后段已被占用，请减少节数或更换起始时段。</p>' : ''}
+          ${q < b.count ? '<p class="mt-1 text-[12px] font-medium text-rose-600">该学员临时课待排期 TS 不足，严禁赊账代约。</p>' : ''}
+          <label class="mt-2 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2">
+            <span class="text-[12px] font-medium text-slate-600">模拟并发抢占（演示 409 TIME_SLOT_ALREADY_BOOKED）</span>
+            <input id="simulateConflict" type="checkbox" ${b.simulate ? 'checked' : ''} class="h-4 w-4 shrink-0 accent-rose-600">
+          </label>
+          <div class="mt-4 flex gap-2">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">取消</button>
+            <button data-action="confirm-book" ${state.online === 'off' || !managed || !windowOk || !ok || !enough ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认代约 ${b.count} 节（消耗 ${b.count} 节 TS）</button>
+          </div>`;
+      } else {
+        const targets = fixedBookingTargets(b);
+        const hasConflict = targets.some((t) => t.conflict);
+        const fixedAsset = state.fixed[b.studentKey] || 0;
+        const managedTeachers = TEACHERS.filter((t) => isManagedTeacher(t.id));
+        modeBody = `
+          <div class="mt-2 rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">
+            支持在当前固定位周期未完结时提前换师 / 换时段；确认后在单一事务内校验连续 4 周目标时段并锁定实线固定位。
+          </div>
+          <div class="mt-3 grid gap-2.5">
+            <div>
+              <div class="mb-1 text-[12px] font-medium text-slate-500">目标教师（仅所辖）</div>
+              <div class="grid grid-cols-2 gap-1.5">
+                ${managedTeachers.map((t) => `<button data-action="fixed-teacher" data-id="${t.id}" class="h-9 rounded-lg border text-[12px] font-bold ${b.fixed.teacherId === t.id ? 'border-indigo-300 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-400' : 'border-slate-200 bg-white text-slate-600'}">${esc(t.name.split(' ')[0])} · ${t.levelLabel}</button>`).join('')}
+              </div>
+            </div>
+            <div>
+              <div class="mb-1 text-[12px] font-medium text-slate-500">下一轮起始周</div>
+              <div class="flex gap-1.5">
+                ${[[1, '下周 (11-16)'], [2, '第 3 周 (11-23)']].map(([v, label]) => `<button data-action="fixed-start" data-value="${v}" class="h-8 flex-1 rounded-lg border text-[12px] font-bold ${b.fixed.startWeek === v ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600'}">${label}</button>`).join('')}
+              </div>
+            </div>
+            <div>
+              <div class="mb-1 text-[12px] font-medium text-slate-500">每周上课日</div>
+              <div class="grid grid-cols-7 gap-1">
+                ${DAY_LABELS.map((d, i) => `<button data-action="fixed-weekday" data-value="${i}" class="h-8 rounded-lg border text-[12px] font-bold ${b.fixed.weekday === i ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600'}">${d.slice(1)}</button>`).join('')}
+              </div>
+            </div>
+            <div>
+              <label for="fixedTime" class="mb-1 block text-[12px] font-medium text-slate-500">每周时段（30 分钟格）</label>
+              <select id="fixedTime" class="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 font-mono text-[16px] text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+                ${TIME_SLOTS.map((t) => `<option value="${t}" ${b.fixed.time === t ? 'selected' : ''}>${t} - ${endTime(t, 1)}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[12px] font-bold text-slate-700">连续 4 周预检</span>
+              <span class="text-[12px] font-semibold ${hasConflict ? 'text-rose-600' : 'text-emerald-600'}">${hasConflict ? '存在冲突' : '全部空闲'}</span>
+            </div>
+            <div class="mt-1.5 grid grid-cols-2 gap-1.5">
+              ${targets.map((t) => `<div class="rounded-lg border px-2 py-1.5 ${t.conflict ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}">
+                <div class="text-[12px] font-bold ${t.conflict ? 'text-rose-700' : 'text-emerald-700'}">第 ${t.weekNo} 周 · ${dateLabel(t.iso)}${t.day ? ' ' + weekdayLabel(t.iso) : ''}</div>
+                <div class="mt-0.5 truncate text-[12px] font-medium ${t.conflict ? 'text-rose-600' : 'text-emerald-600'}">${esc(t.conflict || '空闲可锁定')}</div>
+              </div>`).join('')}
+            </div>
+          </div>
+          <label class="mt-2 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2">
+            <div class="min-w-0">
+              <div class="text-[12px] font-bold text-amber-900">自动抑制原时段 72h HOLD 预占</div>
+              <div class="mt-0.5 truncate text-[12px] font-medium text-amber-700">${holdSlots.length ? `检测到原时段：${esc(holdSlots.slice(0, 4).join('、'))}${holdSlots.length > 4 ? ' 等' : ''}，确认后原子释放为 🟢 空闲` : '未检测到原时段 HOLD；后续生成时将自动跳过'}</div>
+            </div>
+            <input id="fixedSuppressHold" type="checkbox" ${b.fixed.suppressHold ? 'checked' : ''} class="h-4 w-4 shrink-0 accent-amber-600">
+          </label>
+          <div class="mt-2 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-500">
+            <span>该学员固定位待排期 TS</span>
+            <span class="font-bold ${fixedAsset >= 4 ? 'text-emerald-600' : 'text-rose-600'}">${fixedAsset} 节 · 本次扣减 4 节</span>
+          </div>
+          ${fixedAsset < 4 ? '<p class="mt-1.5 text-[12px] font-medium text-rose-600">固定位资产不足 4 节，严禁赊账代约。</p>' : ''}
+          ${hasConflict ? '<p class="mt-1.5 text-[12px] font-medium text-rose-600">任意一周冲突将整体回滚（409 SCHEDULE_SLOT_CONFLICT），请调整教师 / 周几 / 时段。</p>' : ''}
+          <div class="mt-4 flex gap-2">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">取消</button>
+            <button data-action="confirm-fixed" ${state.online === 'off' || !managed || hasConflict || fixedAsset < 4 ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认代约下一轮固定位 · 扣 4 节</button>
+          </div>`;
+      }
+
+      const headerSub = b.mode === 'fixed'
+        ? `目标：${DAY_LABELS[b.fixed.weekday]} ${b.fixed.time} · ${teacherById(b.fixed.teacherId).name} · 连续 4 周`
+        : `${dateText} · ${teacher.name} · ${b.time}`;
+
+      return bottomSheet(`
+        ${sheetHeader(title, headerSub)}
+        <div class="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+          ${modeBtn('temp', '代约 1v1 临时课')}
+          ${modeBtn('fixed', '代约下一轮固定位')}
+        </div>
+        ${constraint}
+        ${searchStep}
+        ${modeBody}`);
+    }
+
+    function renderOverlay() {
+      const el = document.getElementById('overlay');
+      const prev = el.querySelector('[data-scroll]');
+      const top = prev ? prev.scrollTop : 0;
+      if (!state.overlay) el.innerHTML = '';
+      else if (state.overlay.type === 'cell') el.innerHTML = renderCellModal();
+      else if (state.overlay.type === 'booking') el.innerHTML = renderBookingSheet();
+      else if (state.overlay.type === 'teacher') el.innerHTML = renderTeacherSheet();
+      else el.innerHTML = '';
+      const next = el.querySelector('[data-scroll]');
+      if (next) next.scrollTop = top;
+    }
+
+    function confirmBooking() {
+      if (state.online === 'off') return showToast('离线只读，暂不可预约', true);
+      const b = state.booking;
+      if (!b) return;
+      if (state.role === 'monitor') {
+        if (!isManagedTeacher(state.teacherId)) return showToast('越权阻断：该教师非本班长管辖', true);
+        if (!inBookingWindow(b.day)) return showToast('仅可代约距当前 1-7 天内的时段', true);
+      }
+      const student = studentByKey(b.studentKey);
+      const q = quotaOf(b.studentKey);
+      if (!consecutiveOk(b.day, b.time, b.count)) return showToast('所选时段后段已被占用，请更换时段', true);
+      if (q < b.count) return showToast('临时课 TS 资产不足', true);
+
+      const idx = TIME_SLOTS.indexOf(b.time);
+      if (b.simulate) {
+        const first = getCell(b.day, b.time);
+        if (first) {
+          first.status = 'YELLOW';
+          first.student = 'CharlieC09';
+          first.orderId = 'ord_charlie_temp09';
+          first.tsId = 'ts_charlie_temp09_01';
+          first.bookedAt = '刚刚';
+        }
+        state.overlay = null;
+        renderAll();
+        showToast('该时段刚刚已被其他学员预约，请选择其他时段（409）', true);
+        return;
+      }
+
+      for (let i = 0; i < b.count; i += 1) {
+        const cell = getCell(b.day, TIME_SLOTS[idx + i]);
+        cell.status = 'YELLOW';
+        cell.student = student.name;
+        cell.orderId = `ord_${b.studentKey}_temp_fifo`;
+        cell.tsId = `ts_${b.studentKey}_fifo_${String(i + 1).padStart(2, '0')}`;
+        cell.bookedAt = '刚刚';
+        cell.bookedBy = state.role === 'monitor' ? 'Leo' : '';
+      }
+      state.credits[b.studentKey] = q - b.count;
+      state.overlay = null;
+      renderAll();
+      const msg = state.role === 'admin'
+        ? (student.trial
+          ? `代约成功 · 已锁定 ${b.count} 节 · 请线下发送上课时间与 ClassIn 进门信息`
+          : `代约成功 · ${student.name} 已锁定 ${b.count} 节临时课`)
+        : (state.role === 'monitor'
+          ? `代约成功 · ${student.name} · ${b.count} 节 · FIFO 扣减 ${student.tempOrder.split(' ')[0]}`
+          : `预约成功 · 已连约 ${b.count} 节（${b.time} - ${endTime(b.time, b.count)}），FIFO 扣减最老 TS`);
+      showToast(msg);
+    }
+
+    function confirmFixedBooking() {
+      if (state.online === 'off') return showToast('离线只读，暂不可代约', true);
+      const b = state.booking;
+      if (!b || b.mode !== 'fixed') return;
+      const f = b.fixed;
+      if (!isManagedTeacher(f.teacherId)) return showToast('越权阻断：仅可代约所辖在职教师', true);
+      const targets = fixedBookingTargets(b);
+      if (targets.some((t) => t.conflict)) return showToast('存在冲突周，事务已回滚（409 SCHEDULE_SLOT_CONFLICT）', true);
+      const student = studentByKey(b.studentKey);
+      if ((state.fixed[b.studentKey] || 0) < 4) return showToast('固定位待排期 TS 不足 4 节', true);
+
+      targets.forEach((t) => {
+        const week = state.weeks[f.teacherId][String(t.offset)];
+        const cell = week.cells[t.iso][f.time];
+        cell.status = 'ORANGE';
+        cell.student = student.name;
+        cell.teacherId = f.teacherId;
+        cell.orderId = `ord_${b.studentKey}_fixed_next`;
+        cell.tsId = `ts_${b.studentKey}_fixed_next_${t.weekNo}`;
+        cell.holder = 'Leo';
+        cell.bookedBy = 'Leo';
+        cell.hold = null;
+      });
+
+      let released = 0;
+      if (f.suppressHold) {
+        state.holdSuppressed[b.studentKey] = true;
+        TEACHERS.forEach((t) => {
+          Object.values(state.weeks[t.id]).forEach((week) => {
+            week.days.forEach((day) => {
+              TIME_SLOTS.forEach((time) => {
+                const cell = week.cells[day.iso][time];
+                if (cell.status === 'HOLD' && cell.student === student.name) {
+                  cell.status = 'GREEN';
+                  cell.student = '';
+                  cell.orderId = '';
+                  cell.tsId = '';
+                  cell.hold = null;
+                  released += 1;
+                }
+              });
+            });
+          });
+        });
+      }
+
+      state.fixed[b.studentKey] -= 4;
+      state.teacherId = f.teacherId;
+      state.weekOffset = f.startWeek;
+      state.page = 'schedule';
+      state.navTab = 'schedule';
+      state.overlay = null;
+      state.booking = null;
+      renderAll();
+      showToast(`下一轮固定位已锁定 4 周 · ${student.name} · ${f.time}${released ? ` · 已释放原时段 ${released} 格 HOLD` : ' · 已跳过 72h HOLD 预占'}`);
+    }
+
+    /* ------------------------------------------------------------------
+     * 可授课时段模板
+     * ------------------------------------------------------------------ */
+    function renderAvailability() {
+      const teacher = teacherById(state.availTeacher);
+      const grid = state.availByTeacher[state.availTeacher];
+      let openCount = 0;
+      for (let d = 0; d < 7; d += 1) TIME_SLOTS.forEach((t) => { if (grid[d][t]) openCount += 1; });
+
+      return `
+        <div class="flex h-full min-h-0 flex-col bg-slate-50">
+          <div class="shrink-0 border-b border-slate-200 bg-white px-3 py-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <h1 class="text-[18px] font-bold tracking-tight text-slate-900">常规可授课时段模板</h1>
+                <p class="mt-0.5 text-[12px] font-medium text-slate-400">默认聚焦 08:00-21:00 核心营业窗 · 全周不可约</p>
+              </div>
+              ${state.role === 'monitor' ? `
+                <div class="inline-flex shrink-0 rounded-lg bg-slate-100 p-0.5">
+                  ${TEACHERS.map((t) => `<button data-action="set-avail-teacher" data-id="${t.id}" class="h-7 rounded-md px-2 text-[12px] font-bold ${state.availTeacher === t.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">${esc(t.name.split(' ')[0])}</button>`).join('')}
+                </div>` : ''}
+            </div>
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              <span class="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[12px] font-bold text-emerald-700">已开放 <span id="availOpen">${openCount}</span> / 252 格</span>
+              <button data-action="avail-preset" data-preset="day" class="h-7 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-bold text-slate-700">白天高峰 · 08-18</button>
+              <button data-action="avail-preset" data-preset="evening" class="h-7 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-bold text-slate-700">晚间高峰 · 17-21</button>
+              <button data-action="avail-preset" data-preset="weekend" class="h-7 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-bold text-slate-700">周末全天</button>
+              <button data-action="avail-preset" data-preset="all" class="h-7 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-bold text-slate-700">全选</button>
+              <button data-action="avail-preset" data-preset="none" class="h-7 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-bold text-slate-700">清空</button>
+            </div>
+            <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-400">${esc(teacher.name)} · 清晨 06:00-08:00 与深夜 21:00-24:00 默认折叠；保存后自动应用到未来空闲日期，已排课程、请假与续费预占严格保留不被覆盖。</p>
+          </div>
+
+          <div id="availScroll" class="min-h-0 flex-1 overflow-auto bg-white">
+            <table class="w-full table-fixed border-collapse">
+              <thead>
+                <tr>
+                  <th class="sticky left-0 top-0 z-40 w-[40px] border-b border-r border-slate-200 bg-slate-100 px-0 py-1 text-center text-[12px] font-bold text-slate-500">时段</th>
+                  ${DAY_LABELS.map((d) => `<th class="sticky top-0 z-30 border-b border-r border-slate-200 bg-slate-50 px-0.5 py-1 text-center text-[12px] font-bold text-slate-600">${d}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${state.availExpandEarly
+                  ? availFoldRow('early', true) + TIME_SLOTS.slice(0, 4).map((t) => availTimeRow(grid, t)).join('')
+                  : availFoldRow('early', false)}
+                ${TIME_SLOTS.slice(4, 30).map((t) => availTimeRow(grid, t)).join('')}
+                ${state.availExpandLate
+                  ? TIME_SLOTS.slice(30).map((t) => availTimeRow(grid, t)).join('') + availFoldRow('late', true)
+                  : availFoldRow('late', false)}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="shrink-0 border-t border-slate-200 bg-white px-3 py-2">
+            <div class="flex gap-2">
+              <button data-action="go-schedule" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">返回课表</button>
+              <button data-action="save-availability" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">保存并生效</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function availTimeRow(grid, time) {
+      return `
+        <tr class="h-7">
+          <th data-time="${time}" class="sticky left-0 z-20 w-[40px] border-b border-r border-slate-200 bg-slate-100 px-0 text-center text-[12px] font-mono font-semibold text-slate-500">${time}</th>
+          ${DAY_LABELS.map((_, d) => {
+            const open = grid[d][time];
+            return `<td class="border-b border-r border-slate-100 p-[2px]">
+              <button data-action="toggle-avail" data-day="${d}" data-time="${time}" class="flex h-6 w-full items-center justify-center rounded-md border text-[11px] font-bold leading-none transition active:scale-95 ${open ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-100 border-slate-200 text-slate-400'}">${open ? '可' : '休'}</button>
+            </td>`;
+          }).join('')}
+        </tr>`;
+    }
+
+    function availFoldRow(which, expanded) {
+      const early = which === 'early';
+      const label = early ? '清晨 06:00-08:00' : '深夜 21:00-24:00';
+      const rows = early ? 4 : 6;
+      return `
+        <tr>
+          <td colspan="8" class="border-b border-slate-100 bg-slate-50 p-0">
+            <button data-action="avail-fold" data-fold="${which}" class="flex h-8 w-full items-center justify-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:bg-slate-100">
+              <span class="text-slate-300">┄┄</span>
+              ${expanded ? `收起 ${label}` : `展开 ${label}（${rows} 行）`}
+              <span class="font-bold text-indigo-600">${expanded ? '▴' : '▾'}</span>
+            </button>
+          </td>
+        </tr>`;
+    }
+
+    function toggleAvail(el, dayIndex, time) {
+      if (state.online === 'off') return showToast('离线只读，暂不可修改模板', true);
+      const grid = state.availByTeacher[state.availTeacher];
+      grid[dayIndex][time] = !grid[dayIndex][time];
+      const open = grid[dayIndex][time];
+      el.className = `flex h-6 w-full items-center justify-center rounded-md border text-[11px] font-bold leading-none transition active:scale-95 ${open ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-100 border-slate-200 text-slate-400'}`;
+      el.textContent = open ? '可' : '休';
+      let count = 0;
+      for (let d = 0; d < 7; d += 1) TIME_SLOTS.forEach((t) => { if (grid[d][t]) count += 1; });
+      const badge = document.getElementById('availOpen');
+      if (badge) badge.textContent = String(count);
+    }
+
+    function applyPreset(preset) {
+      if (state.online === 'off') return showToast('离线只读，暂不可修改模板', true);
+      const grid = state.availByTeacher[state.availTeacher];
+      for (let d = 0; d < 7; d += 1) {
+        TIME_SLOTS.forEach((time) => {
+          const h = Number(time.slice(0, 2));
+          if (preset === 'all') grid[d][time] = true;
+          else if (preset === 'none') grid[d][time] = false;
+          else if (preset === 'day') grid[d][time] = d <= 4 && h >= 8 && h < 18;
+          else if (preset === 'evening') grid[d][time] = d <= 4 && h >= 17 && h < 21;
+          else if (preset === 'weekend') grid[d][time] = d >= 5 && h >= 9 && h < 20;
+        });
+      }
+      renderContentOnly();
+    }
+
+    function saveAvailability() {
+      if (state.online === 'off') return showToast('离线只读，暂不可保存模板', true);
+      const teacherId = state.availTeacher;
+      const grid = state.availByTeacher[teacherId];
+      let changed = 0;
+      let preserved = 0;
+      for (let o = 0; o <= 4; o += 1) {
+        const week = state.weeks[teacherId][String(o)];
+        week.days.forEach((day, d) => {
+          TIME_SLOTS.forEach((time) => {
+            const cell = week.cells[day.iso][time];
+            if (cell.status !== 'GRAY' && cell.status !== 'GREEN') { preserved += 1; return; }
+            const want = grid[d][time] ? 'GREEN' : 'GRAY';
+            if (cell.status !== want) { cell.status = want; changed += 1; }
+          });
+        });
+      }
+      showToast(`周模板已生效 · 更新 ${changed} 格，保留 ${preserved} 处已排课程 / 请假 / 预占`);
+    }
+
+    /* ------------------------------------------------------------------
+     * 固定位四周批量排课
+     * ------------------------------------------------------------------ */
+    function statusConflictLabel(status) {
+      return {
+        ORANGE: '已有固定位排课',
+        HOLD: '续费预占（排他锁定）',
+        YELLOW: '已有临时课预约',
+        BLUE: '已有被代课排课',
+        PURPLE: '已有代上课排课',
+        RED: '教师请假',
+        GRAY: '教师未开放该时段'
+      }[status] || '时段不可用';
+    }
+
+    function batchTargets() {
+      const b = state.batch;
+      const teacherId = 'david';
+      return [0, 1, 2, 3].map((i) => {
+        const offset = b.startWeek + i;
+        const week = state.weeks[teacherId][String(offset)];
+        const day = week.days[b.weekday];
+        const cell = week.cells[day.iso][b.time];
+        let conflict = '';
+        if (b.simulate && i === 2) conflict = '模拟冲突：该周时段已被临时课预约';
+        else if (cell.status !== 'GREEN') conflict = statusConflictLabel(cell.status);
+        return { weekNo: i + 1, offset, iso: day.iso, day, cell, conflict };
+      });
+    }
+
+    function renderBatch() {
+      const b = state.batch;
+      const student = studentByKey(b.studentKey);
+      const fixed = state.fixed[b.studentKey] || 0;
+      const targets = batchTargets();
+      const hasConflict = targets.some((t) => t.conflict);
+      const disabled = state.online === 'off' || fixed < 4 || hasConflict;
+      const inputCls = 'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';
+
+      return `
+        <div class="mx-auto w-full max-w-[640px] space-y-3.5 px-4 pb-6 pt-4">
+          <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">
+            1v1 固定位四周一轮：系统在单一事务内原子校验连续 4 周目标时段，任意一周冲突则整体阻断（409 SCHEDULE_SLOT_CONFLICT）。
+          </div>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 class="text-[16px] font-bold text-slate-900">学员与资产</h2>
+            <div class="mt-2.5">
+              <label for="batchStudent" class="mb-1 block text-[12px] font-medium text-slate-500">学员档案</label>
+              <select id="batchStudent" class="${inputCls}">
+                ${['alice', 'charlie', 'bob'].map((k) => {
+                  const s = studentByKey(k);
+                  return `<option value="${k}" ${b.studentKey === k ? 'selected' : ''}>${esc(s.name)} · ${esc(s.tag)}</option>`;
+                }).join('')}
+              </select>
+            </div>
+            <div class="mt-2 grid grid-cols-3 divide-x divide-slate-100 rounded-xl bg-slate-50 py-2.5 text-center">
+              <div><div class="text-[16px] font-bold ${fixed >= 4 ? 'text-emerald-600' : 'text-rose-600'}">${fixed} 节</div><div class="mt-0.5 text-[12px] font-medium text-slate-400">固定位 TS</div></div>
+              <div><div class="text-[16px] font-bold text-slate-900">4 节</div><div class="mt-0.5 text-[12px] font-medium text-slate-400">本次消耗</div></div>
+              <div><div class="text-[16px] font-bold text-slate-900">David</div><div class="mt-0.5 text-[12px] font-medium text-slate-400">授课教师</div></div>
+            </div>
+            ${fixed < 4 ? '<p class="mt-2 text-[12px] font-medium text-rose-600">该学员固定位待排期 TS 不足 4 节，提交按钮已置灰阻断。</p>' : ''}
+          </section>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 class="text-[16px] font-bold text-slate-900">上课时间</h2>
+            <div class="mt-2.5 space-y-2.5">
+              <div>
+                <div class="mb-1 text-[12px] font-medium text-slate-500">起始周</div>
+                <div class="flex gap-1.5">
+                  ${[[0, '本周 (11-09)'], [1, '下周 (11-16)']].map(([v, label]) => `<button data-action="batch-start" data-value="${v}" class="h-8 flex-1 rounded-lg border text-[12px] font-bold ${b.startWeek === v ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600'}">${label}</button>`).join('')}
+                </div>
+              </div>
+              <div>
+                <div class="mb-1 text-[12px] font-medium text-slate-500">周几</div>
+                <div class="grid grid-cols-7 gap-1">
+                  ${DAY_LABELS.map((d, i) => `<button data-action="batch-weekday" data-value="${i}" class="h-8 rounded-lg border text-[12px] font-bold ${b.weekday === i ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600'}">${d.slice(1)}</button>`).join('')}
+                </div>
+              </div>
+              <div>
+                <label for="batchTime" class="mb-1 block text-[12px] font-medium text-slate-500">授课时段（30 分钟格）</label>
+                <select id="batchTime" class="${inputCls} font-mono">
+                  ${TIME_SLOTS.map((t) => `<option value="${t}" ${b.time === t ? 'selected' : ''}>${t} - ${endTime(t, 1)}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-[16px] font-bold text-slate-900">未来 4 周预检</h2>
+              <span class="text-[12px] font-medium ${hasConflict ? 'text-rose-600' : 'text-emerald-600'}">${hasConflict ? '存在冲突' : '全部空闲'}</span>
+            </div>
+            <div class="mt-2.5 space-y-1.5">
+              ${targets.map((t) => `
+                <div class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 ${t.conflict ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}">
+                  <div class="min-w-0">
+                    <div class="text-[14px] font-bold ${t.conflict ? 'text-rose-700' : 'text-emerald-700'}">第 ${t.weekNo} 周 · ${dateLabel(t.iso)} ${weekdayLabel(t.iso)}</div>
+                    <div class="mt-0.5 truncate text-[12px] font-medium ${t.conflict ? 'text-rose-600' : 'text-emerald-600'}">${t.conflict || '空闲可锁定'}</div>
+                  </div>
+                  <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${t.conflict ? 'border-rose-200 bg-white text-rose-600' : 'border-emerald-200 bg-white text-emerald-600'}">${t.conflict ? '冲突' : '空闲'}</span>
+                </div>`).join('')}
+            </div>
+            <label class="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2">
+              <span class="text-[12px] font-medium text-slate-600">模拟第 3 周冲突（演示 409 阻断）</span>
+              <input id="simulateBatchConflict" type="checkbox" ${b.simulate ? 'checked' : ''} class="h-4 w-4 shrink-0 accent-rose-600">
+            </label>
+          </section>
+
+          <button data-action="submit-batch" ${disabled ? 'disabled' : ''} class="h-12 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认批量排满四周 · 扣减 4 节固定位 TS</button>
+          ${state.online === 'off' ? '<p class="text-center text-[12px] font-medium text-amber-700">离线只读，排课提交已禁用</p>' : ''}
+          ${hasConflict && fixed >= 4 && state.online === 'on' ? '<p class="text-center text-[12px] font-medium text-rose-600">存在冲突周，请更换时段或协调挪位后重试。</p>' : ''}
+        </div>`;
+    }
+
+    function submitBatch() {
+      if (state.online === 'off') return showToast('离线只读，暂不可排课', true);
+      const b = state.batch;
+      const targets = batchTargets();
+      if ((state.fixed[b.studentKey] || 0) < 4) return showToast('固定位待排期 TS 不足 4 节', true);
+      if (targets.some((t) => t.conflict)) return showToast('存在冲突周，事务已回滚（409）', true);
+
+      const student = studentByKey(b.studentKey);
+      targets.forEach((t) => {
+        const week = state.weeks['david'][String(t.offset)];
+        const cell = week.cells[t.iso][b.time];
+        cell.status = 'ORANGE';
+        cell.student = student.name;
+        cell.teacherId = 'david';
+        cell.orderId = `ord_${b.studentKey}_fixed`;
+        cell.tsId = `ts_${b.studentKey}_fixed_${t.weekNo}`;
+        cell.holder = 'Leo';
+      });
+      state.fixed[b.studentKey] -= 4;
+      state.teacherId = 'david';
+      state.weekOffset = b.startWeek;
+      state.page = 'schedule';
+      state.navTab = 'schedule';
+      renderAll();
+      showToast(`固定位已排满 4 周 · ${targets.map((t) => dateLabel(t.iso)).join(' / ')} · 扣减 4 节 TS`);
+    }
+
+    /* ------------------------------------------------------------------
+     * 小班课双格排课
+     * ------------------------------------------------------------------ */
+    function smallTargets() {
+      const s = state.small;
+      const cls = classById(s.classId);
+      const week = state.weeks[cls.teacherId][String(s.startWeek)];
+      const day = week.days[s.weekday];
+      const idx = TIME_SLOTS.indexOf(s.time);
+      const next = idx >= 0 && idx + 1 < TIME_SLOTS.length ? TIME_SLOTS[idx + 1] : null;
+      const first = idx >= 0 ? week.cells[day.iso][s.time] : null;
+      const second = next ? week.cells[day.iso][next] : null;
+      let conflict = '';
+      if (!next) conflict = '23:30 无法再连续占用第 2 格';
+      else if (first.status !== 'GREEN') conflict = `第 1 格：${statusConflictLabel(first.status)}`;
+      else if (second.status !== 'GREEN') conflict = `第 2 格：${statusConflictLabel(second.status)}`;
+      return { cls, week, day, next, first, second, conflict };
+    }
+
+    function renderSmallGroup() {
+      const s = state.small;
+      const t = smallTargets();
+      const disabled = state.online === 'off' || !!t.conflict;
+      const inputCls = 'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100';
+
+      return `
+        <div class="mx-auto w-full max-w-[640px] space-y-3.5 px-4 pb-6 pt-4">
+          <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">
+            小班课采用班长自负盈亏整班核算，必须连续占用 2 个 30 分钟单元格（授课 50 分钟 + 课间 10 分钟），全班统一生效、学生端无个人挪位入口。
+          </div>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 class="text-[16px] font-bold text-slate-900">目标班级</h2>
+            <div class="mt-2.5">
+              <label for="smallClass" class="mb-1 block text-[12px] font-medium text-slate-500">班级</label>
+              <select id="smallClass" class="${inputCls}">
+                ${CLASSES.map((c) => `<option value="${c.id}" ${s.classId === c.id ? 'selected' : ''}>${esc(c.name)} · ${c.size} 人 · ${teacherById(c.teacherId).name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="mt-2 grid grid-cols-3 divide-x divide-slate-100 rounded-xl bg-slate-50 py-2.5 text-center">
+              <div><div class="text-[16px] font-bold text-slate-900">${esc(teacherById(t.cls.teacherId).name.split(' ')[0])}</div><div class="mt-0.5 text-[12px] font-medium text-slate-400">授课教师</div></div>
+              <div><div class="text-[16px] font-bold text-slate-900">${t.cls.size} 人</div><div class="mt-0.5 text-[12px] font-medium text-slate-400">全班名册</div></div>
+              <div><div class="text-[16px] font-bold text-slate-900">2 格</div><div class="mt-0.5 text-[12px] font-medium text-slate-400">连续占用</div></div>
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 class="text-[16px] font-bold text-slate-900">排课时间</h2>
+            <div class="mt-2.5 space-y-2.5">
+              <div>
+                <div class="mb-1 text-[12px] font-medium text-slate-500">起始周</div>
+                <div class="flex gap-1.5">
+                  ${[[0, '本周 (11-09)'], [1, '下周 (11-16)']].map(([v, label]) => `<button data-action="small-start" data-value="${v}" class="h-8 flex-1 rounded-lg border text-[12px] font-bold ${s.startWeek === v ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600'}">${label}</button>`).join('')}
+                </div>
+              </div>
+              <div>
+                <div class="mb-1 text-[12px] font-medium text-slate-500">周几</div>
+                <div class="grid grid-cols-7 gap-1">
+                  ${DAY_LABELS.map((d, i) => `<button data-action="small-weekday" data-value="${i}" class="h-8 rounded-lg border text-[12px] font-bold ${s.weekday === i ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600'}">${d.slice(1)}</button>`).join('')}
+                </div>
+              </div>
+              <div>
+                <label for="smallTime" class="mb-1 block text-[12px] font-medium text-slate-500">起始时段（自动连续 2 格）</label>
+                <select id="smallTime" class="${inputCls} font-mono">
+                  ${TIME_SLOTS.map((time) => `<option value="${time}" ${s.time === time ? 'selected' : ''}>${time} - ${endTime(time, 2)}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-[16px] font-bold text-slate-900">双格预检</h2>
+              <span class="text-[12px] font-medium ${t.conflict ? 'text-rose-600' : 'text-emerald-600'}">${t.conflict || '连续 2 格空闲'}</span>
+            </div>
+            <div class="mt-2.5 grid grid-cols-2 gap-2">
+              ${[t.first, t.second].map((cell, i) => {
+                if (!cell) return `<div class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-center text-[12px] font-medium text-rose-600">第 ${i + 1} 格不可用</div>`;
+                const cfg = COLOR[cell.status];
+                return `<div class="rounded-xl border ${cfg.cls} px-3 py-3 text-center">
+                  <div class="text-[12px] font-bold">第 ${i + 1} 格 · ${TIME_SLOTS[TIME_SLOTS.indexOf(s.time) + i]}</div>
+                  <div class="mt-1 text-[14px] font-bold">${cfg.name}</div>
+                </div>`;
+              }).join('')}
+            </div>
+            <div class="mt-2 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-500">
+              <span>${dateLabel(t.day.iso)} ${weekdayLabel(t.day.iso)} · ${s.time} - ${t.next ? endTime(t.next, 1) : '—'}</span>
+              <span class="font-mono">50m + 10m</span>
+            </div>
+          </section>
+
+          <button data-action="submit-small" ${disabled ? 'disabled' : ''} class="h-12 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认整班排定连续 2 格</button>
+          ${t.conflict ? `<p class="text-center text-[12px] font-medium text-rose-600">${esc(t.conflict)}，请更换时段。</p>` : ''}
+          ${state.online === 'off' ? '<p class="text-center text-[12px] font-medium text-amber-700">离线只读，排课提交已禁用</p>' : ''}
+        </div>`;
+    }
+
+    function submitSmall() {
+      if (state.online === 'off') return showToast('离线只读，暂不可排课', true);
+      const t = smallTargets();
+      if (t.conflict) return showToast(`排课冲突：${t.conflict}`, true);
+      t.first.status = 'ORANGE';
+      t.first.className = t.cls.name;
+      t.first.classId = t.cls.id;
+      t.first.teacherId = t.cls.teacherId;
+      t.second.status = 'ORANGE';
+      t.second.className = t.cls.name;
+      t.second.classId = t.cls.id;
+      t.second.teacherId = t.cls.teacherId;
+      state.teacherId = t.cls.teacherId;
+      state.weekOffset = state.small.startWeek;
+      state.page = 'schedule';
+      state.navTab = 'schedule';
+      renderAll();
+      showToast(`整班已排定 · ${t.cls.name} · ${dateLabel(t.day.iso)} ${weekdayLabel(t.day.iso)} ${state.small.time} - ${endTime(state.small.time, 2)}`);
+    }
+
+    /* ------------------------------------------------------------------
+     * 事件
+     * ------------------------------------------------------------------ */
+    document.getElementById('frame').addEventListener('click', (e) => {
+      const el = e.target.closest('[data-action]');
+      if (!el) return;
+      const action = el.dataset.action;
+
+      if (action === 'nav') return navTo(el.dataset.tab);
+      if (action === 'toast') return showToast(el.dataset.message || '');
+      if (action === 'close-overlay') { state.overlay = null; state.booking = null; renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'cell') return onCellClick(el.dataset.day, el.dataset.time);
+      if (action === 'week-prev') {
+        if (state.weekOffset <= -12) return showToast('已到日历最早可浏览周（前后各 12 周）');
+        state.weekOffset -= 1; renderAll(); return;
+      }
+      if (action === 'week-next') {
+        if (state.weekOffset >= 12) return showToast('已到日历最晚可浏览周（前后各 12 周）');
+        state.weekOffset += 1; renderAll(); return;
+      }
+      if (action === 'cycle-prev') {
+        if (state.weekOffset <= -12) return showToast('已到最早一轮');
+        state.weekOffset = Math.max(-12, state.weekOffset - 4); renderAll(); return;
+      }
+      if (action === 'cycle-next') {
+        if (state.weekOffset >= 12) return showToast('已到最晚一轮');
+        state.weekOffset = Math.min(12, state.weekOffset + 4); renderAll(); return;
+      }
+      if (action === 'week-goto') {
+        state.weekOffset = Math.max(-12, Math.min(12, Number(el.dataset.offset) || 0));
+        renderAll(); return;
+      }
+      if (action === 'week-current') { state.weekOffset = 0; renderAll(); return; }
+      if (action === 'open-teacher-sheet') {
+        state.overlay = { type: 'teacher' };
+        renderOverlay();
+        lucide.createIcons();
+        return;
+      }
+      if (action === 'set-teacher') {
+        state.teacherId = el.dataset.id;
+        state.overlay = null;
+        renderAll();
+        return;
+      }
+      if (action === 'set-child') { state.child = el.dataset.key; renderAll(); return; }
+      if (action === 'parent-view') { state.parentView = el.dataset.view; renderAll(); return; }
+      if (action === 'toggle-gap') {
+        const key = el.dataset.key;
+        if (state.expandedGaps.has(key)) state.expandedGaps.delete(key);
+        else state.expandedGaps.add(key);
+        renderContentOnly();
+        return;
+      }
+      if (action === 'toggle-full-day') {
+        state.fullDay = !state.fullDay;
+        state.expandedGaps = new Set();
+        renderContentOnly();
+        return;
+      }
+      if (action === 'agenda-open') {
+        state.teacherId = el.dataset.teacher;
+        state.overlay = { type: 'cell', day: el.dataset.day, time: el.dataset.time };
+        renderAll();
+        return;
+      }
+      if (action === 'open-availability') { state.page = 'availability'; state.availTeacher = state.teacherId; state.overlay = null; renderAll(); return; }
+      if (action === 'open-batch') { state.page = 'batch'; state.overlay = null; renderAll(); return; }
+      if (action === 'open-smallgroup') { state.page = 'smallgroup'; state.overlay = null; renderAll(); return; }
+      if (action === 'go-schedule') { state.page = 'schedule'; state.navTab = 'schedule'; state.overlay = null; renderAll(); return; }
+      if (action === 'set-avail-teacher') { state.availTeacher = el.dataset.id; renderContentOnly(); return; }
+      if (action === 'toggle-avail') return toggleAvail(el, Number(el.dataset.day), el.dataset.time);
+      if (action === 'avail-preset') return applyPreset(el.dataset.preset);
+      if (action === 'save-availability') return saveAvailability();
+      if (action === 'avail-fold') {
+        if (el.dataset.fold === 'early') state.availExpandEarly = !state.availExpandEarly;
+        else state.availExpandLate = !state.availExpandLate;
+        renderContentOnly();
+        return;
+      }
+      if (action === 'booking-mode') { state.booking.mode = el.dataset.mode; renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'proxy-student') {
+        state.booking.studentKey = el.dataset.key;
+        state.booking.count = 1;
+        state.monitorStudentKey = el.dataset.key;
+        renderOverlay();
+        lucide.createIcons();
+        return;
+      }
+      if (action === 'fixed-teacher') { state.booking.fixed.teacherId = el.dataset.id; renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'fixed-start') { state.booking.fixed.startWeek = Number(el.dataset.value); renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'fixed-weekday') { state.booking.fixed.weekday = Number(el.dataset.value); renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'book-count') { state.booking.count = Number(el.dataset.count); renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'confirm-book') return confirmBooking();
+      if (action === 'confirm-fixed') return confirmFixedBooking();
+      if (action === 'book-from-detail') { const day = el.dataset.day; const time = el.dataset.time; state.overlay = null; return openBooking(day, time); }
+      if (action === 'batch-start') { state.batch.startWeek = Number(el.dataset.value); renderContentOnly(); return; }
+      if (action === 'batch-weekday') { state.batch.weekday = Number(el.dataset.value); renderContentOnly(); return; }
+      if (action === 'submit-batch') return submitBatch();
+      if (action === 'small-start') { state.small.startWeek = Number(el.dataset.value); renderContentOnly(); return; }
+      if (action === 'small-weekday') { state.small.weekday = Number(el.dataset.value); renderContentOnly(); return; }
+      if (action === 'submit-small') return submitSmall();
     });
 
-    html += '</tr>';
-  });
-  html += '</tbody>';
-
-  $('excelTable').innerHTML = html;
-}
-
-/* ===== 单元格点击事件处理 ===== */
-function onCellClick(dayKey, time) {
-  const curWeek = WEEKS_DATA[String(S.weekOffset)];
-  const day = curWeek.days.find(d => d.key === dayKey);
-  const cell = curWeek.cells[dayKey][time];
-  S.activeCell = { dayKey, time, cell, day };
-  S.selectedCount = 1; // 默认单约 1 节
-
-  // 1. 设置弹窗顶栏与基础信息
-  let displayColor = cell.color;
-  if (cell.sub) {
-    displayColor = S.role === 'sub_teacher' ? 'PURPLE' : 'BLUE';
-  }
-  const cfg = COLOR_CONFIG[displayColor];
-
-  $('modalColorBadge').className = `w-3 h-3 rounded ${cfg.badgeCls}`;
-  $('modalTitle').textContent = `${cfg.name} · ${time}`;
-  $('detailTime').textContent = `${dayKey} (周${day.week}) ${time} - ${getNextHalfHour(time, 1)}`;
-  $('detailTeacher').textContent = cell.sub ? `${cell.sub.actualTeacher} (代课)` : 'Teacher David (T3 级)';
-  $('detailStatus').textContent = cfg.name;
-
-  if (cell.student) {
-    $('detailStudentRow').classList.remove('hidden');
-    $('detailStudent').textContent = `${cell.student} (格内缩写: ${cell.student.slice(0, 4)})`;
-  } else {
-    $('detailStudentRow').classList.add('hidden');
-  }
-
-  // 2. 代课文本详情展示
-  const subBox = $('substituteAlertBox');
-  if (cell.sub) {
-    subBox.classList.remove('hidden');
-    if (S.role === 'sub_teacher') {
-      subBox.className = 'rounded-xl border border-purple-300 bg-purple-50 p-3 text-xs space-y-1.5 text-purple-900';
-      $('subAlertTitle').innerHTML = '<i data-lucide="bell" class="w-4 h-4 text-purple-700"></i><span>【代上课交接提醒】完课计入本人周结单</span>';
-      $('subAlertText').innerHTML = `
-        <b>原任课教师：</b>${cell.sub.originalTeacher} (因急性咽喉炎请假)<br>
-        <b>学员姓名：</b>${cell.student}<br>
-        <b>交接进度：</b>${cell.sub.memo}<br>
-        <b>代课说明：</b>${cell.sub.reason}
-      `;
-      $('subAlertFooter').textContent = '财务核算：完课后课酬 100% 结算至 Teacher Linda 周课酬单。';
-    } else {
-      subBox.className = 'rounded-xl border border-blue-300 bg-blue-50 p-3 text-xs space-y-1.5 text-blue-900';
-      $('subAlertTitle').innerHTML = '<i data-lucide="info" class="w-4 h-4 text-blue-700"></i><span>【代课通知】原教师请假，由 Linda 老师授课</span>';
-      $('subAlertText').innerHTML = `
-        <b>原授课老师：</b>${cell.sub.originalTeacher} (已获批请假)<br>
-        <b>实际授课老师：</b>${cell.sub.actualTeacher} (同级外教)<br>
-        <b>上课学员：</b>${cell.student}<br>
-        <b>调课缘由：</b>${cell.sub.reason}
-      `;
-      $('subAlertFooter').textContent = '服务保障：由负责班长统一质检调度，不影响孩子课时消耗与教学进度。';
-    }
-  } else {
-    subBox.classList.add('hidden');
-  }
-
-  // 2b. 续费预占卡片展示 (HOLD, AC-3A-07a~c)
-  const holdBox = $('holdAlertBox');
-  if (cell.color === 'HOLD') {
-    holdBox.classList.remove('hidden');
-  } else {
-    holdBox.classList.add('hidden');
-  }
-
-  // 3. 连约面板配置与连续时段检查
-  const bookingBox = $('bookingActionBox');
-  const btnBook = $('btnModalBook');
-
-  if (cell.color === 'GREEN') {
-    if (S.role === 'parent') {
-      if (day.inWindow && !day.isPast) {
-        bookingBox.classList.remove('hidden');
-        btnBook.classList.remove('hidden');
-        renderConsecutiveOptions(dayKey, time);
-        updateBookingSummary();
-      } else {
-        bookingBox.classList.add('hidden');
-        btnBook.classList.add('hidden');
-        toast(day.isPast ? '过去时段不可预约' : '该时段超出未来 1-7 天临时课预约窗口', true);
+    document.getElementById('frame').addEventListener('input', (e) => {
+      if (e.target.id === 'proxyStudentSearch' && state.booking) {
+        state.booking.search = e.target.value;
+        const box = document.getElementById('proxyStudentResults');
+        if (box) box.innerHTML = proxyStudentResultsHtml();
+        lucide.createIcons();
       }
-    } else {
-      bookingBox.classList.add('hidden');
-      btnBook.classList.add('hidden');
-    }
-  } else {
-    bookingBox.classList.add('hidden');
-    btnBook.classList.add('hidden');
-  }
+    });
 
-  // 4. 显示弹窗
-  $('mask').classList.remove('hidden');
-  $('cellDetailModal').classList.remove('hidden');
-  ico();
-}
+    document.getElementById('frame').addEventListener('change', (e) => {
+      const id = e.target.id;
+      if (id === 'fixedTime' && state.booking) {
+        state.booking.fixed.time = e.target.value;
+        renderOverlay();
+        lucide.createIcons();
+        return;
+      }
+      if (id === 'fixedSuppressHold' && state.booking) {
+        state.booking.fixed.suppressHold = e.target.checked;
+        return;
+      }
+      if (id === 'bookingStudent') {
+        state.booking.studentKey = e.target.value;
+        state.booking.count = 1;
+        renderOverlay(); lucide.createIcons();
+        return;
+      }
+      if (id === 'simulateConflict') { state.booking.simulate = e.target.checked; return; }
+      if (id === 'batchStudent') { state.batch.studentKey = e.target.value; renderContentOnly(); return; }
+      if (id === 'batchTime') { state.batch.time = e.target.value; renderContentOnly(); return; }
+      if (id === 'simulateBatchConflict') { state.batch.simulate = e.target.checked; renderContentOnly(); return; }
+      if (id === 'smallClass') {
+        const cls = classById(e.target.value);
+        state.small.classId = cls.id;
+        state.small.weekday = cls.weekday;
+        state.small.time = cls.time;
+        renderContentOnly();
+        return;
+      }
+      if (id === 'smallTime') { state.small.time = e.target.value; renderContentOnly(); return; }
+    });
 
-/* ===== 检查并渲染连约 1 / 2 / 3 / 4 次课选项 ===== */
-function renderConsecutiveOptions(dayKey, startTime) {
-  const curWeek = WEEKS_DATA[String(S.weekOffset)];
-  const startIdx = TIME_SLOTS.indexOf(startTime);
-  const container = $('consecutiveBtns');
-
-  const checkConsecutiveAvailable = (count) => {
-    if (startIdx + count > TIME_SLOTS.length) return false;
-    for (let i = 0; i < count; i++) {
-      const t = TIME_SLOTS[startIdx + i];
-      const c = curWeek.cells[dayKey][t];
-      if (!c || c.color !== 'GREEN') return false;
-    }
-    return true;
-  };
-
-  const options = [
-    { count: 1, label: '单约 1 节', sub: '30m' },
-    { count: 2, label: '连约 2 节', sub: '1h' },
-    { count: 3, label: '连约 3 节', sub: '1.5h' },
-    { count: 4, label: '连约 4 节', sub: '2h' }
-  ];
-
-  container.innerHTML = options.map(opt => {
-    const isAvail = checkConsecutiveAvailable(opt.count);
-    const hasQuota = S.tempQuota >= opt.count;
-    const canSelect = isAvail && hasQuota;
-    const isSelected = S.selectedCount === opt.count;
-
-    let btnCls = '';
-    if (isSelected) {
-      btnCls = 'border-brand-600 bg-brand-50 text-brand-700 font-bold ring-1 ring-brand-500';
-    } else if (canSelect) {
-      btnCls = 'border-slate-200 bg-white text-slate-700 hover:border-slate-300';
-    } else {
-      btnCls = 'border-slate-100 bg-slate-50 text-slate-300 opacity-60 cursor-not-allowed';
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      t.className = `pointer-events-none absolute bottom-24 left-1/2 z-[100] w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl ${isError ? 'bg-rose-600/95' : 'bg-slate-900/90'}`;
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => t.classList.add('hidden'), 2800);
     }
 
-    const disabledAttr = canSelect ? `onclick="selectConsecutiveCount(${opt.count})"` : 'disabled';
-    const tag = !isAvail ? '后段已占' : (!hasQuota ? '资产不足' : opt.sub);
-
-    return `
-      <button ${disabledAttr} class="rounded-xl border p-2 flex flex-col items-center justify-center transition text-center ${btnCls}">
-        <span class="text-xs font-semibold leading-tight">${opt.label}</span>
-        <span class="text-sm font-bold mt-0.5 opacity-80">${tag}</span>
-      </button>
-    `;
-  }).join('');
-}
-
-function selectConsecutiveCount(count) {
-  S.selectedCount = count;
-  renderConsecutiveOptions(S.activeCell.dayKey, S.activeCell.time);
-  updateBookingSummary();
-}
-
-function updateBookingSummary() {
-  if (!S.activeCell) return;
-  const { dayKey, time } = S.activeCell;
-  const count = S.selectedCount;
-  const endTime = getNextHalfHour(time, count);
-
-  $('bookRangeText').textContent = `连续排课: ${time} - ${endTime} (共 ${count} 节 · ${count * 30}分钟)`;
-  $('bookDeductText').textContent = `扣减 ${count} 节临时课`;
-  $('remainQuotaPreview').textContent = `预约后剩余: ${S.tempQuota - count} 节`;
-  $('btnModalBook').innerHTML = `<i data-lucide="check" class="w-4 h-4"></i>确认预约 ${count} 节课 (消耗${count}节TS)`;
-  ico();
-}
-
-function getNextHalfHour(time, step = 1) {
-  const [h, m] = time.split(':').map(Number);
-  const totalMins = h * 60 + m + step * 30;
-  const nextH = Math.floor(totalMins / 60);
-  const nextM = totalMins % 60;
-  return `${String(nextH).padStart(2, '0')}:${String(nextM).padStart(2, '0')}`;
-}
-
-/* ===== 执行连约预约确认 ===== */
-function doConfirmBook() {
-  if (!S.activeCell) return;
-  const { dayKey, time } = S.activeCell;
-  const count = S.selectedCount;
-
-  if (S.tempQuota < count) {
-    toast(`临时课剩余课时不足 ${count} 节，请先购课`, true);
-    return;
-  }
-
-  const curWeek = WEEKS_DATA[String(S.weekOffset)];
-  const startIdx = TIME_SLOTS.indexOf(time);
-
-  // 原子锁定连续 N 个时段，写入学员名 AliceZ12
-  for (let i = 0; i < count; i++) {
-    const t = TIME_SLOTS[startIdx + i];
-    const targetCell = curWeek.cells[dayKey][t];
-    targetCell.color = 'YELLOW';
-    targetCell.info = `1v1 临时课 (连排 ${i+1}/${count})`;
-    targetCell.student = 'AliceZ12';
-  }
-
-  S.tempQuota -= count;
-  $('tempQuotaBadge').textContent = `临时课: ${S.tempQuota} 节`;
-
-  closeAll();
-  renderExcelGrid();
-  toast(`预约成功！已连约 ${count} 节课 (${time} - ${getNextHalfHour(time, count)})，课表已呈现黄色 🟡`);
-}
-
-function closeAll() {
-  $('cellDetailModal').classList.add('hidden');
-  $('mask').classList.add('hidden');
-  S.activeCell = null;
-}
-
-function renderAll() {
-  renderControls();
-  renderExcelGrid();
-  ico();
-}
-
-// 页面加载默认启动
-renderAll();
-</script>
+    renderAll();
+  </script>
 </body>
 </html>
