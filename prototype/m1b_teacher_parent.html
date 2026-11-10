@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
-<!-- 即抛型原型：M1B 家长端教师公开履历与选课大厅。纯前端 Mock，不连接后端，不触碰生产代码。 -->
+<!-- 即抛型原型：M1B 家长端教师公开履历与选课大厅。纯前端 Mock，不连接后端，不触碰生产代码。遵循 DESIGN.md 与 docs/prd/m1b_teacher_profile.md -->
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -16,21 +16,22 @@
             brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
           },
           fontFamily: {
-            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif']
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
           }
         }
       }
-    }
+    };
   </script>
 </head>
 <body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
 
-  <header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
-    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-xs">
+  <header id="console" class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-[12px]">
       <div class="flex items-center gap-2">
-        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">1B</span>
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-300">1B</span>
         <span class="text-[14px] font-bold text-slate-900">家长端教师履历</span>
-        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">最新 PRD · 底栏 ≤ 4 Tab</span>
+        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">公开脱敏 · 风采相册 · 双语简介 · 就地视频</span>
       </div>
       <div class="flex items-center gap-2">
         <span class="font-medium text-slate-500">设备</span>
@@ -46,43 +47,46 @@
           <button data-group="online" data-value="off" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">离线</button>
         </div>
       </div>
-      <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置演示</button>
-      <a href="../docs/prd/m1b_teacher_profile.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
-        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M1B PRD
-      </a>
+      <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
+      <div class="ml-auto hidden items-center gap-1.5 lg:flex">
+        <a href="../docs/prd/m1b_teacher_profile.md" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">
+          <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M1B PRD
+        </a>
+        <a href="m1b_teacher_monitor.html" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">
+          <i data-lucide="external-link" class="h-3.5 w-3.5"></i>管理端
+        </a>
+      </div>
     </div>
   </header>
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
-      <div id="topbar" class="shrink-0"></div>
-      <div id="offlineBanner" class="hidden">
-        <i data-lucide="wifi-off" class="h-4 w-4 shrink-0 text-amber-600"></i>
-        离线只读：教师公开列表来自 L3 缓存，预约需联网
-      </div>
-      <div id="content" class="flex-1 overflow-y-auto"></div>
+      <div id="banner" class="shrink-0"></div>
+      <div id="offlineBanner" class="hidden"></div>
+      <div id="content" class="min-h-0 flex-1 overflow-y-auto"></div>
       <nav id="bottomnav" class="shrink-0"></nav>
       <div id="overlay"></div>
-      <div id="toast" class="pointer-events-none absolute bottom-24 left-1/2 z-[80] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-20 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
     </div>
   </main>
 
   <div class="hidden">
-    <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-w-[560px] max-h-[85%]"></span>
-    <span class="grid grid-cols-1 grid-cols-2"></span>
-    <span class="bg-indigo-600 bg-indigo-50 text-indigo-700 border-indigo-100 text-indigo-950"></span>
-    <span class="bg-emerald-50 text-emerald-600 text-emerald-700 border-emerald-200"></span>
-    <span class="bg-amber-50 text-amber-600 text-amber-800 border-amber-200"></span>
-    <span class="bg-slate-100 text-slate-500 text-slate-600 border-slate-200 bg-slate-900 text-amber-300"></span>
-    <span class="bg-slate-900/40 backdrop-blur-[1px] bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-700 aspect-video"></span>
+    <span class="bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700"></span>
+    <span class="bg-indigo-50/80 border-indigo-200/70 bg-indigo-100 text-indigo-800 text-indigo-700 text-indigo-950 text-indigo-900/85 bg-indigo-600 hover:bg-indigo-700 border-indigo-300"></span>
+    <span class="bg-emerald-50/80 border-emerald-200/70 bg-emerald-100 text-emerald-800 text-emerald-700 text-emerald-950 bg-emerald-600 border-emerald-300"></span>
+    <span class="bg-amber-50/80 border-amber-200/70 bg-amber-100 text-amber-800 text-amber-700 text-amber-950 bg-amber-600 border-amber-300"></span>
+    <span class="bg-rose-50/80 border-rose-200/70 bg-rose-100 text-rose-700 border-rose-300"></span>
+    <span class="bg-slate-50 border-slate-200/80 bg-slate-100 text-slate-700 text-slate-600 text-slate-500 text-slate-400 bg-slate-900 border-slate-300"></span>
+    <span class="bg-white/60 bg-white/70 bg-white/20 bg-white/15 ring-white/30 bg-slate-900/40 bg-slate-900/55 bg-slate-900/60 bg-slate-900/65 bg-slate-900/70 bg-slate-900/75 bg-slate-900/80 bg-slate-950/95 backdrop-blur-[1px]"></span>
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] grid-cols-1 grid-cols-2 grid-cols-3 aspect-square aspect-video"></span>
   </div>
 
   <script>
+    const TODAY = '2026-11-10';
     const SAMPLE_VIDEO = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
     const COURSE_TYPES = ['少儿英语', '生活口语', '旅游口语', '自然拼读', 'KET', 'PET', '雅思', '托福'];
     const PARENT_CHILDREN = [{ name: 'AliceZ12', age: 12 }, { name: 'BobZ10', age: 10 }];
 
-    /* 原型内联示例照片（原创 SVG 占位，不依赖外网图片） */
     function demoPhoto(label, from, to, w = 800, h = 600) {
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
         <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs>
@@ -120,39 +124,50 @@
         ['KET 备考', '#0ea5e9', '#6366f1']
       ]),
       emma: demoAlbum('emma', [
-        ['雅思口语', '#ec4899', '#8b5cf6'],
-        ['学术英语', '#f59e0b', '#f97316']
+        ['低龄启蒙', '#ec4899', '#8b5cf6'],
+        ['日常对话', '#f59e0b', '#f97316']
+      ]),
+      kevin: demoAlbum('kevin', [
+        ['游戏化课堂', '#14b8a6', '#6366f1'],
+        ['自然拼读', '#22c55e', '#0ea5e9']
       ])
     };
 
     const TEACHERS = [
       {
-        id: 'tc_david000001', name: 'David Miller', level: 'Senior', monitor: 'Leo',
+        id: 'tc_david0001', name: 'David Miller', level: 'Senior', monitor: 'Leo',
         skills: ['少儿英语', 'KET', '自然拼读'], videoDuration: '01:45', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.david, avatarPhotoId: DEMO.david[0].id, avatarDataUrl: DEMO.david[0].dataUrl,
         introZh: 'David 老师来自英国伦敦，拥有牛津大学教育学背景与 8 年少儿一线教学经验（CELTA 认证）。擅长通过高频游戏化互动与自然拼读教学法激发孩子语言潜能，累计辅导超 200 名学员高分通过 KET/PET 剑桥五级考试。',
         introEn: 'Teacher David comes from London, UK, holding a degree in Education and CELTA certification with over 8 years of ESL teaching experience. He specializes in gamified phonics and Cambridge KET exam preparation.'
       },
       {
-        id: 'tc_sarah000002', name: 'Sarah Jenkins', level: 'Standard', monitor: 'Leo',
-        skills: ['生活口语', '少儿英语', '自然拼读'], videoDuration: '01:15', videoUrl: SAMPLE_VIDEO,
+        id: 'tc_sarah0002', name: 'Sarah Jenkins', level: 'Standard', monitor: 'Leo',
+        skills: ['生活口语', '旅游口语'], videoDuration: '01:15', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.sarah, avatarPhotoId: DEMO.sarah[0].id, avatarDataUrl: DEMO.sarah[0].dataUrl,
-        introZh: 'Sarah 老师拥有 5 年少儿国际学校教育背景，擅长运用生动的经典英文绘本与趣味角色扮演带孩子开口。善于捕捉孩子的闪光点并给予积极正向激励，能有效攻克“不敢开口”难题。',
-        introEn: 'Sarah is an enthusiastic educator with 5 years of international school experience. She specializes in picture book storytelling and situational role-play, focusing on building kids confidence in daily spoken English.'
+        introZh: 'Sarah 老师拥有 6 年在线少儿英语教学经验，课堂节奏轻快，擅长生活口语与旅游情境表达训练，善于用绘本和角色扮演帮助孩子建立开口自信。',
+        introEn: 'Sarah has six years of online ESL teaching experience. Her lively classes focus on everyday conversation and travel English, using picture books and role-play to build children\'s speaking confidence.'
       },
       {
-        id: 'tc_michael0003', name: 'Michael Chen', level: 'Senior', monitor: 'Emily',
-        skills: ['KET', '自然拼读'], videoDuration: '02:00', videoUrl: SAMPLE_VIDEO,
+        id: 'tc_micha0006', name: 'Michael Chen', level: 'Senior', monitor: 'Amy',
+        skills: ['KET', '自然拼读'], videoDuration: '01:32', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.michael, avatarPhotoId: DEMO.michael[0].id, avatarDataUrl: DEMO.michael[0].dataUrl,
-        introZh: 'Michael 老师毕业于外语名校，英语专业八级，拥有 7 年英语语法与剑桥 KET 备考执教经历。教学逻辑严密，独创“发音词根记忆网”，帮助学生扎实打牢语法词汇基本功。',
-        introEn: 'Michael graduated from a top foreign languages university with TEM-8 certification. With 7 years of specialized grammar and KET preparation teaching, he uses systematic phonics diagrams to build solid language foundations.'
+        introZh: 'Michael 老师拥有 7 年英语语法与剑桥 KET 备考执教经历，教学逻辑严密，擅长用词根记忆网打牢语法词汇基本功。',
+        introEn: 'Michael has seven years of grammar and Cambridge KET preparation experience, using systematic word-root maps to build solid foundations.'
       },
       {
-        id: 'tc_emma000004', name: 'Emma Watson', level: 'Master', monitor: 'Amy',
-        skills: ['雅思', '生活口语'], videoDuration: '01:08', videoUrl: SAMPLE_VIDEO,
+        id: 'tc_emma00001', name: 'Emma Stone', level: 'Standard', monitor: 'Amy',
+        skills: ['生活口语'], videoDuration: '01:08', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.emma, avatarPhotoId: DEMO.emma[0].id, avatarDataUrl: DEMO.emma[0].dataUrl,
-        introZh: 'Emma 老师拥有 10 年雅思口语与学术英语教学经验，深谙中国考生的表达痛点。课堂以真实话题讨论与高频纠音为主，帮助学生在自然表达中稳步提升流利度与分数。',
-        introEn: 'Emma has 10 years of IELTS speaking and academic English teaching experience. Her classes focus on authentic topic discussion and pronunciation coaching, helping students improve fluency and scores naturally.'
+        introZh: 'Emma 老师擅长低龄学员口语启蒙与日常对话训练，课堂亲和力强，善于用生活情境带孩子自然开口。',
+        introEn: 'Emma specializes in early-years speaking and everyday conversation. Her classes are warm and highly interactive.'
+      },
+      {
+        id: 'tc_kevin0005', name: 'Kevin Lin', level: 'Junior', monitor: 'Amy',
+        skills: ['少儿英语', '自然拼读'], videoDuration: '01:02', videoUrl: SAMPLE_VIDEO,
+        photos: DEMO.kevin, avatarPhotoId: DEMO.kevin[0].id, avatarDataUrl: DEMO.kevin[0].dataUrl,
+        introZh: 'Kevin 老师专注少儿英语启蒙，擅长游戏化课堂与自然拼读，注重孩子的课堂参与感。',
+        introEn: 'Kevin focuses on early-years English and gamified phonics lessons with strong classroom participation.'
       }
     ];
 
@@ -164,12 +179,12 @@
     ];
 
     const state = {
-      page: 'hall', // hall | detail | placeholder
+      page: 'hall',
       navTab: 'hall',
       device: 'mobile',
       online: 'on',
       teachers: JSON.parse(JSON.stringify(TEACHERS)),
-      activeTeacherId: 'tc_david000001',
+      activeTeacherId: 'tc_david0001',
       child: 'AliceZ12',
       filter: 'all',
       lang: 'zh',
@@ -177,13 +192,18 @@
       overlay: null
     };
 
-    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
-    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const $ = (id) => document.getElementById(id);
     const clone = (v) => JSON.parse(JSON.stringify(v));
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
 
-    function teacherById(id) { return state.teachers.find((t) => t.id === id) || state.teachers[0]; }
-    function activeTeacher() { return teacherById(state.activeTeacherId); }
-    function childLabel() { return state.child; }
+    function teacherById(id) {
+      return state.teachers.find((t) => t.id === id) || state.teachers[0];
+    }
+
+    function activeTeacher() {
+      return teacherById(state.activeTeacherId);
+    }
 
     function mainPhotoId(t) {
       if (t.avatarPhotoId) return t.avatarPhotoId;
@@ -195,114 +215,101 @@
     }
 
     function avatar(t, size = 'h-14 w-14', text = 'text-[18px]') {
-      const initial = (t.name || '?').trim().charAt(0).toUpperCase();
+      const initial = (t.name || '?').trim().charAt(0).toUpperCase() || '?';
       const photo = mainPhoto(t);
       const src = t.avatarDataUrl || (photo ? photo.dataUrl : '');
-      if (src) {
-        return `<img src="${src}" class="shrink-0 rounded-full object-cover ring-1 ring-slate-200 ${size}" alt="${esc(t.name)}">`;
-      }
-      return `<div class="grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-50 to-slate-100 ${size} ${text} font-bold text-indigo-700 ring-1 ring-indigo-100">${esc(initial)}</div>`;
-    }
-
-    function renderPhotoGrid(t) {
-      const photos = t.photos || [];
-      if (!photos.length) return '';
-      const mainId = mainPhotoId(t);
-      return `<section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="text-[16px] font-bold text-slate-900">教师风采相册</h2>
-          <span class="text-[12px] font-medium text-slate-400">共 ${photos.length} 张 · 点击看大图</span>
-        </div>
-        <div class="mt-3 grid grid-cols-3 gap-2">
-          ${photos.map((p, i) => `
-            <button data-action="open-photo" data-id="${esc(t.id)}" data-index="${i}" class="group relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100" aria-label="查看第 ${i + 1} 张风采照片">
-              <img src="${p.dataUrl}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" alt="${esc(t.name)} 风采照片 ${i + 1}">
-              ${p.id === mainId ? '<span class="absolute left-1 top-1 rounded-md bg-indigo-600 px-1.5 py-0.5 text-[12px] font-bold text-white shadow-sm">主头像</span>' : ''}
-              <span class="absolute bottom-1 right-1 grid h-6 w-6 place-items-center rounded-md bg-slate-900/55 text-white opacity-0 transition group-hover:opacity-100">${icon('maximize-2', 'h-3.5 w-3.5')}</span>
-            </button>`).join('')}
-        </div>
-        <p class="mt-2 text-[12px] font-medium text-slate-400">点击任意缩略图全屏查看，支持左右切换与高清放大。</p>
-      </section>`;
+      if (src) return `<img src="${esc(src)}" class="shrink-0 rounded-full object-cover ring-1 ring-slate-200 ${size}" alt="">`;
+      return `<span class="${size} grid shrink-0 place-items-center rounded-full bg-indigo-50 ${text} font-bold text-indigo-700 ring-1 ring-indigo-100">${esc(initial)}</span>`;
     }
 
     function levelBadge(level) {
       const map = {
-        Senior: 'border-indigo-100 bg-indigo-50 text-indigo-700',
+        Senior: 'border-indigo-200 bg-indigo-50 text-indigo-700',
         Standard: 'border-slate-200 bg-slate-100 text-slate-600',
-        Master: 'border-slate-800 bg-slate-900 text-amber-300',
         Junior: 'border-slate-200 bg-slate-50 text-slate-500'
       };
-      return `<span class="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[12px] font-bold ${map[level] || map.Standard}">${esc(level)}</span>`;
+      return `<span class="inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${map[level] || map.Standard}">${esc(level)}</span>`;
     }
 
     function qrSvg(seed) {
-      const n = 9; let h = 0;
+      const n = 9;
+      let h = 0;
       for (const ch of String(seed)) h = (h * 131 + ch.charCodeAt(0)) >>> 0;
       const isFinder = (x, y, ox, oy) => x >= ox && x < ox + 3 && y >= oy && y < oy + 3
         && (x === ox || x === ox + 2 || y === oy || y === oy + 2 || (x === ox + 1 && y === oy + 1));
       let rects = '';
-      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-        const on = isFinder(x, y, 0, 0) || isFinder(x, y, 6, 0) || isFinder(x, y, 0, 6)
-          ? true : ((h >> ((x + y * 3) % 30)) & 1) === 1;
-        if (on) rects += `<rect x="${x * 10}" y="${y * 10}" width="10" height="10"/>`;
+      for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+          const on = isFinder(x, y, 0, 0) || isFinder(x, y, 6, 0) || isFinder(x, y, 0, 6)
+            ? true
+            : ((h >> ((x + y * 3) % 30)) & 1) === 1;
+          if (on) rects += `<rect x="${x * 10}" y="${y * 10}" width="10" height="10"/>`;
+        }
       }
       return `<svg viewBox="0 0 90 90" class="h-full w-full text-slate-900" fill="currentColor" aria-hidden="true">${rects}</svg>`;
     }
 
+    /* ------------------------------------------------------------------
+     * 总渲染
+     * ------------------------------------------------------------------ */
     function renderAll() {
-      const frame = document.getElementById('frame');
+      const frame = $('frame');
       frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
-      document.getElementById('topbar').innerHTML = renderTopbar();
-      const banner = document.getElementById('offlineBanner');
-      banner.className = state.online === 'off'
-        ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-[14px] font-semibold text-amber-900'
+
+      $('banner').innerHTML = renderBanner();
+
+      const off = $('offlineBanner');
+      off.className = state.online === 'off'
+        ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[12px] font-semibold text-amber-900'
         : 'hidden';
-      document.getElementById('content').innerHTML = renderContent();
-      document.getElementById('bottomnav').innerHTML = renderNav();
-      renderOverlay();
+      off.innerHTML = state.online === 'off'
+        ? `${icon('wifi-off', 'h-4 w-4 shrink-0 text-amber-600')} 离线只读：教师公开列表来自 L3 缓存，预约需联网`
+        : '';
+
+      $('content').innerHTML = renderContent();
+      $('bottomnav').innerHTML = renderNav();
+      $('overlay').innerHTML = renderOverlay();
       syncConsole();
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     }
 
     function renderContentOnly() {
-      document.getElementById('content').innerHTML = renderContent();
-      lucide.createIcons();
+      $('content').innerHTML = renderContent();
+      if (window.lucide) lucide.createIcons();
     }
 
-    function renderContent() {
-      if (state.page === 'placeholder') return renderPlaceholder();
-      if (state.page === 'detail') return renderDetail();
-      return renderHall();
-    }
-
-    function renderTopbar() {
-      if (state.page === 'detail') return topbarSub('教师履历');
-      if (state.page === 'placeholder') {
-        const item = NAVS.find((n) => n.id === state.navTab);
-        return topbarBase('Dream 教务', `家长工作台 · ${item ? item.label : '其他模块'}`, false);
-      }
-      return topbarBase('Dream 教务', '家长工作台 · Amy', true);
-    }
-
-    function topbarBase(title, subtitle, showAvatar) {
-      return `<div class="border-b border-slate-200 bg-white/95"><div class="flex h-14 items-center justify-between px-4"><div class="flex min-w-0 items-center gap-2.5"><div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-indigo-600 text-[14px] font-bold text-white shadow-sm">D</div><div class="min-w-0"><div class="truncate text-[16px] font-bold leading-tight text-slate-900">${esc(title)}</div><div class="truncate text-[12px] font-medium text-slate-400">${esc(subtitle)}</div></div></div><div class="flex shrink-0 items-center gap-2"><button data-action="toast" data-message="暂无新消息" class="relative grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-600" aria-label="通知">${icon('bell', 'h-[18px] w-[18px]')}<span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white"></span></button>${showAvatar ? '<div class="grid h-9 w-9 place-items-center rounded-full bg-indigo-600 text-[14px] font-bold text-white">A</div>' : ''}</div></div></div>`;
-    }
-
-    function topbarSub(title) {
-      return `<div class="border-b border-slate-200 bg-white/95"><div class="grid h-14 grid-cols-[44px_1fr_44px] items-center px-2"><button data-action="go-back" class="grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" aria-label="返回">${icon('chevron-left', 'h-5 w-5')}</button><div class="truncate text-center text-[16px] font-bold text-slate-900">${esc(title)}</div><button data-action="toast" data-message="暂无新消息" class="relative grid h-10 w-10 place-items-center rounded-xl text-slate-600 hover:bg-slate-100" aria-label="通知">${icon('bell', 'h-[18px] w-[18px]')}<span class="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-white"></span></button></div></div>`;
+    function renderBanner() {
+      return `<header class="relative flex h-[68px] shrink-0 items-center justify-between overflow-hidden bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700 px-4 text-white">
+        <svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><path d="M-20 64 C50 30 110 82 190 48 S300 18 410 44" stroke="white" stroke-opacity=".10" stroke-width="18" stroke-linecap="round"/><circle cx="320" cy="20" r="34" fill="white" fill-opacity=".05"/></svg>
+        <div class="relative flex min-w-0 items-center gap-2.5">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">A</span>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="truncate text-[16px] font-bold">Dream 教务</span>
+              <span class="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[12px] font-bold">家长</span>
+            </div>
+            <div class="truncate text-[12px] text-white/70">多孩家庭 · Amy</div>
+          </div>
+        </div>
+        <button data-action="toast" data-message="暂无新消息" class="relative grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="通知">
+          ${icon('bell', 'h-4 w-4')}
+          <span class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-400 ring-1 ring-white/50"></span>
+        </button>
+      </header>`;
     }
 
     function renderNav() {
-      return `<div class="relative z-40 border-t border-slate-200 bg-white px-1 pb-1.5 pt-1"><div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">${NAVS.map((item) => { const on = state.navTab === item.id; return `<button data-action="nav" data-tab="${item.id}" class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 transition ${on ? 'text-indigo-600' : 'text-slate-400'}">${icon(item.icon, `h-[18px] w-[18px] ${on ? '' : 'opacity-80'}`)}<span class="text-[12px] font-bold">${item.label}</span></button>`; }).join('')}</div></div>`;
-    }
-
-    function navTo(tab) {
-      const item = NAVS.find((n) => n.id === tab);
-      if (!item) return;
-      state.navTab = tab;
-      state.page = item.board ? 'hall' : 'placeholder';
-      state.overlay = null;
-      renderAll();
+      return `<div class="relative z-40 border-t border-slate-200 bg-white px-1 pb-1.5 pt-1">
+        <div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">
+          ${NAVS.map((item) => {
+            const on = state.navTab === item.id;
+            return `<button data-action="nav" data-tab="${item.id}" class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 transition ${on ? 'font-bold text-indigo-600' : 'font-medium text-slate-400'}">
+              ${icon(item.icon, `h-[18px] w-[18px] ${on ? '' : 'opacity-80'}`)}
+              <span class="text-[12px] font-bold leading-tight">${esc(item.label)}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
     }
 
     function syncConsole() {
@@ -312,123 +319,247 @@
       });
     }
 
-    function resetDemo() {
-      state.teachers = clone(TEACHERS);
-      state.page = 'hall'; state.navTab = 'hall'; state.device = 'mobile'; state.online = 'on';
-      state.activeTeacherId = 'tc_david000001'; state.child = 'AliceZ12'; state.filter = 'all';
-      state.lang = 'zh'; state.playingVideo = false; state.overlay = null;
-      renderAll(); showToast('演示数据已重置');
+    function renderContent() {
+      if (state.page === 'placeholder') return renderPlaceholder();
+      if (state.page === 'detail') return renderDetail();
+      return renderHall();
     }
 
+    function renderPlaceholder() {
+      const item = NAVS.find((n) => n.id === state.navTab);
+      if (!item) return `<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>`;
+      return `<div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
+        <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
+        <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
+        <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc)}</p>
+        ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}
+        <button data-action="nav" data-tab="hall" class="mt-3 text-[14px] font-semibold text-indigo-600">返回选课大厅</button>
+      </div>`;
+    }
+
+    function pageHeader(title, subtitle) {
+      return `<div class="px-1">
+        <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${esc(title)}</h1>
+        <p class="mt-0.5 text-[12px] font-medium text-slate-400">${esc(subtitle)}</p>
+      </div>`;
+    }
+
+    function backRow() {
+      return `<button data-action="go-back" class="flex items-center gap-1 text-[14px] font-semibold text-slate-500 transition hover:text-slate-800">${icon('chevron-left', 'h-4 w-4')}选老师</button>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 选课大厅
+     * ------------------------------------------------------------------ */
     function renderHall() {
       const list = state.filter === 'all' ? state.teachers : state.teachers.filter((t) => t.skills.includes(state.filter));
-      const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-3' : 'space-y-3';
-      return `<div class="mx-auto w-full max-w-[720px] space-y-4 px-4 pb-6 pt-4">
-        <div class="px-1"><h1 class="text-[18px] font-bold tracking-tight text-slate-900">选老师</h1><p class="mt-1 text-[14px] font-medium text-slate-500">为 ${esc(childLabel())} 选外教 · 公开脱敏履历</p></div>
+      const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
+      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
+        ${pageHeader('选老师', `为 ${state.child} 选外教 · 公开脱敏履历`)}
         ${childSelector()}
-        <div class="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
-          ${['all', ...COURSE_TYPES].map((c) => `<button data-action="set-filter" data-value="${esc(c)}" class="h-8 shrink-0 rounded-full px-3 text-[12px] font-semibold transition ${state.filter === c ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">${c === 'all' ? '全部科目' : esc(c)}</button>`).join('')}
+        <div class="flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+          ${['all', ...COURSE_TYPES].map((c) => `<button data-action="set-filter" data-value="${esc(c)}" class="h-8 shrink-0 rounded-full border px-2.5 text-[12px] font-bold transition ${state.filter === c ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">${c === 'all' ? '全部科目' : esc(c)}</button>`).join('')}
         </div>
-        <div class="flex items-center justify-between px-1"><span class="text-[14px] font-semibold text-slate-700">外教团队</span><span class="text-[12px] font-medium text-slate-400">共 ${list.length} 位</span></div>
-        ${list.length ? `<div class="${grid}">${list.map(renderTeacherCard).join('')}</div>` : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center"><div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-50 text-slate-300">${icon('search-x', 'h-5 w-5')}</div><p class="mt-3 text-[14px] font-medium text-slate-400">暂无符合该科目的教师</p></div>`}
-        <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-indigo-900">公开履历已脱敏，不展示教师邮箱、账号与课酬；弱网时读取 L3 缓存快照。</div>
+        <div class="flex items-center justify-between px-1">
+          <span class="text-[14px] font-semibold text-slate-700">外教团队</span>
+          <span class="text-[12px] font-medium text-slate-400">共 ${list.length} 位</span>
+        </div>
+        <div class="${grid}">
+          ${list.length ? list.map(teacherCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-400">暂无符合该科目的教师</div>`}
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">公开履历已脱敏，不展示教师邮箱、账号与课酬；弱网时读取 L3 缓存快照。</div>
       </div>`;
     }
 
     function childSelector() {
-      return `<div class="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm"><div class="text-[12px] font-medium text-slate-400">当前选课宝贝</div><div class="mt-2 flex gap-2">${PARENT_CHILDREN.map((ch) => { const on = ch.name === state.child; return `<button data-action="select-child" data-child="${ch.name}" class="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl text-[14px] font-semibold ${on ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}"><span class="grid h-6 w-6 place-items-center rounded-full ${on ? 'bg-white/15 text-white' : 'bg-white text-indigo-700'} text-[12px] font-bold">${esc(ch.name.charAt(0))}</span>${esc(ch.name)}</button>`; }).join('')}</div></div>`;
+      return `<div class="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-[12px] font-medium text-slate-400">当前选课宝贝</span>
+          <span class="text-[12px] font-medium text-slate-400">多孩家庭</span>
+        </div>
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          ${PARENT_CHILDREN.map((ch) => {
+            const on = ch.name === state.child;
+            return `<button data-action="select-child" data-child="${ch.name}" class="flex h-10 items-center justify-center gap-1.5 rounded-xl text-[14px] font-semibold transition ${on ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+              <span class="grid h-6 w-6 place-items-center rounded-full text-[12px] font-bold ${on ? 'bg-white/15 text-white' : 'bg-white text-indigo-700'}">${esc(ch.name.charAt(0))}</span>${esc(ch.name)}
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
     }
 
-    function renderTeacherCard(t) {
-      return `<article data-action="open-teacher" data-id="${t.id}" role="button" tabindex="0" class="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-indigo-200">
+    function teacherCard(t) {
+      return `<article data-action="open-teacher" data-id="${t.id}" role="button" tabindex="0" class="cursor-pointer rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm transition hover:border-indigo-200 active:scale-[0.995]">
         <div class="flex items-start gap-3">
-          ${avatar(t, 'h-14 w-14', 'text-[19px]')}
+          ${avatar(t, 'h-12 w-12', 'text-[16px]')}
           <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-1.5"><span class="truncate text-[16px] font-bold text-slate-900">${esc(t.name)}</span>${levelBadge(t.level)}</div>
-            <div class="mt-1 flex items-center gap-1 text-[12px] font-medium text-slate-500">${icon('lock', 'h-3 w-3 text-slate-400')}负责班长 ${esc(t.monitor)}</div>
-            <div class="mt-2 flex flex-wrap gap-1.5">${t.skills.map((s) => `<span class="rounded-md bg-slate-100 px-2 py-0.5 text-[12px] font-semibold text-slate-600">${esc(s)}</span>`).join('')}</div>
+            <div class="flex items-center gap-1.5">
+              <span class="truncate text-[16px] font-bold text-slate-900">${esc(t.name)}</span>
+              ${levelBadge(t.level)}
+            </div>
+            <div class="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
+              <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">可约</span>
+              <span class="truncate">负责班长 ${esc(t.monitor)}</span>
+            </div>
+            <div class="mt-1 flex flex-wrap gap-1.5">
+              ${t.skills.map((s) => `<span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">${esc(s)}</span>`).join('')}
+            </div>
           </div>
+          ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
         </div>
-        <p class="mt-3 line-clamp-2 text-[14px] font-medium leading-relaxed text-slate-600">${esc(t.introZh)}</p>
-        <div class="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-          <button data-action="open-qr" data-id="${t.id}" class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-500 hover:text-indigo-600" aria-label="ClassIn 二维码">${icon('qr-code', 'h-4 w-4')}</button>
-          <div class="flex items-center gap-1.5"><button data-action="open-teacher" data-id="${t.id}" class="h-9 rounded-lg border border-slate-200 px-3 text-[12px] font-semibold text-slate-700">查看履历</button><button data-action="book" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-9 rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">预约</button></div>
+        <p class="mt-2 line-clamp-2 text-[14px] font-medium leading-relaxed text-slate-600">${esc(t.introZh)}</p>
+        <div class="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+          <div class="flex min-w-0 items-center gap-2 text-[12px] font-medium text-slate-400">
+            <span class="inline-flex items-center gap-1">${icon('images', 'h-3.5 w-3.5')}${(t.photos || []).length} 张</span>
+            <span class="inline-flex items-center gap-1">${icon('play', 'h-3.5 w-3.5')}${esc(t.videoDuration)}</span>
+          </div>
+          <div class="flex shrink-0 items-center gap-1.5">
+            <button data-action="open-qr" data-id="${t.id}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200" aria-label="ClassIn 二维码">${icon('qr-code', 'h-4 w-4')}</button>
+            <button data-action="open-teacher" data-id="${t.id}" class="h-8 rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-200">查看履历</button>
+            <button data-action="book" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">预约</button>
+          </div>
         </div>
       </article>`;
     }
 
+    /* ------------------------------------------------------------------
+     * 教师详情
+     * ------------------------------------------------------------------ */
     function renderDetail() {
       const t = activeTeacher();
       const isZh = state.lang === 'zh';
       const intro = isZh ? t.introZh : t.introEn;
-      return `<div class="mx-auto w-full max-w-[640px] space-y-4 px-4 pb-6 pt-4">
-        ${childSelector()}
-        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="flex items-start gap-4">
-            ${avatar(t, 'h-20 w-20', 'text-[26px]')}
+      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3 pb-10">
+        ${backRow()}
+        <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div class="flex items-start gap-3.5">
+            ${avatar(t, 'h-16 w-16', 'text-[18px]')}
             <div class="min-w-0 flex-1">
-              <div class="flex flex-wrap items-center gap-2"><h1 class="truncate text-[18px] font-bold tracking-tight text-slate-900">${esc(t.name)}</h1>${levelBadge(t.level)}<span class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[12px] font-bold text-emerald-700">可约</span></div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <h1 class="truncate text-[18px] font-bold tracking-tight text-slate-900">${esc(t.name)}</h1>
+                ${levelBadge(t.level)}
+                <span class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">可约</span>
+              </div>
               <div class="mt-1 text-[12px] font-medium text-slate-500">负责班长 ${esc(t.monitor)}</div>
-              <div class="mt-2 flex flex-wrap gap-1.5">${t.skills.map((s) => `<span class="rounded-md border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[12px] font-semibold text-indigo-700">${esc(s)}</span>`).join('')}</div>
+              <div class="mt-1.5 flex flex-wrap gap-1.5">
+                ${t.skills.map((s) => `<span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-semibold text-indigo-700">${esc(s)}</span>`).join('')}
+              </div>
             </div>
           </div>
         </section>
 
         ${renderPhotoGrid(t)}
 
-        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between gap-2"><h2 class="text-[16px] font-bold text-slate-900">教师简介</h2><div class="inline-flex rounded-xl bg-slate-100 p-1"><button data-action="set-lang" data-lang="zh" class="h-8 rounded-lg px-3 text-[12px] font-bold ${isZh ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">中文简介</button><button data-action="set-lang" data-lang="en" class="h-8 rounded-lg px-3 text-[12px] font-bold ${!isZh ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">English</button></div></div>
-          <p id="introText" class="mt-3 whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-700">${esc(intro)}</p>
-        </section>
-
-        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><h2 class="text-[16px] font-bold text-slate-900">试讲视频</h2><span class="font-mono text-[12px] font-medium text-slate-400">${esc(t.videoDuration)}</span></div>
-          <div class="mt-3 overflow-hidden rounded-xl border border-slate-200">
-            ${state.playingVideo ? `<video controls autoplay playsinline class="aspect-video w-full bg-black" src="${esc(t.videoUrl)}"></video>` : `<button data-action="play-video" class="block w-full"><div class="relative flex aspect-video w-full items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-700"><span class="grid h-14 w-14 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/30">${icon('play', 'ml-1 h-6 w-6')}</span><span class="absolute bottom-2 right-2 rounded-md bg-slate-900/80 px-1.5 py-0.5 font-mono text-[12px] font-semibold text-white">${esc(t.videoDuration)}</span></div><div class="flex items-center justify-between bg-white px-3 py-2"><span class="text-[14px] font-semibold text-slate-800">点击就地播放试讲视频</span><span class="text-[12px] font-medium text-slate-400">MP4</span></div></button>`}
+        <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-[16px] font-bold text-slate-900">教师简介</h2>
+            <div class="inline-flex rounded-xl bg-slate-100 p-1">
+              <button data-action="set-lang" data-lang="zh" class="h-8 rounded-lg px-2.5 text-[12px] font-bold ${isZh ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">中文</button>
+              <button data-action="set-lang" data-lang="en" class="h-8 rounded-lg px-2.5 text-[12px] font-bold ${!isZh ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">English</button>
+            </div>
           </div>
-          <p class="mt-2 text-[12px] font-medium text-slate-400">公共示例视频 · 正式环境为教师 MP4 试讲</p>
+          <p id="introText" class="mt-2.5 whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-700">${esc(intro)}</p>
         </section>
 
-        <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between"><h2 class="text-[16px] font-bold text-slate-900">ClassIn 二维码</h2><span class="text-[12px] font-medium text-slate-400">点击放大</span></div>
-          <button data-action="open-qr" data-id="${t.id}" class="mt-3 flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
-            <div class="grid h-16 w-16 shrink-0 place-items-center rounded-xl bg-white p-1 ring-1 ring-slate-200">${qrSvg(t.name)}</div>
-            <div class="min-w-0"><div class="text-[14px] font-semibold text-slate-800">${esc(t.name)} · ClassIn</div><p class="mt-0.5 text-[12px] font-medium text-slate-500">长按识别或截图，使用 ClassIn App 扫码添加</p></div>
+        <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between">
+            <h2 class="text-[16px] font-bold text-slate-900">试讲视频</h2>
+            <span class="font-mono text-[12px] font-medium text-slate-400">${esc(t.videoDuration)}</span>
+          </div>
+          <div class="mt-2.5 overflow-hidden rounded-xl border border-slate-200">
+            ${state.playingVideo
+              ? `<video controls autoplay playsinline class="aspect-video w-full bg-black" src="${esc(t.videoUrl)}"></video>`
+              : `<button data-action="play-video" class="block w-full">
+                <div class="relative flex aspect-video w-full items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-700">
+                  <span class="grid h-12 w-12 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/30">${icon('play', 'ml-0.5 h-6 w-6')}</span>
+                  <span class="absolute bottom-2 right-2 rounded-md bg-slate-900/80 px-1.5 py-0.5 font-mono text-[12px] font-semibold text-white">${esc(t.videoDuration)}</span>
+                </div>
+                <div class="flex items-center justify-between bg-white px-2.5 py-2">
+                  <span class="text-[14px] font-semibold text-slate-800">点击就地播放试讲视频</span>
+                  <span class="text-[12px] font-medium text-slate-400">MP4</span>
+                </div>
+              </button>`}
+          </div>
+          <p class="mt-1.5 text-[12px] font-medium text-slate-400">公共示例视频 · 正式环境为教师 MP4 试讲</p>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between">
+            <h2 class="text-[16px] font-bold text-slate-900">ClassIn 二维码</h2>
+            <span class="text-[12px] font-medium text-slate-400">点击放大</span>
+          </div>
+          <button data-action="open-qr" data-id="${t.id}" class="mt-2.5 flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left">
+            <span class="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-white p-1 ring-1 ring-slate-200">${qrSvg(t.name)}</span>
+            <span class="min-w-0">
+              <span class="block truncate text-[14px] font-semibold text-slate-800">${esc(t.name)} · ClassIn</span>
+              <span class="mt-0.5 block text-[12px] font-medium text-slate-500">长按识别或截图，使用 ClassIn App 扫码添加</span>
+            </span>
           </button>
         </section>
 
-        <button data-action="book" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-12 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">为 ${esc(childLabel())} 预约 ${esc(t.name)}</button>
-        <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3.5 py-3 text-[12px] font-medium leading-relaxed text-indigo-900">公开履历已脱敏；预约将打开该教师的 7 色可约时段（原型模拟）。</div>
+        <button data-action="book" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">为 ${esc(state.child)} 预约 ${esc(t.name)}</button>
+        <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">公开履历已脱敏；预约将打开该教师的 7 色可约时段（原型模拟）。</div>
       </div>`;
     }
 
-    function renderPlaceholder() {
-      const item = NAVS.find((n) => n.id === state.navTab);
-      if (!item) return '<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>';
-      return `<div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center"><div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div><h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2><p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc)}</p>${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}<button data-action="nav" data-tab="hall" class="mt-3 text-[14px] font-semibold text-indigo-600">返回选课大厅</button></div>`;
+    function renderPhotoGrid(t) {
+      const photos = t.photos || [];
+      if (!photos.length) return '';
+      const mainId = mainPhotoId(t);
+      const shown = photos.slice(0, 9);
+      return `<section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-[16px] font-bold text-slate-900">教师风采相册</h2>
+          <span class="text-[12px] font-medium text-slate-400">共 ${photos.length} 张 · 点击看大图</span>
+        </div>
+        <div class="mt-2.5 grid grid-cols-3 gap-1.5">
+          ${shown.map((p, i) => `<button data-action="open-photo" data-id="${t.id}" data-index="${i}" class="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100" aria-label="查看第 ${i + 1} 张风采照片">
+            <img src="${p.dataUrl}" class="h-full w-full object-cover" alt="">
+            ${p.id === mainId ? '<span class="absolute left-1 top-1 rounded bg-indigo-600 px-1 py-0.5 text-[12px] font-bold text-white">主头像</span>' : ''}
+            ${i === 8 && photos.length > 9 ? `<span class="absolute inset-0 grid place-items-center bg-slate-900/55 text-[16px] font-bold text-white">+${photos.length - 9}</span>` : ''}
+          </button>`).join('')}
+        </div>
+        <p class="mt-1.5 text-[12px] font-medium text-slate-400">点击任意缩略图全屏查看，支持左右切换与高清放大。</p>
+      </section>`;
     }
 
+    /* ------------------------------------------------------------------
+     * 弹层
+     * ------------------------------------------------------------------ */
     function renderOverlay() {
-      const el = document.getElementById('overlay');
-      if (!state.overlay) { el.innerHTML = ''; return; }
-      if (state.overlay.type === 'photo') { el.innerHTML = renderPhotoLightbox(); return; }
-      if (state.overlay.type !== 'qr') { el.innerHTML = ''; return; }
+      if (!state.overlay) return '';
+      if (state.overlay.type === 'photo') return renderPhotoLightbox();
+      if (state.overlay.type === 'qr') return renderQrModal();
+      return '';
+    }
+
+    function renderQrModal() {
       const t = teacherById(state.overlay.teacherId);
-      el.innerHTML = `<div class="absolute inset-0 z-50"><div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div><div class="absolute inset-x-6 top-1/2 mx-auto max-w-[340px] -translate-y-1/2 rounded-2xl bg-white p-5 text-center shadow-2xl"><div class="flex justify-end"><button data-action="close-overlay" class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button></div><div class="mx-auto mt-1 h-56 w-56 rounded-2xl border border-slate-200 bg-white p-3">${qrSvg(t.name)}</div><div class="mt-3 text-[16px] font-bold text-slate-900">${esc(t.name)}</div><p class="mt-1 text-[12px] font-medium text-slate-500">长按识别 / 使用 ClassIn 扫码添加</p><p class="mt-1 text-[12px] font-medium text-slate-400">原型占位二维码 · 正式环境为教师真实 ClassIn 码</p></div></div>`;
+      if (!t) return '';
+      return `<div class="absolute inset-0 z-50">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-6 top-1/2 mx-auto max-w-[340px] -translate-y-1/2 rounded-2xl bg-white p-4 text-center shadow-2xl">
+          <div class="flex justify-end">
+            <button data-action="close-overlay" class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="mx-auto mt-1 h-56 w-56 rounded-2xl border border-slate-200 bg-white p-3">${qrSvg(t.name)}</div>
+          <div class="mt-3 text-[16px] font-bold text-slate-900">${esc(t.name)}</div>
+          <p class="mt-1 text-[12px] font-medium text-slate-500">长按识别 / 使用 ClassIn 扫码添加</p>
+          <p class="mt-1 text-[12px] font-medium text-slate-400">原型占位二维码 · 正式环境为教师真实 ClassIn 码</p>
+        </div>
+      </div>`;
     }
 
     function renderPhotoLightbox() {
-      const overlay = state.overlay;
-      const t = teacherById(overlay.teacherId);
+      const t = teacherById(state.overlay.teacherId);
       const photos = (t && t.photos) || [];
       if (!photos.length) return '';
       const total = photos.length;
-      const index = ((overlay.index % total) + total) % total;
+      const index = ((state.overlay.index % total) + total) % total;
       const photo = photos[index];
       const mainId = mainPhotoId(t);
       return `<div class="absolute inset-0 z-[70] overflow-hidden bg-slate-950/95">
         <div class="absolute inset-0" data-action="close-overlay"></div>
-
         <div class="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 px-4 py-3">
           <div class="min-w-0 text-white">
             <div class="truncate text-[14px] font-bold">${esc(t.name)} · 风采相册</div>
@@ -442,34 +573,37 @@
             <button data-action="close-overlay" class="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-white hover:bg-white/20" aria-label="关闭大图">${icon('x', 'h-5 w-5')}</button>
           </div>
         </div>
-
         <div class="pointer-events-none relative z-10 flex h-full items-center justify-center px-4 pb-20 pt-20">
-          <img data-action="photo-stage" src="${photo.dataUrl}" class="pointer-events-auto max-h-full max-w-full rounded-xl object-contain shadow-2xl" alt="${esc(t.name)} 风采照片 ${index + 1}">
+          <img src="${photo.dataUrl}" class="pointer-events-auto max-h-full max-w-full rounded-xl object-contain shadow-2xl" alt="">
         </div>
-
-        ${total > 1 ? `
-          <button data-action="photo-prev" class="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20" aria-label="上一张">${icon('chevron-left', 'h-6 w-6')}</button>
-          <button data-action="photo-next" class="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20" aria-label="下一张">${icon('chevron-right', 'h-6 w-6')}</button>` : ''}
-
+        ${total > 1 ? `<button data-action="photo-prev" class="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20" aria-label="上一张">${icon('chevron-left', 'h-6 w-6')}</button>
+        <button data-action="photo-next" class="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20" aria-label="下一张">${icon('chevron-right', 'h-6 w-6')}</button>` : ''}
         <div class="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 py-3 text-center text-[12px] font-medium text-slate-300">点击暗色背景或按 Esc 退出${total > 1 ? ' · 使用 ← → 切换照片' : ''}</div>
       </div>`;
     }
 
-    function setLang(lang) {
-      state.lang = lang;
-      const t = activeTeacher();
-      const text = document.getElementById('introText');
-      if (text) text.textContent = lang === 'zh' ? t.introZh : t.introEn;
-      document.querySelectorAll('[data-action="set-lang"]').forEach((b) => {
-        const on = b.dataset.lang === lang;
-        b.className = `h-8 rounded-lg px-3 text-[12px] font-bold ${on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`;
-      });
-    }
-
+    /* ------------------------------------------------------------------
+     * 事件
+     * ------------------------------------------------------------------ */
     function openTeacher(id) {
       state.activeTeacherId = id;
       state.page = 'detail';
-      state.navTab = 'hall';
+      state.navTab = hallTab();
+      state.playingVideo = false;
+      state.lang = 'zh';
+      state.overlay = null;
+      renderAll();
+    }
+
+    function hallTab() {
+      return 'hall';
+    }
+
+    function navTo(tab) {
+      const item = NAVS.find((n) => n.id === tab);
+      if (!item) return;
+      state.navTab = tab;
+      state.page = item.board ? 'hall' : 'placeholder';
       state.playingVideo = false;
       state.overlay = null;
       renderAll();
@@ -478,7 +612,22 @@
     function book(id) {
       if (state.online === 'off') return showToast('离线模式下不可预约，请联网后重试');
       const t = teacherById(id);
-      showToast(`已为 ${state.child} 打开 ${t.name} 的 7 色可约时段（原型模拟）`);
+      showToast(`正在打开 ${t.name} 的周度排班网格...`);
+      setTimeout(() => {
+        const teacherKey = t.id.replace('tc_', '').replace(/\d+$/, '');
+        window.location.href = `m3a_calendar_schedule.html?role=parent&view=calendar&teacher=${encodeURIComponent(teacherKey)}&teacher_name=${encodeURIComponent(t.name)}&child=${encodeURIComponent(state.child)}`;
+      }, 350);
+    }
+
+    function setLang(lang) {
+      state.lang = lang;
+      const t = activeTeacher();
+      const text = $('introText');
+      if (text) text.textContent = lang === 'zh' ? t.introZh : t.introEn;
+      document.querySelectorAll('[data-action="set-lang"]').forEach((b) => {
+        const on = b.dataset.lang === lang;
+        b.className = `h-8 rounded-lg px-2.5 text-[12px] font-bold ${on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`;
+      });
     }
 
     document.getElementById('frame').addEventListener('click', (e) => {
@@ -487,15 +636,20 @@
       const action = el.dataset.action;
       if (action === 'nav') return navTo(el.dataset.tab);
       if (action === 'toast') return showToast(el.dataset.message || '');
-      if (action === 'go-back') { state.page = 'hall'; state.navTab = 'hall'; state.playingVideo = false; state.overlay = null; renderAll(); return; }
-      if (action === 'set-filter') { state.filter = el.dataset.value; renderContentOnly(); return; }
-      if (action === 'select-child') { state.child = el.dataset.child; renderContentOnly(); return; }
+      if (action === 'go-back') { state.page = 'hall'; state.navTab = 'hall'; state.playingVideo = false; state.overlay = null; return renderAll(); }
+      if (action === 'set-filter') { state.filter = el.dataset.value; return renderContentOnly(); }
+      if (action === 'select-child') { state.child = el.dataset.child; return renderContentOnly(); }
       if (action === 'open-teacher') return openTeacher(el.dataset.id);
-      if (action === 'open-qr') { state.overlay = { type: 'qr', teacherId: el.dataset.id }; renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'open-qr') {
+        state.overlay = { type: 'qr', teacherId: el.dataset.id };
+        $('overlay').innerHTML = renderOverlay();
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
       if (action === 'open-photo') {
         state.overlay = { type: 'photo', teacherId: el.dataset.id, index: Number(el.dataset.index) || 0 };
-        renderOverlay();
-        lucide.createIcons();
+        $('overlay').innerHTML = renderOverlay();
+        if (window.lucide) lucide.createIcons();
         return;
       }
       if (action === 'photo-prev' || action === 'photo-next') {
@@ -504,14 +658,17 @@
         const total = (t && t.photos && t.photos.length) || 0;
         if (!total) return;
         state.overlay.index = (state.overlay.index + (action === 'photo-next' ? 1 : -1) + total) % total;
-        renderOverlay();
-        lucide.createIcons();
+        $('overlay').innerHTML = renderOverlay();
+        if (window.lucide) lucide.createIcons();
         return;
       }
-      if (action === 'photo-stage') return;
-      if (action === 'close-overlay') { state.overlay = null; renderOverlay(); lucide.createIcons(); return; }
+      if (action === 'close-overlay') {
+        state.overlay = null;
+        $('overlay').innerHTML = '';
+        return;
+      }
       if (action === 'set-lang') return setLang(el.dataset.lang);
-      if (action === 'play-video') { state.playingVideo = true; renderContentOnly(); return; }
+      if (action === 'play-video') { state.playingVideo = true; return renderContentOnly(); }
       if (action === 'book') return book(el.dataset.id);
     });
 
@@ -521,32 +678,44 @@
       const total = (t && t.photos && t.photos.length) || 0;
       if (e.key === 'Escape') {
         state.overlay = null;
-        renderOverlay();
-        lucide.createIcons();
+        $('overlay').innerHTML = '';
       } else if (total > 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         e.preventDefault();
         state.overlay.index = (state.overlay.index + (e.key === 'ArrowRight' ? 1 : -1) + total) % total;
-        renderOverlay();
-        lucide.createIcons();
+        $('overlay').innerHTML = renderOverlay();
+        if (window.lucide) lucide.createIcons();
       }
     });
 
-    document.getElementById('btnResetDemo').addEventListener('click', resetDemo);
+    document.getElementById('btnResetDemo').addEventListener('click', () => {
+      state.page = 'hall'; state.navTab = 'hall'; state.device = 'mobile'; state.online = 'on';
+      state.teachers = clone(TEACHERS);
+      state.activeTeacherId = 'tc_david0001';
+      state.child = 'AliceZ12'; state.filter = 'all'; state.lang = 'zh';
+      state.playingVideo = false; state.overlay = null;
+      renderAll();
+      showToast('演示数据已重置');
+    });
+
     document.querySelectorAll('.ctl').forEach((btn) => {
       btn.addEventListener('click', () => {
         const group = btn.dataset.group;
         const value = btn.dataset.value;
         if (group === 'device') { state.device = value; renderAll(); }
-        if (group === 'online') { state.online = value; renderAll(); if (value === 'off') showToast('离线只读：预约需联网'); }
+        if (group === 'online') {
+          state.online = value;
+          renderAll();
+          if (value === 'off') showToast('离线只读：预约需联网');
+        }
       });
     });
 
     function showToast(msg) {
-      const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.remove('hidden');
+      const toast = $('toast');
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
       clearTimeout(showToast._timer);
-      showToast._timer = setTimeout(() => t.classList.add('hidden'), 2600);
+      showToast._timer = setTimeout(() => toast.classList.add('hidden'), 2400);
     }
 
     renderAll();

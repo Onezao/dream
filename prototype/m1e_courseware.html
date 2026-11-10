@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<!-- 即抛型原型：M1E 课件库与学员在学课件管理。纯前端 Mock，不连接后端，不触碰生产代码。遵循 DESIGN.md 与 docs/prd/m1e_courseware.md -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>原型 · M1E 课件库与在学课件</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
+
+  <!-- 原型控制台（不属于产品界面） -->
+  <header id="console" class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-[12px]">
+      <div class="flex items-center gap-2">
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-300">1E</span>
+        <span class="text-[14px] font-bold text-slate-900">课件库与在学课件</span>
+        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">角色 Banner · 分级样课 · 在学课件 · 备课联动</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">身份</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="role" data-value="admin" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">管理员</button>
+          <button data-group="role" data-value="monitor" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">班长</button>
+          <button data-group="role" data-value="parent" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">家长</button>
+          <button data-group="role" data-value="teacher" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">教师</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">视图</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="view" data-value="library" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">课件库</button>
+          <button data-group="view" data-value="student" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">在学课件</button>
+          <button data-group="view" data-value="child" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">孩子课件</button>
+          <button data-group="view" data-value="prep" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">备课课件</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">学生</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="student" data-value="stu_alice001" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">AliceZ12</button>
+          <button data-group="student" data-value="stu_bob00002" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">BobZ10</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">设备</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="device" data-value="mobile" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">手机</button>
+          <button data-group="device" data-value="tablet" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">平板</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">网络</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="online" data-value="on" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">在线</button>
+          <button data-group="online" data-value="off" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">离线</button>
+        </div>
+      </div>
+
+      <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
+
+      <a href="../docs/prd/m1e_courseware.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
+        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M1E PRD
+      </a>
+    </div>
+  </header>
+
+  <main class="flex justify-center px-4 py-6">
+    <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
+      <div id="banner" class="shrink-0"></div>
+      <div id="offlineBanner" class="hidden"></div>
+      <div id="content" class="min-h-0 flex-1 overflow-y-auto"></div>
+      <nav id="bottomnav" class="shrink-0"></nav>
+      <div id="overlay"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-20 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
+    </div>
+  </main>
+
+  <!-- Tailwind CDN 动态类安全垫 -->
+  <div class="hidden">
+    <span class="bg-gradient-to-br from-slate-900 via-violet-950 to-slate-800 from-slate-900 via-fuchsia-950 to-slate-800 from-slate-800 via-blue-900 to-slate-700 from-slate-800 via-emerald-900 to-slate-700"></span>
+    <span class="bg-amber-50/80 border-amber-200/70 bg-amber-100 text-amber-800 text-amber-700 text-amber-950 text-amber-900/85 bg-amber-600 hover:bg-amber-700 border-amber-300 bg-white/70"></span>
+    <span class="bg-indigo-50/80 border-indigo-200/70 bg-indigo-100 text-indigo-800 text-indigo-700 text-indigo-950 text-indigo-900/85 bg-indigo-600 hover:bg-indigo-700 border-indigo-300 bg-white/70"></span>
+    <span class="bg-emerald-50/80 border-emerald-200/70 bg-emerald-100 text-emerald-800 text-emerald-700 text-emerald-950 text-emerald-900/85 bg-emerald-600 hover:bg-emerald-700 border-emerald-300 bg-white/70"></span>
+    <span class="bg-rose-50/80 border-rose-200/70 bg-rose-100 text-rose-800 text-rose-700 text-rose-950 text-rose-900/85 bg-rose-600 hover:bg-rose-700 border-rose-300 bg-white/70"></span>
+    <span class="bg-slate-50 border-slate-200/80 bg-slate-100 text-slate-700 text-slate-600 text-slate-500 bg-slate-400 bg-slate-900 hover:bg-slate-800 border-slate-300 bg-white/70 text-slate-300"></span>
+    <span class="bg-white/60 bg-white/70 bg-white/20 bg-white/15 ring-white/30 bg-slate-900/40 bg-slate-900/60 bg-slate-900/70 bg-slate-950/95 backdrop-blur-[1px] text-indigo-300 bg-indigo-50 bg-indigo-50/70 ring-indigo-100 border-indigo-100 bg-rose-50/70 bg-slate-50/70"></span>
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] grid-cols-1 grid-cols-2 grid-cols-3 aspect-square aspect-video translate-x-5 translate-x-0 opacity-60"></span>
+  </div>
+
+  <script>
+    /* ------------------------------------------------------------------
+     * 常量与设计令牌
+     * ------------------------------------------------------------------ */
+    const TODAY = '2026-11-10';
+    const COURSE_TYPES = ['少儿英语', '生活口语', '旅游口语', '自然拼读', 'KET', 'PET', '雅思', '托福'];
+
+    const TONES = {
+      amber: {
+        card: 'border-amber-200/70 bg-amber-50/80', chip: 'border-amber-200 bg-amber-100 text-amber-800',
+        icon: 'bg-amber-100 text-amber-700', action: 'bg-amber-600 text-white hover:bg-amber-700',
+        title: 'text-amber-950', body: 'text-amber-900/85', sub: 'text-amber-700', right: 'text-amber-950', dot: 'bg-amber-500'
+      },
+      indigo: {
+        card: 'border-indigo-200/70 bg-indigo-50/80', chip: 'border-indigo-200 bg-indigo-100 text-indigo-800',
+        icon: 'bg-indigo-100 text-indigo-700', action: 'bg-indigo-600 text-white hover:bg-indigo-700',
+        title: 'text-indigo-950', body: 'text-indigo-900/85', sub: 'text-indigo-700', right: 'text-indigo-950', dot: 'bg-indigo-500'
+      },
+      emerald: {
+        card: 'border-emerald-200/70 bg-emerald-50/80', chip: 'border-emerald-200 bg-emerald-100 text-emerald-800',
+        icon: 'bg-emerald-100 text-emerald-700', action: 'bg-emerald-600 text-white hover:bg-emerald-700',
+        title: 'text-emerald-950', body: 'text-emerald-900/85', sub: 'text-emerald-700', right: 'text-emerald-950', dot: 'bg-emerald-500'
+      },
+      rose: {
+        card: 'border-rose-200/70 bg-rose-50/80', chip: 'border-rose-200 bg-rose-100 text-rose-800',
+        icon: 'bg-rose-100 text-rose-700', action: 'bg-rose-600 text-white hover:bg-rose-700',
+        title: 'text-rose-950', body: 'text-rose-900/85', sub: 'text-rose-700', right: 'text-rose-950', dot: 'bg-rose-500'
+      },
+      slate: {
+        card: 'border-slate-200/80 bg-slate-50', chip: 'border-slate-200 bg-slate-100 text-slate-700',
+        icon: 'bg-slate-100 text-slate-600', action: 'bg-slate-900 text-white hover:bg-slate-800',
+        title: 'text-slate-900', body: 'text-slate-700', sub: 'text-slate-500', right: 'text-slate-900', dot: 'bg-slate-400'
+      }
+    };
+
+    const SOFT_BTN = {
+      amber: 'border-amber-300 bg-white/70 text-amber-800 hover:bg-white',
+      indigo: 'border-indigo-300 bg-white/70 text-indigo-800 hover:bg-white',
+      emerald: 'border-emerald-300 bg-white/70 text-emerald-800 hover:bg-white',
+      rose: 'border-rose-300 bg-white/70 text-rose-800 hover:bg-white',
+      slate: 'border-slate-300 bg-white/70 text-slate-700 hover:bg-white'
+    };
+
+    const PATTERNS = {
+      admin: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><circle cx="325" cy="18" r="38" stroke="white" stroke-opacity=".08"/><circle cx="325" cy="18" r="24" stroke="white" stroke-opacity=".06"/><path d="M0 68 C60 40 120 82 190 52 S300 20 390 48" stroke="white" stroke-opacity=".07" stroke-width="16" stroke-linecap="round"/></svg>`,
+      monitor: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><path d="M0 20 H390 M0 40 H390 M0 60 H390" stroke="white" stroke-opacity=".06"/><path d="M65 0 V80 M130 0 V80 M195 0 V80 M260 0 V80 M325 0 V80" stroke="white" stroke-opacity=".04"/><circle cx="330" cy="20" r="34" fill="white" fill-opacity=".05"/></svg>`,
+      parent: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><path d="M-20 64 C50 30 110 82 190 48 S300 18 410 44" stroke="white" stroke-opacity=".10" stroke-width="18" stroke-linecap="round"/><circle cx="320" cy="20" r="34" fill="white" fill-opacity=".05"/></svg>`,
+      teacher: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><circle cx="325" cy="20" r="40" fill="white" fill-opacity=".06"/><circle cx="325" cy="20" r="22" fill="white" fill-opacity=".04"/><path d="M28 22 L96 22 M28 38 L72 38" stroke="white" stroke-opacity=".10" stroke-width="6" stroke-linecap="round"/></svg>`
+    };
+
+    const BANNERS = {
+      admin: { gradient: 'from-slate-900 via-violet-950 to-slate-800', brand: 'Dream 运营中枢', role: '管理员', subtitle: '平台统筹 · Sarah', initial: 'S', pattern: PATTERNS.admin },
+      monitor: { gradient: 'from-slate-900 via-fuchsia-950 to-slate-800', brand: 'Dream 教务', role: '班长', subtitle: '教务统筹 · Leo', initial: 'L', pattern: PATTERNS.monitor },
+      parent: { gradient: 'from-slate-800 via-blue-900 to-slate-700', brand: 'Dream 教务', role: '家长', subtitle: '多孩家庭 · Amy', initial: 'A', pattern: PATTERNS.parent },
+      teacher: { gradient: 'from-slate-800 via-emerald-900 to-slate-700', brand: 'Teacher Center', role: '教师', subtitle: '母语外教 · David', initial: 'D', pattern: PATTERNS.teacher }
+    };
+
+    const NAVS = {
+      admin: [
+        { id: 'home', icon: 'home', label: '首页', desc: '平台结算待办与运营大盘属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=admin' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '自家孩子课表属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
+        { id: 'ops', icon: 'layout-grid', label: '教务调度', desc: '全局排班看板与调度入口属于 M0 / M3A。', href: 'm0_workspace_home.html?role=admin&view=ops' },
+        { id: 'settings', icon: 'settings', label: '管理与设置', desc: '课件库、班长管理与平台配置', href: null }
+      ],
+      monitor: [
+        { id: 'home', icon: 'home', label: '首页', desc: '教务待办与家庭日程双焦点属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=monitor' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '7 色课表与多孩锚点属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
+        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '所辖学员与在学课件', href: null },
+        { id: 'me', icon: 'user', label: '我的', desc: '班长周转账与家庭档案属于 M0 个人中心。', href: 'm0_workspace_home.html?role=monitor&view=me' }
+      ],
+      parent: [
+        { id: 'home', icon: 'home', label: '首页', desc: '多孩时间流与金刚位属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=user' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '7 色课表与多孩锚点属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
+        { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '教师公开履历与选课属于 M1B。', href: 'm1b_teacher_parent.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '多孩档案与在学课件', href: null }
+      ],
+      teacher: [
+        { id: 'home', icon: 'home', label: '首页', desc: '教师工作台属于 M0。', href: 'm0_workspace_home.html?role=teacher' },
+        { id: 'schedule', icon: 'calendar-days', label: '课表', desc: '待上课与备课课件', href: null },
+        { id: 'students', icon: 'users', label: '我的学生', desc: '学生留言与档案属于 M1D / M1A。', href: 'm1d_profile_messages.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '周课酬与个人信息属于 M0。', href: 'm0_workspace_home.html?role=teacher&view=me' }
+      ]
+    };
+
+    /* ------------------------------------------------------------------
+     * 演示图片与数据
+     * ------------------------------------------------------------------ */
+    const xml = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    function demoImage(label, sub, from, to, w = 800, h = 600) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs>
+        <rect width="${w}" height="${h}" fill="url(#g)"/>
+        <circle cx="${w * 0.76}" cy="${h * 0.24}" r="${h * 0.17}" fill="#ffffff" opacity="0.18"/>
+        <path d="M0 ${h * 0.72} Q ${w * 0.28} ${h * 0.5} ${w * 0.55} ${h * 0.74} T ${w} ${h * 0.6} V ${h} H 0 Z" fill="#0f172a" opacity="0.16"/>
+        <text x="50%" y="48%" text-anchor="middle" dominant-baseline="middle" font-family="system-ui, sans-serif" font-size="${Math.round(h * 0.075)}" font-weight="700" fill="#ffffff" opacity="0.95">${xml(label)}</text>
+        <text x="50%" y="61%" text-anchor="middle" dominant-baseline="middle" font-family="system-ui, sans-serif" font-size="${Math.round(h * 0.032)}" font-weight="500" fill="#ffffff" opacity="0.72">${xml(sub)}</text>
+      </svg>`;
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+
+    function mkLevel(id, name, from, to, count = 2) {
+      return {
+        id,
+        name,
+        images: Array.from({ length: count }, (_, i) => demoImage(`${name} · 样课 ${i + 1}`, 'Sample Page', from, to))
+      };
+    }
+
+    const LIBRARY = [
+      {
+        id: 'cw_ort000001', nameCn: '牛津阅读树', nameEn: 'Oxford Reading Tree',
+        courseTypes: ['少儿英语', '自然拼读'],
+        descCn: '牛津阅读树分级阅读体系，覆盖自然拼读、分级读物与阅读理解，适合少儿英语长期进阶。',
+        descEn: 'Oxford Reading Tree is a leveled reading system covering phonics, graded readers and reading comprehension for young learners.',
+        cover: demoImage('Oxford Reading Tree', 'Courseware Cover', '#4f46e5', '#0ea5e9'),
+        levels: [
+          mkLevel('lvl_ort00001', 'Stage 1', '#6366f1', '#0ea5e9', 2),
+          mkLevel('lvl_ort00002', 'Stage 2', '#0ea5e9', '#22c55e', 2),
+          mkLevel('lvl_ort00003', 'Stage 3', '#f59e0b', '#ef4444', 2),
+          mkLevel('lvl_ort00004', 'Stage 4', '#8b5cf6', '#ec4899', 2)
+        ],
+        active: true, boundCount: 6, createdAt: '2026-03-01'
+      },
+      {
+        id: 'cw_wonders01', nameCn: 'Wonders 精读', nameEn: 'Wonders',
+        courseTypes: ['少儿英语'],
+        descCn: 'Wonders 分级精读课程，围绕主题阅读、词汇与写作展开，适合有一定基础学员。',
+        descEn: 'Wonders is a leveled close-reading program focused on thematic reading, vocabulary and writing.',
+        cover: demoImage('Wonders', 'Courseware Cover', '#0ea5e9', '#22c55e'),
+        levels: [
+          mkLevel('lvl_won00001', 'Grade K', '#0ea5e9', '#14b8a6', 2),
+          mkLevel('lvl_won00002', 'Grade 1', '#6366f1', '#0ea5e9', 2),
+          mkLevel('lvl_won00003', 'Grade 2', '#8b5cf6', '#6366f1', 2)
+        ],
+        active: true, boundCount: 4, createdAt: '2026-03-15'
+      },
+      {
+        id: 'cw_raz000001', nameCn: 'Raz-Kids 分级阅读', nameEn: 'Raz-Kids',
+        courseTypes: ['少儿英语', '自然拼读'],
+        descCn: 'Raz-Kids 在线分级阅读体系，按 Level 逐级提升词汇量与阅读流畅度。',
+        descEn: 'Raz-Kids is an online leveled reading system that builds vocabulary and reading fluency level by level.',
+        cover: demoImage('Raz-Kids', 'Courseware Cover', '#f59e0b', '#ef4444'),
+        levels: [
+          mkLevel('lvl_raz00001', 'Level E', '#f59e0b', '#f97316', 2),
+          mkLevel('lvl_raz00002', 'Level F', '#ef4444', '#f59e0b', 2),
+          mkLevel('lvl_raz00003', 'Level G', '#8b5cf6', '#ec4899', 2)
+        ],
+        active: true, boundCount: 5, createdAt: '2026-04-02'
+      },
+      {
+        id: 'cw_phonics01', nameCn: '牛津自然拼读', nameEn: 'Oxford Phonics World',
+        courseTypes: ['自然拼读', '少儿英语'],
+        descCn: '牛津自然拼读体系，从字母音到常见字母组合，建立拼读与拼写基础。',
+        descEn: 'Oxford Phonics World builds phonics and spelling foundations from letter sounds to common letter combinations.',
+        cover: demoImage('Oxford Phonics World', 'Courseware Cover', '#14b8a6', '#6366f1'),
+        levels: [
+          mkLevel('lvl_pho00001', 'Level 1', '#14b8a6', '#0ea5e9', 2),
+          mkLevel('lvl_pho00002', 'Level 2', '#22c55e', '#14b8a6', 2),
+          mkLevel('lvl_pho00003', 'Level 3', '#6366f1', '#22c55e', 2)
+        ],
+        active: true, boundCount: 3, createdAt: '2026-04-20'
+      },
+      {
+        id: 'cw_reach0001', nameCn: 'Reach Higher', nameEn: 'Reach Higher',
+        courseTypes: ['少儿英语', '生活口语'],
+        descCn: 'Reach Higher 综合英语课程，融合阅读、语法、口语表达与项目式学习。',
+        descEn: 'Reach Higher integrates reading, grammar, speaking and project-based learning for young learners.',
+        cover: demoImage('Reach Higher', 'Courseware Cover', '#8b5cf6', '#ec4899'),
+        levels: [
+          mkLevel('lvl_rea00001', 'Grade 1', '#8b5cf6', '#6366f1', 2),
+          mkLevel('lvl_rea00002', 'Grade 2', '#ec4899', '#8b5cf6', 2),
+          mkLevel('lvl_rea00003', 'Grade 3', '#6366f1', '#0ea5e9', 2)
+        ],
+        active: true, boundCount: 2, createdAt: '2026-05-06'
+      },
+      {
+        id: 'cw_ket000001', nameCn: 'KET 备考', nameEn: 'KET Compact',
+        courseTypes: ['KET'],
+        descCn: '剑桥 KET 考前冲刺教材，覆盖听说读写题型与高频语法词汇。',
+        descEn: 'Cambridge KET exam preparation covering listening, speaking, reading, writing and high-frequency grammar.',
+        cover: demoImage('KET Compact', 'Courseware Cover', '#4338ca', '#6366f1'),
+        levels: [
+          mkLevel('lvl_ket00001', 'A2', '#4338ca', '#6366f1', 2),
+          mkLevel('lvl_ket00002', 'B1', '#6366f1', '#0ea5e9', 2)
+        ],
+        active: false, boundCount: 1, createdAt: '2026-02-10'
+      },
+      {
+        id: 'cw_science01', nameCn: '国家地理科学', nameEn: 'National Geographic Science',
+        courseTypes: ['少儿英语'],
+        descCn: '国家地理科学分级读物，以真实照片与科普主题拓展学术词汇与阅读视野。',
+        descEn: 'National Geographic Science leveled readers expand academic vocabulary and reading horizons through real-world topics.',
+        cover: demoImage('National Geographic Science', 'Courseware Cover', '#0f766e', '#0ea5e9'),
+        levels: [
+          mkLevel('lvl_sci00001', 'Level 1', '#0f766e', '#0ea5e9', 1),
+          mkLevel('lvl_sci00002', 'Level 2', '#0ea5e9', '#14b8a6', 1)
+        ],
+        active: false, boundCount: 0, createdAt: '2026-01-18'
+      }
+    ];
+
+    const STUDENTS = [
+      {
+        id: 'stu_alice001', nickname: 'AliceZ12', realName: '张小丽', age: 12,
+        current: [
+          { cwId: 'cw_ort000001', levelId: 'lvl_ort00003' },
+          { cwId: 'cw_wonders01', levelId: 'lvl_won00002' },
+          { cwId: 'cw_raz000001', levelId: 'lvl_raz00002' }
+        ],
+        audit: [
+          { at: '2026-11-08 09:15', by: 'Leo', text: '升阶：Oxford Reading Tree Stage 2 → Stage 3' },
+          { at: '2026-10-12 16:40', by: 'Sarah', text: '新增 Raz-Kids · Level F' },
+          { at: '2026-09-01 10:20', by: 'Leo', text: '新增 Wonders · Grade 1' }
+        ]
+      },
+      {
+        id: 'stu_bob00002', nickname: 'BobZ10', realName: '张小博', age: 10,
+        current: [
+          { cwId: 'cw_phonics01', levelId: 'lvl_pho00002' },
+          { cwId: 'cw_ket000001', levelId: 'lvl_ket00001' }
+        ],
+        audit: [
+          { at: '2026-10-20 11:05', by: 'Leo', text: '新增 Oxford Phonics World · Level 2' }
+        ]
+      }
+    ];
+
+    const LESSONS = {
+      stu_alice001: { time: '19:00', course: '少儿英语', room: 'ClassIn A-302', countdown: '02:14' },
+      stu_bob00002: { time: '18:30', course: '生活口语', room: 'ClassIn B-105', countdown: '01:02' }
+    };
+
+    /* ------------------------------------------------------------------
+     * 状态与工具
+     * ------------------------------------------------------------------ */
+    function emptyForm() {
+      return {
+        mode: 'create', id: null, nameCn: '', nameEn: '', courseTypes: [],
+        descCn: '', descEn: '', cover: '', levels: [], active: true,
+        error: '', boundCount: 0, createdAt: ''
+      };
+    }
+
+    const state = {
+      role: 'admin',
+      page: 'library',
+      navTab: 'settings',
+      device: 'mobile',
+      online: 'on',
+      courseware: JSON.parse(JSON.stringify(LIBRARY)),
+      students: JSON.parse(JSON.stringify(STUDENTS)),
+      activeStudentId: 'stu_alice001',
+      libQuery: '',
+      libType: 'all',
+      libStatus: 'all',
+      form: emptyForm(),
+      draft: null,
+      draftStudentId: null,
+      overlay: null,
+      pickCw: '',
+      pickLevel: ''
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const clone = (v) => JSON.parse(JSON.stringify(v));
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
+
+    function newId(prefix) {
+      return `${prefix}_${Math.random().toString(36).slice(2, 11).padEnd(9, '0')}`;
+    }
+
+    function newLevelId() {
+      return `lvl_${Math.random().toString(36).slice(2, 10).padEnd(8, '0')}`;
+    }
+
+    function activeStudent() {
+      return state.students.find((s) => s.id === state.activeStudentId) || state.students[0];
+    }
+
+    function findCw(id) {
+      return state.courseware.find((c) => c.id === id) || null;
+    }
+
+    function findLevel(cw, levelId) {
+      return (cw && cw.levels || []).find((l) => l.id === levelId) || null;
+    }
+
+    function levelLabel(cw, levelId) {
+      const lvl = findLevel(cw, levelId);
+      return lvl ? lvl.name : '标准 / 无分级';
+    }
+
+    function itemLabel(item) {
+      const cw = findCw(item.cwId);
+      return cw ? `${cw.nameCn} · ${levelLabel(cw, item.levelId)}` : '已删除课件';
+    }
+
+    function operatorName() {
+      if (state.role === 'admin') return 'Sarah';
+      if (state.role === 'monitor') return 'Leo';
+      if (state.role === 'teacher') return 'David';
+      return 'Amy';
+    }
+
+    function coverHtml(cw, size = 'h-14 w-14', text = 'text-[18px]') {
+      if (cw && cw.cover) {
+        return `<img src="${esc(cw.cover)}" alt="" class="${size} shrink-0 rounded-lg object-cover ring-1 ring-slate-200">`;
+      }
+      const raw = (cw && (cw.nameEn || cw.nameCn)) || '?';
+      const initial = raw.split(/\s+/).map((w) => w.charAt(0)).join('').slice(0, 2).toUpperCase() || '?';
+      return `<span class="${size} grid shrink-0 place-items-center rounded-lg bg-indigo-50 ${text} font-bold text-indigo-700 ring-1 ring-indigo-100">${esc(initial)}</span>`;
+    }
+
+    function ensureDraft() {
+      const s = activeStudent();
+      if (!state.draft || state.draftStudentId !== s.id) {
+        state.draft = clone(s.current);
+        state.draftStudentId = s.id;
+      }
+    }
+
+    function summarizeChanges(before, after) {
+      const added = after.filter((a) => !before.some((b) => b.cwId === a.cwId));
+      const removed = before.filter((b) => !after.some((a) => a.cwId === b.cwId));
+      const changed = after.filter((a) => {
+        const b = before.find((x) => x.cwId === a.cwId);
+        return b && b.levelId !== a.levelId;
+      });
+      const parts = [];
+      if (added.length) parts.push(`新增 ${added.map(itemLabel).join('、')}`);
+      if (removed.length) parts.push(`移除 ${removed.map(itemLabel).join('、')}`);
+      if (changed.length) {
+        const details = changed.map((a) => {
+          const b = before.find((x) => x.cwId === a.cwId);
+          const cw = findCw(a.cwId);
+          if (!cw || !b) return '';
+          return `${cw.nameCn} ${levelLabel(cw, b.levelId)} → ${levelLabel(cw, a.levelId)}`;
+        }).filter(Boolean);
+        parts.push(`调整 ${details.join('、')}`);
+      }
+      return parts.length ? parts.join('；') : `在学课件更新为 ${after.length} 门`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 控制台
+     * ------------------------------------------------------------------ */
+    function viewAllowed(v) {
+      if (state.role === 'admin') return ['library', 'student'].includes(v);
+      if (state.role === 'monitor') return v === 'student';
+      if (state.role === 'parent') return v === 'child';
+      return v === 'prep';
+    }
+
+    function currentViewKey() {
+      if (state.page === 'editor' || state.page === 'library') return 'library';
+      if (state.page === 'student') return 'student';
+      if (state.page === 'child') return 'child';
+      if (state.page === 'prep') return 'prep';
+      return '';
+    }
+
+    function syncConsole() {
+      const view = currentViewKey();
+      document.querySelectorAll('.ctl').forEach((b) => {
+        const group = b.dataset.group;
+        const value = b.dataset.value;
+        let active = false;
+        let disabled = false;
+        if (group === 'role') active = state.role === value;
+        if (group === 'view') { active = view === value; disabled = !viewAllowed(value); }
+        if (group === 'student') active = state.activeStudentId === value;
+        if (group === 'device') active = state.device === value;
+        if (group === 'online') active = state.online === value;
+        b.disabled = disabled;
+        b.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}${disabled ? ' cursor-not-allowed opacity-40' : ''}`;
+      });
+    }
+
+    document.querySelectorAll('.ctl').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.group;
+        const value = btn.dataset.value;
+        if (group === 'role') setRole(value);
+        if (group === 'view') setView(value);
+        if (group === 'student') setStudent(value);
+        if (group === 'device') { state.device = value; renderAll(); }
+        if (group === 'online') {
+          state.online = value;
+          if (value === 'off') state.overlay = null;
+          renderAll();
+          if (value === 'off') showToast('离线模式：可查看课件，新建 / 编辑 / 启停 / 保存不可用');
+        }
+      });
+    });
+
+    function setRole(role) {
+      state.role = role; if (role === 'admin') state.device = 'mobile';
+      state.page = role === 'admin' ? 'library' : role === 'monitor' ? 'student' : role === 'parent' ? 'child' : 'prep';
+      state.navTab = role === 'admin' ? 'settings' : role === 'monitor' ? 'ops' : role === 'parent' ? 'me' : 'schedule';
+      state.overlay = null;
+      state.form = emptyForm();
+      state.draft = null;
+      state.draftStudentId = null;
+      renderAll();
+    }
+
+    function setView(view) {
+      if (!viewAllowed(view)) return;
+      if (view === 'library') { state.page = 'library'; state.navTab = 'settings'; }
+      if (view === 'student') {
+        state.page = 'student';
+        state.navTab = state.role === 'admin' ? 'settings' : 'ops';
+        state.draft = null;
+        state.draftStudentId = null;
+      }
+      if (view === 'child') { state.page = 'child'; state.navTab = 'me'; }
+      if (view === 'prep') { state.page = 'prep'; state.navTab = 'schedule'; }
+      state.overlay = null;
+      renderAll();
+    }
+
+    function setStudent(id) {
+      if (!state.students.some((s) => s.id === id)) return;
+      state.activeStudentId = id;
+      state.draft = null;
+      state.draftStudentId = null;
+      state.overlay = null;
+      if (state.page === 'editor') {
+        syncConsole();
+        return;
+      }
+      renderAll();
+    }
+
+    function resetDemo() {
+      state.role = 'admin';
+      state.page = 'library';
+      state.navTab = 'settings';
+      state.device = 'mobile';
+      state.online = 'on';
+      state.courseware = clone(LIBRARY);
+      state.students = clone(STUDENTS);
+      state.activeStudentId = 'stu_alice001';
+      state.libQuery = '';
+      state.libType = 'all';
+      state.libStatus = 'all';
+      state.form = emptyForm();
+      state.draft = null;
+      state.draftStudentId = null;
+      state.overlay = null;
+      state.pickCw = '';
+      state.pickLevel = '';
+      renderAll();
+      showToast('演示数据已重置');
+    }
+
+    $('btnResetDemo').addEventListener('click', resetDemo);
+
+    /* ------------------------------------------------------------------
+     * 总渲染
+     * ------------------------------------------------------------------ */
+    function renderAll() {
+      const frame = $('frame');
+      frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
+
+      $('banner').innerHTML = renderBanner();
+
+      const off = $('offlineBanner');
+      off.className = state.online === 'off'
+        ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[12px] font-semibold text-amber-900'
+        : 'hidden';
+      off.innerHTML = state.online === 'off'
+        ? `${icon('wifi-off', 'h-4 w-4 shrink-0 text-amber-600')} 离线模式：可查看课件与在学配置，新建 / 编辑 / 启停 / 保存不可用`
+        : '';
+
+      $('content').innerHTML = renderContent();
+      $('bottomnav').innerHTML = state.page === 'editor' ? '' : renderNav();
+      $('overlay').innerHTML = renderOverlay();
+      syncConsole();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderBanner() {
+      const b = BANNERS[state.role];
+      return `<header class="relative flex h-[68px] shrink-0 items-center justify-between overflow-hidden bg-gradient-to-br ${b.gradient} px-4 text-white">
+        ${b.pattern}
+        <div class="relative flex min-w-0 items-center gap-2.5">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">${b.initial}</span>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="truncate text-[16px] font-bold">${esc(b.brand)}</span>
+              <span class="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[12px] font-bold">${esc(b.role)}</span>
+            </div>
+            <div class="truncate text-[12px] text-white/70">${esc(b.subtitle)}</div>
+          </div>
+        </div>
+        <button data-action="toast" data-message="暂无新消息" class="relative grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="通知">
+          ${icon('bell', 'h-4 w-4')}
+          <span class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-400 ring-1 ring-white/50"></span>
+        </button>
+      </header>`;
+    }
+
+    function renderNav() {
+      return `<div class="relative z-40 border-t border-slate-200 bg-white px-1 pb-1.5 pt-1">
+        <div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">
+          ${NAVS[state.role].map((item) => {
+            const on = state.navTab === item.id;
+            return `<button data-action="nav" data-tab="${item.id}" class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 transition ${on ? 'font-bold text-indigo-600' : 'font-medium text-slate-400'}">
+              ${icon(item.icon, `h-[18px] w-[18px] ${on ? '' : 'opacity-80'}`)}
+              <span class="text-[12px] font-bold leading-tight">${esc(item.label)}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
+
+    function renderContent() {
+      if (state.page === 'placeholder') return renderPlaceholder();
+      if (state.page === 'editor') return renderEditor();
+      if (state.page === 'library' && state.role === 'admin') return renderLibrary();
+      if (state.page === 'student') return renderStudentConfig();
+      if (state.page === 'child') return renderParentChild();
+      if (state.page === 'prep') return renderTeacherPrep();
+      return renderPlaceholder();
+    }
+
+    function renderPlaceholder() {
+      const item = NAVS[state.role].find((n) => n.id === state.navTab);
+      if (!item) return `<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>`;
+      return `<div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
+        <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
+        <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
+        <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc)}</p>
+        ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}
+        <button data-action="back-main" class="mt-3 text-[14px] font-semibold text-indigo-600">返回${state.role === 'admin' ? '课件库' : state.role === 'monitor' ? '在学课件' : state.role === 'parent' ? '孩子课件' : '备课课件'}</button>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 通用组件
+     * ------------------------------------------------------------------ */
+    function pageHeader(title, subtitle, right = '') {
+      return `<div class="flex items-end justify-between gap-3 px-1">
+        <div class="min-w-0">
+          <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${esc(title)}</h1>
+          <p class="mt-0.5 text-[12px] font-medium text-slate-400">${esc(subtitle)}</p>
+        </div>
+        ${right}
+      </div>`;
+    }
+
+    function backRow(action, label) {
+      return `<button data-action="${action}" class="flex items-center gap-1 text-[14px] font-semibold text-slate-500 transition hover:text-slate-800">
+        ${icon('chevron-left', 'h-4 w-4')}${esc(label)}
+      </button>`;
+    }
+
+    function miniStat(label, value, tone, suffix = '') {
+      const T = TONES[tone];
+      return `<div class="rounded-xl border px-2 py-2 ${T.card}">
+        <div class="text-[12px] font-medium ${T.sub}">${esc(label)}</div>
+        <div class="mt-0.5 font-mono text-[18px] font-bold ${T.right}">${esc(value)}${suffix ? `<span class="ml-0.5 text-[12px] font-medium">${esc(suffix)}</span>` : ''}</div>
+      </div>`;
+    }
+
+    function studentSwitch() {
+      return `<div class="rounded-2xl border border-slate-200/80 bg-white p-2 shadow-sm">
+        <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
+          ${state.students.map((s) => `<button data-action="switch-student" data-id="${s.id}" class="flex-1 rounded-lg py-2 text-[12px] font-bold transition ${s.id === state.activeStudentId ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">${esc(s.nickname)}</button>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 管理员 · 课件库
+     * ------------------------------------------------------------------ */
+    function filteredLibrary() {
+      const q = state.libQuery.trim().toLowerCase();
+      return state.courseware.filter((cw) => {
+        const qOk = !q || cw.nameCn.toLowerCase().includes(q) || cw.nameEn.toLowerCase().includes(q);
+        const typeOk = state.libType === 'all' || cw.courseTypes.includes(state.libType);
+        const statusOk = state.libStatus === 'all' || (state.libStatus === 'active' ? cw.active : !cw.active);
+        return qOk && typeOk && statusOk;
+      });
+    }
+
+    function renderLibrary() {
+      const all = state.courseware;
+      const active = all.filter((c) => c.active);
+      const inactive = all.filter((c) => !c.active);
+      const list = filteredLibrary();
+      const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
+      const canWrite = state.online === 'on';
+
+      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
+        ${pageHeader('课件库', '全平台课件资产 · 分级样课与启停', `<button data-action="create-courseware" ${canWrite ? '' : 'disabled'} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">+ 新建课件</button>`)}
+        <div class="grid grid-cols-3 gap-2">
+          ${miniStat('课件总数', all.length, 'indigo')}
+          ${miniStat('启用中', active.length, 'emerald')}
+          ${miniStat('已停用', inactive.length, 'slate')}
+        </div>
+        <div class="relative">
+          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">${icon('search', 'h-4 w-4')}</span>
+          <input id="libSearch" value="${esc(state.libQuery)}" placeholder="搜索中文名 / 英文名" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
+        </div>
+        <div class="flex gap-2">
+          <select id="libType" class="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-[14px] font-semibold text-slate-700 outline-none focus:border-indigo-500">
+            <option value="all" ${state.libType === 'all' ? 'selected' : ''}>全部课程类型</option>
+            ${COURSE_TYPES.map((t) => `<option value="${esc(t)}" ${state.libType === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}
+          </select>
+          <div class="flex shrink-0 gap-1 rounded-xl bg-slate-200/60 p-1">
+            ${[['all', '全部'], ['active', '启用'], ['inactive', '停用']].map(([key, label]) => `<button data-action="lib-status" data-status="${key}" class="rounded-lg px-2.5 text-[12px] font-bold transition ${state.libStatus === key ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">${label}</button>`).join('')}
+          </div>
+        </div>
+        <div class="${grid}">
+          ${list.length ? list.map(libraryCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-400">没有匹配的课件</div>`}
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">已被学员绑定的课件仅支持停用，禁止物理删除；停用后新增选择自动隐藏，已绑定档案继续展示【已停用】。</div>
+      </div>`;
+    }
+
+    function libraryCard(cw) {
+      const canWrite = state.online === 'on';
+      return `<article class="rounded-2xl border p-3 shadow-sm ${cw.active ? 'border-slate-200/80 bg-white' : 'border-slate-200 bg-slate-50'}">
+        <div class="flex items-start gap-2.5">
+          <span class="${cw.active ? '' : 'opacity-60'}">${coverHtml(cw, 'h-14 w-14', 'text-[18px]')}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="truncate text-[16px] font-bold text-slate-900">${esc(cw.nameCn)}</div>
+                <div class="truncate text-[12px] font-medium text-slate-400">${esc(cw.nameEn)}</div>
+              </div>
+              ${cw.active ? '<span class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">启用</span>' : '<span class="shrink-0 rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">已停用</span>'}
+            </div>
+            <div class="mt-1 flex flex-wrap gap-1.5">
+              ${cw.courseTypes.map((t) => `<span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">${esc(t)}</span>`).join('')}
+            </div>
+            <div class="mt-1.5 flex flex-wrap items-center gap-x-2 text-[12px] font-medium text-slate-400">
+              <span>${cw.levels.length} 个级别</span><span>·</span><span>已绑定 ${cw.boundCount} 名学员</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+          <div class="flex items-center gap-2">
+            <button data-action="toggle-cw" data-id="${cw.id}" ${canWrite ? '' : 'disabled'} class="relative h-6 w-11 shrink-0 rounded-full transition ${cw.active ? 'bg-indigo-600' : 'bg-slate-300'} disabled:opacity-40" aria-label="${cw.active ? '停用' : '启用'}">
+              <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${cw.active ? 'translate-x-5' : 'translate-x-0'}"></span>
+            </button>
+            <span class="text-[12px] font-medium text-slate-500">${cw.active ? '启用中' : '已停用'}</span>
+          </div>
+          <div class="flex shrink-0 items-center gap-1.5">
+            <button data-action="preview-cw" data-id="${cw.id}" data-level="${cw.levels[0] ? cw.levels[0].id : ''}" class="h-8 rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-200">样课</button>
+            <button data-action="edit-cw" data-id="${cw.id}" ${canWrite ? '' : 'disabled'} class="h-8 rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-40">编辑</button>
+          </div>
+        </div>
+      </article>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 管理员 · 课件编辑
+     * ------------------------------------------------------------------ */
+    function openEditor(mode, id = null) {
+      if (state.online === 'off') return showToast('离线模式下不可新建或编辑课件');
+      if (mode === 'edit') {
+        const cw = findCw(id);
+        if (!cw) return;
+        state.form = {
+          mode: 'edit', id: cw.id, nameCn: cw.nameCn, nameEn: cw.nameEn,
+          courseTypes: [...cw.courseTypes], descCn: cw.descCn || '', descEn: cw.descEn || '',
+          cover: cw.cover || '', levels: clone(cw.levels || []), active: cw.active,
+          error: '', boundCount: cw.boundCount || 0, createdAt: cw.createdAt || ''
+        };
+      } else {
+        state.form = emptyForm();
+      }
+      state.page = 'editor';
+      state.navTab = 'settings';
+      state.overlay = null;
+      renderAll();
+    }
+
+    function renderEditor() {
+      const f = state.form;
+      const isEdit = f.mode === 'edit';
+      const inputCls = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500';
+      return `<div class="flex h-full min-h-0 flex-col">
+        <div id="editorScroll" class="min-h-0 flex-1 overflow-y-auto">
+          <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3">
+            ${backRow('cancel-editor', '课件库')}
+            <div class="px-1">
+              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${isEdit ? '编辑课件' : '新建课件'}</h1>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">中英文名称与课程类型为必填 · 级别与样课图可选</p>
+            </div>
+
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <h2 class="text-[16px] font-bold text-slate-900">基础信息</h2>
+              <div class="mt-2.5 space-y-3">
+                <div>
+                  <label for="fNameCn" class="mb-1 block text-[14px] font-semibold text-slate-700">中文名 <span class="text-rose-500">*</span></label>
+                  <input id="fNameCn" value="${esc(f.nameCn)}" maxlength="64" placeholder="如 牛津阅读树" class="${inputCls}">
+                </div>
+                <div>
+                  <label for="fNameEn" class="mb-1 block text-[14px] font-semibold text-slate-700">英文名 <span class="text-rose-500">*</span></label>
+                  <input id="fNameEn" value="${esc(f.nameEn)}" maxlength="64" placeholder="如 Oxford Reading Tree" class="${inputCls}">
+                </div>
+                <div>
+                  <div class="mb-1 flex items-center justify-between">
+                    <span class="text-[14px] font-semibold text-slate-700">归属课程类型 <span class="text-rose-500">*</span></span>
+                    <span class="text-[12px] font-medium text-slate-400">至少 1 项</span>
+                  </div>
+                  <div class="flex flex-wrap gap-1.5">
+                    ${COURSE_TYPES.map((t) => {
+                      const on = f.courseTypes.includes(t);
+                      return `<button data-action="toggle-type" data-value="${esc(t)}" class="h-8 rounded-lg border px-2.5 text-[12px] font-semibold ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600'}">${esc(t)}</button>`;
+                    }).join('')}
+                  </div>
+                </div>
+                <div>
+                  <label for="fDescCn" class="mb-1 block text-[14px] font-semibold text-slate-700">中文简介</label>
+                  <textarea id="fDescCn" maxlength="500" placeholder="课件中文简介（选填）" class="h-20 w-full rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(f.descCn)}</textarea>
+                </div>
+                <div>
+                  <label for="fDescEn" class="mb-1 block text-[14px] font-semibold text-slate-700">English Description</label>
+                  <textarea id="fDescEn" maxlength="500" placeholder="Courseware description (optional)" class="h-20 w-full rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(f.descEn)}</textarea>
+                </div>
+                <div>
+                  <div class="mb-1 flex items-center justify-between">
+                    <span class="text-[14px] font-semibold text-slate-700">封面配图</span>
+                    <span class="text-[12px] font-medium text-slate-400">选填 · 1 张</span>
+                  </div>
+                  <div class="flex items-center gap-2.5">
+                    <span class="h-20 w-20 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                      ${f.cover ? `<img src="${esc(f.cover)}" class="h-full w-full object-cover" alt="">` : `<span class="grid h-full w-full place-items-center text-slate-300">${icon('image', 'h-6 w-6')}</span>`}
+                    </span>
+                    <div class="flex flex-col gap-1.5">
+                      <label for="fCoverInput" class="inline-flex h-8 cursor-pointer items-center rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-200">选择封面</label>
+                      <input id="fCoverInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
+                      <button data-action="demo-cover" class="h-8 rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-200">使用示例封面</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="formLevels" class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <div class="flex items-center justify-between gap-2">
+                <h2 class="text-[16px] font-bold text-slate-900">分级级别 <span class="text-[12px] font-medium text-slate-400">${f.levels.length} 个</span></h2>
+                <button data-action="add-level" class="h-8 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 text-[12px] font-bold text-indigo-700">+ 添加级别</button>
+              </div>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-400">每个级别录英文名，可上传 0-9 张样课内页；支持调整级别与配图顺序。</p>
+              <div class="mt-2.5 space-y-2">
+                ${f.levels.length ? f.levels.map((lvl, i) => levelEditor(lvl, i)).join('') : `<div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-5 text-center text-[12px] font-medium text-slate-400">尚未配置级别 · 可保存为无分级课件</div>`}
+              </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+              <button data-action="toggle-form-active" class="flex w-full items-center justify-between gap-3">
+                <div class="text-left">
+                  <div class="text-[16px] font-semibold text-slate-900">启用课件</div>
+                  <div class="mt-0.5 text-[12px] font-medium text-slate-400">停用后新增选择自动隐藏，已绑定档案继续展示</div>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                  <span id="formActiveLabel" class="text-[12px] font-semibold ${f.active ? 'text-indigo-700' : 'text-slate-400'}">${f.active ? '已启用' : '已停用'}</span>
+                  <span id="formActiveTrack" class="relative h-6 w-11 rounded-full transition ${f.active ? 'bg-indigo-600' : 'bg-slate-300'}">
+                    <span id="formActiveKnob" class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${f.active ? 'translate-x-5' : 'translate-x-0'}"></span>
+                  </span>
+                </div>
+              </button>
+            </section>
+
+            ${isEdit && f.boundCount === 0 ? `<section class="rounded-2xl border border-rose-200 bg-rose-50/70 p-4">
+              <div class="flex items-center justify-between gap-2">
+                <div><div class="text-[14px] font-bold text-rose-950">删除课件</div><div class="mt-0.5 text-[12px] font-medium text-rose-800">该课件从未被学员绑定，可物理清理。</div></div>
+                <button data-action="delete-cw" ${state.online === 'on' ? '' : 'disabled'} class="h-8 shrink-0 rounded-lg border border-rose-300 bg-white px-2.5 text-[12px] font-bold text-rose-700 disabled:opacity-40">删除</button>
+              </div>
+            </section>` : ''}
+            ${isEdit && f.boundCount > 0 ? `<div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">已被 ${f.boundCount} 名学员绑定，仅可停用，不可删除；停用后已绑定档案继续展示【已停用】。</div>` : ''}
+
+            ${f.error ? `<div id="formError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-rose-700">${esc(f.error)}</div>` : ''}
+          </div>
+        </div>
+        <div class="flex shrink-0 gap-2 border-t border-slate-200 bg-white px-4 py-3">
+          <button data-action="cancel-editor" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">取消</button>
+          <button data-action="save-cw" ${state.online === 'on' ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">${isEdit ? '保存修改' : '确认创建'}</button>
+        </div>
+      </div>`;
+    }
+
+    function levelEditor(lvl, i) {
+      const isFirst = i === 0;
+      const isLast = i === state.form.levels.length - 1;
+      return `<div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+        <div class="flex items-center gap-1.5">
+          <div class="flex shrink-0 gap-1">
+            <button data-action="move-level" data-index="${i}" data-delta="-1" ${isFirst ? 'disabled' : ''} class="grid h-8 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 disabled:opacity-30" aria-label="上移">${icon('chevron-up', 'h-4 w-4')}</button>
+            <button data-action="move-level" data-index="${i}" data-delta="1" ${isLast ? 'disabled' : ''} class="grid h-8 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 disabled:opacity-30" aria-label="下移">${icon('chevron-down', 'h-4 w-4')}</button>
+          </div>
+          <input id="fLevelName-${i}" value="${esc(lvl.name)}" maxlength="32" placeholder="级别英文名，如 Stage 1" class="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[16px] font-semibold text-slate-900 outline-none focus:border-indigo-500">
+          <button data-action="remove-level" data-index="${i}" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-rose-200 bg-white text-rose-600" aria-label="删除级别">${icon('trash-2', 'h-4 w-4')}</button>
+        </div>
+        <div class="mt-2 grid grid-cols-3 gap-1.5">
+          ${lvl.images.map((img, j) => `<div class="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <img src="${img}" class="h-full w-full object-cover" alt="">
+            <div class="absolute inset-x-1 bottom-1 flex justify-between gap-1">
+              <button data-action="move-level-img" data-index="${i}" data-img-index="${j}" data-delta="-1" ${j === 0 ? 'disabled' : ''} class="grid h-6 flex-1 place-items-center rounded bg-white/85 text-slate-600 disabled:opacity-30" aria-label="前移">${icon('chevron-left', 'h-3 w-3')}</button>
+              <button data-action="move-level-img" data-index="${i}" data-img-index="${j}" data-delta="1" ${j === lvl.images.length - 1 ? 'disabled' : ''} class="grid h-6 flex-1 place-items-center rounded bg-white/85 text-slate-600 disabled:opacity-30" aria-label="后移">${icon('chevron-right', 'h-3 w-3')}</button>
+              <button data-action="remove-level-img" data-index="${i}" data-img-index="${j}" class="grid h-6 w-6 place-items-center rounded bg-rose-50 text-rose-600" aria-label="删除配图">${icon('x', 'h-3 w-3')}</button>
+            </div>
+          </div>`).join('')}
+          ${lvl.images.length < 9 ? `<label class="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 bg-white/70 text-slate-400">
+            <input id="fLevelImg-${i}" type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden">
+            ${icon('plus', 'h-4 w-4')}
+            <span class="text-[12px] font-semibold">添加配图</span>
+          </label>` : ''}
+        </div>
+        <div class="mt-1.5 flex items-center justify-between gap-2">
+          <span class="text-[12px] font-medium text-slate-400">${lvl.images.length}/9 张样课图</span>
+          <button data-action="demo-level-img" data-index="${i}" class="text-[12px] font-bold text-indigo-600">生成示例图</button>
+        </div>
+      </div>`;
+    }
+
+    function renderEditorOnly() {
+      const scroller = $('editorScroll');
+      const top = scroller ? scroller.scrollTop : 0;
+      $('content').innerHTML = renderContent();
+      if (window.lucide) lucide.createIcons();
+      const next = $('editorScroll');
+      if (next) next.scrollTop = top;
+    }
+
+    function formError() {
+      const f = state.form;
+      if (state.online === 'off') return '离线模式下不可保存课件';
+      if (!f.nameCn.trim()) return '请填写课件中文名';
+      if (f.nameCn.length > 64) return '中文名不能超过 64 字符';
+      if (!f.nameEn.trim()) return '请填写课件英文名';
+      if (f.nameEn.length > 64) return '英文名不能超过 64 字符';
+      if (!f.courseTypes.length) return '请至少选择 1 个归属课程类型';
+      for (let i = 0; i < f.levels.length; i++) {
+        const lvl = f.levels[i];
+        if (!lvl.name.trim()) return `请填写第 ${i + 1} 个级别的英文名`;
+        if (lvl.name.length > 32) return `第 ${i + 1} 个级别英文名不能超过 32 字符`;
+        if (lvl.images.length > 9) return `第 ${i + 1} 个级别最多 9 张样课图`;
+      }
+      return null;
+    }
+
+    function saveCourseware() {
+      const err = formError();
+      if (err) {
+        state.form.error = err;
+        renderEditorOnly();
+        setTimeout(() => $('formError')?.scrollIntoView({ block: 'center' }), 60);
+        showToast(err);
+        return;
+      }
+      const f = state.form;
+      if (f.mode === 'edit') {
+        const cw = findCw(f.id);
+        if (!cw) return;
+        Object.assign(cw, {
+          nameCn: f.nameCn.trim(), nameEn: f.nameEn.trim(),
+          courseTypes: [...f.courseTypes], descCn: f.descCn, descEn: f.descEn,
+          cover: f.cover, levels: clone(f.levels), active: f.active
+        });
+        state.page = 'library';
+        state.navTab = 'settings';
+        renderAll();
+        showToast('课件已保存');
+        return;
+      }
+      state.courseware.unshift({
+        id: newId('cw'),
+        nameCn: f.nameCn.trim(), nameEn: f.nameEn.trim(),
+        courseTypes: [...f.courseTypes], descCn: f.descCn, descEn: f.descEn,
+        cover: f.cover, levels: clone(f.levels), active: f.active,
+        boundCount: 0, createdAt: TODAY
+      });
+      state.page = 'library';
+      state.navTab = 'settings';
+      renderAll();
+      showToast('课件已创建');
+    }
+
+    /* ------------------------------------------------------------------
+     * 在学课件 · 管理员 / 班长
+     * ------------------------------------------------------------------ */
+    function renderStudentConfig() {
+      ensureDraft();
+      const s = activeStudent();
+      const draft = state.draft;
+      const canWriteRole = state.role === 'admin' || state.role === 'monitor';
+      const online = state.online === 'on';
+      const canWrite = canWriteRole && online;
+      const isParent = state.role === 'parent';
+      const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
+
+      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
+        ${pageHeader('在学课件', `${s.nickname} · ${draft.length}/6`, isParent ? `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>` : '')}
+        ${studentSwitch()}
+
+        <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">在学课件 <span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-500">${draft.length}/6</span></h2>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">${canWriteRole ? '最多 6 门 · 保存后同步教师课表与家长端' : '由管理员或负责班长维护 · 家长端只读'}</p>
+            </div>
+            ${canWriteRole ? `<button data-action="save-config" ${online ? '' : 'disabled'} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">保存生效</button>` : ''}
+          </div>
+
+          ${!online && canWriteRole ? `<div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] font-medium text-amber-900">离线模式：可查看，保存与调整不可用。</div>` : ''}
+
+          <div class="mt-2.5 ${grid}">
+            ${draft.length ? draft.map((item, i) => configItem(item, i, canWrite)).join('') : `<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-400">尚未配置在学课件</div>`}
+            ${canWriteRole && draft.length < 6 ? `<button data-action="config-add" ${online ? '' : 'disabled'} class="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white/70 py-3 text-[12px] font-bold text-indigo-700 disabled:cursor-not-allowed disabled:text-slate-400">${icon('plus', 'h-4 w-4')}添加在学课件</button>` : ''}
+          </div>
+
+          ${draft.length >= 6 ? `<div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] font-medium text-amber-900">已达 6 门上限，请先移除后再添加。</div>` : ''}
+
+          ${canWriteRole ? auditDetails(s) : ''}
+        </section>
+
+        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">${canWriteRole ? '停用课件不会自动解绑；已绑定的停用课件继续展示【已停用】。保存后教师日历与家长端即时刷新。' : '在学课件由管理员或负责班长维护，家长端仅可查看封面、名称与级别。'}</div>
+      </div>`;
+    }
+
+    function configItem(item, i, canWrite) {
+      const cw = findCw(item.cwId);
+      if (!cw) return '';
+      const lvl = findLevel(cw, item.levelId);
+      return `<div class="rounded-xl border border-slate-200 bg-white p-2.5">
+        <div class="flex items-start gap-2.5">
+          <button data-action="preview-cw" data-id="${cw.id}" data-level="${esc(item.levelId || '')}" class="shrink-0" aria-label="预览课件">${coverHtml(cw, 'h-11 w-11', 'text-[14px]')}</button>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-start justify-between gap-1.5">
+              <div class="min-w-0">
+                <div class="truncate text-[14px] font-bold text-slate-900">${esc(cw.nameCn)}</div>
+                <div class="truncate text-[12px] font-medium text-slate-400">${esc(cw.nameEn)}</div>
+              </div>
+              ${canWrite ? `<button data-action="config-remove" data-index="${i}" ${state.online === 'on' ? '' : 'disabled'} class="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 disabled:opacity-40" aria-label="移除">${icon('x', 'h-3.5 w-3.5')}</button>` : ''}
+            </div>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+              ${cw.levels.length && canWrite
+                ? `<select id="cfgLevel-${i}" ${state.online === 'on' ? '' : 'disabled'} class="h-9 rounded-lg border border-slate-200 bg-white px-2 text-[14px] font-semibold text-slate-700 outline-none focus:border-indigo-500 disabled:bg-slate-100 disabled:text-slate-400">
+                    ${cw.levels.map((l) => `<option value="${l.id}" ${l.id === item.levelId ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}
+                  </select>`
+                : `<span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(lvl ? lvl.name : '标准 / 无分级')}</span>`}
+              ${!cw.active ? `<span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">已停用</span>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function auditDetails(s) {
+      if (!s.audit || !s.audit.length) return '';
+      return `<details class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <summary class="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+          <span class="text-[14px] font-bold text-slate-800">变更记录</span>
+          <span class="text-[12px] font-medium text-slate-400">${s.audit.length} 条</span>
+        </summary>
+        <div class="mt-2 space-y-2">
+          ${s.audit.slice(0, 5).map((a) => `<div class="flex items-start gap-2">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400"></span>
+            <div class="min-w-0">
+              <div class="text-[12px] font-medium text-slate-400">${esc(a.at)} · ${esc(a.by)}</div>
+              <div class="text-[14px] font-medium leading-relaxed text-slate-800">${esc(a.text)}</div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </details>`;
+    }
+
+    function saveConfig() {
+      if (state.online === 'off') return showToast('离线模式下不可保存在学课件');
+      const s = activeStudent();
+      ensureDraft();
+      const before = s.current;
+      const after = state.draft;
+      if (JSON.stringify(before) === JSON.stringify(after)) {
+        showToast('在学课件未变更');
+        return;
+      }
+      s.current = clone(after);
+      s.audit = s.audit || [];
+      s.audit.unshift({
+        at: '2026-11-10 14:32',
+        by: operatorName(),
+        text: summarizeChanges(before, after)
+      });
+      state.draft = clone(s.current);
+      state.draftStudentId = s.id;
+      renderAll();
+      showToast(`在学课件已保存，共 ${after.length} 门`);
+    }
+
+    function openAddPicker() {
+      if (state.online === 'off') return showToast('离线模式下不可添加在学课件');
+      ensureDraft();
+      if (state.draft.length >= 6) return showToast('每个学员最多配置 6 门在学课件');
+      state.pickCw = '';
+      state.pickLevel = '';
+      state.overlay = { type: 'addPicker' };
+      $('overlay').innerHTML = renderOverlay();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function addPick() {
+      if (state.online === 'off') return showToast('离线模式下不可添加在学课件');
+      ensureDraft();
+      const cw = findCw(state.pickCw);
+      if (!cw) return showToast('请选择课件');
+      if (state.draft.length >= 6) return showToast('每个学员最多配置 6 门在学课件');
+      if (state.draft.some((d) => d.cwId === cw.id)) return showToast('该课件已在在学列表中');
+      state.draft.push({ cwId: cw.id, levelId: state.pickLevel || '' });
+      state.overlay = null;
+      renderAll();
+      showToast('已添加，保存后生效');
+    }
+
+    /* ------------------------------------------------------------------
+     * 家长 · 孩子课件（只读）
+     * ------------------------------------------------------------------ */
+    function renderParentChild() {
+      const s = activeStudent();
+      const items = s.current || [];
+      const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
+      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
+        ${pageHeader('孩子课件', `${s.nickname} · 只读`, `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`)}
+        ${studentSwitch()}
+        <div class="grid grid-cols-2 gap-2">
+          ${miniStat('在学课件', items.length, 'indigo', '/6')}
+          ${miniStat('最近更新', s.audit && s.audit[0] ? s.audit[0].at.slice(5, 10) : '—', 'slate')}
+        </div>
+        <div class="${grid}">
+          ${items.length ? items.map(parentCoursewareCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-400">该孩子暂未配置在学课件</div>`}
+        </div>
+        <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">在学课件由管理员或负责班长维护 · 家长端只读。点击封面可查看当前级别样课内页。</div>
+      </div>`;
+    }
+
+    function parentCoursewareCard(item) {
+      const cw = findCw(item.cwId);
+      if (!cw) return '';
+      const lvl = findLevel(cw, item.levelId);
+      return `<article class="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+        <div class="flex items-start gap-2.5">
+          <button data-action="preview-cw" data-id="${cw.id}" data-level="${esc(item.levelId || '')}" aria-label="查看样课">${coverHtml(cw, 'h-14 w-14', 'text-[18px]')}</button>
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-[16px] font-bold text-slate-900">${esc(cw.nameCn)}</div>
+            <div class="truncate text-[12px] font-medium text-slate-400">${esc(cw.nameEn)}</div>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+              <span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(lvl ? lvl.name : '标准 / 无分级')}</span>
+              ${!cw.active ? `<span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">已停用</span>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+          <span class="text-[12px] font-medium text-slate-400">${(lvl ? lvl.images : []).length} 张样课图</span>
+          <button data-action="preview-cw" data-id="${cw.id}" data-level="${esc(item.levelId || '')}" class="h-8 rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-200">查看样课</button>
+        </div>
+      </article>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 教师 · 备课课件
+     * ------------------------------------------------------------------ */
+    function renderTeacherPrep() {
+      const s = activeStudent();
+      const lesson = LESSONS[s.id] || LESSONS.stu_alice001;
+      const items = s.current || [];
+      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
+        ${pageHeader('备课课件', `下一节 · ${s.nickname} · ${lesson.course}`)}
+        ${studentSwitch()}
+
+        <article class="rounded-2xl border border-amber-200/70 bg-amber-50/80 p-3.5 shadow-sm">
+          <div class="flex items-start gap-2.5">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">${icon('calendar-clock', 'h-4 w-4')}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex min-w-0 items-center gap-1.5">
+                  <span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-200 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-800"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>课程</span>
+                  <h2 class="truncate text-[14px] font-bold text-amber-950">下一节课</h2>
+                </div>
+                <span class="shrink-0 rounded bg-white/60 px-1.5 py-0.5 text-[12px] font-semibold text-amber-700">今天</span>
+              </div>
+              <p class="mt-0.5 truncate text-[12px] font-medium text-amber-700">${esc(s.nickname)} · ${esc(lesson.course)}</p>
+              <p class="mt-1 text-[12px] leading-snug text-amber-900/85">${esc(lesson.time)} · David 老师 · ${esc(lesson.room)}</p>
+            </div>
+            <div class="shrink-0 text-right"><span class="font-mono text-[16px] font-bold text-amber-950">${esc(lesson.countdown)}</span><span class="ml-0.5 text-[12px] font-medium text-amber-700">距开课</span></div>
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-2 border-t border-black/5 pt-1.5">
+            <span class="truncate text-[12px] font-medium text-amber-700">授课准备期 · 不可退改</span>
+            <button data-action="toast" data-message="已打开 7 色排期详情（原型模拟）" class="shrink-0 rounded-lg bg-amber-600 px-2.5 py-1 text-[12px] font-bold text-white">查看排期</button>
+          </div>
+        </article>
+
+        <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-[16px] font-bold text-slate-900">Current Courseware <span class="text-[12px] font-medium text-slate-400">在学课件</span></h2>
+            <span class="rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-500">${items.length}/6</span>
+          </div>
+          <p class="mt-0.5 text-[12px] font-medium text-slate-400">点击课件胶囊查看当前级别样课内页</p>
+          <div class="mt-2.5 flex flex-wrap gap-1.5">
+            ${items.length ? items.map(teacherCoursewareTag).join('') : `<span class="text-[14px] font-medium text-slate-400">该学生暂未配置在学课件</span>`}
+          </div>
+          <div class="mt-2.5 rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">备课参考标签 · 不与单节预约排课执行强阻断校验。</div>
+        </section>
+      </div>`;
+    }
+
+    function teacherCoursewareTag(item) {
+      const cw = findCw(item.cwId);
+      if (!cw) return '';
+      const lvl = findLevel(cw, item.levelId);
+      const inactive = !cw.active;
+      return `<button data-action="preview-cw" data-id="${cw.id}" data-level="${esc(item.levelId || '')}" class="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-left ${inactive ? 'border-slate-200 bg-slate-100 text-slate-500' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}">
+        ${icon('book-open', 'h-3.5 w-3.5 shrink-0')}
+        <span class="min-w-0 truncate text-[12px] font-bold">${esc(cw.nameEn)}</span>
+        <span class="shrink-0 rounded bg-white/70 px-1 text-[12px] font-bold">${esc(lvl ? lvl.name : '标准')}</span>
+        ${inactive ? '<span class="shrink-0 text-[12px] font-medium">已停用</span>' : ''}
+      </button>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 弹层
+     * ------------------------------------------------------------------ */
+    function renderOverlay() {
+      if (!state.overlay) return '';
+      if (state.overlay.type === 'addPicker') return renderAddPicker();
+      if (state.overlay.type === 'preview') return renderPreview();
+      if (state.overlay.type === 'lightbox') return renderLightbox();
+      if (state.overlay.type === 'deleteConfirm') return renderDeleteConfirm();
+      return '';
+    }
+
+    function renderOverlayOnly() {
+      $('overlay').innerHTML = renderOverlay();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function modalShell(content) {
+      return `<div class="absolute inset-0 z-50">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-3 top-1/2 mx-auto max-h-[88%] max-w-[560px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl">${content}</div>
+      </div>`;
+    }
+
+    function modalHeader(title, subtitle = '') {
+      return `<div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="text-[16px] font-bold text-slate-900">${esc(title)}</h2>
+          ${subtitle ? `<p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">${esc(subtitle)}</p>` : ''}
+        </div>
+        <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+      </div>`;
+    }
+
+    function renderAddPicker() {
+      ensureDraft();
+      const used = new Set(state.draft.map((d) => d.cwId));
+      const available = state.courseware.filter((c) => c.active && !used.has(c.id));
+      const picked = findCw(state.pickCw);
+      const canAdd = !!picked && state.online === 'on' && state.draft.length < 6;
+      return modalShell(`
+        ${modalHeader('添加在学课件', `${activeStudent().nickname} · 最多 6 门`)}
+        ${available.length ? `<div class="mt-3 space-y-2">
+          <select id="pickCw" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none focus:border-indigo-500">
+            <option value="">选择启用中的课件</option>
+            ${available.map((c) => `<option value="${c.id}" ${state.pickCw === c.id ? 'selected' : ''}>${esc(c.nameCn)} · ${esc(c.nameEn)}</option>`).join('')}
+          </select>
+          <select id="pickLevel" ${picked ? '' : 'disabled'} class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none focus:border-indigo-500 disabled:bg-slate-100 disabled:text-slate-400">
+            ${picked
+              ? (picked.levels.length
+                ? picked.levels.map((l) => `<option value="${l.id}" ${state.pickLevel === l.id ? 'selected' : ''}>${esc(l.name)}</option>`).join('')
+                : `<option value="">标准 / 无分级</option>`)
+              : `<option value="">选择级别</option>`}
+          </select>
+          <button data-action="pick-add" ${canAdd ? '' : 'disabled'} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">添加到在学课件</button>
+        </div>` : `<div class="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-400">暂无可添加的启用课件</div>`}
+        <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-500">停用课件不在可选列表；已绑定的停用课件仍会在在学列表中展示。</div>
+        <button data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">取消</button>
+      `);
+    }
+
+    function renderPreview() {
+      const cw = findCw(state.overlay.cwId);
+      if (!cw) return '';
+      const lvl = findLevel(cw, state.overlay.levelId);
+      const images = lvl ? lvl.images : [];
+      return `<div class="absolute inset-0 z-50">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-3 top-1/2 mx-auto max-h-[88%] max-w-[560px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex min-w-0 items-start gap-2.5">
+              ${coverHtml(cw, 'h-12 w-12', 'text-[16px]')}
+              <div class="min-w-0">
+                <div class="truncate text-[16px] font-bold text-slate-900">${esc(cw.nameCn)}</div>
+                <div class="truncate text-[12px] font-medium text-slate-400">${esc(cw.nameEn)}</div>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(lvl ? lvl.name : '标准 / 无分级')}</span>
+                  ${!cw.active ? '<span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">已停用</span>' : ''}
+                </div>
+              </div>
+            </div>
+            <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="mt-3 space-y-2">
+            <div class="rounded-xl bg-slate-50 px-3 py-2">
+              <div class="text-[12px] font-bold text-slate-400">中文简介</div>
+              <p class="mt-0.5 text-[14px] font-medium leading-relaxed text-slate-700">${esc(cw.descCn || '暂无中文简介')}</p>
+            </div>
+            <div class="rounded-xl bg-slate-50 px-3 py-2">
+              <div class="text-[12px] font-bold text-slate-400">English Description</div>
+              <p class="mt-0.5 text-[14px] font-medium leading-relaxed text-slate-700">${esc(cw.descEn || 'No English description yet.')}</p>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="flex items-center justify-between"><h3 class="text-[14px] font-bold text-slate-800">样课内页</h3><span class="text-[12px] font-medium text-slate-400">${images.length} 张</span></div>
+            ${images.length ? `<div class="mt-1.5 grid grid-cols-3 gap-1.5">
+              ${images.map((img, i) => `<button data-action="open-lightbox" data-index="${i}" class="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                <img src="${img}" class="h-full w-full object-cover" alt="">
+                <span class="absolute bottom-1 right-1 grid h-6 w-6 place-items-center rounded bg-slate-900/55 text-white">${icon('maximize-2', 'h-3 w-3')}</span>
+              </button>`).join('')}
+            </div>` : `<div class="mt-1.5 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-[12px] font-medium text-slate-400">该级别暂无样课图</div>`}
+          </div>
+          <button data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">关闭</button>
+        </div>
+      </div>`;
+    }
+
+    function renderLightbox() {
+      const cw = findCw(state.overlay.cwId);
+      if (!cw) return '';
+      const lvl = findLevel(cw, state.overlay.levelId);
+      const images = lvl ? lvl.images : [];
+      if (!images.length) return '';
+      const total = images.length;
+      const index = ((state.overlay.index % total) + total) % total;
+      return `<div class="absolute inset-0 z-[70] overflow-hidden bg-slate-950/95">
+        <div class="absolute inset-0" data-action="close-lightbox"></div>
+        <div class="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 px-4 py-3">
+          <div class="min-w-0 text-white">
+            <div class="truncate text-[14px] font-bold">${esc(cw.nameCn)} · ${esc(lvl ? lvl.name : '标准')}</div>
+            <div class="mt-1 text-[12px] font-medium text-slate-300">样课内页预览</div>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <span class="rounded-full bg-white/10 px-2.5 py-1 font-mono text-[12px] font-semibold text-white">${index + 1} / ${total}</span>
+            <button data-action="close-lightbox" class="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-white hover:bg-white/20" aria-label="关闭大图">${icon('x', 'h-5 w-5')}</button>
+          </div>
+        </div>
+        <div class="pointer-events-none relative z-10 flex h-full items-center justify-center px-4 pb-20 pt-20">
+          <img src="${images[index]}" class="pointer-events-auto max-h-full max-w-full rounded-xl object-contain shadow-2xl" alt="">
+        </div>
+        ${total > 1 ? `<button data-action="lightbox-prev" class="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20" aria-label="上一张">${icon('chevron-left', 'h-6 w-6')}</button>
+        <button data-action="lightbox-next" class="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20" aria-label="下一张">${icon('chevron-right', 'h-6 w-6')}</button>` : ''}
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 py-3 text-center text-[12px] font-medium text-slate-300">点击暗色背景或按 Esc 退出 · 使用 ← → 切换</div>
+      </div>`;
+    }
+
+    function renderDeleteConfirm() {
+      const cw = findCw(state.overlay.cwId);
+      if (!cw) return '';
+      return modalShell(`
+        ${modalHeader('删除课件', '仅从未被学员绑定的课件可物理删除')}
+        <div class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-rose-900">确认删除「${esc(cw.nameCn)}」？删除后不可恢复，历史排课不会关联该课件。</div>
+        <div class="mt-3 flex gap-2">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">取消</button>
+          <button data-action="confirm-delete-cw" class="h-11 flex-1 rounded-xl bg-rose-600 text-[16px] font-semibold text-white">确认删除</button>
+        </div>
+      `);
+    }
+
+    /* ------------------------------------------------------------------
+     * 事件
+     * ------------------------------------------------------------------ */
+    document.getElementById('frame').addEventListener('click', (e) => {
+      const el = e.target.closest('[data-action]');
+      if (!el) return;
+      const action = el.dataset.action;
+
+      if (action === 'nav') return navTo(el.dataset.tab);
+      if (action === 'toast') return showToast(el.dataset.message || '');
+      if (action === 'back-main') return setView(state.role === 'admin' ? 'library' : state.role === 'monitor' ? 'student' : state.role === 'parent' ? 'child' : 'prep');
+      if (action === 'switch-student') return setStudent(el.dataset.id);
+      if (action === 'create-courseware') return openEditor('create');
+      if (action === 'edit-cw') return openEditor('edit', el.dataset.id);
+      if (action === 'lib-status') { state.libStatus = el.dataset.status; return renderAll(); }
+      if (action === 'toggle-cw') {
+        if (state.online === 'off') return showToast('离线模式下不可启停课件');
+        const cw = findCw(el.dataset.id);
+        if (!cw) return;
+        cw.active = !cw.active;
+        renderContentOnly();
+        showToast(cw.active ? '课件已启用' : '课件已停用 · 已绑定档案继续展示');
+        return;
+      }
+      if (action === 'preview-cw') {
+        state.overlay = { type: 'preview', cwId: el.dataset.id, levelId: el.dataset.level || '' };
+        return renderOverlayOnly();
+      }
+      if (action === 'open-lightbox') {
+        state.overlay = { type: 'lightbox', cwId: state.overlay.cwId, levelId: state.overlay.levelId, index: Number(el.dataset.index) || 0 };
+        return renderOverlayOnly();
+      }
+      if (action === 'lightbox-prev' || action === 'lightbox-next') {
+        if (!state.overlay || state.overlay.type !== 'lightbox') return;
+        const cw = findCw(state.overlay.cwId);
+        const lvl = cw ? findLevel(cw, state.overlay.levelId) : null;
+        const total = lvl ? lvl.images.length : 0;
+        if (!total) return;
+        state.overlay.index = (state.overlay.index + (action === 'lightbox-next' ? 1 : -1) + total) % total;
+        return renderOverlayOnly();
+      }
+      if (action === 'close-lightbox') {
+        if (state.overlay && state.overlay.cwId) {
+          state.overlay = { type: 'preview', cwId: state.overlay.cwId, levelId: state.overlay.levelId };
+        } else {
+          state.overlay = null;
+        }
+        return renderOverlayOnly();
+      }
+      if (action === 'close-overlay') { state.overlay = null; return renderOverlayOnly(); }
+      if (action === 'toggle-type') {
+        const v = el.dataset.value;
+        state.form.courseTypes = state.form.courseTypes.includes(v)
+          ? state.form.courseTypes.filter((x) => x !== v)
+          : [...state.form.courseTypes, v];
+        clearFormError();
+        document.querySelectorAll('[data-action="toggle-type"]').forEach((b) => {
+          const on = state.form.courseTypes.includes(b.dataset.value);
+          b.className = `h-8 rounded-lg border px-2.5 text-[12px] font-semibold ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`;
+        });
+        return;
+      }
+      if (action === 'toggle-form-active') {
+        state.form.active = !state.form.active;
+        const label = $('formActiveLabel');
+        const track = $('formActiveTrack');
+        const knob = $('formActiveKnob');
+        if (label) {
+          label.textContent = state.form.active ? '已启用' : '已停用';
+          label.className = `text-[12px] font-semibold ${state.form.active ? 'text-indigo-700' : 'text-slate-400'}`;
+        }
+        if (track) track.className = `relative h-6 w-11 rounded-full transition ${state.form.active ? 'bg-indigo-600' : 'bg-slate-300'}`;
+        if (knob) knob.className = `absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${state.form.active ? 'translate-x-5' : 'translate-x-0'}`;
+        return;
+      }
+      if (action === 'add-level') {
+        state.form.levels.push({ id: newLevelId(), name: '', images: [] });
+        clearFormError();
+        renderEditorOnly();
+        setTimeout(() => $('formLevels')?.scrollIntoView({ block: 'nearest' }), 30);
+        return;
+      }
+      if (action === 'remove-level') {
+        state.form.levels.splice(Number(el.dataset.index), 1);
+        clearFormError();
+        renderEditorOnly();
+        return;
+      }
+      if (action === 'move-level') {
+        const i = Number(el.dataset.index);
+        const delta = Number(el.dataset.delta);
+        const j = i + delta;
+        if (j < 0 || j >= state.form.levels.length) return;
+        const [moving] = state.form.levels.splice(i, 1);
+        state.form.levels.splice(j, 0, moving);
+        renderEditorOnly();
+        return;
+      }
+      if (action === 'demo-level-img') {
+        const i = Number(el.dataset.index);
+        const lvl = state.form.levels[i];
+        if (!lvl || lvl.images.length >= 9) return showToast('每个级别最多 9 张样课图');
+        lvl.images.push(demoImage(`${lvl.name || 'Level'} · 样课 ${lvl.images.length + 1}`, 'Sample Page', '#6366f1', '#0ea5e9'));
+        clearFormError();
+        renderEditorOnly();
+        return;
+      }
+      if (action === 'remove-level-img') {
+        const lvl = state.form.levels[Number(el.dataset.index)];
+        if (!lvl) return;
+        lvl.images.splice(Number(el.dataset.imgIndex), 1);
+        renderEditorOnly();
+        return;
+      }
+      if (action === 'move-level-img') {
+        const lvl = state.form.levels[Number(el.dataset.index)];
+        if (!lvl) return;
+        const i = Number(el.dataset.imgIndex);
+        const j = i + Number(el.dataset.delta);
+        if (j < 0 || j >= lvl.images.length) return;
+        const [moving] = lvl.images.splice(i, 1);
+        lvl.images.splice(j, 0, moving);
+        renderEditorOnly();
+        return;
+      }
+      if (action === 'demo-cover') {
+        state.form.cover = demoImage(state.form.nameEn || 'New Courseware', 'Courseware Cover', '#4f46e5', '#0ea5e9');
+        clearFormError();
+        renderEditorOnly();
+        return;
+      }
+      if (action === 'delete-cw') {
+        if (state.online === 'off') return showToast('离线模式下不可删除课件');
+        state.overlay = { type: 'deleteConfirm', cwId: state.form.id };
+        return renderOverlayOnly();
+      }
+      if (action === 'confirm-delete-cw') {
+        if (state.online === 'off') return showToast('离线模式下不可删除课件');
+        const cw = findCw(state.overlay.cwId);
+        if (!cw || cw.boundCount > 0) return showToast('该课件已被学员绑定，仅可停用');
+        state.courseware = state.courseware.filter((c) => c.id !== cw.id);
+        state.overlay = null;
+        state.page = 'library';
+        state.navTab = 'settings';
+        renderAll();
+        showToast('课件已删除');
+        return;
+      }
+      if (action === 'save-cw') return saveCourseware();
+      if (action === 'cancel-editor') {
+        state.page = 'library';
+        state.navTab = 'settings';
+        state.overlay = null;
+        state.form = emptyForm();
+        return renderAll();
+      }
+      if (action === 'config-add') return openAddPicker();
+      if (action === 'config-remove') {
+        if (state.online === 'off') return showToast('离线模式下不可调整在学课件');
+        ensureDraft();
+        state.draft.splice(Number(el.dataset.index), 1);
+        return renderContentOnly();
+      }
+      if (action === 'save-config') return saveConfig();
+      if (action === 'pick-add') return addPick();
+    });
+
+    function clearFormError() {
+      state.form.error = '';
+      const el = $('formError');
+      if (el) el.remove();
+    }
+
+    function renderContentOnly() {
+      $('content').innerHTML = renderContent();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    document.getElementById('frame').addEventListener('input', (e) => {
+      const id = e.target.id;
+      if (id === 'fNameCn') { state.form.nameCn = e.target.value; clearFormError(); }
+      if (id === 'fNameEn') { state.form.nameEn = e.target.value; clearFormError(); }
+      if (id === 'fDescCn') { state.form.descCn = e.target.value; clearFormError(); }
+      if (id === 'fDescEn') { state.form.descEn = e.target.value; clearFormError(); }
+      if (id && id.startsWith('fLevelName-')) {
+        const i = Number(id.split('-')[1]);
+        if (state.form.levels[i]) state.form.levels[i].name = e.target.value;
+        clearFormError();
+      }
+      if (id === 'libSearch') {
+        state.libQuery = e.target.value;
+        const val = e.target.value;
+        renderContentOnly();
+        const input = $('libSearch');
+        if (input) { input.focus(); input.setSelectionRange(val.length, val.length); }
+      }
+    });
+
+    document.getElementById('frame').addEventListener('change', (e) => {
+      const id = e.target.id;
+      if (id === 'libType') { state.libType = e.target.value; return renderAll(); }
+      if (id === 'fCoverInput') return handleCoverFile(e.target.files && e.target.files[0]);
+      if (id && id.startsWith('fLevelImg-')) return handleLevelImages(Number(id.split('-')[1]), e.target.files);
+      if (id && id.startsWith('cfgLevel-')) {
+        const i = Number(id.split('-')[1]);
+        if (state.draft && state.draft[i]) state.draft[i].levelId = e.target.value;
+        return;
+      }
+      if (id === 'pickCw') {
+        state.pickCw = e.target.value;
+        const cw = findCw(state.pickCw);
+        state.pickLevel = cw && cw.levels.length ? cw.levels[0].id : '';
+        return renderOverlayOnly();
+      }
+      if (id === 'pickLevel') {
+        state.pickLevel = e.target.value;
+        return;
+      }
+    });
+
+    /* ------------------------------------------------------------------
+     * 图片压缩
+     * ------------------------------------------------------------------ */
+    function compressImageFile(file, maxSide = 1600) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = (evt) => {
+          const img = new Image();
+          img.onload = () => {
+            const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+            const w = Math.max(1, Math.round(img.naturalWidth * scale));
+            const h = Math.max(1, Math.round(img.naturalHeight * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            try { resolve(canvas.toDataURL('image/webp', 0.85)); }
+            catch (err) { resolve(evt.target.result); }
+          };
+          img.onerror = reject;
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleCoverFile(file) {
+      if (!file) return;
+      if (state.online === 'off') return showToast('离线模式下不可上传');
+      if (!file.type || !file.type.startsWith('image/')) return showToast('请选择图片文件');
+      try {
+        state.form.cover = await compressImageFile(file, 1200);
+        clearFormError();
+        renderEditorOnly();
+        showToast('封面已压缩为 WebP');
+      } catch (e) {
+        showToast('无法读取封面图片');
+      }
+    }
+
+    async function handleLevelImages(index, files) {
+      if (state.online === 'off') return showToast('离线模式下不可上传');
+      const lvl = state.form.levels[index];
+      if (!lvl) return;
+      const list = Array.from(files || []).filter((f) => f.type && f.type.startsWith('image/'));
+      if (!list.length) return showToast('请选择图片文件');
+      const remaining = 9 - lvl.images.length;
+      if (remaining <= 0) return showToast('每个级别最多 9 张样课图');
+      const accepted = list.slice(0, remaining);
+      for (const file of accepted) {
+        try {
+          lvl.images.push(await compressImageFile(file, 1600));
+        } catch (e) {
+          showToast(`无法读取图片：${file.name}`);
+        }
+      }
+      clearFormError();
+      renderEditorOnly();
+      showToast(`已添加 ${accepted.length} 张样课图`);
+    }
+
+    /* ------------------------------------------------------------------
+     * 键盘 / 导航 / 提示
+     * ------------------------------------------------------------------ */
+    document.addEventListener('keydown', (e) => {
+      if (!state.overlay || state.overlay.type !== 'lightbox') return;
+      const cw = findCw(state.overlay.cwId);
+      const lvl = cw ? findLevel(cw, state.overlay.levelId) : null;
+      const total = lvl ? lvl.images.length : 0;
+      if (e.key === 'Escape') {
+        state.overlay = { type: 'preview', cwId: state.overlay.cwId, levelId: state.overlay.levelId };
+        renderOverlayOnly();
+      } else if (total > 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        state.overlay.index = (state.overlay.index + (e.key === 'ArrowRight' ? 1 : -1) + total) % total;
+        renderOverlayOnly();
+      }
+    });
+
+    function navTo(tab) {
+      if (state.role === 'admin' && tab === 'settings') return setView('library');
+      if (state.role === 'monitor' && tab === 'ops') return setView('student');
+      if (state.role === 'parent' && tab === 'me') return setView('child');
+      if (state.role === 'teacher' && tab === 'schedule') return setView('prep');
+      state.page = 'placeholder';
+      state.navTab = tab;
+      state.overlay = null;
+      renderAll();
+    }
+
+    function showToast(msg) {
+      const toast = $('toast');
+      toast.textContent = msg;
+      toast.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => toast.classList.add('hidden'), 2400);
+    }
+
+    /* ------------------------------------------------------------------
+     * 首屏
+     * ------------------------------------------------------------------ */
+    renderAll();
+  </script>
+</body>
+</html>

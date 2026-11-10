@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
-<!-- 即抛型原型：M1D 双权限教学留言板。纯前端 Mock，不连接后端，不触碰生产代码。 -->
+<!-- 即抛型原型：M1D 双权限教学留言板。纯前端 Mock，不连接后端，不触碰生产代码。遵循 DESIGN.md 与 docs/prd/m1d_profile_messages.md -->
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -16,26 +16,26 @@
             brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
           },
           fontFamily: {
-            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif']
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
           }
         }
       }
-    }
+    };
   </script>
 </head>
 <body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
 
-  <!-- 原型控制台（不属于产品界面） -->
-  <header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
-    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-xs">
+  <header id="console" class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-[12px]">
       <div class="flex items-center gap-2">
-        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">1D</span>
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-300">1D</span>
         <span class="text-[14px] font-bold text-slate-900">双权限教学留言板</span>
-        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">最新 PRD · 底栏 ≤ 4 Tab</span>
+        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">公开 / 内部隔离 · 300s 撤回 · 管理员审计下架</span>
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="font-medium text-slate-500">角色</span>
+        <span class="font-medium text-slate-500">身份</span>
         <div class="inline-flex rounded-xl bg-slate-100 p-1">
           <button data-group="role" data-value="teacher" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">教师</button>
           <button data-group="role" data-value="parent" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">家长</button>
@@ -45,10 +45,11 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="font-medium text-slate-500">卡片</span>
+        <span class="font-medium text-slate-500">学员</span>
         <div class="inline-flex rounded-xl bg-slate-100 p-1">
-          <button data-group="variant" data-value="A" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">时间流</button>
-          <button data-group="variant" data-value="B" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">教学备忘卡</button>
+          <button data-group="student" data-value="stu_alice001" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">Alice</button>
+          <button data-group="student" data-value="stu_bob00002" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">Bob</button>
+          <button data-group="student" data-value="stu_candy003" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">Candy</button>
         </div>
       </div>
 
@@ -68,7 +69,7 @@
         </div>
       </div>
 
-      <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置演示</button>
+      <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
 
       <a href="../docs/prd/m1d_profile_messages.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
         <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M1D PRD
@@ -78,657 +79,779 @@
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
-      <div id="topbar" class="shrink-0"></div>
-      <div id="offlineBanner" class="hidden">
-        <i data-lucide="wifi-off" class="h-4 w-4 shrink-0 text-amber-600"></i>
-        离线模式：只读缓存，发布/撤回/下架不可用
-      </div>
-      <div id="privacy" class="shrink-0"></div>
-      <div id="content" class="flex-1 overflow-y-auto"></div>
-      <div id="composer" class="shrink-0"></div>
+      <div id="banner" class="shrink-0"></div>
+      <div id="offlineBanner" class="hidden"></div>
+      <div id="content" class="min-h-0 flex-1 overflow-y-auto"></div>
       <nav id="bottomnav" class="shrink-0"></nav>
       <div id="overlay"></div>
-      <div id="toast" class="pointer-events-none absolute bottom-64 left-1/2 z-[80] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-20 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
     </div>
   </main>
 
   <!-- Tailwind CDN 动态类安全垫 -->
   <div class="hidden">
-    <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-h-[85%] max-w-[560px]"></span>
-    <span class="bg-indigo-600 bg-indigo-50 text-indigo-700 border-indigo-100 text-indigo-950"></span>
-    <span class="bg-emerald-50 text-emerald-600 text-emerald-700 border-emerald-200"></span>
-    <span class="bg-slate-100 text-slate-500 text-slate-600 text-slate-700 border-slate-200 bg-slate-50 bg-slate-900 text-amber-300"></span>
-    <span class="bg-rose-50 text-rose-600 text-rose-700 border-rose-200 bg-rose-600 border-rose-300"></span>
-    <span class="bg-amber-50 text-amber-600 text-amber-900 border-amber-200 bg-slate-900/40 backdrop-blur-[1px]"></span>
+    <span class="bg-gradient-to-br from-slate-800 via-emerald-900 to-slate-700 from-slate-800 via-blue-900 to-slate-700 from-slate-900 via-fuchsia-950 to-slate-800 from-slate-900 via-violet-950 to-slate-800"></span>
+    <span class="bg-indigo-50/80 border-indigo-200/70 bg-indigo-100 text-indigo-950 text-indigo-900/85 text-indigo-800 text-indigo-700 bg-indigo-600 hover:bg-indigo-700 border-indigo-300"></span>
+    <span class="bg-emerald-50/80 border-emerald-200/70 bg-emerald-100 text-emerald-800 text-emerald-700 border-emerald-300"></span>
+    <span class="bg-rose-50/80 border-rose-200/70 bg-rose-100 text-rose-800 text-rose-700 bg-rose-600 hover:bg-rose-700 border-rose-300"></span>
+    <span class="bg-amber-50/80 border-amber-200/70 bg-amber-100 text-amber-800 text-amber-700 border-amber-300"></span>
+    <span class="bg-slate-50 border-slate-200/80 bg-slate-100 text-slate-900 text-slate-700 text-slate-600 text-slate-500 text-slate-400 bg-slate-900 hover:bg-slate-800 border-slate-300"></span>
+    <span class="bg-white/60 bg-white/70 bg-white/20 bg-white/15 ring-white/30 bg-slate-900/40 bg-slate-900/70 backdrop-blur-[1px]"></span>
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] grid-cols-1 grid-cols-2 grid-cols-3"></span>
   </div>
 
   <script>
     /* ------------------------------------------------------------------
-     * 常量与演示数据
+     * 演示数据
      * ------------------------------------------------------------------ */
-    const STUDENT = { nickname: 'AliceZ12', tag: '大宝 · 12岁', initial: 'A' };
+    const STUDENTS = [
+      { id: 'stu_alice001', nickname: 'AliceZ12', realName: '张小丽', age: 12, tag: '大宝' },
+      { id: 'stu_bob00002', nickname: 'BobZ10', realName: '张小博', age: 10, tag: '二宝' },
+      { id: 'stu_candy003', nickname: 'CandyZ9', realName: '李糖果', age: 9, tag: '学员' }
+    ];
 
-    const ROLE_META = {
-      teacher: { label: '授课教师 David', author: 'David Miller', initial: 'D', dark: false, canInternal: true, boardTab: 'home' },
-      parent: { label: '学员家长 Amy', author: 'Amy（家长）', initial: 'A', dark: false, canInternal: false, boardTab: 'me' },
-      monitor: { label: '带班班长 Leo', author: 'Leo（班长）', initial: 'L', dark: true, canInternal: true, boardTab: 'ops' },
-      admin: { label: '管理员 Sarah', author: 'Sarah（管理员）', initial: 'S', dark: true, canInternal: true, boardTab: 'settings' }
+    const PATTERNS = {
+      teacher: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><circle cx="325" cy="20" r="40" fill="white" fill-opacity=".06"/><circle cx="325" cy="20" r="22" fill="white" fill-opacity=".04"/><path d="M28 22 L96 22 M28 38 L72 38" stroke="white" stroke-opacity=".10" stroke-width="6" stroke-linecap="round"/></svg>`,
+      parent: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><path d="M-20 64 C50 30 110 82 190 48 S300 18 410 44" stroke="white" stroke-opacity=".10" stroke-width="18" stroke-linecap="round"/><circle cx="320" cy="20" r="34" fill="white" fill-opacity=".05"/></svg>`,
+      monitor: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><path d="M0 20 H390 M0 40 H390 M0 60 H390" stroke="white" stroke-opacity=".06"/><path d="M65 0 V80 M130 0 V80 M195 0 V80 M260 0 V80 M325 0 V80" stroke="white" stroke-opacity=".04"/><circle cx="330" cy="20" r="34" fill="white" fill-opacity=".05"/></svg>`,
+      admin: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><circle cx="325" cy="18" r="38" stroke="white" stroke-opacity=".08"/><circle cx="325" cy="18" r="24" stroke="white" stroke-opacity=".06"/><path d="M0 68 C60 40 120 82 190 52 S300 20 390 48" stroke="white" stroke-opacity=".07" stroke-width="16" stroke-linecap="round"/></svg>`
     };
 
-    const NAVS = {
-      teacher: [
-        { id: 'home', icon: 'home', label: '首页', desc: '教师主页的“我的学生”金刚位进入学员留言板。', board: true },
-        { id: 'schedule', icon: 'calendar-days', label: '课表', desc: '7 色课表与排期属于 M3A 模块。', href: 'm3a_calendar_schedule.html' },
-        { id: 'me', icon: 'user', label: '我的', desc: '个人名片与周课酬单属于 M0 个人中心。', href: 'm0_workspace_home.html?role=teacher&view=me' }
-      ],
-      parent: [
-        { id: 'home', icon: 'home', label: '首页', desc: '多孩时间流与金刚位属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=user' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '7 色课表与多孩锚点属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
-        { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '小班课选班与 1v1 自由约课属于 M1C。', href: 'm1c_classes.html' },
-        { id: 'me', icon: 'user', label: '我的', desc: '多孩档案下的教学留言板。', board: true }
-      ],
-      monitor: [
-        { id: 'home', icon: 'home', label: '首页', desc: '班长教务待办与主页属于 M0 工作台。', href: 'm0_workspace_home.html?role=monitor' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '自家孩子课表属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
-        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '所辖学员档案与教学留言板。', board: true },
-        { id: 'me', icon: 'user', label: '我的', desc: '班长周转账与家庭多孩档案属于 M0 个人中心。', href: 'm0_workspace_home.html?role=monitor&view=me' }
-      ],
-      admin: [
-        { id: 'home', icon: 'home', label: '首页', desc: '平台结算待办与运营大盘属于 M0 工作台。', href: 'm0_workspace_home.html?role=admin' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '自家孩子课表属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
-        { id: 'ops', icon: 'layout-grid', label: '教务调度', desc: '全局排班看板与调度入口属于 M0 / M3A。', href: 'm0_workspace_home.html?role=admin&view=ops' },
-        { id: 'settings', icon: 'settings', label: '管理与设置', desc: '学员档案与管理员争议留言处置。', board: true }
-      ]
+    const ROLES = {
+      teacher: {
+        key: 'teacher', label: '教师', brand: 'Teacher Center', subtitle: '母语外教 · David', initial: 'D',
+        banner: 'from-slate-800 via-emerald-900 to-slate-700', pattern: PATTERNS.teacher,
+        authorName: 'David Miller', authorRole: 'teacher', boardTab: 'students',
+        students: ['stu_alice001', 'stu_bob00002', 'stu_candy003'],
+        nav: [
+          { id: 'home', icon: 'home', label: '首页', desc: '教师主页与今日待办属于 M0 工作台。', href: 'm0_workspace_home.html?role=teacher' },
+          { id: 'schedule', icon: 'calendar-days', label: '课表', desc: '7 色周度课表属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
+          { id: 'students', icon: 'users', label: '我的学生', desc: '学员档案与教学留言板', board: true },
+          { id: 'me', icon: 'user', label: '我的', desc: '教师课酬与个人资料属于 M0 / M5B。', href: 'm0_workspace_home.html?role=teacher&view=me' }
+        ]
+      },
+      parent: {
+        key: 'parent', label: '家长', brand: 'Dream 教务', subtitle: '多孩家庭 · Amy', initial: 'A',
+        banner: 'from-slate-800 via-blue-900 to-slate-700', pattern: PATTERNS.parent,
+        authorName: 'Amy', authorRole: 'parent', boardTab: 'me',
+        students: ['stu_alice001', 'stu_bob00002'],
+        nav: [
+          { id: 'home', icon: 'home', label: '首页', desc: '多孩时间流与金刚位属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=user' },
+          { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '7 色课表与多孩锚点属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
+          { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '教师公开履历与选课大厅属于 M1B。', href: 'm1b_teacher_parent.html' },
+          { id: 'me', icon: 'user', label: '我的', desc: '多孩档案与教学留言板', board: true }
+        ]
+      },
+      monitor: {
+        key: 'monitor', label: '班长', brand: 'Dream 教务', subtitle: '教务统筹 · Leo', initial: 'L',
+        banner: 'from-slate-900 via-fuchsia-950 to-slate-800', pattern: PATTERNS.monitor,
+        authorName: 'Leo', authorRole: 'monitor', boardTab: 'ops',
+        students: ['stu_alice001', 'stu_bob00002', 'stu_candy003'],
+        nav: [
+          { id: 'home', icon: 'home', label: '首页', desc: '教务待办与家庭日程双焦点属于 M0 工作台。', href: 'm0_workspace_home.html?role=monitor' },
+          { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '7 色课表与多孩锚点属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
+          { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '所辖学员档案与教学留言板', board: true },
+          { id: 'me', icon: 'user', label: '我的', desc: '班长周转账与家庭档案属于 M0 个人中心。', href: 'm0_workspace_home.html?role=monitor&view=me' }
+        ]
+      },
+      admin: {
+        key: 'admin', label: '管理员', brand: 'Dream 运营中枢', subtitle: '平台统筹 · Sarah', initial: 'S',
+        banner: 'from-slate-900 via-violet-950 to-slate-800', pattern: PATTERNS.admin,
+        authorName: 'Sarah', authorRole: 'admin', boardTab: 'settings',
+        students: ['stu_alice001', 'stu_bob00002', 'stu_candy003'],
+        nav: [
+          { id: 'home', icon: 'home', label: '首页', desc: '平台结算待办与运营大盘属于 M0 工作台。', href: 'm0_workspace_home.html?role=admin' },
+          { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '自家孩子课表属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
+          { id: 'ops', icon: 'layout-grid', label: '教务调度', desc: '全局排班看板与调度入口属于 M0 / M3A。', href: 'm0_workspace_home.html?role=admin&view=ops' },
+          { id: 'settings', icon: 'settings', label: '管理与设置', desc: '学员档案与管理员争议留言处置', board: true }
+        ]
+      }
     };
 
-    function initialMessages() {
-      const t = Date.now();
+    const TONES = {
+      amber: {
+        card: 'border-amber-200/70 bg-amber-50/80', chip: 'border-amber-200 bg-amber-100 text-amber-800',
+        icon: 'bg-amber-100 text-amber-700', action: 'bg-amber-600 text-white hover:bg-amber-700',
+        title: 'text-amber-950', body: 'text-amber-900/85', sub: 'text-amber-700', right: 'text-amber-950', dot: 'bg-amber-500'
+      },
+      indigo: {
+        card: 'border-indigo-200/70 bg-indigo-50/80', chip: 'border-indigo-200 bg-indigo-100 text-indigo-800',
+        icon: 'bg-indigo-100 text-indigo-700', action: 'bg-indigo-600 text-white hover:bg-indigo-700',
+        title: 'text-indigo-950', body: 'text-indigo-900/85', sub: 'text-indigo-700', right: 'text-indigo-950', dot: 'bg-indigo-500'
+      },
+      emerald: {
+        card: 'border-emerald-200/70 bg-emerald-50/80', chip: 'border-emerald-200 bg-emerald-100 text-emerald-800',
+        icon: 'bg-emerald-100 text-emerald-700', action: 'bg-emerald-600 text-white hover:bg-emerald-700',
+        title: 'text-emerald-950', body: 'text-emerald-900/85', sub: 'text-emerald-700', right: 'text-emerald-950', dot: 'bg-emerald-500'
+      },
+      rose: {
+        card: 'border-rose-200/70 bg-rose-50/80', chip: 'border-rose-200 bg-rose-100 text-rose-800',
+        icon: 'bg-rose-100 text-rose-700', action: 'bg-rose-600 text-white hover:bg-rose-700',
+        title: 'text-rose-950', body: 'text-rose-900/85', sub: 'text-rose-700', right: 'text-rose-950', dot: 'bg-rose-500'
+      },
+      slate: {
+        card: 'border-slate-200/80 bg-slate-50', chip: 'border-slate-200 bg-slate-100 text-slate-700',
+        icon: 'bg-slate-100 text-slate-600', action: 'bg-slate-900 text-white hover:bg-slate-800',
+        title: 'text-slate-900', body: 'text-slate-700', sub: 'text-slate-500', right: 'text-slate-900', dot: 'bg-slate-400'
+      }
+    };
+
+    function seedMessages() {
+      const now = Date.now();
+      return [
+        { id: 'msg_00000001', studentId: 'stu_alice001', authorRole: 'teacher', authorName: 'David Miller', visibility: 'public', content: '完成了 Unit 3 课文精读，单词拼读非常准确，课后练习完成良好！建议今晚复习过去式连词。', createdAt: now - 90 * 1000 },
+        { id: 'msg_00000002', studentId: 'stu_alice001', authorRole: 'monitor', authorName: 'Leo', visibility: 'internal', content: '孩子今日注意力稍有不集中，下次课前建议用互动小游戏暖场。', createdAt: now - 15 * 60 * 1000 },
+        { id: 'msg_00000003', studentId: 'stu_alice001', authorRole: 'parent', authorName: 'Amy', visibility: 'public', content: '谢谢老师！Alice 今天回家很开心，已经把新单词抄写了一遍。', createdAt: now - 60 * 1000 },
+        { id: 'msg_00000004', studentId: 'stu_alice001', authorRole: 'teacher', authorName: 'David Miller', visibility: 'internal', content: '【内部代课备忘】Alice 对不规则动词过去式拼写有点抗拒，容易产生挫败感。下周二若由代课老师接手，建议开课先用 5 分钟小卡片游戏调动自信。', createdAt: now - 2 * 60 * 60 * 1000 },
+        { id: 'msg_00000005', studentId: 'stu_alice001', authorRole: 'teacher', authorName: 'Linda Chen', visibility: 'public', content: '今天由我代课，Alice 课堂参与度很高，完成了 Unit 3 的角色扮演。', createdAt: now - 6 * 60 * 60 * 1000 },
+        { id: 'msg_00000006', studentId: 'stu_alice001', authorRole: 'monitor', authorName: 'Leo', visibility: 'public', content: '本周固定位排课已确认，周六 10:00 继续 KET 冲刺。', createdAt: now - 30 * 1000 },
+        { id: 'msg_00000007', studentId: 'stu_alice001', authorRole: 'monitor', authorName: 'Leo', visibility: 'public', content: '下周课程表已更新，固定位时间不变。', createdAt: now - 24 * 60 * 60 * 1000 },
+        { id: 'msg_00000008', studentId: 'stu_bob00002', authorRole: 'teacher', authorName: 'David Miller', visibility: 'public', content: 'Bob 今天完成了自然拼读 Level 2 的复习，长单词拆音进步明显。', createdAt: now - 60 * 60 * 1000 },
+        { id: 'msg_00000009', studentId: 'stu_bob00002', authorRole: 'monitor', authorName: 'Leo', visibility: 'internal', content: 'Bob 对长单词拼读有点畏难，建议课堂先做拆音节小游戏，再进入整词认读。', createdAt: now - 3 * 60 * 60 * 1000 },
+        { id: 'msg_00000010', studentId: 'stu_bob00002', authorRole: 'parent', authorName: 'Amy', visibility: 'public', content: '收到，谢谢老师。', createdAt: now - 2 * 24 * 60 * 60 * 1000 },
+        { id: 'msg_00000011', studentId: 'stu_candy003', authorRole: 'monitor', authorName: 'Leo', visibility: 'public', content: 'Candy 本周试听反馈：课堂配合度很好，建议先固定每周两次课。', createdAt: now - 3 * 60 * 60 * 1000 },
+        { id: 'msg_00000012', studentId: 'stu_candy003', authorRole: 'teacher', authorName: 'David Miller', visibility: 'internal', content: 'Candy 基础较弱，建议从自然拼读 Level 1 开始，先建立字母音意识。', createdAt: now - 4 * 60 * 60 * 1000 }
+      ];
+    }
+
+    function seedAudit() {
+      const now = Date.now();
       return [
         {
-          id: 'msg_001', authorRole: 'teacher', authorName: 'David Miller',
-          visibility: 'public_teacher_student',
-          content: 'Alice 今天完成了 KET Unit 3 过去时态精读与单词拓展，课堂回答问题非常积极！课后请完成 Workbook P24-25 语法练习。',
-          createdAt: t - 95 * 1000, isRevoked: false
-        },
-        {
-          id: 'msg_002', authorRole: 'teacher', authorName: 'David Miller',
-          visibility: 'internal_teaching_only',
-          content: '【内部代课备忘】Alice 对不规则动词过去式拼写有点抗拒，容易产生挫败感。下周二若由代课老师接手，建议开课先用 5 分钟小卡片游戏调动自信，切勿直接批评。',
-          createdAt: t - 3600 * 1000, isRevoked: false
-        },
-        {
-          id: 'msg_003', authorRole: 'parent', authorName: 'Amy（家长）',
-          visibility: 'public_teacher_student',
-          content: '收到老师反馈！今晚已督促她打卡完成了练习册，发音录音已经提交在 ClassIn 作业区了，感谢 David 老师耐心的启发！',
-          createdAt: t - 86400 * 1000, isRevoked: false
-        },
-        {
-          id: 'msg_004', authorRole: 'monitor', authorName: 'Leo（班长）',
-          visibility: 'internal_teaching_only',
-          content: '【教务备忘】已向家长同步下周外教年假代课安排，Sarah 老师已确认接单，教材与当前课次进度均已在后台完成交接。',
-          createdAt: t - 172800 * 1000, isRevoked: false
+          id: 'aud_00000001', messageId: 'msg_00000099', studentId: 'stu_alice001',
+          operator: 'Sarah', reason: '涉及学员隐私信息，已下架',
+          snapshot: '原留言包含家庭住址与联系方式，已按隐私规范下架。', at: now - 2 * 24 * 60 * 60 * 1000
         }
       ];
     }
 
-    /* ------------------------------------------------------------------
-     * 状态
-     * ------------------------------------------------------------------ */
     const state = {
       role: 'teacher',
-      variant: 'A',
+      studentId: 'stu_alice001',
+      page: 'board',
+      navTab: 'students',
       device: 'mobile',
       online: 'on',
-      page: 'board', // board | placeholder
-      navTab: 'home',
-      visibility: 'public',
+      messages: seedMessages(),
+      audit: seedAudit(),
       draft: '',
-      messages: initialMessages(),
+      visibility: 'public',
+      visibleCount: 4,
       overlay: null,
       deleteReason: '',
       deleteError: ''
     };
 
-    /* ------------------------------------------------------------------
-     * 工具
-     * ------------------------------------------------------------------ */
-    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
+    const $ = (id) => document.getElementById(id);
     const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
 
-    function roleMeta() {
-      return ROLE_META[state.role];
-    }
-
-    function navItems() {
-      return NAVS[state.role];
-    }
-
-    function boardTab() {
-      return roleMeta().boardTab;
-    }
-
-    function formatTime(ts) {
-      const diff = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-      if (diff < 60) return '刚刚';
-      if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
-      if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
-      if (diff < 172800) return '昨天';
-      return `${Math.floor(diff / 86400)} 天前`;
-    }
-
-    function revokeRemaining(ts) {
-      return Math.max(0, 300 - Math.floor((Date.now() - ts) / 1000));
+    function roleMeta() { return ROLES[state.role]; }
+    function studentById(id) { return STUDENTS.find((s) => s.id === id) || STUDENTS[0]; }
+    function activeStudent() { return studentById(state.studentId); }
+    function visibleStudents() { return roleMeta().students.map(studentById); }
+    function canInternal() { return state.role === 'teacher' || state.role === 'monitor'; }
+    function canPost() { return state.role !== 'admin'; }
+    function canDelete() { return state.role === 'admin'; }
+    function authorLabel(role) {
+      if (role === 'teacher') return '教师';
+      if (role === 'monitor') return '班长';
+      if (role === 'parent') return '家长';
+      return '管理员';
     }
 
     function visibleMessages() {
-      let list = state.messages.filter((m) => !m.isRevoked);
-      if (state.role === 'parent') {
-        list = list.filter((m) => m.visibility === 'public_teacher_student');
-      }
-      return list;
+      return state.messages
+        .filter((m) => m.studentId === state.studentId && !m.deleted && !m.revoked)
+        .filter((m) => state.role !== 'parent' || m.visibility === 'public')
+        .sort((a, b) => b.createdAt - a.createdAt);
+    }
+
+    function studentCount(sid) {
+      return state.messages.filter((m) =>
+        m.studentId === sid && !m.deleted && !m.revoked && (state.role !== 'parent' || m.visibility === 'public')
+      ).length;
+    }
+
+    function displayedMessages() {
+      return visibleMessages().slice(0, state.visibleCount);
+    }
+
+    function revokeRemaining(m) {
+      return Math.max(0, 300 - Math.floor((Date.now() - m.createdAt) / 1000));
     }
 
     function canRevoke(m) {
-      return state.role === m.authorRole && revokeRemaining(m.createdAt) > 0;
+      return m.authorRole === state.role && m.authorName === roleMeta().authorName;
     }
 
-    function roleAvatar(role, size = 'h-8 w-8', text = 'text-[12px]') {
-      const meta = ROLE_META[role];
-      const cls = meta.dark ? 'bg-slate-900 text-amber-300 ring-slate-800' : 'bg-indigo-50 text-indigo-700 ring-indigo-100';
-      return `<div class="grid shrink-0 place-items-center rounded-full ${size} ${text} font-bold ring-1 ${cls}">${esc(meta.initial)}</div>`;
+    function formatTime(ts) {
+      const d = new Date(ts);
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      if (d.toDateString() === now.toDateString()) return `今天 ${hm}`;
+      const y = new Date(now);
+      y.setDate(now.getDate() - 1);
+      if (d.toDateString() === y.toDateString()) return `昨天 ${hm}`;
+      return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${hm}`;
     }
 
-    function visibilityTag(internal, compact = true) {
-      if (internal) {
-        return `<span class="inline-flex shrink-0 items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">${icon('lock', 'h-3 w-3')}${compact ? '仅内部可见' : '内部教学交接'}</span>`;
-      }
-      return `<span class="inline-flex shrink-0 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-semibold text-emerald-700">${icon('globe', 'h-3 w-3')}${compact ? '师生公开' : '公开课后反馈'}</span>`;
+    function newId(prefix) {
+      return `${prefix}_${Math.random().toString(36).slice(2, 10).padEnd(8, '0')}`;
     }
 
     /* ------------------------------------------------------------------
      * 控制台
      * ------------------------------------------------------------------ */
+    function syncConsole() {
+      document.querySelectorAll('.ctl').forEach((b) => {
+        const group = b.dataset.group;
+        const value = b.dataset.value;
+        let active = false;
+        let disabled = false;
+        if (group === 'role') active = state.role === value;
+        if (group === 'student') {
+          active = state.studentId === value;
+          disabled = !visibleStudents().some((s) => s.id === value);
+        }
+        if (group === 'device') active = state.device === value;
+        if (group === 'online') active = state.online === value;
+        b.disabled = disabled;
+        b.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}${disabled ? ' cursor-not-allowed opacity-40' : ''}`;
+      });
+    }
+
     document.querySelectorAll('.ctl').forEach((btn) => {
       btn.addEventListener('click', () => {
         const group = btn.dataset.group;
         const value = btn.dataset.value;
         if (group === 'role') setRole(value);
-        if (group === 'variant') {
-          state.variant = value;
-          syncConsole();
-          if (state.page === 'board') renderMessagesOnly();
-        }
-        if (group === 'device') {
-          state.device = value;
-          renderAll();
-        }
+        if (group === 'student') setStudent(value);
+        if (group === 'device') { state.device = value; renderAll(); }
         if (group === 'online') {
           state.online = value;
           if (value === 'off') state.overlay = null;
           renderAll();
-          if (value === 'off') showToast('离线模式：可查看缓存留言，发布/撤回/下架不可用');
+          if (value === 'off') showToast('离线模式：可查看缓存留言，发布 / 撤回 / 下架不可用');
         }
       });
     });
 
-    document.getElementById('btnResetDemo').addEventListener('click', resetDemo);
-
     function setRole(role) {
-      state.role = role;
+      state.role = role; if (role === 'admin') state.device = 'mobile';
+      const allowed = visibleStudents();
+      if (!allowed.some((s) => s.id === state.studentId)) state.studentId = allowed[0].id;
+      state.navTab = roleMeta().boardTab;
       state.page = 'board';
-      state.navTab = boardTab();
-      if (role === 'parent') state.visibility = 'public';
+      state.draft = '';
+      state.visibility = 'public';
+      state.visibleCount = 4;
       state.overlay = null;
       renderAll();
+      const c = $('content'); if (c) c.scrollTop = 0;
     }
 
-    function navTo(tab) {
-      const item = navItems().find((n) => n.id === tab);
-      if (!item) return;
-      if (item.board) {
-        state.page = 'board';
-        state.navTab = tab;
-      } else {
-        state.page = 'placeholder';
-        state.navTab = tab;
-      }
+    function setStudent(id) {
+      if (!visibleStudents().some((s) => s.id === id)) return;
+      state.studentId = id;
+      state.visibleCount = 4;
+      state.draft = '';
+      state.visibility = 'public';
       state.overlay = null;
       renderAll();
-    }
-
-    function syncConsole() {
-      document.querySelectorAll('.ctl').forEach((b) => {
-        const group = b.dataset.group;
-        const active = state[group] === b.dataset.value;
-        b.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`;
-      });
+      const c = $('content'); if (c) c.scrollTop = 0;
     }
 
     function resetDemo() {
-      state.messages = initialMessages();
       state.role = 'teacher';
-      state.variant = 'A';
+      state.studentId = 'stu_alice001';
+      state.page = 'board';
+      state.navTab = 'students';
       state.device = 'mobile';
       state.online = 'on';
-      state.page = 'board';
-      state.navTab = 'home';
-      state.visibility = 'public';
+      state.messages = seedMessages();
+      state.audit = seedAudit();
       state.draft = '';
+      state.visibility = 'public';
+      state.visibleCount = 4;
       state.overlay = null;
       state.deleteReason = '';
       state.deleteError = '';
       renderAll();
+      const c = $('content'); if (c) c.scrollTop = 0;
       showToast('演示数据已重置');
     }
 
+    $('btnResetDemo').addEventListener('click', resetDemo);
+
     /* ------------------------------------------------------------------
-     * 外壳与留言流
+     * 总渲染
      * ------------------------------------------------------------------ */
     function renderAll() {
-      const frame = document.getElementById('frame');
+      const frame = $('frame');
       frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
 
-      document.getElementById('topbar').innerHTML = renderTopbar();
+      $('banner').innerHTML = renderBanner();
 
-      const banner = document.getElementById('offlineBanner');
-      banner.className = state.online === 'off'
-        ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-[14px] font-semibold text-amber-900'
+      const off = $('offlineBanner');
+      off.className = state.online === 'off'
+        ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[12px] font-semibold text-amber-900'
         : 'hidden';
+      off.innerHTML = state.online === 'off'
+        ? `${icon('wifi-off', 'h-4 w-4 shrink-0 text-amber-600')} 离线模式：可查看缓存留言，发布 / 撤回 / 下架不可用`
+        : '';
 
-      const board = state.page === 'board';
-      document.getElementById('privacy').innerHTML = board ? renderPrivacyBanner() : '';
-      document.getElementById('content').innerHTML = board ? renderMessagesHTML() : renderPlaceholder();
-      document.getElementById('composer').innerHTML = board ? renderComposer() : '';
-      document.getElementById('bottomnav').innerHTML = renderNav();
-      renderOverlay();
+      $('content').innerHTML = renderContent();
+      $('bottomnav').innerHTML = renderNav();
+      $('overlay').innerHTML = renderOverlay();
       syncConsole();
-      lucide.createIcons();
-      updateComposerButton();
+      if (window.lucide) lucide.createIcons();
     }
 
-    function renderMessagesOnly() {
-      document.getElementById('content').innerHTML = renderMessagesHTML();
-      lucide.createIcons();
+    function renderContentOnly() {
+      $('content').innerHTML = renderContent();
+      syncConsole();
+      if (window.lucide) lucide.createIcons();
     }
 
-    function renderTopbar() {
-      const meta = roleMeta();
-      const badge = `<div class="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold ${meta.dark ? 'bg-slate-900 text-amber-300' : 'border border-indigo-100 bg-indigo-50 text-indigo-700'}">${icon('user', 'h-3 w-3')}${esc(meta.label)}</div>`;
-      if (state.page === 'placeholder') {
-        return `
-          <div class="border-b border-slate-200 bg-white/95">
-            <div class="flex h-14 items-center justify-between px-4">
-              <div class="flex min-w-0 items-center gap-2.5">
-                <div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-indigo-600 text-[14px] font-bold text-white shadow-sm">D</div>
-                <div class="min-w-0">
-                  <div class="truncate text-[16px] font-bold leading-tight text-slate-900">Dream 教务</div>
-                  <div class="truncate text-[12px] font-medium text-slate-400">${esc(meta.label)} · 其他模块原型</div>
-                </div>
-              </div>
-              ${badge}
+    function renderBanner() {
+      const r = roleMeta();
+      return `<header class="relative flex h-[68px] shrink-0 items-center justify-between overflow-hidden bg-gradient-to-br ${r.banner} px-4 text-white">
+        ${r.pattern}
+        <div class="relative flex min-w-0 items-center gap-2.5">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">${r.initial}</span>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="truncate text-[16px] font-bold">${esc(r.brand)}</span>
+              <span class="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[12px] font-bold">${esc(r.label)}</span>
             </div>
-          </div>`;
-      }
-      return `
-        <div class="border-b border-slate-200 bg-white/95">
-          <div class="flex h-14 items-center justify-between gap-2 px-4">
-            <div class="flex min-w-0 items-center gap-2.5">
-              <div class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-indigo-50 text-[14px] font-bold text-indigo-700 ring-1 ring-indigo-100">${esc(STUDENT.initial)}</div>
-              <div class="min-w-0">
-                <div class="flex items-center gap-1.5">
-                  <span class="truncate text-[18px] font-bold tracking-tight text-slate-900">${esc(STUDENT.nickname)}</span>
-                  <span class="shrink-0 rounded-md bg-indigo-50 px-1.5 py-0.5 text-[12px] font-semibold text-indigo-700">${esc(STUDENT.tag)}</span>
-                </div>
-                <div class="truncate text-[12px] font-medium text-slate-400">教学留言板 · 双权限隔离</div>
-              </div>
-            </div>
-            ${badge}
+            <div class="truncate text-[12px] text-white/70">${esc(r.subtitle)}</div>
           </div>
-        </div>`;
-    }
-
-    function renderPrivacyBanner() {
-      const parent = state.role === 'parent';
-      return `
-        <div class="flex items-center justify-between gap-2 border-b px-4 py-2.5 ${parent ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-indigo-100 bg-indigo-50 text-indigo-900'}">
-          <span class="flex min-w-0 items-center gap-2 text-[14px] font-medium">
-            ${icon(parent ? 'shield-check' : 'lock', `h-4 w-4 shrink-0 ${parent ? 'text-emerald-600' : 'text-indigo-600'}`)}
-            <span class="truncate">${parent ? '师生公开视图 · 内部评语已屏蔽' : '双权限：公开反馈 / 内部交接'}</span>
-          </span>
-          <span class="shrink-0 font-mono text-[12px] font-semibold ${parent ? 'text-emerald-700' : 'text-indigo-700'}">300s 撤回</span>
-        </div>`;
-    }
-
-    function renderComposer() {
-      const parent = state.role === 'parent';
-      const base = 'flex h-8 items-center gap-1 rounded-md px-2.5 text-[14px] font-semibold transition';
-      const pubOn = state.visibility === 'public';
-      return `
-        <div class="shrink-0 border-t border-slate-200 bg-white p-3">
-          <div class="mx-auto w-full max-w-[720px] space-y-2">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-[12px] font-medium text-slate-400">留言可见范围</span>
-              ${parent ? `
-                <span class="flex items-center gap-1 text-[12px] font-medium text-slate-400">${icon('info', 'h-3.5 w-3.5 text-emerald-600')}家长留言固定【师生公开】</span>` : `
-                <div class="inline-flex rounded-lg bg-slate-100 p-0.5">
-                  <button data-action="set-visibility" data-v="public" id="visPublic" class="${base} ${pubOn ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">${icon('globe', 'h-3.5 w-3.5 text-emerald-600')}师生公开</button>
-                  <button data-action="set-visibility" data-v="internal" id="visInternal" class="${base} ${pubOn ? 'text-slate-500' : 'bg-white text-slate-900 shadow-sm'}">${icon('lock', 'h-3.5 w-3.5 text-slate-500')}仅内部可见</button>
-                </div>`}
-            </div>
-            <div class="relative">
-              <textarea id="messageInput" rows="2" maxlength="1000" placeholder="${parent ? '记录孩子的公开学习反馈与作业建议...' : '写下教学反馈、课堂表现或内部交接备忘...'}" class="h-[76px] w-full resize-none rounded-xl border border-slate-200 bg-white p-3 pr-16 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">${esc(state.draft)}</textarea>
-              <span id="charCount" class="absolute bottom-3 right-3 font-mono text-[12px] font-medium text-slate-400">${state.draft.length}/1000</span>
-            </div>
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-[12px] font-medium text-slate-400">发布后 5 分钟内可自主撤回</span>
-              <button data-action="post" id="btnPost" class="flex h-10 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">发送 ${icon('send', 'h-4 w-4')}</button>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    function renderMessagesHTML() {
-      const list = visibleMessages();
-      return `
-        <div class="mx-auto w-full max-w-[720px] space-y-3 px-4 pb-6 pt-4">
-          <div class="flex items-center justify-between px-1">
-            <h2 class="text-[16px] font-bold text-slate-900">历史留言</h2>
-            <span class="text-[12px] font-medium text-slate-400">${list.length} 条 · 按时间倒序</span>
-          </div>
-          ${list.length ? (state.variant === 'A' ? list.map(renderBubble).join('') : list.map(renderMemo).join('')) : `
-            <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-              <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-50 text-slate-300">${icon('message-square-off', 'h-5 w-5')}</div>
-              <p class="mt-3 text-[14px] font-medium text-slate-400">暂无留言记录</p>
-            </div>`}
-          ${list.length ? `
-            <button data-action="toast" data-message="已加载更早留言（原型模拟 · 游标分页）" class="mx-auto block pt-1 text-[12px] font-semibold text-indigo-600">加载更早留言</button>` : ''}
-        </div>`;
-    }
-
-    function revokeButton(m) {
-      const off = state.online === 'off';
-      return `
-        <button data-action="revoke" data-id="${m.id}" data-revoke-wrap ${off ? 'disabled' : ''} class="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2 py-1 text-[12px] font-semibold text-indigo-700 hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50">
-          ${icon('rotate-ccw', 'h-3 w-3')}<span data-revoke-count data-id="${m.id}">撤回 (${revokeRemaining(m.createdAt)}s)</span>
-        </button>`;
-    }
-
-    function deleteButton(m) {
-      const off = state.online === 'off';
-      return `<button data-action="admin-delete" data-id="${m.id}" ${off ? 'disabled' : ''} class="inline-flex items-center gap-1 text-[12px] font-semibold text-rose-600 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-50">${icon('trash-2', 'h-3 w-3')}下架</button>`;
-    }
-
-    function renderBubble(m) {
-      const internal = m.visibility === 'internal_teaching_only';
-      return `
-        <div class="flex items-start gap-2.5">
-          ${roleAvatar(m.authorRole, 'h-8 w-8', 'text-[12px]')}
-          <div class="min-w-0 flex-1">
-            <div class="mb-1 flex items-center justify-between gap-2">
-              <div class="flex min-w-0 items-center gap-1.5">
-                <span class="truncate text-[14px] font-bold text-slate-900">${esc(m.authorName)}</span>
-                ${visibilityTag(internal)}
-              </div>
-              <span class="shrink-0 font-mono text-[12px] font-medium text-slate-400">${formatTime(m.createdAt)}</span>
-            </div>
-            <div class="whitespace-pre-line rounded-2xl border p-3 text-[14px] font-medium leading-relaxed ${internal ? 'border-slate-200 bg-slate-50 text-slate-800' : 'border-slate-200 bg-white text-slate-800'}">${esc(m.content)}</div>
-            <div class="mt-1 flex items-center justify-end gap-2">
-              ${canRevoke(m) ? revokeButton(m) : ''}
-              ${state.role === 'admin' ? deleteButton(m) : ''}
-            </div>
-          </div>
-        </div>`;
-    }
-
-    function renderMemo(m) {
-      const internal = m.visibility === 'internal_teaching_only';
-      return `
-        <div class="rounded-2xl border p-4 shadow-sm ${internal ? 'border-slate-300 bg-slate-50 ring-1 ring-slate-100' : 'border-slate-200 bg-white'}">
-          <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-            <div class="flex min-w-0 items-center gap-2">
-              ${roleAvatar(m.authorRole, 'h-8 w-8', 'text-[12px]')}
-              <div class="min-w-0">
-                <div class="truncate text-[14px] font-bold text-slate-900">${esc(m.authorName)}</div>
-                <div class="font-mono text-[12px] font-medium text-slate-400">${formatTime(m.createdAt)}</div>
-              </div>
-            </div>
-            ${visibilityTag(internal, false)}
-          </div>
-          <p class="mt-2 whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-800">${esc(m.content)}</p>
-          <div class="mt-2 flex items-center justify-between gap-2">
-            <span class="text-[12px] font-medium text-slate-400">${internal ? '仅教师、代课教师与班长可见' : '家长与学员全员可见'}</span>
-            <div class="flex items-center gap-2">
-              ${canRevoke(m) ? revokeButton(m) : ''}
-              ${state.role === 'admin' ? deleteButton(m) : ''}
-            </div>
-          </div>
-        </div>`;
-    }
-
-    function renderPlaceholder() {
-      const item = navItems().find((n) => n.id === state.navTab);
-      if (!item) return '<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>';
-      return `
-        <div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
-          <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
-          <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
-          <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc)}</p>
-          ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}
-          <button data-action="nav" data-tab="${boardTab()}" class="mt-3 text-[14px] font-semibold text-indigo-600">返回留言板</button>
-        </div>`;
+        </div>
+        <button data-action="toast" data-message="暂无新消息" class="relative grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="通知">
+          ${icon('bell', 'h-4 w-4')}
+          <span class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-400 ring-1 ring-white/50"></span>
+        </button>
+      </header>`;
     }
 
     function renderNav() {
-      return `
-        <div class="relative z-40 border-t border-slate-200 bg-white px-1 pb-1.5 pt-1">
-          <div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">
-            ${navItems().map((item) => {
-              const on = state.navTab === item.id;
-              return `
-                <button data-action="nav" data-tab="${item.id}" class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 transition ${on ? 'text-indigo-600' : 'text-slate-400'}">
-                  ${icon(item.icon, `h-[18px] w-[18px] ${on ? '' : 'opacity-80'}`)}
-                  <span class="text-[12px] font-bold">${item.label}</span>
-                </button>`;
-            }).join('')}
-          </div>
-        </div>`;
+      return `<div class="relative z-40 border-t border-slate-200 bg-white px-1 pb-1.5 pt-1">
+        <div class="mx-auto flex w-full max-w-[640px] items-stretch justify-around">
+          ${roleMeta().nav.map((item) => {
+            const on = state.navTab === item.id;
+            return `<button data-action="nav" data-tab="${item.id}" class="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl py-1 transition ${on ? 'font-bold text-indigo-600' : 'font-medium text-slate-400'}">
+              ${icon(item.icon, `h-[18px] w-[18px] ${on ? '' : 'opacity-80'}`)}
+              <span class="text-[12px] font-bold leading-tight">${esc(item.label)}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
+
+    function renderContent() {
+      if (state.page === 'placeholder') return renderPlaceholder();
+      return `${studentSwitcher()}${renderBoard()}`;
+    }
+
+    function renderPlaceholder() {
+      const item = roleMeta().nav.find((n) => n.id === state.navTab);
+      if (!item) return `<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>`;
+      return `<div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
+        <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
+        <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
+        <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc)}</p>
+        ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}
+        <button data-action="back-board" class="mt-3 text-[14px] font-semibold text-indigo-600">返回留言板</button>
+      </div>`;
     }
 
     /* ------------------------------------------------------------------
-     * 发布 / 撤回 / 管理员下架
+     * 学员切换
      * ------------------------------------------------------------------ */
-    function setVisibility(v) {
-      if (state.role === 'parent') return;
-      state.visibility = v;
-      const pub = document.getElementById('visPublic');
-      const internal = document.getElementById('visInternal');
-      if (!pub || !internal) return;
-      const base = 'flex h-8 items-center gap-1 rounded-md px-2.5 text-[14px] font-semibold transition';
-      pub.className = `${base} ${v === 'public' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`;
-      internal.className = `${base} ${v === 'internal' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`;
+    function studentSwitcher() {
+      return `<div class="sticky top-0 z-20 border-b border-slate-200/70 bg-slate-50/95 px-4 py-2 backdrop-blur">
+        <div class="mx-auto flex w-full max-w-[640px] items-center gap-1 overflow-x-auto">
+          <span class="shrink-0 text-[12px] font-semibold text-slate-400">学员</span>
+          ${visibleStudents().map((s) => {
+            const on = s.id === state.studentId;
+            return `<button data-action="switch-student" data-id="${s.id}" class="flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-1 ${on ? 'border-indigo-200 bg-white text-indigo-700 shadow-sm ring-1 ring-indigo-200' : 'border-slate-200 bg-white/70 text-slate-600'}">
+              <span class="grid h-5 w-5 place-items-center rounded-full text-[12px] font-bold ${on ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}">${esc(s.nickname.charAt(0))}</span>
+              <span class="font-mono text-[12px] font-bold">${esc(s.nickname)}</span>
+              <span class="text-[12px] font-medium ${on ? 'text-indigo-700' : 'text-slate-400'}">${studentCount(s.id)}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
     }
 
-    function updateComposerButton() {
-      const btn = document.getElementById('btnPost');
-      if (!btn) return;
-      btn.disabled = state.online === 'off' || !state.draft.trim();
+    /* ------------------------------------------------------------------
+     * 留言板
+     * ------------------------------------------------------------------ */
+    function renderBoard() {
+      const s = activeStudent();
+      const total = visibleMessages().length;
+      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3 pb-10">
+        <div class="px-1">
+          <h1 class="text-[18px] font-bold tracking-tight text-slate-900">教学留言板</h1>
+          <p class="mt-0.5 text-[12px] font-medium text-slate-400">${esc(s.nickname)} · 双权限隔离 · 共 ${total} 条</p>
+        </div>
+        ${state.role === 'admin' ? '' : privacyBanner()}
+        ${composer()}
+        <div id="messageList" class="space-y-2">${messageListHtml()}</div>
+        ${loadMoreButton()}
+        ${auditCard()}
+      </div>`;
     }
 
-    function postMessage() {
-      if (state.online === 'off') return showToast('离线模式下不可发布留言');
-      const text = state.draft.trim();
-      if (!text) return showToast('请输入留言内容');
-      if (text.length > 1000) return showToast('留言不能超过 1000 字符');
-      const meta = roleMeta();
-      const visibility = state.role === 'parent'
-        ? 'public_teacher_student'
-        : state.visibility === 'internal' ? 'internal_teaching_only' : 'public_teacher_student';
-      state.messages.unshift({
-        id: `msg_${Date.now()}`,
-        authorRole: state.role,
-        authorName: meta.author,
-        visibility,
-        content: text,
-        createdAt: Date.now(),
-        isRevoked: false
-      });
-      state.draft = '';
-      if (state.role === 'parent') state.visibility = 'public';
-      renderAll();
-      const content = document.getElementById('content');
-      if (content) content.scrollTop = 0;
-      showToast('留言已发布 · 5 分钟内可撤回');
+    function privacyBanner() {
+      const T = TONES.indigo;
+      const parent = state.role === 'parent';
+      const admin = state.role === 'admin';
+      const text = admin
+        ? '管理员审计视图 · 可查看全部留言并下架'
+        : parent
+          ? '师生公开视图 · 内部教学评语已屏蔽'
+          : '双权限：师生公开反馈 / 仅内部教学交接';
+      const iconName = admin ? 'shield-check' : parent ? 'shield' : 'lock-keyhole';
+      return `<div class="flex items-center gap-2 rounded-xl border ${T.card} px-3 py-2.5">
+        <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg ${T.icon}">${icon(iconName, 'h-4 w-4')}</span>
+        <span class="min-w-0 flex-1 truncate text-[12px] font-semibold ${T.title}">${esc(text)}</span>
+        <span class="shrink-0 rounded-full bg-white/60 px-1.5 py-0.5 font-mono text-[12px] font-bold ${T.sub}">${admin ? '审计' : '300s 撤回'}</span>
+      </div>`;
     }
 
-    function revokeMessage(id) {
-      if (state.online === 'off') return showToast('离线模式下不可撤回留言');
-      const m = state.messages.find((x) => x.id === id);
-      if (!m || m.authorRole !== state.role) return;
-      if (revokeRemaining(m.createdAt) <= 0) {
-        return showToast('403 MESSAGE_REVOKE_WINDOW_EXPIRED · 已超过 300 秒撤回时效');
+    function composer() {
+      if (!canPost()) {
+        return `<section class="rounded-2xl border border-indigo-200/70 bg-indigo-50/80 p-3.5 shadow-sm">
+          <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-100 text-indigo-700">${icon('shield-check', 'h-4 w-4')}</span>
+            <h2 class="text-[16px] font-bold text-indigo-950">管理员审计视图</h2>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-indigo-900/85">管理员以审计与争议处置为主：可查看全部公开与内部留言并执行下架；留言发布由教师、班长或家长完成。</p>
+        </section>`;
       }
-      m.isRevoked = true;
-      renderMessagesOnly();
-      showToast('已撤回该条留言并从界面移除');
+      const parent = state.role === 'parent';
+      const offline = state.online === 'off';
+      const canSubmit = !offline && state.draft.trim().length > 0 && state.draft.length <= 1000;
+      return `<section class="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-[16px] font-bold text-slate-900">发布留言</h2>
+          <span class="shrink-0 text-[12px] font-medium text-slate-400">${parent ? '家长留言固定公开' : '发布后 5 分钟内可撤回'}</span>
+        </div>
+        ${parent
+          ? `<div class="mt-2 flex items-center gap-1.5"><span class="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">${icon('globe', 'h-3.5 w-3.5')}师生公开</span><span class="text-[12px] font-medium text-slate-400">家长不可发布内部留言</span></div>`
+          : `<div class="mt-2 inline-flex rounded-xl bg-slate-100 p-1">
+              <button data-action="set-visibility" data-v="public" class="h-8 rounded-lg px-2.5 text-[12px] font-bold ${state.visibility === 'public' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">${icon('globe', 'h-3.5 w-3.5')}师生公开</button>
+              <button data-action="set-visibility" data-v="internal" class="h-8 rounded-lg px-2.5 text-[12px] font-bold ${state.visibility === 'internal' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">${icon('lock', 'h-3.5 w-3.5')}仅内部教学可见</button>
+            </div>`}
+        <textarea id="messageInput" rows="3" maxlength="1000" placeholder="${parent ? '记录孩子的公开学习反馈或与老师互动...' : '写下教学反馈、课堂表现或内部交接备忘...'}" ${offline ? 'disabled' : ''} class="mt-2 h-24 w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 disabled:bg-slate-100 disabled:text-slate-400">${esc(state.draft)}</textarea>
+        <div class="mt-2 flex items-center justify-between gap-2">
+          <span id="msgCount" class="font-mono text-[12px] font-medium text-slate-400">${state.draft.length}/1000</span>
+          <button id="btnPublish" data-action="publish" ${canSubmit ? '' : 'disabled'} class="h-11 rounded-xl bg-indigo-600 px-4 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">发布留言</button>
+        </div>
+        ${offline ? `<p class="mt-1.5 text-[12px] font-medium text-amber-700">离线只读：发布不可用</p>` : ''}
+      </section>`;
     }
 
-    function openAdminDelete(id) {
-      if (state.online === 'off') return showToast('离线模式下不可下架留言');
-      if (state.role !== 'admin') return;
-      state.overlay = { type: 'adminDelete', messageId: id };
-      state.deleteReason = '';
-      state.deleteError = '';
-      renderOverlay();
-      lucide.createIcons();
-      setTimeout(() => document.getElementById('deleteReason')?.focus(), 50);
+    function messageListHtml() {
+      const list = displayedMessages();
+      if (!list.length) {
+        return `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-400">暂无留言记录</div>`;
+      }
+      return list.map(messageCard).join('');
     }
 
-    function confirmAdminDelete() {
-      if (state.online === 'off') return showToast('离线模式下不可下架留言');
-      const reason = state.deleteReason.trim();
-      if (reason.length < 2 || reason.length > 200) {
-        state.deleteError = '下架原因需为 2-200 字符';
-        renderOverlay();
-        lucide.createIcons();
-        return;
+    function messageCard(m) {
+      const internal = m.visibility === 'internal';
+      const T = internal ? TONES.indigo : TONES.slate;
+      const cardCls = internal ? 'rounded-2xl border border-indigo-200/70 bg-indigo-50/80 p-3.5 shadow-sm' : 'rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm';
+      const nameCls = internal ? 'text-indigo-950' : 'text-slate-900';
+      const bodyCls = internal ? 'text-indigo-900/85' : 'text-slate-700';
+      const subCls = internal ? 'text-indigo-700' : 'text-slate-400';
+      const avatarCls = internal ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600';
+      const roleChip = internal ? 'border-indigo-200 bg-indigo-100 text-indigo-800' : 'border-slate-200 bg-slate-100 text-slate-600';
+      const badge = internal
+        ? `<span class="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-100 px-1.5 py-0.5 text-[12px] font-bold text-indigo-800">${icon('lock', 'h-3 w-3')}仅内部</span>`
+        : `<span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">${icon('globe', 'h-3 w-3')}师生公开</span>`;
+      const rem = revokeRemaining(m);
+      const author = canRevoke(m);
+      const offline = state.online === 'off';
+      let actions = '';
+      if (author && rem > 0) {
+        actions += `<button data-action="revoke" data-id="${m.id}" ${offline ? 'disabled' : ''} class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[12px] font-semibold ${internal ? 'border-indigo-300 bg-white/70 text-indigo-800' : 'border-slate-200 bg-slate-100 text-slate-700'} disabled:cursor-not-allowed disabled:opacity-50">${icon('rotate-ccw', 'h-3 w-3')}<span data-revoke-count data-id="${m.id}">撤回 (${rem}s)</span></button>`;
       }
-      const m = state.messages.find((x) => x.id === (state.overlay && state.overlay.messageId));
-      if (m) {
-        m.isRevoked = true;
-        m.deletedBy = 'admin';
-        m.deleteReason = reason;
-        m.deletedAt = Date.now();
+      if (author && rem <= 0) {
+        actions += `<span class="text-[12px] font-medium ${subCls}">撤回时效已过</span>
+          <button data-action="revoke-expired" ${offline ? 'disabled' : ''} class="text-[12px] font-semibold underline ${internal ? 'text-indigo-700' : 'text-slate-500'} disabled:cursor-not-allowed disabled:opacity-50">尝试撤回</button>`;
       }
-      state.overlay = null;
-      renderAll();
-      showToast('已下架留言 · dream.audit_logs 已记录操作人/留言ID/原因/原文快照');
+      if (canDelete()) {
+        actions += `<button data-action="admin-delete" data-id="${m.id}" ${offline ? 'disabled' : ''} class="inline-flex items-center gap-1 text-[12px] font-semibold ${internal ? 'text-indigo-700 hover:text-indigo-900' : 'text-rose-600 hover:text-rose-800'} disabled:cursor-not-allowed disabled:opacity-50">${icon('trash-2', 'h-3 w-3')}下架</button>`;
+      }
+      return `<article class="${cardCls}">
+        <div class="flex items-start gap-2.5">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12px] font-bold ${avatarCls}">${esc((m.authorName || '?').charAt(0).toUpperCase())}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex min-w-0 items-center gap-1.5">
+                <span class="truncate text-[14px] font-bold ${nameCls}">${esc(m.authorName)}</span>
+                <span class="shrink-0 rounded border px-1 py-0.5 text-[12px] font-semibold ${roleChip}">${authorLabel(m.authorRole)}</span>
+              </div>
+              <span class="shrink-0 text-[12px] font-medium ${subCls}">${formatTime(m.createdAt)}</span>
+            </div>
+            <p class="mt-1.5 whitespace-pre-line break-words text-[14px] font-medium leading-relaxed ${bodyCls}">${esc(m.content)}</p>
+            <div class="mt-2 flex items-center justify-between gap-2">
+              ${badge}
+              <div class="flex shrink-0 items-center gap-2">${actions}</div>
+            </div>
+          </div>
+        </div>
+      </article>`;
+    }
+
+    function loadMoreButton() {
+      const total = visibleMessages().length;
+      const shown = displayedMessages().length;
+      if (shown >= total) return '';
+      return `<button data-action="load-more" class="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2.5 text-[12px] font-bold text-indigo-700 hover:bg-slate-50">${icon('chevron-down', 'h-3.5 w-3.5')}加载更早留言（剩余 ${total - shown} 条）</button>`;
+    }
+
+    function auditCard() {
+      if (!canDelete() || !state.audit.length) return '';
+      return `<details class="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
+        <summary class="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+          <span class="text-[16px] font-bold text-slate-900">下架审计</span>
+          <span class="text-[12px] font-medium text-slate-400">${state.audit.length} 条</span>
+        </summary>
+        <div class="mt-2.5 space-y-2">
+          ${state.audit.map((a) => `<div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <span class="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[12px] font-bold text-rose-700">${icon('trash-2', 'h-3 w-3')}已下架</span>
+              <span class="font-mono text-[12px] font-medium text-slate-400">${esc(a.messageId)}</span>
+            </div>
+            <div class="mt-1 text-[12px] font-medium text-slate-500">${formatTime(a.at)} · ${esc(a.operator)} · ${esc(studentById(a.studentId).nickname)}</div>
+            <div class="mt-1 text-[14px] font-semibold text-slate-800">原因：${esc(a.reason)}</div>
+            <div class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">原文：${esc(a.snapshot)}</div>
+          </div>`).join('')}
+        </div>
+      </details>`;
     }
 
     /* ------------------------------------------------------------------
      * 弹层
      * ------------------------------------------------------------------ */
     function renderOverlay() {
-      document.getElementById('overlay').innerHTML = state.overlay ? renderOverlayHTML() : '';
-    }
-
-    function renderOverlayHTML() {
       if (!state.overlay || state.overlay.type !== 'adminDelete') return '';
       const m = state.messages.find((x) => x.id === state.overlay.messageId);
       if (!m) return '';
-      const internal = m.visibility === 'internal_teaching_only';
-      return `
-        <div class="absolute inset-0 z-50">
-          <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
-          <div class="absolute inset-x-4 top-1/2 mx-auto max-h-[85%] max-w-[560px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <h2 class="text-[16px] font-bold text-slate-900">下架争议留言</h2>
-                <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">软删除后对所有角色物理隐藏，操作记入 dream.audit_logs。</p>
-              </div>
-              <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+      const internal = m.visibility === 'internal';
+      const reasonOk = state.deleteReason.trim().length >= 2 && state.deleteReason.trim().length <= 200;
+      return `<div class="absolute inset-0 z-50">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-4 top-1/2 mx-auto max-w-[420px] -translate-y-1/2 rounded-2xl bg-white p-4 shadow-2xl">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">下架争议留言</h2>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-500">软删除并写入审计日志，原文快照永久留存</p>
             </div>
-
-            <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
-              <div class="flex items-center gap-2">
-                <span class="truncate text-[12px] font-semibold text-slate-700">${esc(m.authorName)}</span>
-                ${visibilityTag(internal)}
-              </div>
-              <p class="mt-1 max-h-24 overflow-y-auto whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-700">${esc(m.content)}</p>
+            <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="mt-2.5 rounded-xl border p-2.5 ${internal ? 'border-indigo-200/70 bg-indigo-50/80' : 'border-slate-200 bg-slate-50'}">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[12px] font-bold ${internal ? 'text-indigo-950' : 'text-slate-800'}">${esc(m.authorName)}</span>
+              <span class="text-[12px] font-medium ${internal ? 'text-indigo-700' : 'text-slate-400'}">${authorLabel(m.authorRole)} · ${internal ? '仅内部' : '师生公开'}</span>
             </div>
-
-            <div class="mt-3">
-              <label for="deleteReason" class="mb-1.5 block text-[16px] font-semibold text-slate-800">下架处理原因 <span class="text-rose-500">*</span> <span class="text-[12px] font-normal text-slate-400">（2-200 字）</span></label>
-              <input id="deleteReason" value="${esc(state.deleteReason)}" maxlength="200" placeholder="如：涉及学员隐私纠纷，协商下架" class="h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
-            </div>
-            ${state.deleteError ? `<div id="deleteError" class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[14px] font-medium text-rose-700">${esc(state.deleteError)}</div>` : ''}
-
-            <div class="mt-4 flex gap-2">
-              <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">取消</button>
-              <button data-action="confirm-delete" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl bg-rose-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认下架</button>
+            <p class="mt-1 line-clamp-3 text-[14px] font-medium leading-relaxed ${internal ? 'text-indigo-900/85' : 'text-slate-700'}">${esc(m.content)}</p>
+            <div class="mt-1 font-mono text-[12px] ${internal ? 'text-indigo-700' : 'text-slate-400'}">${esc(m.id)}</div>
+          </div>
+          <div class="mt-3">
+            <label for="deleteReason" class="mb-1 block text-[14px] font-semibold text-slate-700">下架原因（2-200 字）<span class="text-rose-500">*</span></label>
+            <textarea id="deleteReason" maxlength="200" rows="3" placeholder="请输入下架原因，例如涉及学员隐私信息..." class="h-20 w-full resize-none rounded-xl border border-slate-200 bg-white p-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(state.deleteReason)}</textarea>
+            <div class="mt-1 flex items-center justify-between">
+              <span id="deleteReasonCount" class="font-mono text-[12px] font-medium text-slate-400">${state.deleteReason.length}/200</span>
+              <span class="text-[12px] font-medium text-slate-400">将记录操作人 / 留言 ID / 原因 / 原文</span>
             </div>
           </div>
-        </div>`;
+          ${state.deleteError ? `<div id="deleteError" class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(state.deleteError)}</div>` : ''}
+          <div class="mt-3 flex gap-2">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">取消</button>
+            <button id="btnConfirmDelete" data-action="confirm-delete" ${reasonOk ? '' : 'disabled'} class="h-11 flex-1 rounded-xl bg-rose-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认下架</button>
+          </div>
+        </div>
+      </div>`;
     }
 
     /* ------------------------------------------------------------------
-     * 事件委托
+     * 交互
      * ------------------------------------------------------------------ */
+    function publishMessage() {
+      if (!canPost()) return showToast('当前身份不可发布留言');
+      if (state.online === 'off') return showToast('离线模式下不可发布留言');
+      const text = state.draft.trim();
+      if (!text) return showToast('请输入留言内容');
+      if (text.length > 1000) return showToast('留言不能超过 1000 字符');
+      const visibility = state.role === 'parent' ? 'public' : state.visibility;
+      state.messages.unshift({
+        id: newId('msg'),
+        studentId: state.studentId,
+        authorRole: state.role,
+        authorName: roleMeta().authorName,
+        visibility,
+        content: text,
+        createdAt: Date.now()
+      });
+      state.draft = '';
+      state.visibleCount = Math.max(4, state.visibleCount);
+      renderContentOnly();
+      showToast('留言已发布 · 5 分钟内可撤回');
+    }
+
+    function revokeMessage(id) {
+      if (state.online === 'off') return showToast('离线模式下不可撤回留言');
+      const m = state.messages.find((x) => x.id === id);
+      if (!m || !canRevoke(m)) return showToast('仅发布者可在时效内撤回');
+      if (revokeRemaining(m) <= 0) return showToast('403 MESSAGE_REVOKE_WINDOW_EXPIRED · 已超过 300 秒撤回时效');
+      m.revoked = true;
+      renderContentOnly();
+      showToast('已撤回该条留言并从界面移除');
+    }
+
+    function attemptExpired() {
+      showToast('403 MESSAGE_REVOKE_WINDOW_EXPIRED · 已超过 300 秒撤回时效');
+    }
+
+    function openAdminDelete(id) {
+      if (!canDelete()) return;
+      if (state.online === 'off') return showToast('离线模式下不可下架留言');
+      state.overlay = { type: 'adminDelete', messageId: id };
+      state.deleteReason = '';
+      state.deleteError = '';
+      renderAll();
+    }
+
+    function confirmAdminDelete() {
+      if (!canDelete()) return;
+      if (state.online === 'off') return showToast('离线模式下不可下架留言');
+      const reason = state.deleteReason.trim();
+      if (reason.length < 2 || reason.length > 200) {
+        state.deleteError = '下架原因需为 2-200 字';
+        return renderOverlayOnly();
+      }
+      const m = state.messages.find((x) => x.id === state.overlay.messageId);
+      if (!m) return;
+      state.audit.unshift({
+        id: newId('aud'),
+        messageId: m.id,
+        studentId: m.studentId,
+        operator: roleMeta().authorName,
+        reason,
+        snapshot: m.content,
+        at: Date.now()
+      });
+      m.deleted = true;
+      state.overlay = null;
+      state.deleteReason = '';
+      renderAll();
+      showToast('已下架留言 · 审计日志已记录操作人 / 留言 ID / 原因 / 原文');
+    }
+
+    function renderOverlayOnly() {
+      $('overlay').innerHTML = renderOverlay();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function setVisibility(v) {
+      if (!canInternal() || (v !== 'public' && v !== 'internal')) return;
+      state.visibility = v;
+      document.querySelectorAll('[data-action="set-visibility"]').forEach((b) => {
+        const on = b.dataset.v === v;
+        b.className = `h-8 rounded-lg px-2.5 text-[12px] font-bold ${on ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}`;
+      });
+    }
+
+    function updateComposerState() {
+      const count = $('msgCount');
+      if (count) count.textContent = `${state.draft.length}/1000`;
+      const btn = $('btnPublish');
+      if (btn) btn.disabled = state.online === 'off' || !state.draft.trim() || state.draft.length > 1000;
+    }
+
+    function updateDeleteState() {
+      const count = $('deleteReasonCount');
+      if (count) count.textContent = `${state.deleteReason.length}/200`;
+      const btn = $('btnConfirmDelete');
+      if (btn) btn.disabled = !(state.deleteReason.trim().length >= 2 && state.deleteReason.trim().length <= 200);
+      state.deleteError = '';
+      const err = $('deleteError');
+      if (err) err.remove();
+    }
+
+    function navTo(tab) {
+      const item = roleMeta().nav.find((n) => n.id === tab);
+      if (!item) return;
+      state.navTab = tab;
+      state.page = item.board ? 'board' : 'placeholder';
+      state.overlay = null;
+      renderAll();
+      const c = $('content'); if (c) c.scrollTop = 0;
+    }
+
     document.getElementById('frame').addEventListener('click', (e) => {
       const el = e.target.closest('[data-action]');
       if (!el) return;
       const action = el.dataset.action;
       if (action === 'nav') return navTo(el.dataset.tab);
       if (action === 'toast') return showToast(el.dataset.message || '');
+      if (action === 'back-board') { state.page = 'board'; state.navTab = roleMeta().boardTab; state.overlay = null; renderAll(); const c = $('content'); if (c) c.scrollTop = 0; return; }
+      if (action === 'switch-student') return setStudent(el.dataset.id);
       if (action === 'set-visibility') return setVisibility(el.dataset.v);
-      if (action === 'post') return postMessage();
+      if (action === 'publish') return publishMessage();
       if (action === 'revoke') return revokeMessage(el.dataset.id);
-      if (action === 'admin-delete') return openAdminDelete(el.dataset.id);
-      if (action === 'close-overlay') {
-        state.overlay = null;
-        renderOverlay();
-        lucide.createIcons();
-        return;
+      if (action === 'revoke-expired') return attemptExpired();
+      if (action === 'load-more') {
+        state.visibleCount += 4;
+        return renderContentOnly();
       }
+      if (action === 'admin-delete') return openAdminDelete(el.dataset.id);
+      if (action === 'close-overlay') { state.overlay = null; return renderOverlayOnly(); }
       if (action === 'confirm-delete') return confirmAdminDelete();
     });
 
     document.getElementById('frame').addEventListener('input', (e) => {
-      if (e.target.id === 'messageInput') {
+      const id = e.target.id;
+      if (id === 'messageInput') {
         state.draft = e.target.value;
-        const count = document.getElementById('charCount');
-        if (count) count.textContent = `${state.draft.length}/1000`;
-        updateComposerButton();
+        updateComposerState();
       }
-      if (e.target.id === 'deleteReason') {
+      if (id === 'deleteReason') {
         state.deleteReason = e.target.value;
-        state.deleteError = '';
-        const err = document.getElementById('deleteError');
-        if (err) err.remove();
+        updateDeleteState();
       }
     });
 
     /* ------------------------------------------------------------------
-     * 300 秒撤回倒计时心跳（仅更新按钮文本，不重绘外壳）
+     * 300 秒撤回倒计时
      * ------------------------------------------------------------------ */
     setInterval(() => {
+      const list = $('messageList');
+      if (!list) return;
+      let needRefresh = false;
       document.querySelectorAll('[data-revoke-count]').forEach((el) => {
         const m = state.messages.find((x) => x.id === el.dataset.id);
         if (!m) return;
-        const rem = revokeRemaining(m.createdAt);
-        if (rem > 0) {
-          el.textContent = `撤回 (${rem}s)`;
-        } else {
-          const wrap = el.closest('[data-revoke-wrap]');
-          if (wrap) wrap.classList.add('hidden');
-        }
+        const secs = revokeRemaining(m);
+        if (secs > 0) el.textContent = `撤回 (${secs}s)`;
+        else needRefresh = true;
       });
+      if (needRefresh) {
+        list.innerHTML = messageListHtml();
+        if (window.lucide) lucide.createIcons();
+      }
     }, 1000);
 
-    /* ------------------------------------------------------------------
-     * 提示
-     * ------------------------------------------------------------------ */
     function showToast(msg) {
-      const toast = document.getElementById('toast');
+      const toast = $('toast');
       toast.textContent = msg;
       toast.classList.remove('hidden');
       clearTimeout(showToast._timer);
