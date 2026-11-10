@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>原型 · M3B 考勤、请假挪位与代课调度</title>
+  <title>考勤与代课 · Dream</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -31,7 +31,7 @@
       <div class="flex items-center gap-2">
         <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">3B</span>
         <span class="text-[14px] font-bold text-slate-900">考勤、请假挪位与代课调度</span>
-        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">最新 PRD · 主页面底栏 ≤ 4 Tab</span>
+        <span class="hidden text-[12px] font-medium text-slate-400 lg:inline">角色 / 设备 / 网络 / 时限 演示控制</span>
       </div>
 
       <div class="flex items-center gap-2">
@@ -73,7 +73,7 @@
       <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置演示</button>
 
       <a href="../docs/prd/m3b_attendance_substitution.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
-        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M3B PRD
+        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>PRD 文档
       </a>
     </div>
   </header>
@@ -127,9 +127,18 @@
       { name: 'Elena Wright', level: 'Senior', skills: 'KET / 少儿英语' },
       { name: 'Sarah Jenkins', level: 'Standard', skills: 'KET / 自然拼读' }
     ];
+    const ROOM_LABEL = 'ClassIn 教室 A-302';
     const CLASS_INFO = { name: 'KET 冲刺精讲小班', date: '2026-11-15', time: '10:00', end: '11:00', size: 4, teacher: TEACHER_NAME };
 
-    const INITIAL_QUOTA = { alice: { used: 0, max: 2 }, bob: { used: 0, max: 1 } };
+    // 小班双格代课候选：全平台在职外教，须连续 2 个半小时格空闲且技能匹配
+    const CLASS_SUB_CANDIDATES = [
+      { name: 'Elena Wright', level: 'Senior', skills: 'KET / 少儿英语', boundMonitor: 'Leo', twoCells: true, note: '连续双格空闲' },
+      { name: 'Chris Park', level: 'Senior', skills: 'KET / 剑桥少儿', boundMonitor: 'Mia', twoCells: true, note: '连续双格空闲' },
+      { name: 'Sarah Jenkins', level: 'Standard', skills: 'KET / 自然拼读', boundMonitor: 'Leo', twoCells: false, note: '第二格已排' }
+    ];
+
+    // Bob 配额已耗尽：演示“仅支持同师挪位”
+    const INITIAL_QUOTA = { alice: { used: 0, max: 2 }, bob: { used: 1, max: 1 } };
     const INITIAL_FREE = [
       { id: 'fre_00000001', date: '2026-11-11', time: '14:00', state: 'free' },
       { id: 'fre_00000002', date: '2026-11-13', time: '15:00', state: 'free' }
@@ -199,34 +208,34 @@
 
     const NAVS = {
       parent: [
-        { id: 'home', icon: 'home', label: '首页', desc: '多孩时间流与金刚位属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=user' },
+        { id: 'home', icon: 'home', label: '首页', desc: '多孩时间流与快捷入口在首页工作台。', href: 'm0_workspace_home.html?role=user' },
         { id: 'schedule', icon: 'calendar-days', label: '学生课表', board: true },
-        { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '教师与小班选课属于 M1B / M1C。', href: 'm1c_classes.html' },
-        { id: 'me', icon: 'user', label: '我的', desc: '学员档案与账单属于 M0 个人中心。', href: 'm0_workspace_home.html?role=user&view=me' }
+        { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '浏览教师与小班课程并预约。', href: 'm1c_classes.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '学员档案与账单在个人中心。', href: 'm0_workspace_home.html?role=user&view=me' }
       ],
       monitor: [
-        { id: 'home', icon: 'home', label: '首页', desc: '班长主页与教务待办属于 M0 工作台。', href: 'm0_workspace_home.html?role=monitor' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '班长本人家庭课表属于 M0 / M3A。', href: 'm3a_calendar_schedule.html' },
+        { id: 'home', icon: 'home', label: '首页', desc: '班长主页与教务待办。', href: 'm0_workspace_home.html?role=monitor' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '班长本人家庭课表。', href: 'm3a_calendar_schedule.html' },
         { id: 'ops', icon: 'layout-grid', label: '教务中心', board: true },
-        { id: 'me', icon: 'user', label: '我的', desc: '班长周转账与家庭档案属于 M0 个人中心。', href: 'm0_workspace_home.html?role=monitor&view=me' }
+        { id: 'me', icon: 'user', label: '我的', desc: '班长周转账与家庭档案。', href: 'm0_workspace_home.html?role=monitor&view=me' }
       ],
       teacher: [
-        { id: 'home', icon: 'home', label: '首页', desc: '教师工作台主页属于 M0。', href: 'm0_workspace_home.html?role=teacher' },
+        { id: 'home', icon: 'home', label: '首页', desc: '教师工作台主页。', href: 'm0_workspace_home.html?role=teacher' },
         { id: 'schedule', icon: 'calendar-days', label: '我的课表', board: true },
-        { id: 'students', icon: 'users', label: '学员档案', desc: '学员档案与留言板属于 M1A / M1D。', href: 'm1a_student_profile.html' },
-        { id: 'me', icon: 'user', label: '我的', desc: '教师履历与课酬单属于 M1B / M5B。', href: 'm1b_teacher_monitor.html' }
+        { id: 'students', icon: 'users', label: '学员档案', desc: '学员档案与家校留言板。', href: 'm1a_student_profile.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '教师履历与课酬单。', href: 'm1b_teacher_monitor.html' }
       ],
       sub_teacher: [
-        { id: 'home', icon: 'home', label: '首页', desc: '教师工作台主页属于 M0。', href: 'm0_workspace_home.html?role=teacher' },
+        { id: 'home', icon: 'home', label: '首页', desc: '教师工作台主页。', href: 'm0_workspace_home.html?role=teacher' },
         { id: 'schedule', icon: 'calendar-days', label: '我的课表', board: true },
-        { id: 'students', icon: 'users', label: '学员档案', desc: '学员档案与留言板属于 M1A / M1D。', href: 'm1a_student_profile.html' },
-        { id: 'me', icon: 'user', label: '我的', desc: '代课课酬与周结单属于 M5B。', href: 'm1b_teacher_monitor.html' }
+        { id: 'students', icon: 'users', label: '学员档案', desc: '学员档案与家校留言板。', href: 'm1a_student_profile.html' },
+        { id: 'me', icon: 'user', label: '我的', desc: '代课课酬与周结单。', href: 'm1b_teacher_monitor.html' }
       ],
       admin: [
-        { id: 'home', icon: 'home', label: '首页', desc: '平台结算待办与运营大盘属于 M0 工作台主页。', href: 'm0_workspace_home.html?role=admin' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '自家孩子课表属于 M3A 排课模块。', href: 'm3a_calendar_schedule.html' },
-        { id: 'ops', icon: 'layout-grid', label: '教务调度', board: true },
-        { id: 'settings', icon: 'settings', label: '管理与设置', desc: '平台配置属于 M0 管理与设置。', href: 'm1e_courseware.html' }
+        { id: 'home', icon: 'home', label: '首页', desc: '平台结算待办与运营大盘。', href: 'm0_workspace_home.html?role=admin' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '自家孩子课表。', href: 'm3a_calendar_schedule.html' },
+        { id: 'ops', icon: 'layout-grid', label: '教务中心', board: true },
+        { id: 'settings', icon: 'settings', label: '管理与设置', desc: '平台配置与管理。', href: 'm1e_courseware.html' }
       ]
     };
 
@@ -247,11 +256,33 @@
     };
 
     const BANNERS = {
-      parent: { gradient: 'from-slate-800 via-blue-900 to-slate-700', brand: 'Dream 教务', role: '家长', subtitle: '多孩家庭 · Amy', initial: 'A', pattern: PATTERNS.parent },
-      monitor: { gradient: 'from-slate-900 via-fuchsia-950 to-slate-800', brand: 'Dream 教务', role: '班长', subtitle: '教务统筹 · Leo', initial: 'L', pattern: PATTERNS.monitor },
-      teacher: { gradient: 'from-slate-800 via-emerald-900 to-slate-700', brand: 'Teacher Center', role: '教师', subtitle: '母语外教 · David', initial: 'D', pattern: PATTERNS.teacher },
-      sub_teacher: { gradient: 'from-slate-800 via-emerald-900 to-slate-700', brand: 'Teacher Center', role: '代课', subtitle: '代课教师 · Elena', initial: 'E', pattern: PATTERNS.sub_teacher },
-      admin: { gradient: 'from-slate-900 via-violet-950 to-slate-800', brand: 'Dream 运营中枢', role: '管理员', subtitle: '平台统筹 · Sarah', initial: 'S', pattern: PATTERNS.admin }
+      parent: { gradient: 'from-slate-800 via-blue-900 to-slate-700', initial: 'A', pattern: PATTERNS.parent },
+      monitor: { gradient: 'from-slate-900 via-fuchsia-950 to-slate-800', initial: 'L', pattern: PATTERNS.monitor },
+      teacher: { gradient: 'from-slate-800 via-emerald-900 to-slate-700', initial: 'D', pattern: PATTERNS.teacher },
+      sub_teacher: { gradient: 'from-slate-800 via-emerald-900 to-slate-700', initial: 'E', pattern: PATTERNS.sub_teacher },
+      admin: { gradient: 'from-slate-900 via-violet-950 to-slate-800', initial: 'S', pattern: PATTERNS.admin }
+    };
+
+    const ROLE_TITLES = {
+      parent: '请假与挪位',
+      monitor: '代课调度',
+      teacher: '考勤与代课',
+      sub_teacher: '考勤与代课',
+      admin: '管理员代操作'
+    };
+
+    const OVERLAY_TITLES = {
+      batchLeave: '批量请假',
+      dispatch: '应急调度',
+      classSub: '应急调度',
+      classCancel: '应急调度',
+      adminLeave: '管理员代操作',
+      proxy: '学员代办',
+      proxyLeave: '学员代办',
+      picker: '请假与挪位',
+      leave: '请假与挪位',
+      teacherLeave: '考勤与代课',
+      memo: '考勤与代课'
     };
 
     /* ------------------------------------------------------------------
@@ -271,20 +302,33 @@
       quota: JSON.parse(JSON.stringify(INITIAL_QUOTA)),
       freeSlots: JSON.parse(JSON.stringify(INITIAL_FREE)),
       classCancelled: false,
+      classSub: null,
+      classSubDraft: null,
+      classCancelAck: false,
+      classCancelReason: '公众假期停课，后续统一补排',
       picker: null,
       batch: null,
       lastBatchLeave: null,
       teacherLeaveSlots: [],
       emergency: JSON.parse(JSON.stringify(INITIAL_EMERGENCY)),
       adminLeave: null,
+      proxyLeaveReason: '',
       adminAudit: []
     };
+
+    const params = new URLSearchParams(location.search);
+    if (params.get('role') && ['parent', 'teacher', 'sub_teacher', 'monitor', 'admin'].includes(params.get('role'))) {
+      state.role = params.get('role');
+    }
+    if (params.get('child')) state.child = params.get('child');
+    if (params.get('device') === 'tablet') state.device = 'tablet';
 
     /* ------------------------------------------------------------------
      * 工具
      * ------------------------------------------------------------------ */
     const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
     const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const lessonNo = (v) => `课次 #${String(v ?? '').replace(/\D/g, '').slice(-4) || '0000'}`;
     const clone = (v) => JSON.parse(JSON.stringify(v));
 
     function isoToTs(iso) { return Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))); }
@@ -359,7 +403,7 @@
         : hoursLeft < 24
           ? 'border-amber-200 bg-amber-50 text-amber-800'
           : 'border-slate-200 bg-slate-50 text-slate-500';
-      return `<span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${cls}">距开课 ${fmtHours(hoursLeft)}</span>`;
+      return `<span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${cls}">距上课 ${fmtHours(hoursLeft)}</span>`;
     }
 
     function emergencyStatusMeta(status) {
@@ -386,7 +430,7 @@
 
     function emergencyLessonNote(emg) {
       if (state.role === 'teacher') return `原师突发不可抗力：班长应急调度中 · ${tierOf(emg.hoursLeft).label} · 待处置`;
-      if (state.role === 'monitor') return `应急调度包待处置 · 距开课 ${fmtHours(emg.hoursLeft)}`;
+      if (state.role === 'monitor') return `应急调度包待处置 · 距上课 ${fmtHours(emg.hoursLeft)}`;
       return '老师突发不可抗力，班长正在紧急协调代课；本次变动绝不扣减任何请假配额';
     }
 
@@ -404,13 +448,39 @@
     }
 
     function statusMeta(status) {
+      if (status === 'SUBSTITUTED') {
+        return state.role === 'sub_teacher'
+          ? { label: '代上课', cls: 'border-purple-200 bg-purple-50 text-purple-700' }
+          : { label: '被代课', cls: 'border-blue-200 bg-blue-50 text-blue-700' };
+      }
       const map = {
         SCHEDULED: { label: '已排期', cls: 'border-slate-200 bg-slate-100 text-slate-600' },
-        SUBSTITUTED: { label: '被代课', cls: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
         PENDING_SUBSTITUTE: { label: '已请假 · 待代课', cls: 'border-rose-200 bg-rose-50 text-rose-700' },
         PENDING_REBOOK: { label: '已退回待排期', cls: 'border-slate-200 bg-slate-100 text-slate-500' }
       };
       return map[status] || map.SCHEDULED;
+    }
+
+    function lessonTone(l) {
+      if (!l || l.status !== 'SUBSTITUTED') return null;
+      if (state.role === 'sub_teacher') {
+        return {
+          card: 'border-purple-300 bg-purple-50/80',
+          title: 'text-purple-950',
+          body: 'text-purple-900',
+          muted: 'text-purple-700',
+          faint: 'text-purple-600/80',
+          chip: 'border-purple-200 bg-white/70 text-purple-700'
+        };
+      }
+      return {
+        card: 'border-blue-300 bg-blue-50/80',
+        title: 'text-blue-950',
+        body: 'text-blue-900',
+        muted: 'text-blue-700',
+        faint: 'text-blue-600/80',
+        chip: 'border-blue-200 bg-white/70 text-blue-700'
+      };
     }
 
     function lessonNote(l) {
@@ -418,7 +488,9 @@
       if (emg) return emergencyLessonNote(emg);
       if (l.adminSpecial) return `管理员特批请假：免扣配额，课次已退回待排期（已审计）${l.teacherCompensated ? ' · 平台补偿教师课酬' : ''}`;
       if (l.adminNormal) return '管理员常规代请假：扣 1 次配额，课次已退回待排期（已审计）';
+      if (l.monitorNormal) return '班长常规代请假：扣 1 次配额，课次已退回待排期（已审计）';
       if (l.adminRescheduled) return `管理员代挪位：免扣配额，已更新至 ${fmtDate(l.date)} ${l.time}（已审计）`;
+      if (l.monitorRescheduled) return `班长协助同师挪位：免扣配额，已更新至 ${fmtDate(l.date)} ${l.time}（已审计）`;
       if (l.status === 'SUBSTITUTED') {
         if (state.role === 'teacher') return `由 ${l.sub} 代上，不计入个人课酬`;
         if (state.role === 'sub_teacher') return `替 ${TEACHER_NAME} 代课，课酬计入本人周结单`;
@@ -440,7 +512,7 @@
 
     function lessonBorder(l) {
       if (activeEmergencyLesson(l.id)) return 'border-rose-300';
-      if (l.status === 'SUBSTITUTED') return state.role === 'sub_teacher' ? 'border-indigo-200' : 'border-indigo-200';
+      if (l.status === 'SUBSTITUTED') return state.role === 'sub_teacher' ? 'border-purple-300' : 'border-blue-300';
       if (l.status === 'PENDING_SUBSTITUTE') return 'border-rose-200';
       if (l.status === 'PENDING_REBOOK') return 'border-slate-200';
       return 'border-slate-200';
@@ -495,6 +567,8 @@
       state.picker = null;
       state.batch = null;
       state.adminLeave = null;
+      state.classSubDraft = null;
+      state.classCancelAck = false;
       renderAll();
     }
 
@@ -534,12 +608,17 @@
       state.quota = clone(INITIAL_QUOTA);
       state.freeSlots = clone(INITIAL_FREE);
       state.classCancelled = false;
+      state.classSub = null;
+      state.classSubDraft = null;
+      state.classCancelAck = false;
+      state.classCancelReason = '公众假期停课，后续统一补排';
       state.picker = null;
       state.batch = null;
       state.lastBatchLeave = null;
       state.teacherLeaveSlots = [];
       state.emergency = clone(INITIAL_EMERGENCY);
       state.adminLeave = null;
+      state.proxyLeaveReason = '';
       state.adminAudit = [];
       auditSeq = 1;
       renderAll();
@@ -577,24 +656,32 @@
       return renderMonitorBoard();
     }
 
+    function bannerTitle() {
+      if (state.overlay && OVERLAY_TITLES[state.overlay.type]) return OVERLAY_TITLES[state.overlay.type];
+      if (state.page === 'placeholder') {
+        const item = navItems().find((n) => n.id === state.navTab);
+        if (item) return item.label;
+      }
+      return ROLE_TITLES[state.role] || '考勤与代课';
+    }
+
     function renderBanner() {
       const b = BANNERS[state.role];
+      const unread = Math.min(99, 2 + pendingCount());
+      const canBack = !!state.overlay || state.page === 'placeholder';
+      const left = canBack
+        ? `<button data-action="${state.overlay ? 'close-overlay' : 'nav'}" ${state.overlay ? '' : `data-tab="${boardTab()}"`} class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="返回">${icon('arrow-left', 'h-5 w-5')}</button>`
+        : `<span class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">${b.initial}</span>`;
       return `
-        <header class="relative flex h-[68px] shrink-0 items-center justify-between overflow-hidden bg-gradient-to-br ${b.gradient} px-4 text-white">
+        <header class="relative flex h-16 shrink-0 items-center justify-between gap-3 overflow-hidden bg-gradient-to-br ${b.gradient} px-4 text-white">
           ${b.pattern}
           <div class="relative flex min-w-0 items-center gap-2.5">
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">${b.initial}</span>
-            <div class="min-w-0">
-              <div class="flex items-center gap-1.5">
-                <span class="truncate text-[16px] font-bold">${esc(b.brand)}</span>
-                <span class="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[12px] font-bold">${esc(b.role)}</span>
-              </div>
-              <div class="truncate text-[12px] text-white/70">${esc(b.subtitle)}</div>
-            </div>
+            ${left}
+            <h1 class="truncate text-[18px] font-bold tracking-tight">${esc(bannerTitle())}</h1>
           </div>
-          <button data-action="toast" data-message="暂无新消息" class="relative grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="通知">
+          <button data-action="toast" data-message="进入通知中心" class="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="通知">
             ${icon('bell', 'h-4 w-4')}
-            <span class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-rose-400 ring-1 ring-white/50"></span>
+            ${unread > 0 ? `<span class="absolute -right-1 -top-1 grid h-4 min-w-[16px] place-items-center rounded-full bg-rose-500 px-1 text-[12px] font-bold leading-none text-white ring-2 ring-white/40">${unread}</span>` : ''}
           </button>
         </header>`;
     }
@@ -608,16 +695,16 @@
       const base = state.hours >= 24
         ? '正常期：临时课可请假退回待排期（扣 1 次配额）；同师挪位免扣配额'
         : state.hours >= 3
-          ? '中段期：禁止请假退回待排期，仅支持同师挪位或课程转让'
-          : '授课准备期：老师正在备课，关闭请假与改期，缺席照常结课扣费';
+          ? '中段期：仅支持同师挪位或课程转让，请假退回待排期关闭'
+          : '授课准备期：关闭请假与改期，缺席照常结课扣费';
       const roleNote = state.role === 'teacher'
-        ? '；教师突发请假仍可提交，系统紧急调配代课'
+        ? '；突发不可抗力可走绿色通道，班长紧急调配代课'
         : state.role === 'monitor'
-          ? '；代课撤销 ≥24h 可用'
+          ? '；应急待办包可按指派代课 / 免扣退回 / 同师平移处置'
           : state.role === 'sub_teacher'
-            ? '；代课任务 <24h 刚性锁定'
+            ? '；代课任务 <24h 锁定，保障备课权益'
             : state.role === 'admin'
-              ? '；管理员代操作：常规代请假扣配额，特批请假需 ≥10 字原因并审计'
+              ? '；常规代请假扣配额；特批需 ≥10 字原因并审计'
               : '';
       return `
         <div class="flex items-center justify-between gap-2 border-b px-3 py-2 ${meta.cls}">
@@ -656,7 +743,7 @@
           <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
           <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
           <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc || '')}</p>
-          ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}
+          ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">前往${esc(item.label)}</a>` : ''}
           <button data-action="nav" data-tab="${boardTab()}" class="mt-3 text-[14px] font-semibold text-indigo-600">返回${state.role === 'monitor' ? '代课调度' : state.role === 'admin' ? '管理员代操作' : '课表'}</button>
         </div>`;
     }
@@ -674,8 +761,8 @@
         <div class="mx-auto w-full max-w-[640px] space-y-3.5 px-4 pb-6 pt-4">
           <div class="flex items-end justify-between gap-3">
             <div class="min-w-0">
-              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">考勤与请假</h1>
-              <p class="mt-1 text-[12px] font-medium text-slate-500">${esc(child.name)} · 12.5% 配额 · 24h / 3h 规则自检</p>
+              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">请假与挪位</h1>
+              <p class="mt-1 text-[12px] font-medium text-slate-500">${esc(child.name)} · 12.5% 请假配额 · 24h / 3h 时限</p>
             </div>
             <span class="shrink-0 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[12px] font-bold text-indigo-700">共 ${lessons.length} 节</span>
           </div>
@@ -698,13 +785,15 @@
                 <div class="text-[12px] font-medium text-indigo-700">请假配额（永久消费，不返还）</div>
                 <div class="mt-0.5 text-[18px] font-bold text-indigo-950">已用 ${q.used} / 上限 ${q.max} · 剩余 ${left} 次</div>
               </div>
-              <span class="shrink-0 rounded-full border ${left > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'} px-2 py-0.5 text-[12px] font-bold">${left > 0 ? '可请假' : '配额用尽'}</span>
+              <span class="shrink-0 rounded-full border ${left > 0 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'} px-2 py-0.5 text-[12px] font-bold">${left > 0 ? '配额充足' : '配额用尽'}</span>
             </div>
             <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
               <div class="h-full rounded-full ${left > 0 ? 'bg-emerald-500' : 'bg-rose-500'} ${quotaBarClass(left, q.max)}"></div>
             </div>
             <p class="mt-2 text-[12px] font-medium leading-relaxed text-indigo-900">同师挪位不扣配额；请假仅临时课可退回待排期；固定位不可退期待排。</p>
           </div>
+
+          ${renderTimelineMatrix()}
 
           <div class="flex items-center justify-between px-1">
             <span class="text-[14px] font-bold text-slate-800">近期课次</span>
@@ -719,18 +808,65 @@
         </div>`;
     }
 
+    function renderTimelineMatrix() {
+      const key = state.hours < 3 ? 'LOCK' : state.hours < 24 ? 'MID' : 'NORMAL';
+      const rows = [
+        {
+          id: 'NORMAL',
+          title: '≥24h 正常期',
+          detail: '临时课可请假退回待排期（扣 1 次配额）；同师挪位免扣；固定位仅支持挪位。',
+          on: 'border-emerald-300 bg-emerald-50/80 text-emerald-900',
+          off: 'border-slate-200 bg-white text-slate-500'
+        },
+        {
+          id: 'MID',
+          title: '3~24h 中段期',
+          detail: '仅支持同师挪位或课程转让；请假退回待排期关闭。',
+          on: 'border-amber-300 bg-amber-50/80 text-amber-900',
+          off: 'border-slate-200 bg-white text-slate-500'
+        },
+        {
+          id: 'LOCK',
+          title: '<3h 授课准备期',
+          detail: '全端锁定请假与挪位；学生个人原因缺席照常结课扣费。',
+          on: 'border-rose-300 bg-rose-50/80 text-rose-900',
+          off: 'border-slate-200 bg-white text-slate-500'
+        }
+      ];
+      return `
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5">
+            <span class="text-[14px] font-bold text-slate-800">时限状态</span>
+            <span class="text-[12px] font-medium text-slate-400">当前 ${state.hours}h</span>
+          </div>
+          <div class="space-y-1.5 p-2.5">
+            ${rows.map((r) => {
+              const on = r.id === key;
+              return `<div class="flex items-start gap-2 rounded-xl border px-2.5 py-2 ${on ? r.on : r.off}">
+                <span class="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full border ${on ? 'border-current bg-white/70' : 'border-slate-300 bg-white'}">${on ? icon('check', 'h-3 w-3') : ''}</span>
+                <div class="min-w-0">
+                  <div class="text-[12px] font-bold">${r.title}${on ? ' · 当前' : ''}</div>
+                  <div class="mt-0.5 text-[12px] font-medium leading-relaxed opacity-80">${r.detail}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
     function distanceChip() {
       const cls = state.hours < 3
         ? 'border-rose-200 bg-rose-50 text-rose-700'
         : state.hours < 24
           ? 'border-amber-200 bg-amber-50 text-amber-800'
           : 'border-slate-200 bg-slate-50 text-slate-500';
-      return `<span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${cls}">距开课 ${state.hours}h</span>`;
+      return `<span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${cls}">距上课 ${state.hours}h</span>`;
     }
 
     function parentLessonCard(l) {
       const tm = typeMeta(l.type);
       const sm = lessonStatusMeta(l);
+      const tone = lessonTone(l);
       const affected = activeEmergencyLesson(l.id);
       const isScheduled = l.status === 'SCHEDULED';
       const q = quotaOf(l.studentKey);
@@ -754,28 +890,28 @@
 
       const actions = isScheduled && !affected ? `
         <div class="mt-3 flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5">
-          <button data-action="toast" data-message="跳转课程转让流程（M3C 承载）" class="mr-auto text-[12px] font-medium text-slate-500 underline">课程转让</button>
+          <button data-action="toast" data-message="进入课程转让" class="mr-auto text-[12px] font-medium text-slate-500 underline">课程转让</button>
           <button data-action="open-leave" data-id="${l.id}" ${leaveDisabled ? 'disabled' : ''} class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-medium text-slate-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400">${leaveLabel}</button>
           <button data-action="open-picker" data-id="${l.id}" ${rescheduleDisabled ? 'disabled' : ''} class="h-8 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">${rescheduleLabel}</button>
         </div>` : '';
 
       return `
-        <article class="rounded-2xl border ${lessonBorder(l)} bg-white p-4 shadow-sm">
+        <article class="rounded-2xl border ${tone ? tone.card : 'border-slate-200 bg-white'} p-4 shadow-sm">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-1.5">
-                <span class="text-[16px] font-bold text-slate-900">${esc(studentByKey(l.studentKey).name)}</span>
+                <span class="text-[16px] font-bold ${tone ? tone.title : 'text-slate-900'}">${esc(studentByKey(l.studentKey).name)}</span>
                 <span class="rounded-md border px-1.5 py-0.5 text-[12px] font-semibold ${tm.cls}">${tm.label}</span>
               </div>
-              <div class="mt-1 truncate text-[12px] font-medium text-slate-400">${esc(l.id)} · 挪位 ${l.rescheduleCount}/1</div>
+              <div class="mt-1 truncate text-[12px] font-medium ${tone ? tone.faint : 'text-slate-400'}">${lessonNo(l.id)} · 挪位 ${l.rescheduleCount}/1 · ${ROOM_LABEL}</div>
             </div>
             <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${sm.cls}">${sm.label}</span>
           </div>
 
           <div class="mt-2.5 flex items-center justify-between gap-2">
             <div class="min-w-0">
-              <div class="font-mono text-[14px] font-bold text-slate-800">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
-              <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">${esc(lessonNote(l))}</div>
+              <div class="font-mono text-[14px] font-bold ${tone ? tone.body : 'text-slate-800'}">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
+              <div class="mt-0.5 text-[12px] font-medium leading-relaxed ${tone ? tone.muted : 'text-slate-500'}">${esc(lessonNote(l))}</div>
             </div>
             ${distanceChip()}
           </div>
@@ -794,8 +930,8 @@
         <div class="mx-auto w-full max-w-[640px] space-y-3.5 px-4 pb-6 pt-4">
           <div class="flex items-end justify-between gap-3">
             <div class="min-w-0">
-              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">我的课表</h1>
-              <p class="mt-1 text-[12px] font-medium text-slate-500">${TEACHER_NAME} · 每周 ${state.lessons.length} 节 · 被代课不计个人课酬</p>
+              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">考勤与代课</h1>
+              <p class="mt-1 text-[12px] font-medium text-slate-500">${TEACHER_NAME} · 本周 ${state.lessons.length} 节</p>
             </div>
             <div class="flex shrink-0 gap-1.5">
               <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[12px] font-bold text-rose-700">待代课 ${pending}</span>
@@ -807,7 +943,7 @@
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
                 <div class="flex items-center gap-1.5 text-[14px] font-bold text-rose-900">${icon('siren', 'h-4 w-4')}突发批量请假 / 不可抗力报备</div>
-                <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">家庭停电/断网、突发急病等不可抗力，可一次勾选 1~12 节（累计最长 6 小时），提交后自动生成班长应急调度包。</p>
+                <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">家庭停电/断网、突发急病等不可抗力，可一次勾选 1~12 节（累计最长 6 小时）。距上课 &lt;3h 可走突发不可抗力绿色通道；提交后 10 秒内安抚家长并生成班长应急调度包。</p>
               </div>
               <button data-action="open-batch-leave" ${state.online === 'off' ? 'disabled' : ''} class="h-9 shrink-0 rounded-xl bg-rose-600 px-3 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">批量请假</button>
             </div>
@@ -854,6 +990,7 @@
     function teacherLessonCard(l) {
       const tm = typeMeta(l.type);
       const sm = lessonStatusMeta(l);
+      const tone = lessonTone(l);
       const affected = activeEmergencyLesson(l.id);
       const isScheduled = l.status === 'SCHEDULED';
       const urgent = state.hours < 24;
@@ -863,21 +1000,21 @@
              <button data-action="open-teacher-leave" data-id="${l.id}" ${offline ? 'disabled' : ''} class="h-8 rounded-lg ${urgent ? 'bg-rose-600 text-white' : 'border border-slate-300 bg-white text-slate-700'} px-3 text-[12px] font-semibold disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">${urgent ? (state.hours < 3 ? '紧急请假(<3h)' : '紧急请假') : '申请请假'}</button>
            </div>` : '';
       return `
-        <article class="rounded-2xl border ${lessonBorder(l)} bg-white p-4 shadow-sm">
+        <article class="rounded-2xl border ${tone ? tone.card : 'border-slate-200 bg-white'} p-4 shadow-sm">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-1.5">
-                <span class="text-[16px] font-bold text-slate-900">${esc(studentByKey(l.studentKey).name)}</span>
+                <span class="text-[16px] font-bold ${tone ? tone.title : 'text-slate-900'}">${esc(studentByKey(l.studentKey).name)}</span>
                 <span class="rounded-md border px-1.5 py-0.5 text-[12px] font-semibold ${tm.cls}">${tm.label}</span>
               </div>
-              <div class="mt-1 truncate text-[12px] font-medium text-slate-400">${esc(l.id)} · 挪位 ${l.rescheduleCount}/1</div>
+              <div class="mt-1 truncate text-[12px] font-medium ${tone ? tone.faint : 'text-slate-400'}">${lessonNo(l.id)} · 挪位 ${l.rescheduleCount}/1 · ${ROOM_LABEL}</div>
             </div>
             <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${sm.cls}">${sm.label}</span>
           </div>
           <div class="mt-2.5 flex items-center justify-between gap-2">
             <div class="min-w-0">
-              <div class="font-mono text-[14px] font-bold text-slate-800">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
-              <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">${esc(lessonNote(l))}</div>
+              <div class="font-mono text-[14px] font-bold ${tone ? tone.body : 'text-slate-800'}">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
+              <div class="mt-0.5 text-[12px] font-medium leading-relaxed ${tone ? tone.muted : 'text-slate-500'}">${esc(lessonNote(l))}</div>
             </div>
             ${distanceChip()}
           </div>
@@ -887,15 +1024,29 @@
 
     function teacherClassCard() {
       const cancelled = state.classCancelled;
+      const sub = state.classSub;
+      const tone = sub
+        ? { card: 'border-blue-300 bg-blue-50/80', title: 'text-blue-950', body: 'text-blue-900', muted: 'text-blue-700', cell: 'border-blue-300 bg-blue-100 text-blue-900' }
+        : null;
+      const badge = cancelled
+        ? '<span class="rounded-full border border-rose-200 bg-white px-2 py-0.5 text-[12px] font-bold text-rose-700">已停课 · 待补排</span>'
+        : sub
+          ? `<span class="rounded-full border border-blue-200 bg-white px-2 py-0.5 text-[12px] font-bold text-blue-700">🔵 被代课</span>`
+          : '<span class="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[12px] font-bold text-indigo-700">全班统一排期</span>';
       return `
-        <div class="rounded-2xl border ${cancelled ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-white'} p-4 shadow-sm">
+        <div class="rounded-2xl border ${cancelled ? 'border-rose-200 bg-rose-50' : tone ? tone.card : 'border-slate-200 bg-white'} p-4 shadow-sm">
           <div class="flex items-center justify-between gap-2">
-            <h2 class="text-[16px] font-bold text-slate-900">小班整班课</h2>
-            <span class="rounded-full border px-2 py-0.5 text-[12px] font-bold ${cancelled ? 'border-rose-200 bg-white text-rose-700' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}">${cancelled ? '已停课 · 待补排' : '全班统一排期'}</span>
+            <h2 class="text-[16px] font-bold ${cancelled ? 'text-rose-900' : tone ? tone.title : 'text-slate-900'}">小班整班课</h2>
+            ${badge}
           </div>
-          <div class="mt-2 text-[14px] font-bold text-slate-800">${esc(CLASS_INFO.name)} · ${CLASS_INFO.size} 人</div>
-          <div class="mt-0.5 font-mono text-[12px] font-medium ${cancelled ? 'text-rose-600' : 'text-slate-500'}">${fmtDate(CLASS_INFO.date)} ${CLASS_INFO.time} - ${CLASS_INFO.end}</div>
-          <p class="mt-2 text-[12px] font-medium leading-relaxed ${cancelled ? 'text-rose-700' : 'text-slate-500'}">${cancelled ? '整班已停课，课次退回班级待排期池；等待班长与家长协调后手工补排。' : '小班课由班长整班排定，学生端无个人挪位入口。'}</p>
+          <div class="mt-2 text-[14px] font-bold ${cancelled ? 'text-rose-900' : tone ? tone.body : 'text-slate-800'}">${esc(CLASS_INFO.name)} · ${CLASS_INFO.size} 人</div>
+          <div class="mt-0.5 font-mono text-[12px] font-medium ${cancelled ? 'text-rose-600' : tone ? tone.muted : 'text-slate-500'}">${fmtDate(CLASS_INFO.date)} ${CLASS_INFO.time} - ${CLASS_INFO.end} · ${ROOM_LABEL}</div>
+          ${sub ? `
+            <div class="mt-2 grid grid-cols-2 gap-0.5 overflow-hidden rounded-lg border border-blue-200">
+              <div class="flex h-11 items-center justify-center border-r border-blue-200 bg-blue-50 text-[12px] font-bold text-blue-900">[G] KET · 双格 1/2</div>
+              <div class="flex h-11 items-center justify-center bg-blue-50 text-[12px] font-bold text-blue-900">[G] KET · 双格 2/2</div>
+            </div>` : ''}
+          <p class="mt-2 text-[12px] font-medium leading-relaxed ${cancelled ? 'text-rose-700' : tone ? tone.muted : 'text-slate-500'}">${cancelled ? '整班已停课，课次退回班级待排期池；等待主理人与家长协调后手工补排。' : sub ? `由 ${esc(sub.teacher)} 代上，不计入个人课酬；资金持有人与班级盈余、平台分成保持不变。` : '小班课由主理人整班排定，学生端无个人挪位入口。'}</p>
         </div>`;
     }
 
@@ -1023,7 +1174,7 @@
         </div>
 
         <div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">
-          提交后：已排课次挂起为待代课并生成应急调度包；空闲时段原子置红阻断预约；教师原因导致的学生退课 <b>100% 免扣请假配额</b>。距开课 &lt;3h 走突发不可抗力绿色通道。
+          提交后 10 秒内安抚家长；已排课次挂起为待代课并生成应急调度包；空闲时段原子置红阻断预约；教师原因导致的学生退课 <b>100% 免扣请假配额</b>。距上课 &lt;3h 仅突发不可抗力可走绿色通道。
         </div>
 
         <div class="sticky bottom-[-1.25rem] z-10 -mx-5 -mb-5 mt-4 flex gap-2 rounded-b-2xl border-t border-slate-100 bg-white px-5 py-3">
@@ -1042,6 +1193,7 @@
       if (!reason) return showToast('请填写请假事由与说明', true);
       const typeEl = document.getElementById('batchReasonType');
       const reasonType = typeEl ? typeEl.value : (b.reasonType || 'POWER_OUTAGE');
+      if (state.hours < 3 && reasonType === 'PERSONAL') return showToast('距上课不足 3 小时，仅突发不可抗力可走绿色通道；常规事假请改期', true);
       const slots = batchSlots().filter((s) => b.selected.includes(s.id));
       const affected = [];
       let freeCount = 0;
@@ -1102,47 +1254,78 @@
      * ------------------------------------------------------------------ */
     function renderSubBoard() {
       const mine = state.lessons.filter((l) => l.status === 'SUBSTITUTED' && l.sub === 'Elena Wright');
+      const hasClass = !!state.classSub && state.classSub.teacher === 'Elena Wright';
+      const total = mine.length + (hasClass ? 1 : 0);
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-3' : 'space-y-3';
       return `
         <div class="mx-auto w-full max-w-[640px] space-y-3.5 px-4 pb-6 pt-4">
           <div class="flex items-end justify-between gap-3">
             <div class="min-w-0">
-              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">我的代课</h1>
-              <p class="mt-1 text-[12px] font-medium text-slate-500">Elena Wright · 代上课课酬 100% 计入本人周结单</p>
+              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">考勤与代课</h1>
+              <p class="mt-1 text-[12px] font-medium text-slate-500">Elena Wright · 本周代课 ${total} 节</p>
             </div>
-            <span class="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[12px] font-bold text-indigo-700">代课 ${mine.length} 节</span>
+            <span class="shrink-0 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[12px] font-bold text-purple-700">🟣 代上课 ${total} 节</span>
           </div>
 
-          <div class="rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">
-            代上课标记：替 ${TEACHER_NAME} 代课，完课后课酬 100% 计入本人周结单，原教师课酬为 0。距开课 &lt;24h 时代课刚性锁定，不可撤销。
+          <div class="rounded-xl border border-purple-200 bg-purple-50 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-purple-900">
+            紫色【代上课】：课酬 100% 计入本人周结单，原教师课酬为 0。小班课按班级快照平移对平计入。距上课 &lt;24h 时代课锁定，保障备课权益。
           </div>
 
-          <div class="${grid}">${mine.length ? mine.map(subLessonCard).join('') : '<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-[14px] font-medium text-slate-400 sm:col-span-2">暂无代课任务<br><span class="text-[12px]">请先在原师端发起请假，再由班长指派代课</span></div>'}</div>
+          ${hasClass ? subClassCard() : ''}
+          <div class="${grid}">${mine.length ? mine.map(subLessonCard).join('') : '<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-[14px] font-medium text-slate-400 sm:col-span-2">暂无一对一临时代课<br><span class="text-[12px]">请先在原师端发起请假，再由班长指派代课</span></div>'}</div>
         </div>`;
     }
 
-    function subLessonCard(l) {
+    function subClassCard() {
+      const sub = state.classSub;
+      if (!sub) return '';
       return `
-        <article class="rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm">
+        <article class="rounded-2xl border border-purple-300 bg-purple-50/80 p-4 shadow-sm">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-1.5">
-                <span class="text-[16px] font-bold text-slate-900">${esc(studentByKey(l.studentKey).name)}</span>
-                <span class="rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-semibold text-indigo-700">代上课</span>
+                <span class="text-[16px] font-bold text-purple-950">🟣 [班] ${esc(CLASS_INFO.name)}</span>
+                <span class="rounded-md border border-purple-200 bg-white/70 px-1.5 py-0.5 text-[12px] font-semibold text-purple-700">代上课</span>
               </div>
-              <div class="mt-1 truncate text-[12px] font-medium text-slate-400">${esc(l.id)} · 原师 ${TEACHER_NAME}</div>
+              <div class="mt-1 truncate text-[12px] font-medium text-purple-600/80">主理人 Leo · 连续双格 · ${ROOM_LABEL}</div>
             </div>
-            <span class="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[12px] font-bold text-indigo-700">已指派</span>
+            <span class="shrink-0 rounded-full border border-purple-200 bg-white/70 px-2 py-0.5 text-[12px] font-bold text-purple-700">已指派</span>
+          </div>
+          <div class="mt-2 grid grid-cols-2 gap-0.5 overflow-hidden rounded-lg border border-purple-200">
+            <div class="flex h-11 items-center justify-center border-r border-purple-200 bg-purple-100 text-[12px] font-bold text-purple-900">[G] KET · 双格 1/2</div>
+            <div class="flex h-11 items-center justify-center bg-purple-100 text-[12px] font-bold text-purple-900">[G] KET · 双格 2/2</div>
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-2">
+            <div class="font-mono text-[14px] font-bold text-purple-900">${fmtDate(CLASS_INFO.date)} ${CLASS_INFO.time} - ${CLASS_INFO.end}</div>
+            <span class="rounded-full border border-purple-200 bg-white/70 px-2 py-0.5 text-[12px] font-bold text-purple-700">快照平移课酬</span>
+          </div>
+          <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-purple-700">替 ${esc(CLASS_INFO.teacher)} 代课 · 原主讲显示 🔵 被代课 · 资金持有人 / 班级盈余 / 平台分成不变</p>
+        </article>`;
+    }
+
+    function subLessonCard(l) {
+      const tone = lessonTone(l);
+      return `
+        <article class="rounded-2xl border ${tone ? tone.card : 'border-purple-200 bg-white'} p-4 shadow-sm">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-[16px] font-bold ${tone ? tone.title : 'text-slate-900'}">${esc(studentByKey(l.studentKey).name)}</span>
+                <span class="rounded-md border border-purple-200 bg-white/70 px-1.5 py-0.5 text-[12px] font-semibold text-purple-700">代上课</span>
+              </div>
+              <div class="mt-1 truncate text-[12px] font-medium ${tone ? tone.faint : 'text-slate-400'}">${lessonNo(l.id)} · 原师 ${TEACHER_NAME} · ${ROOM_LABEL}</div>
+            </div>
+            <span class="shrink-0 rounded-full border border-purple-200 bg-white/70 px-2 py-0.5 text-[12px] font-bold text-purple-700">已指派</span>
           </div>
           <div class="mt-2.5 flex items-center justify-between gap-2">
             <div class="min-w-0">
-              <div class="font-mono text-[14px] font-bold text-slate-800">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
-              <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">替 ${TEACHER_NAME} 代课 · 课酬计入本人周结单</div>
+              <div class="font-mono text-[14px] font-bold ${tone ? tone.body : 'text-slate-800'}">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
+              <div class="mt-0.5 text-[12px] font-medium leading-relaxed ${tone ? tone.muted : 'text-slate-500'}">替 ${TEACHER_NAME} 代课 · 课酬计入本人周结单</div>
             </div>
             ${distanceChip()}
           </div>
-          <div class="mt-3 flex justify-end border-t border-slate-100 pt-2.5">
-            <button data-action="open-memo" data-id="${l.id}" class="h-8 rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white">查看学生教学留言</button>
+          <div class="mt-3 flex justify-end border-t border-purple-200/60 pt-2.5">
+            <button data-action="open-memo" data-id="${l.id}" class="h-8 rounded-lg bg-purple-600 px-3 text-[12px] font-semibold text-white">查看学生教学留言</button>
           </div>
         </article>`;
     }
@@ -1162,12 +1345,14 @@
           <div class="flex items-end justify-between gap-3">
             <div class="min-w-0">
               <h1 class="text-[18px] font-bold tracking-tight text-slate-900">代课调度</h1>
-              <p class="mt-1 text-[12px] font-medium text-slate-500">Leo · 待协调 ${totalPending} 项 · 应急 ${emgOpen} 节 · 资金持有人永久锁定</p>
+              <p class="mt-1 text-[12px] font-medium text-slate-500">Leo · 待协调 ${totalPending} 项 · 应急 ${emgOpen} 节</p>
             </div>
             <span class="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[12px] font-bold text-rose-700">待协调 ${totalPending}</span>
           </div>
 
           ${renderEmergencyPanel()}
+
+          ${renderMonitorProxyEntry()}
 
           <div class="flex items-center justify-between px-1">
             <span class="text-[14px] font-bold text-slate-800">待协调代课</span>
@@ -1193,6 +1378,35 @@
     /* ------------------------------------------------------------------
      * 班长：多学员应急调度包 / 一键指派 / 一键自动救济
      * ------------------------------------------------------------------ */
+    function renderMonitorProxyEntry() {
+      const q = quotaOf(state.child);
+      const left = q.max - q.used;
+      const lesson = lessonsOf(state.child).find((l) => l.status === 'SCHEDULED' && !activeEmergencyLesson(l.id)) || null;
+      return `
+        <div class="rounded-2xl border border-amber-200/70 bg-amber-50/80 p-3.5">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5 text-[14px] font-bold text-amber-950">${icon('notebook-pen', 'h-4 w-4')}学员课表代办</div>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-900/85">在学员课表轻触排课格，可协助同师挪位（免扣）或协助申请请假（常规 ≥24h 扣配额）。</p>
+            </div>
+            <button data-action="toast" data-message="进入完整课表查看全部学员" class="h-8 shrink-0 rounded-lg border border-amber-300 bg-white px-2.5 text-[12px] font-semibold text-amber-800">完整课表</button>
+          </div>
+          <div class="mt-2 flex gap-1.5">
+            ${STUDENTS.map((s) => {
+              const on = s.key === state.child;
+              return `<button data-action="set-child" data-key="${s.key}" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg text-[12px] font-bold ${on ? 'bg-amber-600 text-white' : 'bg-white text-amber-800 ring-1 ring-amber-200'}">${esc(s.name)}<span class="rounded px-1 text-[12px] ${on ? 'bg-white/20' : 'bg-amber-50'}">配额 ${quotaOf(s.key).max - quotaOf(s.key).used}</span></button>`;
+            }).join('')}
+          </div>
+          ${lesson ? `<div class="mt-2 flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-white px-2.5 py-2">
+            <div class="min-w-0">
+              <div class="font-mono text-[12px] font-bold text-amber-900">${fmtDate(lesson.date)} ${lesson.time} - ${endTime(lesson.time)}</div>
+              <div class="mt-0.5 text-[12px] font-medium text-amber-700">${esc(studentByKey(lesson.studentKey).name)} · ${lesson.type === 'fixed' ? '固定位' : '临时课'} · 配额剩余 ${left} 次</div>
+            </div>
+            <button data-action="open-proxy" data-id="${lesson.id}" class="h-8 shrink-0 rounded-lg bg-amber-600 px-2.5 text-[12px] font-semibold text-white">代办</button>
+          </div>` : '<div class="mt-2 rounded-xl border border-amber-200 bg-white px-2.5 py-2 text-[12px] font-medium text-amber-700">当前学员暂无可代办课次。</div>'}
+        </div>`;
+    }
+
     function renderEmergencyPanel() {
       const em = state.emergency;
       if (!em || !em.lessons.length) return '';
@@ -1228,7 +1442,7 @@
               <button data-action="emergency-auto-relief" ${state.online === 'off' || !open.length ? 'disabled' : ''} class="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-[14px] font-semibold text-indigo-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400">${icon('wand-2', 'h-4 w-4')}一键按学生自动救济</button>
               <button data-action="emergency-safety" ${state.online === 'off' || !open.length ? 'disabled' : ''} class="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 text-[14px] font-semibold text-rose-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400">${icon('shield-alert', 'h-4 w-4')}模拟 15 分钟安全兜底</button>
             </div>
-            <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">一键指派固定为 Elena Wright；自动救济按逐节时限矩阵执行。距开课 15 分钟仍未指派代课，系统自动取消并退回待排期（免扣配额），可点击模拟按钮演示。</p>
+            <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">一键指派固定为 Elena Wright；自动救济按逐节时限矩阵执行。距上课 15 分钟仍未指派代课，系统自动取消并退回待排期（免扣学生配额），并发紧急短信与邮件通知家长，可点击模拟按钮演示。</p>
 
             ${renderEmergencyResult()}
 
@@ -1275,6 +1489,7 @@
       const btn = (action, label, cls, disabled = false, title = '') => `<button data-action="${action}" data-id="${l.id}" ${disabled || offline ? 'disabled' : ''} title="${esc(title)}" class="h-8 rounded-lg px-2.5 text-[12px] font-semibold disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 ${cls}">${label}</button>`;
       if (tier.key === 'REGULAR') {
         return `
+          ${btn('emergency-assign', '指派代课', 'bg-indigo-600 text-white')}
           ${btn('emergency-reschedule', '同师平移', 'border border-emerald-200 bg-emerald-50 text-emerald-700')}
           ${btn('emergency-return', '退回待排期 · 免扣', 'border border-amber-200 bg-amber-50 text-amber-800')}
           <span class="inline-flex items-center rounded-lg bg-emerald-50 px-2 py-1 text-[12px] font-medium text-emerald-700">配额扣减 0 次</span>`;
@@ -1283,10 +1498,11 @@
         return `
           ${btn('emergency-assign', '指派代课', 'bg-indigo-600 text-white')}
           ${btn('emergency-reschedule', '同师平移', 'border border-indigo-200 bg-indigo-50 text-indigo-700')}
-          <span class="inline-flex items-center rounded-lg bg-slate-100 px-2 py-1 text-[12px] font-medium text-slate-400">退回待排期（中段期锁定）</span>`;
+          ${btn('emergency-return', '免扣退回待排期', 'border border-amber-200 bg-amber-50 text-amber-800')}
+          <span class="inline-flex items-center rounded-lg bg-emerald-50 px-2 py-1 text-[12px] font-medium text-emerald-700">教师原因 · 配额 0 次</span>`;
       }
       return `
-        ${btn('emergency-assign', '指派代课', 'border border-indigo-200 bg-indigo-50 text-indigo-700')}
+        ${btn('emergency-assign', '绿色通道指派', 'border border-indigo-200 bg-indigo-50 text-indigo-700')}
         ${btn('emergency-return', '紧急免扣退回', 'bg-rose-600 text-white')}
         <span class="inline-flex items-center rounded-lg bg-slate-100 px-2 py-1 text-[12px] font-medium text-slate-400">同师平移（&lt;3h 已锁）</span>`;
     }
@@ -1435,7 +1651,7 @@
       if (!guardWrite() || !state.emergency) return;
       const em = state.emergency;
       const targets = em.lessons.filter((l) => l.status === 'AFFECTED' && l.hoursLeft <= 0.25);
-      if (!targets.length) return showToast('当前无距开课 15 分钟内的待处理课次', true);
+      if (!targets.length) return showToast('当前无距上课 15 分钟内的待处理课次', true);
       const snapshot = clone(em.lessons);
       targets.forEach((l) => { l.status = 'PENDING_REBOOK'; l.quotaExempt = true; });
       setEmergencyResult(
@@ -1444,7 +1660,7 @@
         snapshot,
         targets,
         { assigned: 0, returned: targets.length, rescheduled: 0 },
-        '距开课 15 分钟仍未完成代课指派，系统自动取消并退回待排期 TS，学生请假配额扣减 0 次。',
+        '距上课 15 分钟仍未完成代课指派，系统自动取消并退回待排期 TS，学生请假配额扣减 0 次。',
         groupByStudent(targets)
       );
       targets.forEach(syncEmergencyToSource);
@@ -1478,7 +1694,6 @@
       const l = findEmergencyLesson(id);
       if (!l || l.status !== 'AFFECTED') return showToast('该课次已处置', true);
       const tier = tierOf(l.hoursLeft);
-      if (tier.key === 'URGENT') return showToast('3~24h 中段期优先指派代课或同师平移，不可直接退回待排期', true);
       const snapshot = clone(state.emergency.lessons);
       l.status = 'PENDING_REBOOK';
       l.quotaExempt = true;
@@ -1490,7 +1705,7 @@
         { assigned: 0, returned: 1, rescheduled: 0 },
         tier.key === 'BREAK_GLASS'
           ? '<3h 突发不可抗力绿色通道：免扣退回待排期，学生配额扣减 0 次。'
-          : '免扣退回待排期，学生请假配额扣减 0 次，挪位次数保持 0。',
+          : '教师原因免扣退回待排期，学生请假配额扣减 0 次，挪位次数保持 0。',
         groupByStudent([l])
       );
       syncEmergencyToSource(l);
@@ -1502,7 +1717,7 @@
       if (!guardWrite() || !state.emergency) return;
       const l = findEmergencyLesson(id);
       if (!l || l.status !== 'AFFECTED') return showToast('该课次已处置', true);
-      if (l.hoursLeft < 3) return showToast('距开课不足 3 小时，同师平移入口已锁定', true);
+      if (l.hoursLeft < 3) return showToast('距上课不足 3 小时，同师平移入口已锁定', true);
       const snapshot = clone(state.emergency.lessons);
       const target = l.type === 'fixed'
         ? { date: '2026-11-18', time: '16:30' }
@@ -1574,7 +1789,7 @@
             </div>
             ${distanceChip()}
           </div>
-          ${urgent ? '<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-bold text-rose-700">距开课不足 12h，已升级紧急催办并抄送平台管理员</div>' : ''}
+          ${urgent ? '<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-bold text-rose-700">距上课不足 12h，已升级紧急催办并抄送平台管理员</div>' : ''}
           <div class="mt-3 flex justify-end border-t border-slate-100 pt-2.5">
             <button data-action="open-dispatch" data-id="${l.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">指派代课老师</button>
           </div>
@@ -1583,35 +1798,38 @@
 
     function monitorAssignedCard(l) {
       const locked = state.hours < 24;
+      const tone = lessonTone(l);
       return `
-        <article class="rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm">
+        <article class="rounded-2xl border ${tone ? tone.card : 'border-blue-200 bg-white'} p-4 shadow-sm">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-1.5">
-                <span class="text-[16px] font-bold text-slate-900">${esc(studentByKey(l.studentKey).name)}</span>
-                <span class="rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-semibold text-indigo-700">已指派</span>
+                <span class="text-[16px] font-bold ${tone ? tone.title : 'text-slate-900'}">${esc(studentByKey(l.studentKey).name)}</span>
+                <span class="rounded-md border border-blue-200 bg-white/70 px-1.5 py-0.5 text-[12px] font-semibold text-blue-700">已指派</span>
               </div>
-              <div class="mt-1 text-[12px] font-medium text-slate-500">代课：${esc(l.sub)} · 原师 ${TEACHER_NAME}</div>
+              <div class="mt-1 text-[12px] font-medium ${tone ? tone.muted : 'text-slate-500'}">代课：${esc(l.sub)} · 原师 ${TEACHER_NAME} · ${ROOM_LABEL}</div>
             </div>
-            <span class="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[12px] font-bold text-indigo-700">被代课</span>
+            <span class="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[12px] font-bold text-blue-700">🔵 被代课</span>
           </div>
           <div class="mt-2.5 flex items-center justify-between gap-2">
             <div class="min-w-0">
-              <div class="font-mono text-[14px] font-bold text-slate-800">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
-              <div class="mt-0.5 text-[12px] font-medium text-slate-500">资金持有人 Leo · 课酬归 ${esc(l.sub)}</div>
+              <div class="font-mono text-[14px] font-bold ${tone ? tone.body : 'text-slate-800'}">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
+              <div class="mt-0.5 text-[12px] font-medium ${tone ? tone.muted : 'text-slate-500'}">资金持有人 Leo · 课酬归 ${esc(l.sub)}</div>
             </div>
             ${distanceChip()}
           </div>
-          <div class="mt-3 flex items-center justify-end border-t border-slate-100 pt-2.5">
+          <div class="mt-3 flex items-center justify-end border-t border-blue-200/60 pt-2.5">
             ${locked
-              ? '<span class="text-[12px] font-medium text-slate-400">开课前 24h 内锁定，不可撤销</span>'
-              : `<button data-action="revoke-sub" data-id="${l.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50">撤销代课</button>`}
+              ? '<span class="text-[12px] font-medium text-blue-700">距上课 &lt;24h 锁定，不可撤销</span>'
+              : `<button data-action="revoke-sub" data-id="${l.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border border-blue-200 bg-white px-2.5 text-[12px] font-medium text-blue-700 disabled:cursor-not-allowed disabled:opacity-50">撤销代课</button>`}
           </div>
         </article>`;
     }
 
     function monitorClassSection() {
       const cancelled = state.classCancelled;
+      const sub = state.classSub;
+      const canSub = state.hours >= 3;
       if (cancelled) {
         return `
           <div class="rounded-2xl border border-amber-300 bg-amber-50 p-4">
@@ -1619,30 +1837,53 @@
               <h2 class="text-[16px] font-bold text-amber-900">补排催办</h2>
               <span class="rounded-full bg-amber-200 px-2 py-0.5 text-[12px] font-bold text-amber-900">待补排 1 节</span>
             </div>
-            <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-amber-900">${esc(CLASS_INFO.name)} 原定 ${fmtDate(CLASS_INFO.date)} ${CLASS_INFO.time} - ${CLASS_INFO.end} 已整班停课，课次退回班级待排期池，请与家长沟通后手工补排。</p>
+            <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-amber-900">${esc(CLASS_INFO.name)} 原定 ${fmtDate(CLASS_INFO.date)} ${CLASS_INFO.time} - ${CLASS_INFO.end} 已整班停课，课次退回班级待排期池；家长已由主理人在线下微信群通知，请择期手工补排。</p>
             <div class="mt-2 flex justify-end">
-              <button data-action="toast" data-message="跳转日历手工补排（原型占位）" class="h-8 rounded-lg border border-amber-300 bg-white px-2.5 text-[12px] font-semibold text-amber-800">立即补排</button>
+              <button data-action="toast" data-message="进入日历手工补排" class="h-8 rounded-lg border border-amber-300 bg-white px-2.5 text-[12px] font-semibold text-amber-800">立即补排</button>
             </div>
           </div>`;
       }
       return `
         <div class="flex items-center justify-between px-1 pt-1">
           <span class="text-[14px] font-bold text-slate-800">小班课管理</span>
-          <span class="text-[12px] font-medium text-slate-400">整班停课 · 邮件群发与补排催办</span>
+          <span class="text-[12px] font-medium text-slate-400">连续双格代课 · 整班停课 · 线下微信群通知</span>
         </div>
-        <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="rounded-2xl border ${sub ? 'border-purple-300 bg-purple-50/60' : 'border-slate-200 bg-white'} p-4 shadow-sm">
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
-              <div class="text-[16px] font-bold text-slate-900">${esc(CLASS_INFO.name)}</div>
-              <div class="mt-0.5 text-[12px] font-medium text-slate-500">${CLASS_INFO.size} 人班 · ${TEACHER_NAME}</div>
+              <div class="text-[16px] font-bold ${sub ? 'text-purple-950' : 'text-slate-900'}">${esc(CLASS_INFO.name)}</div>
+              <div class="mt-0.5 text-[12px] font-medium ${sub ? 'text-purple-700' : 'text-slate-500'}">${CLASS_INFO.size} 人班 · 原主讲 ${TEACHER_NAME} · 主理人 Leo</div>
             </div>
-            <span class="shrink-0 rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[12px] font-bold text-indigo-700">小班课</span>
+            <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${sub ? 'border-purple-200 bg-white text-purple-700' : 'border-indigo-100 bg-indigo-50 text-indigo-700'}">${sub ? '已指派代课' : '小班课'}</span>
           </div>
-          <div class="mt-2 font-mono text-[14px] font-bold text-slate-800">${fmtDate(CLASS_INFO.date)} ${CLASS_INFO.time} - ${CLASS_INFO.end}</div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">整班停课后课次退回待排期池，原网格置红，邮件通知全班家长与授课教师。</p>
-          <div class="mt-2 flex justify-end">
-            <button data-action="open-class-cancel" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-[12px] font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50">整班停课</button>
-          </div>
+          <div class="mt-2 font-mono text-[14px] font-bold ${sub ? 'text-purple-900' : 'text-slate-800'}">${fmtDate(CLASS_INFO.date)} ${CLASS_INFO.time} - ${CLASS_INFO.end} · ${ROOM_LABEL}</div>
+
+          ${sub ? `
+            <div class="mt-2 space-y-1">
+              <div class="text-[12px] font-bold text-blue-800">原主讲视角 · 🔵 被代课</div>
+              <div class="grid grid-cols-2 gap-0.5 overflow-hidden rounded-lg border border-blue-300">
+                <div class="flex h-11 items-center justify-center border-r border-blue-200 bg-blue-50 text-[12px] font-bold text-blue-900">[G] KET · 双格 1/2</div>
+                <div class="flex h-11 items-center justify-center bg-blue-50 text-[12px] font-bold text-blue-900">[G] KET · 双格 2/2</div>
+              </div>
+              <div class="pt-1 text-[12px] font-bold text-purple-800">代课视角 · 🟣 代上课</div>
+              <div class="grid grid-cols-2 gap-0.5 overflow-hidden rounded-lg border border-purple-300">
+                <div class="flex h-11 items-center justify-center border-r border-purple-200 bg-purple-50 text-[12px] font-bold text-purple-900">[G] KET · 双格 1/2</div>
+                <div class="flex h-11 items-center justify-center bg-purple-50 text-[12px] font-bold text-purple-900">[G] KET · 双格 2/2</div>
+              </div>
+            </div>
+            <p class="mt-2 text-[12px] font-medium leading-relaxed text-purple-800">由 ${esc(sub.teacher)} 代上 · 课酬按班级快照平移，资金持有人 Leo、班级盈余与平台分成比例不变。${sub.boundMonitor && sub.boundMonitor !== 'Leo' ? `已同步通知代课外教绑定班长 ${esc(sub.boundMonitor)}。` : '已同步通知涉事绑定班长。'}</p>
+            <div class="mt-2 flex items-center justify-between gap-2 rounded-xl border border-purple-200 bg-white/70 px-2.5 py-2">
+              <span class="text-[12px] font-medium text-purple-700">${state.hours >= 24 ? '距上课 ≥24h，可撤销代课并恢复原主讲。' : '距上课 <24h，代课已锁定，保障代课外教备课权益。'}</span>
+              ${state.hours >= 24
+                ? `<button data-action="revoke-class-sub" ${state.online === 'off' ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg border border-purple-300 bg-white px-2.5 text-[12px] font-semibold text-purple-700 disabled:cursor-not-allowed disabled:opacity-50">撤销代课</button>`
+                : '<span class="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-[12px] font-bold text-purple-700">已锁定</span>'}
+            </div>` : `
+            <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">距上课 ≥3h 可由主理人指派全平台在职外教代课，候选须连续 2 个半小时格空闲且技能匹配；距上课 &lt;3h 禁止代课，自动走整班停课退待排。</p>
+            ${!canSub ? '<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-rose-700">距上课不足 3 小时，已进入授课准备期：禁止指派代课，请执行整班停课退待排，并由主理人在线下微信群通知家长。</div>' : ''}
+            <div class="mt-2 flex flex-wrap justify-end gap-1.5">
+              <button data-action="open-class-sub" ${!canSub || state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">匹配双格代课</button>
+              <button data-action="open-class-cancel" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-[12px] font-semibold text-rose-600 disabled:cursor-not-allowed disabled:opacity-50">整班停课</button>
+            </div>`}
         </div>`;
     }
 
@@ -1661,7 +1902,7 @@
           <div class="flex items-end justify-between gap-3">
             <div class="min-w-0">
               <h1 class="text-[18px] font-bold tracking-tight text-slate-900">管理员代操作</h1>
-              <p class="mt-1 text-[12px] font-medium text-slate-500">全平台低频兜底 · 代请假与代挪位 · 操作强制审计</p>
+              <p class="mt-1 text-[12px] font-medium text-slate-500">全平台兜底代办 · 操作强制审计</p>
             </div>
             <span class="shrink-0 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[12px] font-bold text-indigo-700">共 ${lessons.length} 节</span>
           </div>
@@ -1687,7 +1928,7 @@
             <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
               <div class="h-full rounded-full ${left > 0 ? 'bg-emerald-500' : 'bg-rose-500'} ${quotaBarClass(left, q.max)}"></div>
             </div>
-            <p class="mt-2 text-[12px] font-medium leading-relaxed text-indigo-900/85">常规通道：≥24h、临时课、配额充足；特批通道可突破时限 / 固定位 / 配额限制，免扣配额但必须填写原因。</p>
+            <p class="mt-2 text-[12px] font-medium leading-relaxed text-indigo-900/85">常规通道：≥24h、临时课、配额充足，扣 1 次配额；特批通道可突破时限 / 固定位 / 配额限制，免扣配额但必须填写 ≥10 字原因并审计。</p>
           </div>
 
           <div class="flex items-center justify-between px-1">
@@ -1707,34 +1948,34 @@
     function adminLessonCard(l) {
       const tm = typeMeta(l.type);
       const sm = lessonStatusMeta(l);
+      const tone = lessonTone(l);
       const emergency = activeEmergencyLesson(l.id);
       const scheduled = l.status === 'SCHEDULED' && !emergency;
       const offline = state.online === 'off';
       const rescheduleLocked = state.hours < 3 || l.rescheduleCount >= 1;
-      const rescheduleLabel = state.hours < 3 ? '挪位已锁(<3h)' : l.rescheduleCount >= 1 ? '已挪位(限1次)' : '代挪位 免扣';
       return `
-        <article class="rounded-2xl border ${lessonBorder(l)} bg-white p-4 shadow-sm">
+        <article class="rounded-2xl border ${tone ? tone.card : 'border-slate-200 bg-white'} p-4 shadow-sm">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-1.5">
-                <span class="text-[16px] font-bold text-slate-900">${esc(studentByKey(l.studentKey).name)}</span>
+                <span class="text-[16px] font-bold ${tone ? tone.title : 'text-slate-900'}">${esc(studentByKey(l.studentKey).name)}</span>
                 <span class="rounded-md border px-1.5 py-0.5 text-[12px] font-semibold ${tm.cls}">${tm.label}</span>
               </div>
-              <div class="mt-1 truncate text-[12px] font-medium text-slate-400">${esc(l.id)} · 挪位 ${l.rescheduleCount}/1</div>
+              <div class="mt-1 truncate text-[12px] font-medium ${tone ? tone.faint : 'text-slate-400'}">${lessonNo(l.id)} · 挪位 ${l.rescheduleCount}/1 · ${ROOM_LABEL}</div>
             </div>
             <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${sm.cls}">${sm.label}</span>
           </div>
           <div class="mt-2.5 flex items-center justify-between gap-2">
             <div class="min-w-0">
-              <div class="font-mono text-[14px] font-bold text-slate-800">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
-              <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">${esc(lessonNote(l))}</div>
+              <div class="font-mono text-[14px] font-bold ${tone ? tone.body : 'text-slate-800'}">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</div>
+              <div class="mt-0.5 text-[12px] font-medium leading-relaxed ${tone ? tone.muted : 'text-slate-500'}">${esc(lessonNote(l))}</div>
             </div>
             ${distanceChip()}
           </div>
           ${emergency ? `<div class="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[12px] font-medium text-rose-700">该课次在班长应急调度包中，请由班长处置。</div>` : ''}
-          ${scheduled ? `<div class="mt-3 flex flex-wrap items-center justify-end gap-1.5 border-t border-slate-100 pt-2.5">
-            <button data-action="open-picker" data-id="${l.id}" ${rescheduleLocked || offline ? 'disabled' : ''} class="h-8 rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-300">${rescheduleLabel}</button>
-            <button data-action="open-admin-leave" data-id="${l.id}" ${offline ? 'disabled' : ''} class="h-8 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-[12px] font-bold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300">代请假</button>
+          ${scheduled ? `<div class="mt-3 flex flex-wrap items-center justify-between gap-1.5 border-t border-slate-100 pt-2.5">
+            <span class="text-[12px] font-medium text-slate-400">${rescheduleLocked ? (state.hours < 3 ? '同师挪位已锁（<3h）' : '已挪位 1 次') : '同师挪位免扣 · 代请假分级'}</span>
+            <button data-action="open-proxy" data-id="${l.id}" ${offline ? 'disabled' : ''} class="h-8 rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">代办</button>
           </div>` : ''}
         </article>`;
     }
@@ -1750,7 +1991,7 @@
           ${state.adminAudit.slice(0, 6).map((a) => `<div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
             <div class="flex items-center justify-between gap-2">
               <span class="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(a.channelLabel)}</span>
-              <span class="font-mono text-[12px] font-medium text-slate-400">${esc(a.lessonId)}</span>
+              <span class="font-mono text-[12px] font-medium text-slate-400">${lessonNo(a.lessonId)}</span>
             </div>
             <div class="mt-1 text-[12px] font-medium text-slate-500">${esc(a.at)} · ${esc(a.by)} · ${esc(a.student)} · ${esc(a.when)}</div>
             <div class="mt-1 text-[14px] font-semibold text-slate-800">原因：${esc(a.reason)}</div>
@@ -1761,14 +2002,20 @@
     }
 
     function appendAdminAudit(l, channel, reason, compensate) {
+      const labels = {
+        normal: '管理员常规代请假',
+        special: '管理员特批代请假',
+        monitorLeave: '班长常规代请假',
+        reschedule: state.role === 'admin' ? '管理员代挪位' : '班长协助同师挪位'
+      };
       state.adminAudit.unshift({
         at: '2026-11-10 14:32',
-        by: 'Sarah',
+        by: state.role === 'admin' ? 'Sarah' : 'Leo',
         student: studentByKey(l.studentKey).name,
         lessonId: l.id,
         when: `${fmtDate(l.date)} ${l.time}`,
         channel,
-        channelLabel: channel === 'normal' ? '常规代请假' : channel === 'special' ? '特批代请假' : '代挪位',
+        channelLabel: labels[channel] || '代操作',
         reason,
         compensate: !!compensate
       });
@@ -1798,9 +2045,11 @@
       return modalShell(`
         ${modalHeader('管理员代请假', `${studentByKey(l.studentKey).name} · ${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}`, true)}
         <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px]">
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">任课外教</span><span class="font-semibold text-slate-800">${TEACHER_NAME}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">教室</span><span class="font-semibold text-slate-800">${ROOM_LABEL}</span></div>
           <div class="flex justify-between py-0.5"><span class="text-slate-400">班型</span><span class="font-semibold text-slate-800">${l.type === 'fixed' ? '1v1 固定位' : '1v1 临时课'}</span></div>
           <div class="flex justify-between py-0.5"><span class="text-slate-400">请假配额</span><span class="font-mono font-bold text-slate-800">已用 ${q.used} / 上限 ${q.max} · 剩余 ${left}</span></div>
-          <div class="flex justify-between py-0.5"><span class="text-slate-400">距开课</span><span class="font-mono font-bold ${state.hours < 3 ? 'text-rose-700' : state.hours < 24 ? 'text-amber-700' : 'text-emerald-700'}">${state.hours}h</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">距上课</span><span class="font-mono font-bold ${state.hours < 3 ? 'text-rose-700' : state.hours < 24 ? 'text-amber-700' : 'text-emerald-700'}">${state.hours}h</span></div>
         </div>
 
         <div class="mt-3 grid grid-cols-2 gap-1.5">
@@ -1809,7 +2058,7 @@
         </div>
 
         ${al.channel === 'normal' ? `<div class="mt-2 rounded-xl border border-indigo-200/70 bg-indigo-50/80 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900/85">
-          标准扣减 1 次配额（剩余 ${left} → ${Math.max(0, left - 1)}）；仅临时课、距开课 ≥24h 且配额充足时可用。固定位/<24h/配额耗尽请使用特批通道。
+          标准扣减 1 次配额（剩余 ${left} → ${Math.max(0, left - 1)}）；仅临时课、距上课 ≥24h 且配额充足时可用。固定位/<24h/配额耗尽请使用特批通道。
         </div>` : `<div class="mt-2 rounded-xl border border-amber-200/70 bg-amber-50/80 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900/85">
           免扣配额，可突破开课前 &lt;3h、固定位与配额耗尽限制；必须填写 ≥10 字原因并写入审计。补偿教师课酬默认关闭。
         </div>`}
@@ -1881,6 +2130,140 @@
     }
 
     /* ------------------------------------------------------------------
+     * 班长 / 管理员：学员课表代办抽屉
+     * ------------------------------------------------------------------ */
+    function openProxy(lessonId) {
+      if (!guardWrite()) return;
+      const l = lessonById(lessonId);
+      if (!l || l.status !== 'SCHEDULED') return showToast('该课次当前不可代办', true);
+      state.activeLessonId = lessonId;
+      state.overlay = { type: 'proxy' };
+      renderAll();
+    }
+
+    function renderProxyDrawer() {
+      const l = activeLesson();
+      if (!l) return '';
+      const q = quotaOf(l.studentKey);
+      const left = q.max - q.used;
+      const isAdmin = state.role === 'admin';
+      const offline = state.online === 'off';
+      const rescheduleLocked = state.hours < 3 || l.rescheduleCount >= 1;
+      const rescheduleLabel = state.hours < 3 ? '同师挪位已锁（<3h）' : l.rescheduleCount >= 1 ? '已挪位 1 次' : '协助同师挪位';
+      const normalOk = l.type === 'temp' && state.hours >= 24 && left > 0;
+      const leaveLocked = !isAdmin && !normalOk;
+      return modalShell(`
+        ${modalHeader('学员课表代办', `${studentByKey(l.studentKey).name} · ${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}`)}
+        <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px]">
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">学员</span><span class="font-semibold text-slate-800">${esc(studentByKey(l.studentKey).name)}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">上课时间</span><span class="font-mono font-bold text-slate-800">${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">任课外教</span><span class="font-semibold text-slate-800">${TEACHER_NAME}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">教室</span><span class="font-semibold text-slate-800">${ROOM_LABEL}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">班型</span><span class="font-semibold text-slate-800">${l.type === 'fixed' ? '1v1 固定位' : '1v1 临时课'}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">请假配额余量</span><span class="font-mono font-bold ${left > 0 ? 'text-emerald-700' : 'text-rose-700'}">已用 ${q.used} / 上限 ${q.max} · 剩余 ${left} 次</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">资金持有人</span><span class="font-semibold text-emerald-700">班长 Leo（代办不变）</span></div>
+        </div>
+
+        <div class="mt-3 rounded-xl border border-indigo-200/70 bg-indigo-50/80 p-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-[14px] font-bold text-indigo-950">${icon('refresh-cw', 'mr-1 inline h-4 w-4')}协助同师挪位</div>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-indigo-900/85">固定位限本轮 4 周购课周期内，临时课限原课次前后 7 天；仅同师空闲格，免扣请假配额。</p>
+            </div>
+            <button data-action="proxy-reschedule" ${rescheduleLocked || offline ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">${rescheduleLabel}</button>
+          </div>
+        </div>
+
+        <div class="mt-2 rounded-xl border border-rose-200/70 bg-rose-50/80 p-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-[14px] font-bold text-rose-950">${icon('file-pen-line', 'mr-1 inline h-4 w-4')}协助申请请假</div>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-900/85">${isAdmin ? '常规通道扣 1 次配额；特批通道可突破 <3h、固定位与配额耗尽限制，免扣配额，原因 ≥10 字并审计。' : '班长常规通道限临时课、≥24h 且配额充足，扣 1 次配额；<3h 或配额耗尽需报平台管理员特批。'}</p>
+            </div>
+            <button data-action="proxy-leave" ${offline || leaveLocked ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg bg-rose-600 px-2.5 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">${leaveLocked ? '常规不可用' : '协助申请请假'}</button>
+          </div>
+          ${leaveLocked ? '<p class="mt-1.5 rounded-lg border border-rose-200 bg-white/80 px-2.5 py-1.5 text-[12px] font-medium text-rose-700">当前不满足班长常规代请假条件；如遇突发急病等不可抗力，请报平台管理员特批处理。</p>' : ''}
+        </div>
+
+        <div class="mt-4 flex gap-2">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-semibold text-slate-700">关闭</button>
+        </div>`);
+    }
+
+    function proxyReschedule() {
+      const l = activeLesson();
+      if (!l) return;
+      state.overlay = null;
+      openPicker(l.id);
+    }
+
+    function proxyLeave() {
+      const l = activeLesson();
+      if (!l) return;
+      if (state.role === 'admin') {
+        state.overlay = null;
+        openAdminLeave(l.id);
+        return;
+      }
+      const q = quotaOf(l.studentKey);
+      const normalOk = l.type === 'temp' && state.hours >= 24 && (q.max - q.used) > 0;
+      if (!normalOk) return showToast('不满足班长常规代请假条件，请报平台管理员特批', true);
+      state.proxyLeaveReason = '';
+      state.overlay = { type: 'proxyLeave' };
+      renderAll();
+    }
+
+    function renderProxyLeaveModal() {
+      const l = activeLesson();
+      if (!l) return '';
+      const q = quotaOf(l.studentKey);
+      const left = q.max - q.used;
+      const normalOk = l.type === 'temp' && state.hours >= 24 && left > 0;
+      return modalShell(`
+        ${modalHeader('班长协助申请请假', `${studentByKey(l.studentKey).name} · ${fmtDate(l.date)} ${l.time} - ${endTime(l.time)}`, true)}
+        <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px]">
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">任课外教</span><span class="font-semibold text-slate-800">${TEACHER_NAME}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">教室</span><span class="font-semibold text-slate-800">${ROOM_LABEL}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">班型</span><span class="font-semibold text-slate-800">${l.type === 'fixed' ? '1v1 固定位' : '1v1 临时课'}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">配额</span><span class="font-mono font-bold text-slate-800">已用 ${q.used} / 上限 ${q.max} · 剩余 ${left} 次</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">距上课</span><span class="font-mono font-bold ${state.hours < 3 ? 'text-rose-700' : state.hours < 24 ? 'text-amber-700' : 'text-emerald-700'}">${state.hours}h</span></div>
+        </div>
+        <div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-rose-800">
+          常规代请假将退回待排期并扣减 1 次配额（剩余 ${left} → ${Math.max(0, left - 1)}）；配额为永久消费，不返还。
+        </div>
+        ${!normalOk ? '<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[12px] font-medium text-rose-700">当前不满足常规条件，请切换管理员特批通道。</div>' : ''}
+        <div class="mt-3">
+          <label for="proxyLeaveReason" class="mb-1 block text-[14px] font-semibold text-slate-700">代请假原因 <span class="text-rose-500">*</span></label>
+          <textarea id="proxyLeaveReason" maxlength="200" rows="3" class="h-20 w-full resize-none rounded-xl border border-slate-200 bg-white p-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500" placeholder="请填写代请假原因，便于审计追溯……">${esc(state.proxyLeaveReason || '')}</textarea>
+        </div>
+        <div class="mt-4 flex gap-2">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700">取消</button>
+          <button data-action="confirm-proxy-leave" ${!normalOk || state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-rose-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认代请假（扣 1 次）</button>
+        </div>`);
+    }
+
+    function confirmProxyLeave() {
+      if (!guardWrite()) return;
+      const l = activeLesson();
+      if (!l) return;
+      const q = quotaOf(l.studentKey);
+      const left = q.max - q.used;
+      if (!(l.type === 'temp' && state.hours >= 24 && left > 0)) return showToast('当前不满足常规代请假条件，请报平台管理员特批', true);
+      const reasonEl = document.getElementById('proxyLeaveReason');
+      const reason = reasonEl ? reasonEl.value.trim() : (state.proxyLeaveReason || '').trim();
+      if (reason.length < 2 || reason.length > 200) return showToast('代请假原因需为 2-200 字', true);
+      q.used += 1;
+      l.status = 'PENDING_REBOOK';
+      l.quotaExempt = false;
+      l.monitorNormal = true;
+      appendAdminAudit(l, 'monitorLeave', reason, false);
+      state.overlay = null;
+      state.proxyLeaveReason = '';
+      renderAll();
+      showToast('班长常规代请假完成 · 已扣 1 次配额并写入审计');
+    }
+
+    /* ------------------------------------------------------------------
      * 弹层：兜底渲染
      * ------------------------------------------------------------------ */
     function renderOverlay() {
@@ -1897,6 +2280,9 @@
       else if (state.overlay.type === 'classCancel') el.innerHTML = renderClassCancelModal();
       else if (state.overlay.type === 'batchLeave') el.innerHTML = renderBatchLeaveModal();
       else if (state.overlay.type === 'adminLeave') el.innerHTML = renderAdminLeaveModal();
+      else if (state.overlay.type === 'proxy') el.innerHTML = renderProxyDrawer();
+      else if (state.overlay.type === 'proxyLeave') el.innerHTML = renderProxyLeaveModal();
+      else if (state.overlay.type === 'classSub') el.innerHTML = renderClassSubModal();
       else el.innerHTML = '';
 
       const nextScrollEl = el.querySelector('#pickerScroll');
@@ -1913,7 +2299,7 @@
 
     function modalShell(content, width = 'max-w-[420px]') {
       return `
-        <div class="absolute inset-0 z-50">
+        <div class="absolute inset-x-0 bottom-0 top-16 z-50">
           <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]" data-action="close-overlay"></div>
           <div class="absolute inset-x-4 top-1/2 mx-auto ${width} max-h-[90%] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
             ${content}
@@ -1923,7 +2309,7 @@
 
     function sheetShell(content) {
       return `
-        <div class="absolute inset-0 z-50">
+        <div class="absolute inset-x-0 bottom-0 top-16 z-50">
           <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]" data-action="close-overlay"></div>
           <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92%] w-full max-w-[560px] flex-col overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl">
             <div class="mx-auto mb-3 h-1 w-10 shrink-0 rounded-full bg-slate-200"></div>
@@ -1977,7 +2363,7 @@
       if (!guardWrite()) return;
       const l = lessonById(lessonId);
       if (!l || l.status !== 'SCHEDULED') return showToast('该课次当前不可挪位', true);
-      if (state.hours < 3) return showToast('距开课不足 3 小时，已进入授课准备锁定期，无法挪位', true);
+      if (state.hours < 3) return showToast('距上课不足 3 小时，已进入授课准备锁定期，无法挪位', true);
       if (l.rescheduleCount >= 1) return showToast('本节课已挪位过 1 次，不可二次挪位', true);
       const weeks = buildPickerWeeks(l);
       const originIndex = weeks.findIndex((w) => w.days.some((d) => d.iso === l.date));
@@ -1999,7 +2385,7 @@
         : '请点选绿色可挪格';
 
       return `
-        <div class="absolute inset-0 z-50 flex flex-col bg-white">
+        <div class="absolute inset-x-0 bottom-0 top-16 z-50 flex flex-col bg-white">
           <div class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-2.5">
             <div class="flex min-w-0 items-center gap-2.5">
               <div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-indigo-600 text-white">${icon('calendar-range', 'h-4 w-4')}</div>
@@ -2110,7 +2496,7 @@
 
     function confirmPicker() {
       if (!guardWrite()) return;
-      if (state.hours < 3) return showToast('距开课不足 3 小时，已进入授课准备锁定期，无法挪位', true);
+      if (state.hours < 3) return showToast('距上课不足 3 小时，已进入授课准备锁定期，无法挪位', true);
       const l = activeLesson();
       const p = state.picker;
       if (!l || !p || !p.selected) return showToast('请先点选绿色可挪格', true);
@@ -2121,6 +2507,9 @@
       if (state.role === 'admin') {
         l.adminRescheduled = true;
         appendAdminAudit(l, 'reschedule', '管理员代挪位（免扣配额）', false);
+      } else if (state.role === 'monitor') {
+        l.monitorRescheduled = true;
+        appendAdminAudit(l, 'reschedule', '班长协助同师挪位（免扣配额）', false);
       }
       state.overlay = null;
       state.picker = null;
@@ -2135,8 +2524,8 @@
       if (!guardWrite()) return;
       const l = lessonById(lessonId);
       if (!l || l.status !== 'SCHEDULED') return showToast('该课次当前不可请假', true);
-      if (state.hours < 3) return showToast('距开课不足 3 小时，全端锁定，无法请假', true);
-      if (state.hours < 24) return showToast('距开课不足 24 小时，仅支持同师挪位或课程转让', true);
+      if (state.hours < 3) return showToast('距上课不足 3 小时，全端锁定，无法请假', true);
+      if (state.hours < 24) return showToast('距上课不足 24 小时，仅支持同师挪位或课程转让', true);
       if (l.type === 'fixed') return showToast('固定位不可请假退回待排期，请使用同师挪位或转让', true);
       const q = quotaOf(l.studentKey);
       if (q.max - q.used <= 0) return showToast('本期请假配额已用尽，仅支持同师挪位或转让', true);
@@ -2175,8 +2564,8 @@
 
     function confirmLeave() {
       if (!guardWrite()) return;
-      if (state.hours < 3) return showToast('距开课不足 3 小时，全端锁定，无法请假', true);
-      if (state.hours < 24) return showToast('距开课不足 24 小时，仅支持同师挪位或课程转让', true);
+      if (state.hours < 3) return showToast('距上课不足 3 小时，全端锁定，无法请假', true);
+      if (state.hours < 24) return showToast('距上课不足 24 小时，仅支持同师挪位或课程转让', true);
       const l = activeLesson();
       if (!l) return;
       if (l.status !== 'SCHEDULED' || l.type !== 'temp') return showToast('该课次不可请假退期待排', true);
@@ -2217,8 +2606,10 @@
         <div class="mt-3">
           <label for="teacherLeaveType" class="mb-1 block text-[12px] font-medium text-slate-500">请假类型</label>
           <select id="teacherLeaveType" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none">
-            <option value="SICK">因病请假（突发咽喉炎 / 发热）</option>
-            <option value="PERSONAL">因事请假（个人紧急事务）</option>
+            <option value="SICK">突发急病（发热 / 咽喉炎 / 急性就医）</option>
+            <option value="ACCIDENT">突发事故 / 不可抗力（交通、自然灾害等）</option>
+            <option value="FAMILY">家庭紧急事件</option>
+            <option value="OTHER">其他个人事务（距上课 &lt;3h 不可用）</option>
           </select>
         </div>
         <div class="mt-3">
@@ -2227,8 +2618,12 @@
         </div>
         <div class="mt-2 rounded-xl border ${urgent ? 'border-rose-200 bg-rose-50 text-rose-900' : 'border-amber-200 bg-amber-50 text-amber-900'} px-3.5 py-2.5 text-[12px] font-medium leading-relaxed">
           ${urgent
-            ? `距开课不足 24 小时，属于紧急请假：系统将并发向负责班长发送邮件 / 短信 / 站内信告警，班长强制介入调配代课${state.hours < 3 ? '；已进入 <3h 兜底窗口' : ''}。`
+            ? `距上课不足 24 小时，属于紧急请假：系统将并发向负责班长发送邮件 / 短信 / 通知告警，班长强制介入调配代课${state.hours < 3 ? '；已进入 <3h 绿色通道，仅突发急病或不可抗力可提交，系统同步触发应急调度包' : ''}。`
             : '常规请假：该节课次挂起为待代课，原日历置红，系统向负责班长派发代课待办卡片。'}
+        </div>
+        <div class="mt-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">
+          <div class="font-bold">影响预览</div>
+          <p class="mt-1">本次请假影响 ${studentByKey(l.studentKey).name} 等 ${Math.max(1, CLASS_INFO.size)} 名学员的 1 节课；提交后系统 10 秒内完成家长安心通知与班长待办派发。</p>
         </div>
         <div class="mt-4 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">取消</button>
@@ -2243,13 +2638,17 @@
       const reasonEl = document.getElementById('teacherLeaveReason');
       const typeEl = document.getElementById('teacherLeaveType');
       const reason = reasonEl ? reasonEl.value.trim() : '';
+      const leaveType = typeEl ? typeEl.value : 'SICK';
       if (!reason) return showToast('请填写请假事由', true);
+      if (state.hours < 3 && leaveType === 'OTHER') return showToast('距上课不足 3 小时，仅突发急病或不可抗力可走绿色通道', true);
+      if (state.hours < 3 && reason.length < 6) return showToast('紧急请假事由需至少 6 字，便于审计追溯', true);
       l.status = 'PENDING_SUBSTITUTE';
       l.leaveReason = reason;
-      l.leaveType = typeEl ? typeEl.value : 'SICK';
+      l.leaveType = leaveType;
+      l.teacherGreenChannel = state.hours < 3;
       state.overlay = null;
       renderAll();
-      showToast(state.hours < 24 ? '紧急请假已提交：已并发通知班长与平台管理员' : '请假已提交：已向班长派发代课待办');
+      showToast(state.hours < 3 ? '绿色通道已受理：应急调度包已触发，班长与平台管理员同步介入' : state.hours < 24 ? '紧急请假已提交：已并发通知班长与平台管理员' : '请假已提交：已向班长派发代课待办');
     }
 
     /* ------------------------------------------------------------------
@@ -2276,7 +2675,7 @@
           <div class="flex justify-between py-1"><span class="text-slate-400">课程类型</span><span class="font-semibold text-slate-800">KET备考（需匹配 KET 技能）</span></div>
           <div class="flex justify-between py-1"><span class="text-slate-400">资金持有人</span><span class="font-semibold text-emerald-700">班长 Leo（代课不变）</span></div>
         </div>
-        ${urgent ? '<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-[12px] font-bold text-rose-700">距开课不足 12 小时，工单已升级紧急催办并抄送平台管理员</div>' : ''}
+        ${urgent ? '<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-[12px] font-bold text-rose-700">距上课不足 12 小时，工单已升级紧急催办并抄送平台管理员</div>' : ''}
         <div class="mt-3">
           <div class="text-[14px] font-semibold text-slate-700">符合技能且此时段空闲的外教</div>
           <div class="mt-2 space-y-1.5">
@@ -2331,7 +2730,7 @@
 
     function revokeSub(lessonId) {
       if (!guardWrite()) return;
-      if (state.hours < 24) return showToast('距开课不足 24 小时，代课已刚性锁定，不可撤销', true);
+      if (state.hours < 24) return showToast('距上课不足 24 小时，代课已刚性锁定，不可撤销', true);
       const l = lessonById(lessonId);
       if (!l || l.status !== 'SUBSTITUTED') return;
       l.status = 'SCHEDULED';
@@ -2359,7 +2758,7 @@
             <span class="text-[14px] font-bold">代课课酬记账归属</span>
             <span class="rounded-full bg-indigo-200 px-2 py-0.5 text-[12px] font-bold text-indigo-900">100% 计入 Elena 周结单</span>
           </div>
-          <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-indigo-800">本节完课后课酬 100% 结算至代课老师 Elena 周课酬单，原授课外教 David 课酬计数为 0。距开课 &lt;24h 时代课刚性锁定，不可撤销。</p>
+          <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-indigo-800">本节完课后课酬 100% 结算至代课老师 Elena 周课酬单，原授课外教 David 课酬计数为 0。距上课 &lt;24h 时代课刚性锁定，不可撤销。</p>
         </div>
         <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
           <div class="text-[14px] font-bold text-slate-800">原任课外教 David 的交接备注</div>
@@ -2388,6 +2787,8 @@
     function openClassCancel() {
       if (!guardWrite()) return;
       if (state.classCancelled) return;
+      state.classCancelAck = false;
+      state.classCancelReason = '公众假期停课，后续统一补排';
       state.overlay = { type: 'classCancel' };
       renderAll();
     }
@@ -2401,7 +2802,7 @@
         </div>
         <div class="mt-3">
           <label for="classCancelReason" class="mb-1 block text-[12px] font-medium text-slate-500">停课事由 <span class="text-rose-500">*</span></label>
-          <input id="classCancelReason" value="公众假期停课，后续统一补排" class="h-11 w-full rounded-xl border border-slate-200 px-3 text-[16px] text-slate-900 outline-none">
+          <input id="classCancelReason" value="${esc(state.classCancelReason)}" class="h-11 w-full rounded-xl border border-slate-200 px-3 text-[16px] text-slate-900 outline-none">
         </div>
         <div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">
           <div class="font-bold">执行联动</div>
@@ -2409,20 +2810,111 @@
           <p>2. 系统向授课教师发送停课邮件；小班家长由班长在线下群通知；</p>
           <p>3. 向小班班长派发高优先级补排催办邮件与待办卡片。</p>
         </div>
+        <label for="classCancelAck" class="mt-3 flex cursor-pointer items-start gap-2 rounded-xl border ${state.classCancelAck ? 'border-rose-300 bg-rose-50' : 'border-slate-200 bg-slate-50'} px-3 py-2.5">
+          <input id="classCancelAck" type="checkbox" ${state.classCancelAck ? 'checked' : ''} class="mt-0.5 h-4 w-4 shrink-0 accent-rose-600">
+          <span class="text-[12px] font-semibold leading-relaxed text-slate-800">已知悉需线下通知家长并发布停课 / ClassIn 变更<span class="text-rose-500"> *</span></span>
+        </label>
         <div class="mt-4 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 text-[14px] font-semibold text-slate-700">取消</button>
-          <button data-action="confirm-class-cancel" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-rose-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认整班停课</button>
+          <button data-action="confirm-class-cancel" ${state.online === 'off' || !state.classCancelAck ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-rose-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认整班停课</button>
         </div>`);
     }
 
     function confirmClassCancel() {
       if (!guardWrite()) return;
+      if (!state.classCancelAck) return showToast('请先勾选线下通知家长并发布变更确认', true);
       const reasonEl = document.getElementById('classCancelReason');
-      if (!reasonEl || !reasonEl.value.trim()) return showToast('请填写停课事由', true);
+      if (reasonEl) state.classCancelReason = reasonEl.value;
+      if (!state.classCancelReason.trim()) return showToast('请填写停课事由', true);
       state.classCancelled = true;
+      state.classSub = null;
       state.overlay = null;
+      state.classCancelAck = false;
       renderAll();
       showToast('整班停课成功：已通知全班家长，并生成补排催办待办');
+    }
+
+    /* ------------------------------------------------------------------
+     * 小班连续双格代课：≥3h 全平台在职外教 / 双格空闲 / 技能匹配
+     * ------------------------------------------------------------------ */
+    function openClassSub() {
+      if (!guardWrite()) return;
+      if (state.hours < 3) return showToast('距上课不足 3 小时，禁止指派代课，请执行整班停课', true);
+      if (state.classSub) return showToast('该小班课已指派代课', true);
+      state.classSubDraft = { teacher: null, ack: false };
+      state.overlay = { type: 'classSub' };
+      renderAll();
+    }
+
+    function renderClassSubModal() {
+      const d = state.classSubDraft || { teacher: null, ack: false };
+      const canSub = state.hours >= 3;
+      return sheetShell(`
+        ${modalHeader('匹配小班双格代课', `${CLASS_INFO.name} · ${fmtDate(CLASS_INFO.date)} ${CLASS_INFO.time} - ${CLASS_INFO.end}`)}
+        <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px]">
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">班级规模</span><span class="font-semibold text-slate-800">${CLASS_INFO.size} 人小班 · 连续 2 个半小时格</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">原主讲</span><span class="font-semibold text-slate-800">${TEACHER_NAME}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">教室</span><span class="font-semibold text-slate-800">${ROOM_LABEL}</span></div>
+          <div class="flex justify-between py-0.5"><span class="text-slate-400">距上课</span><span class="font-mono font-bold ${state.hours < 3 ? 'text-rose-700' : 'text-emerald-700'}">${state.hours}h</span></div>
+        </div>
+        <div class="mt-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">
+          候选须为全平台在职外教，技能匹配本班 KET 课程，且连续 2 个半小时格空闲；代课课酬按班级快照平移，资金持有人、班级盈余与平台分成比例均不变。
+        </div>
+        ${!canSub ? '<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-bold text-rose-700">距上课不足 3 小时，禁止指派代课，请改为整班停课。</div>' : ''}
+        <div class="mt-3 space-y-1.5">
+          ${CLASS_SUB_CANDIDATES.map((c) => {
+            const on = d.teacher === c.name;
+            const disabled = !c.twoCells;
+            return `<button data-action="class-sub-select" data-name="${esc(c.name)}" ${disabled ? 'disabled' : ''} class="flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition ${on ? 'border-purple-400 bg-purple-50' : 'border-slate-200 bg-white'} ${disabled ? 'cursor-not-allowed opacity-50' : 'hover:border-purple-300'}">
+              <span class="min-w-0">
+                <span class="block text-[14px] font-bold ${on ? 'text-purple-900' : 'text-slate-900'}">${esc(c.name)} <span class="ml-1 rounded bg-slate-100 px-1 text-[12px] font-semibold text-slate-500">${esc(c.level)}</span></span>
+                <span class="mt-0.5 block text-[12px] font-medium text-slate-500">${esc(c.skills)} · 绑定班长 ${esc(c.boundMonitor)}</span>
+                <span class="mt-0.5 block text-[12px] font-semibold ${c.twoCells ? 'text-emerald-700' : 'text-rose-600'}">${esc(c.note)}</span>
+              </span>
+              <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? 'border-purple-500 bg-purple-600 text-white' : 'border-slate-300 bg-white text-transparent'}">${icon('check', 'h-3 w-3')}</span>
+            </button>`;
+          }).join('')}
+        </div>
+        <label for="classSubAck" class="mt-3 flex cursor-pointer items-start gap-2 rounded-xl border ${d.ack ? 'border-purple-300 bg-purple-50' : 'border-slate-200 bg-slate-50'} px-3 py-2.5">
+          <input id="classSubAck" type="checkbox" ${d.ack ? 'checked' : ''} class="mt-0.5 h-4 w-4 shrink-0 accent-purple-600">
+          <span class="text-[12px] font-semibold leading-relaxed text-slate-800">已知悉需线下通知家长并发布代课/ClassIn 变更<span class="text-rose-500"> *</span></span>
+        </label>
+        <div class="mt-4 flex gap-2">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700">取消</button>
+          <button data-action="confirm-class-sub" ${!d.teacher || !d.ack || !canSub || state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-purple-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认指派双格代课</button>
+        </div>`);
+    }
+
+    function selectClassSub(name) {
+      if (!state.classSubDraft) state.classSubDraft = { teacher: null, ack: false };
+      const c = CLASS_SUB_CANDIDATES.find((x) => x.name === name);
+      if (!c || !c.twoCells) return showToast('该外教无法连续 2 格空闲，不满足小班代课条件', true);
+      state.classSubDraft.teacher = state.classSubDraft.teacher === name ? null : name;
+      renderOverlay();
+    }
+
+    function confirmClassSub() {
+      if (!guardWrite()) return;
+      if (state.hours < 3) return showToast('距上课不足 3 小时，禁止指派代课', true);
+      const d = state.classSubDraft;
+      if (!d || !d.teacher) return showToast('请选择一位连续双格空闲的外教', true);
+      if (!d.ack) return showToast('请先勾选线下通知家长并发布变更确认', true);
+      const c = CLASS_SUB_CANDIDATES.find((x) => x.name === d.teacher);
+      state.classSub = { teacher: d.teacher, boundMonitor: c ? c.boundMonitor : '' };
+      state.classCancelled = false;
+      state.overlay = null;
+      state.classSubDraft = null;
+      renderAll();
+      showToast('小班双格代课已指派 · 已同步通知原主讲、代课外教与绑定班长');
+    }
+
+    function revokeClassSub() {
+      if (!guardWrite()) return;
+      if (state.hours < 24) return showToast('距上课不足 24 小时，代课已锁定，不可撤销', true);
+      if (!state.classSub) return;
+      state.classSub = null;
+      renderAll();
+      showToast('小班代课已撤销，已恢复原主讲并同步通知三方');
     }
 
     /* ------------------------------------------------------------------
@@ -2497,6 +2989,14 @@
       if (action === 'save-memo') return saveMemo();
       if (action === 'open-class-cancel') return openClassCancel();
       if (action === 'confirm-class-cancel') return confirmClassCancel();
+      if (action === 'open-class-sub') return openClassSub();
+      if (action === 'class-sub-select') return selectClassSub(el.dataset.name);
+      if (action === 'confirm-class-sub') return confirmClassSub();
+      if (action === 'revoke-class-sub') return revokeClassSub();
+      if (action === 'open-proxy') return openProxy(el.dataset.id);
+      if (action === 'proxy-reschedule') return proxyReschedule();
+      if (action === 'proxy-leave') return proxyLeave();
+      if (action === 'confirm-proxy-leave') return confirmProxyLeave();
       if (action === 'toggle-free') return toggleFree(el.dataset.id);
       if (action === 'picker-week') return changePickerWeek(el.dataset.index);
       if (action === 'picker-slot') return selectPickerSlot(el.dataset.day, el.dataset.time);
@@ -2512,10 +3012,14 @@
         const count = document.getElementById('adminReasonCount');
         if (count) count.textContent = `${e.target.value.length}/200`;
       }
+      if (e.target && e.target.id === 'classCancelReason') state.classCancelReason = e.target.value;
+      if (e.target && e.target.id === 'proxyLeaveReason') state.proxyLeaveReason = e.target.value;
     });
     document.getElementById('frame').addEventListener('change', (e) => {
       if (e.target && e.target.id === 'batchReasonType' && state.batch) state.batch.reasonType = e.target.value;
       if (e.target && e.target.id === 'adminCompensate' && state.adminLeave) state.adminLeave.compensate = e.target.checked;
+      if (e.target && e.target.id === 'classSubAck' && state.classSubDraft) { state.classSubDraft.ack = e.target.checked; renderOverlay(); }
+      if (e.target && e.target.id === 'classCancelAck') { state.classCancelAck = e.target.checked; renderOverlay(); }
     });
 
     renderAll();

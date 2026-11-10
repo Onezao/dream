@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>原型 · M5A 转账单归集</title>
+  <title>转账单归集 · Dream</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -107,29 +107,9 @@
       note: 'LEO-20261110'
     };
 
-    const TOTALS = { gross: 3160, retained: 79, subsidy: 12, transfer: 3093, count: 17 };
-
-    const STUDENTS = [
-      { name: 'AliceZ12', parent: 'Amy', count: 4, amount: 880, kind: '1v1' },
-      { name: 'BobZ10', parent: 'Ben', count: 3, amount: 540, kind: '1v1' },
-      { name: 'CharlieZ08', parent: 'Amy', count: 3, amount: 480, kind: '小班课' },
-      { name: 'TomZ11', parent: 'Helen', funder: 'Amy', originalStudent: 'AliceZ12', count: 2, amount: 440, kind: '1v1', transfer: true },
-      { name: 'DaisyL09', parent: 'Ivy', count: 2, amount: 300, kind: '小班课' },
-      { name: 'EthanW12', parent: 'Nina', count: 2, amount: 400, kind: '1v1' },
-      { name: 'WendyY07', parent: 'Nina', count: 1, amount: 120, kind: '小班课' }
-    ];
-
-    const TEACHERS = [
-      { name: 'David Miller', count: 6, amount: 1320, note: '母语外教', sub: 0 },
-      { name: 'Lily Chen', count: 6, amount: 1020, note: '中教', sub: 0 },
-      { name: 'Kevin Zhou', count: 5, amount: 820, note: '中教', sub: 2 }
-    ];
-
-    const SMALL = [
-      { name: 'KET 冲刺班', max: 6, count: 3, unit: 160, pay: 96, tool: 36, net: 28, commission: 5, retained: 23, transfer: 411, gross: 480, retainedTotal: 69, loss: 0 },
-      { name: 'Daisy 口语班', max: 4, count: 2, unit: 150, pay: 120, tool: 24, net: 6, commission: 1, retained: 5, transfer: 290, gross: 300, retainedTotal: 10, loss: 0 },
-      { name: 'Starter 启蒙班', max: 6, count: 1, unit: 120, pay: 96, tool: 36, net: -12, commission: 0, retained: 0, transfer: 132, gross: 120, retainedTotal: 0, loss: 12 }
-    ];
+    /* 课次明细：student 为实际学员，parent 为出资家长；funderStudent 用于跨家长转让归属原出资学生 */
+    const LN = (student, parent, teacher, teacherLevel, kind, date, weekday, time, points, extra = {}) =>
+      ({ student, parent, teacher, teacherLevel, kind, date, weekday, time, points, ...extra });
 
     const INIT_TS = [
       { id: 'ts_alice0001', date: '11-09', weekday: '周日', time: '16:00-16:25', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', kind: '1v1', points: 220, status: 'FINISHED_PENDING_SETTLEMENT' },
@@ -142,31 +122,136 @@
 
     const INIT_ORDERS = [
       {
-        id: 'tro_leo00001', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', count: 17,
-        gross: 3160, retained: 79, subsidy: 12, transfer: 3093,
-        status: 'DRAFT', time: '11-10 03:30', voucher: false, period: '11.03 - 11.09'
+        id: 'tro_leo00001', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W45', period: '11.02 - 11.08',
+        subsidy: 12, status: 'DRAFT', time: '11-09 03:30', generatedAt: '11-09 03:30', voucher: false,
+        lines: [
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '11-02', '周一', '18:00-18:25', 220),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '11-04', '周三', '18:00-18:25', 220),
+          LN('AliceZ12', 'Amy', 'Lily Chen', 'L3 中教', '1v1', '11-06', '周五', '19:00-19:25', 220),
+          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '11-02', '周一', '19:00-19:25', 180),
+          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '11-04', '周三', '19:00-19:25', 180),
+          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '11-07', '周六', '10:00-10:25', 180),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '11-03', '周二', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '11-05', '周四', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '11-07', '周六', '14:00-14:50', 160),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '11-03', '周二', '20:00-20:50', 150),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '11-05', '周四', '20:00-20:50', 150),
+          LN('EthanW12', 'Nina', 'David Miller', 'L4 母语外教', '1v1', '11-03', '周二', '18:30-18:55', 200),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '11-06', '周五', '18:30-18:55', 200),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '11-08', '周日', '10:00-10:25', 220),
+          LN('WendyY07', 'Nina', 'Lily Chen', 'L3 中教', '小班课', '11-08', '周日', '11:00-11:50', 120),
+          LN('BobZ10', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '11-04', '周三', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller', transferNote: '原出资人 Amy · 实际学员 Bob' }),
+          LN('BobZ10', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '11-06', '周五', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller', transferNote: '原出资人 Amy · 实际学员 Bob' })
+        ],
+        groupClasses: [
+          { name: 'KET 冲刺班', max: 6, count: 3, unit: 160, salary: 96, toolFee: 36, net: 28, rate: 20, commission: 5, retained: 69 },
+          { name: 'Daisy 口语班', max: 4, count: 2, unit: 150, salary: 120, toolFee: 24, net: 6, rate: 20, commission: 1, retained: 10 },
+          { name: 'Starter 启蒙班', max: 6, count: 1, unit: 120, salary: 96, toolFee: 36, net: -12, rate: 20, commission: 0, retained: 0 }
+        ]
       },
       {
-        id: 'tro_leo00002', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', count: 18,
-        gross: 3920, retained: 120, subsidy: 0, transfer: 3800,
-        status: 'PENDING_CONFIRMATION', time: '11-03 09:42', voucher: true, period: '10.27 - 11.02'
+        id: 'tro_leo00002', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W44', period: '10.26 - 11.01',
+        subsidy: 0, status: 'PENDING_CONFIRMATION', time: '11-02 09:42', generatedAt: '11-02 03:30', voucher: true,
+        lines: [
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-26', '周一', '18:00-18:25', 300),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-28', '周三', '18:00-18:25', 300),
+          LN('AliceZ12', 'Amy', 'Lily Chen', 'L3 中教', '1v1', '10-30', '周五', '18:00-18:25', 300),
+          LN('AliceZ12', 'Amy', 'Lily Chen', 'L3 中教', '1v1', '11-01', '周日', '10:00-10:25', 270),
+          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-26', '周一', '19:00-19:25', 260),
+          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-28', '周三', '19:00-19:25', 260),
+          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-31', '周六', '10:00-10:25', 260),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-27', '周二', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-29', '周四', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-31', '周六', '14:00-14:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '11-01', '周日', '14:00-14:50', 160),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-27', '周二', '20:00-20:50', 150),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-29', '周四', '20:00-20:50', 150),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '10-28', '周三', '18:30-18:55', 240),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '10-30', '周五', '18:30-18:55', 240),
+          LN('WendyY07', 'Nina', 'Kevin Zhou', 'L2 中教', '小班课', '10-27', '周二', '16:00-16:50', 155),
+          LN('WendyY07', 'Nina', 'Kevin Zhou', 'L2 中教', '小班课', '10-29', '周四', '16:00-16:50', 155),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '11-01', '周日', '11:00-11:25', 240, { subFor: 'David Miller' })
+        ],
+        groupClasses: [
+          { name: 'KET 冲刺班', max: 6, count: 4, unit: 160, salary: 96, toolFee: 36, net: 28, rate: 20, commission: 5, retained: 92 },
+          { name: '口语进阶班', max: 4, count: 2, unit: 150, salary: 120, toolFee: 24, net: 6, rate: 20, commission: 1, retained: 10 },
+          { name: '读写精讲班', max: 4, count: 2, unit: 155, salary: 120, toolFee: 24, net: 11, rate: 20, commission: 2, retained: 18 }
+        ]
       },
       {
-        id: 'tro_leo00003', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', count: 11,
-        gross: 2480, retained: 45, subsidy: 0, transfer: 2435,
-        status: 'COMPLETED', time: '10-27 09:20', voucher: true, confirmTime: '10-28 10:30', period: '10.20 - 10.26'
+        id: 'tro_leo00003', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W43', period: '10.19 - 10.25',
+        subsidy: 0, status: 'COMPLETED', time: '10-26 09:20', generatedAt: '10-26 03:30', voucher: true,
+        confirmTime: '10-27 10:30', confirmBy: 'Sarah',
+        lines: [
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-19', '周一', '18:00-18:25', 260),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-21', '周三', '18:00-18:25', 260),
+          LN('AliceZ12', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '10-24', '周六', '10:00-10:25', 260),
+          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-19', '周一', '19:00-19:25', 240),
+          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-22', '周四', '19:00-19:25', 240),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-20', '周二', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-23', '周五', '17:00-17:50', 160),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-21', '周三', '20:00-20:50', 150),
+          LN('EthanW12', 'Nina', 'Lily Chen', 'L3 中教', '1v1', '10-20', '周二', '18:30-18:55', 250),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '10-23', '周五', '18:30-18:55', 250),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '10-25', '周日', '11:00-11:25', 250, { subFor: 'Lily Chen' })
+        ],
+        groupClasses: [
+          { name: 'KET 冲刺班', max: 6, count: 2, unit: 160, salary: 100, toolFee: 36, net: 24, rate: 20, commission: 4, retained: 40 },
+          { name: '口语表达班', max: 4, count: 1, unit: 150, salary: 120, toolFee: 24, net: 6, rate: 20, commission: 1, retained: 5 }
+        ]
       },
       {
-        id: 'tro_leo00004', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', count: 9,
-        gross: 1800, retained: 30, subsidy: 0, transfer: 1770,
-        status: 'CANCELLED', time: '10-20 09:15', voucher: true, reject: '到账 1,570 元，与单据差 200 元', rejectTime: '10-21 11:05', period: '10.13 - 10.19'
+        id: 'tro_leo00004', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W42', period: '10.12 - 10.18',
+        subsidy: 0, status: 'CANCELLED', time: '10-19 09:15', generatedAt: '10-19 03:30', voucher: true,
+        reject: '到账 1,570 元，与单据差 200 元 · 存疑课次 TR-20261019 中 10-14 18:30 课次金额不符',
+        rejectTime: '10-20 11:05',
+        lines: [
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-12', '周一', '18:00-18:25', 240),
+          LN('AliceZ12', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '10-15', '周四', '18:00-18:25', 240),
+          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-12', '周一', '19:00-19:25', 240),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-13', '周二', '20:00-20:50', 150),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-16', '周五', '20:00-20:50', 150),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-14', '周三', '17:00-17:50', 160),
+          LN('WendyY07', 'Nina', 'Lily Chen', 'L3 中教', '小班课', '10-17', '周六', '16:00-16:50', 140),
+          LN('EthanW12', 'Nina', 'David Miller', 'L4 母语外教', '1v1', '10-14', '周三', '18:30-18:55', 240),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '10-18', '周日', '11:00-11:25', 240, { subFor: 'David Miller' })
+        ],
+        groupClasses: [
+          { name: '口语进阶班', max: 4, count: 2, unit: 150, salary: 120, toolFee: 24, net: 6, rate: 20, commission: 1, retained: 10 },
+          { name: 'KET 冲刺班', max: 6, count: 1, unit: 160, salary: 105, toolFee: 36, net: 19, rate: 20, commission: 3, retained: 16 },
+          { name: '读写精讲班', max: 5, count: 1, unit: 140, salary: 105, toolFee: 30, net: 5, rate: 20, commission: 1, retained: 4 }
+        ]
       }
     ];
+
+    /* 汇总一律由明细重算，保证 count / gross / retained / transfer 严格自洽 */
+    function sumBy(rows, pick) {
+      return rows.reduce((total, row) => total + pick(row), 0);
+    }
+
+    function finalizeOrder(order) {
+      order.count = order.lines.length;
+      order.gross = sumBy(order.lines, (l) => l.points);
+      order.retained = sumBy(order.groupClasses, (g) => g.retained);
+      order.transfer = order.gross - order.retained + order.subsidy;
+      return order;
+    }
+
+    INIT_ORDERS.forEach(finalizeOrder);
+
+    const DRAFT_ORDER = INIT_ORDERS[0];
+    const TOTALS = {
+      gross: DRAFT_ORDER.gross,
+      retained: DRAFT_ORDER.retained,
+      subsidy: DRAFT_ORDER.subsidy,
+      transfer: DRAFT_ORDER.transfer,
+      count: DRAFT_ORDER.count
+    };
 
     const TIMELINE = [
       { time: '02:00', label: '自动结课', sub: '17 节', done: true },
       { time: '03:30', label: '生成草稿', sub: '待上交', current: true },
-      { time: '08:00', label: '催办提醒', sub: 'M4', done: false },
+      { time: '08:00', label: '催办提醒', sub: '站内信 + 邮件', done: false },
       { time: '周二', label: '平台审核', sub: '11-11', done: false },
       { time: '周三', label: '兜底发薪', sub: '11-12', done: false }
     ];
@@ -209,17 +294,17 @@
 
     const BANNERS = {
       leo: {
-        key: 'leo', gradient: 'from-slate-900 via-fuchsia-950 to-slate-800', brand: 'Dream 教务', role: '班长',
+        key: 'leo', gradient: 'from-slate-900 via-fuchsia-950 to-slate-800', brand: '班长工作台', role: '班长',
         subtitle: '教务统筹 · Leo', initial: 'L',
         pattern: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><path d="M0 20 H390 M0 40 H390 M0 60 H390" stroke="white" stroke-opacity=".06"/><path d="M65 0 V80 M130 0 V80 M195 0 V80 M260 0 V80 M325 0 V80" stroke="white" stroke-opacity=".04"/><circle cx="330" cy="20" r="34" fill="white" fill-opacity=".05"/></svg>`
       },
       sarah: {
-        key: 'sarah', gradient: 'from-slate-900 via-violet-950 to-slate-800', brand: 'Dream 运营中枢', role: '管理员',
+        key: 'sarah', gradient: 'from-slate-900 via-violet-950 to-slate-800', brand: '管理员后台', role: '管理员',
         subtitle: '平台统筹 · Sarah', initial: 'S',
         pattern: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><circle cx="325" cy="18" r="38" stroke="white" stroke-opacity=".08"/><circle cx="325" cy="18" r="24" stroke="white" stroke-opacity=".06"/><path d="M0 68 C60 40 120 82 190 52 S300 20 390 48" stroke="white" stroke-opacity=".07" stroke-width="16" stroke-linecap="round"/></svg>`
       },
       tom: {
-        key: 'tom', gradient: 'from-slate-900 via-fuchsia-950 to-slate-800', brand: 'Dream 教务', role: '班长 · 已离职',
+        key: 'tom', gradient: 'from-slate-900 via-fuchsia-950 to-slate-800', brand: '班长工作台', role: '班长',
         subtitle: '离职交割 · Tom', initial: 'T',
         pattern: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><path d="M0 20 H390 M0 40 H390 M0 60 H390" stroke="white" stroke-opacity=".06"/><path d="M65 0 V80 M130 0 V80 M195 0 V80 M260 0 V80 M325 0 V80" stroke="white" stroke-opacity=".04"/><circle cx="330" cy="20" r="34" fill="white" fill-opacity=".05"/></svg>`
       }
@@ -227,21 +312,21 @@
 
     const NAVS = {
       leo: [
-        { id: 'home', icon: 'home', label: '首页', desc: '班长教务待办与主页属于 M0 工作台。', href: 'm0_workspace_home.html?role=monitor' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '自家与所辖学员课表属于 M3A。', href: 'm3a_calendar_schedule.html' },
-        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '转让、排班与退款调度属于 M0 / M3A。', href: 'm0_workspace_home.html?role=monitor&view=ops' },
+        { id: 'home', icon: 'home', label: '首页', desc: '班长工作台待办与今日课务总览。', href: 'm0_workspace_home.html?role=monitor', cta: '前往首页' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看所辖学员与自家孩子的周课表。', href: 'm3a_calendar_schedule.html', cta: '前往学生课表' },
+        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '课程转让、排班调整与退款调度统一入口。', href: 'm0_workspace_home.html?role=monitor&view=ops', cta: '前往教务中心' },
         { id: 'me', icon: 'user', label: '我的', desc: '班长周转账与资金归集。', board: true }
       ],
       sarah: [
-        { id: 'home', icon: 'home', label: '首页', desc: '平台结算与运营大盘属于 M0 工作台。', href: 'm0_workspace_home.html?role=admin' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '全局课表透视属于 M3A。', href: 'm3a_calendar_schedule.html' },
-        { id: 'ops', icon: 'layout-grid', label: '教务调度', desc: '全域资源调度属于 M0 / M3A。', href: 'm0_workspace_home.html?role=admin&view=ops' },
-        { id: 'settings', icon: 'settings', label: '管理与设置', desc: '财务中心 · 资金归集审核。', board: true }
+        { id: 'home', icon: 'home', label: '首页', desc: '平台结算进度与运营大盘。', href: 'm0_workspace_home.html?role=admin', cta: '前往首页' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '全局课表透视与资源占用总览。', href: 'm3a_calendar_schedule.html', cta: '前往学生课表' },
+        { id: 'ops', icon: 'layout-grid', label: '教务调度', desc: '全域教师、班级与课次资源调度。', href: 'm0_workspace_home.html?role=admin&view=ops', cta: '前往教务中心' },
+        { id: 'settings', icon: 'settings', label: '管理与设置', desc: '财务中心 · 资金归集审核。', board: true, cta: '前往管理与设置' }
       ],
       tom: [
-        { id: 'home', icon: 'home', label: '首页', desc: '离职班长主页属于 M0 工作台。', href: 'm0_workspace_home.html?role=monitor' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '所辖学员课表属于 M3A。', href: 'm3a_calendar_schedule.html' },
-        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '离职前的排班与调度属于 M0 / M3A。', href: 'm0_workspace_home.html?role=monitor&view=ops' },
+        { id: 'home', icon: 'home', label: '首页', desc: '班长工作台待办与离职交接进度。', href: 'm0_workspace_home.html?role=monitor', cta: '前往首页' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看所辖学员与自家孩子的周课表。', href: 'm3a_calendar_schedule.html', cta: '前往学生课表' },
+        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '离职前的排班调整与调度记录。', href: 'm0_workspace_home.html?role=monitor&view=ops', cta: '前往教务中心' },
         { id: 'me', icon: 'user', label: '我的', desc: '离职托管资产交割。', board: true }
       ]
     };
@@ -267,6 +352,7 @@
         filter: 'ALL', adminFilter: 'PENDING_CONFIRMATION',
         drawer: false, tab: 'student', voucher: false, tomVoucher: false,
         handover: 'draft', modal: null,
+        detailTab: 'student', detailReturnId: null,
         rollId: null, rollReason: '', rejectId: null, rejectReason: '',
         tsSeq: 1, ts: clone(INIT_TS), orders: clone(INIT_ORDERS)
       };
@@ -287,11 +373,20 @@
       const item = (NAVS[state.role] || []).find((n) => n.id === state.navTab);
       state.page = item && item.board ? 'workspace' : 'placeholder';
     }
+    /* 深链：?role=leo|sarah&order=tro_leo00001 直接唤起该转账单详情 */
+    if (params.get('order')) {
+      const orderId = params.get('order');
+      if (state.orders.some((o) => o.id === orderId)) {
+        state.navTab = roleMeta().boardTab;
+        state.page = 'workspace';
+        state.modal = { type: 'order', id: orderId };
+      }
+    }
 
     function roleMeta() {
-      if (state.role === 'sarah') return { brand: 'Dream 运营中枢', title: '全域大盘 · 财务归集', avatar: 'S', period: '全域资金池', boardTab: 'settings' };
-      if (state.role === 'tom') return { brand: 'Tom 的交割域', title: '离职交割 · 未结资产移交', avatar: 'T', period: '最后工作日 11-15', boardTab: 'me' };
-      return { brand: 'Leo 的教务域', title: '所辖 50 生 · 自家 2 娃', avatar: 'L', period: '本周 11.03-11.09', boardTab: 'me' };
+      if (state.role === 'sarah') return { brand: '管理员后台', title: '全域大盘 · 财务归集', avatar: 'S', period: '全域资金池', boardTab: 'settings' };
+      if (state.role === 'tom') return { brand: '班长工作台', title: '离职交割 · 未结资产移交', avatar: 'T', period: '最后工作日 11-15', boardTab: 'me' };
+      return { brand: '班长工作台', title: '所辖 50 生 · 自家 2 娃', avatar: 'L', period: '本周 11.02-11.08', boardTab: 'me' };
     }
 
     function statusMeta(status) {
@@ -354,6 +449,17 @@
       el.classList.remove('hidden');
       clearTimeout(toast._timer);
       toast._timer = setTimeout(() => el.classList.add('hidden'), 2400);
+    }
+
+    function copyOrderId(id) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(id).catch((err) => console.warn('clipboard unavailable', err));
+        }
+      } catch (err) {
+        console.warn('clipboard unavailable', err);
+      }
+      toast('单号已复制');
     }
 
     function requireOnline(message = '离线模式不可用') {
@@ -446,6 +552,8 @@
       const contentTop = contentEl.scrollTop;
       const drawerEl = document.querySelector('[data-drawer-scroll]');
       const drawerTop = drawerEl ? drawerEl.scrollTop : 0;
+      const detailEl = document.querySelector('[data-detail-scroll]');
+      const detailTop = detailEl ? detailEl.scrollTop : 0;
 
       $('banner').innerHTML = renderBanner();
 
@@ -466,6 +574,8 @@
       contentEl.scrollTop = contentTop;
       const nextDrawer = document.querySelector('[data-drawer-scroll]');
       if (nextDrawer) nextDrawer.scrollTop = drawerTop;
+      const nextDetail = document.querySelector('[data-detail-scroll]');
+      if (nextDetail) nextDetail.scrollTop = detailTop;
       if (window.lucide) lucide.createIcons();
     }
 
@@ -478,6 +588,7 @@
       state.page = 'workspace';
       state.drawer = false;
       state.modal = null;
+      state.detailReturnId = null;
       renderAll();
       resetScroll();
       toast(`已切换到${role === 'sarah' ? '管理员 Sarah' : role === 'tom' ? '离职班长 Tom' : '班长 Leo'}`);
@@ -489,6 +600,7 @@
       state.page = 'workspace';
       state.navTab = roleMeta().boardTab;
       state.modal = null;
+      state.detailReturnId = null;
       renderAll();
       resetScroll();
     }
@@ -500,7 +612,10 @@
 
     function setOnline(on) {
       state.online = on;
-      if (on === 'off') state.modal = null;
+      if (on === 'off') {
+        state.detailReturnId = null;
+        if (state.modal && state.modal.type !== 'order') state.modal = null;
+      }
       renderAll();
       if (on === 'off') toast('离线模式：资金提交与回退不可用');
     }
@@ -512,6 +627,7 @@
       state.page = item.board ? 'workspace' : 'placeholder';
       state.drawer = false;
       state.modal = null;
+      state.detailReturnId = null;
       renderAll();
       resetScroll();
     }
@@ -547,7 +663,7 @@
       const mine = state.orders.filter((o) => o.monitor === 'Leo' && o.type === 'WEEKLY_SETTLEMENT');
       const list = state.filter === 'ALL' ? mine : mine.filter((o) => o.status === state.filter);
       const draft = draftOrder();
-      const period = draft ? draft.period : '11.03 - 11.09';
+      const period = draft ? draft.period : '11.02 - 11.08';
       const filters = [['ALL', '全部'], ['DRAFT', '待上交'], ['PENDING_CONFIRMATION', '待平台确认'], ['COMPLETED', '已完成'], ['CANCELLED', '已作废']]
         .map(([key, label]) => `<button data-action="filter" data-filter="${key}" class="h-8 shrink-0 rounded-lg border px-2.5 text-[12px] font-bold transition ${state.filter === key ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">${label}</button>`).join('');
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
@@ -573,7 +689,7 @@
         <section class="rounded-2xl border ${TONES.emerald.card} p-4 shadow-sm">
           <div class="flex items-center justify-between text-[12px] font-medium ${TONES.emerald.sub}">
             <span>${draft ? '待上交账面总额' : '本周已提交账面总额'}</span>
-            <span class="font-mono">${TOTALS.count} 节 · 7 位学员</span>
+            <span class="font-mono">${TOTALS.count} 节 · ${studentGroupsOf(DRAFT_ORDER).length} 位出资学员</span>
           </div>
           <div class="mt-1.5 flex items-end gap-2">
             <span class="font-mono text-[18px] font-bold ${TONES.emerald.title}">${fmt(TOTALS.gross)}</span>
@@ -730,11 +846,11 @@
 
     function auditTable(list) {
       return `<div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table class="w-full min-w-[680px] border-collapse text-left">
+        <table class="w-full min-w-[640px] border-collapse text-left">
           <thead class="border-b border-slate-200 bg-slate-50">
             <tr class="text-[12px] font-bold text-slate-500">
-              <th class="px-3 py-2.5">班长</th><th class="px-3 py-2.5">类型</th><th class="px-3 py-2.5 text-right">账面 / 自留</th>
-              <th class="px-3 py-2.5 text-right">实转</th><th class="px-3 py-2.5">凭证</th><th class="px-3 py-2.5">提交</th><th class="px-3 py-2.5 text-right">操作</th>
+              <th class="px-3 py-2.5">单号 / 类型</th><th class="px-3 py-2.5">班长</th><th class="px-3 py-2.5 text-right">账面 / 自留</th>
+              <th class="px-3 py-2.5 text-right">实转</th><th class="px-3 py-2.5">凭证</th><th class="px-3 py-2.5">提交</th><th class="px-3 py-2.5 text-right">状态</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">${list.map(auditRow).join('')}</tbody>
@@ -744,20 +860,17 @@
 
     function auditRow(o) {
       const meta = statusMeta(o.status);
-      const actions = o.status === 'PENDING_CONFIRMATION'
-        ? `<div class="flex justify-end gap-1.5">
-            <button data-action="confirm-collect" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 rounded-lg bg-indigo-600 px-2 text-[12px] font-bold text-white hover:bg-indigo-700 disabled:opacity-40">确认收款</button>
-            <button data-action="reject" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 rounded-lg border border-rose-200 px-2 text-[12px] font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-40">驳回</button>
-          </div>`
-        : `<div class="flex justify-end">${chip(meta.label, meta.tone)}</div>`;
-      return `<tr class="text-[14px] transition hover:bg-slate-50/60">
+      return `<tr data-action="open-order" data-id="${o.id}" class="cursor-pointer text-[14px] transition hover:bg-slate-50/60">
+        <td class="px-3 py-2.5">
+          <button data-action="open-order" data-id="${o.id}" class="text-left font-mono text-[12px] font-bold text-indigo-700 hover:text-indigo-900">${esc(o.id)}</button>
+          <div class="mt-0.5 text-[12px] text-slate-400">${typeLabel(o.type)} · 查看详情</div>
+        </td>
         <td class="px-3 py-2.5"><div class="flex items-center gap-1.5"><span class="grid h-5 w-5 place-items-center rounded bg-slate-100 text-[12px] font-bold text-slate-600">${o.monitor[0]}</span><span class="font-semibold text-slate-800">${o.monitor}</span></div></td>
-        <td class="px-3 py-2.5 text-[12px] text-slate-500">${typeLabel(o.type)}</td>
         <td class="px-3 py-2.5 text-right"><div class="text-[12px] text-slate-500">${fmt(o.gross)}</div><div class="text-[12px] text-slate-400">自留 ${fmt(o.retained)}</div></td>
         <td class="px-3 py-2.5 text-right font-mono font-bold text-slate-900">${fmt(o.transfer)}</td>
         <td class="px-3 py-2.5"><button data-action="voucher" data-id="${o.id}" class="block h-8 w-6 overflow-hidden rounded border border-slate-200 bg-slate-50">${miniReceipt()}</button></td>
         <td class="px-3 py-2.5 text-[12px] text-slate-400">${esc(o.time)}</td>
-        <td class="px-3 py-2.5">${actions}</td>
+        <td class="px-3 py-2.5"><div class="flex justify-end">${chip(meta.label, meta.tone)}</div></td>
       </tr>`;
     }
 
@@ -769,7 +882,7 @@
               <button data-action="reject" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-9 flex-1 rounded-lg border border-rose-200 text-[12px] font-bold text-rose-700 disabled:opacity-40">驳回</button>
               <button data-action="confirm-collect" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-9 flex-[2] rounded-lg bg-indigo-600 text-[12px] font-bold text-white disabled:opacity-40">确认收款</button>
             </div>` : '';
-        return `<article class="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
+        return `<article data-action="open-order" data-id="${o.id}" role="button" tabindex="0" class="cursor-pointer rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm transition active:scale-[0.995]">
           <div class="flex items-center justify-between gap-2">
             <div class="flex min-w-0 items-center gap-1.5">
               <span class="grid h-5 w-5 place-items-center rounded bg-slate-100 text-[12px] font-bold text-slate-600">${o.monitor[0]}</span>
@@ -783,8 +896,12 @@
             <div class="text-right text-[12px] text-slate-400"><div>账面 ${fmt(o.gross)}</div><div>自留 ${fmt(o.retained)}</div></div>
           </div>
           <div class="mt-2 flex items-center justify-between text-[12px] text-slate-400">
-            <span>${esc(o.period)} · ${esc(o.time)}</span>
-            <button data-action="voucher" data-id="${o.id}" class="flex items-center gap-1 font-bold text-slate-600">${icon('image', 'h-3.5 w-3.5')}凭证</button>
+            <span class="truncate">${esc(o.id)} · ${esc(o.period)}</span>
+            <button data-action="voucher" data-id="${o.id}" class="flex shrink-0 items-center gap-1 font-bold text-slate-600">${icon('image', 'h-3.5 w-3.5')}凭证</button>
+          </div>
+          <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-2 text-[12px]">
+            <span class="text-slate-400">${esc(o.time)} 提交</span>
+            <span class="flex items-center gap-1 font-bold text-indigo-700">查看双视角明细${icon('chevron-right', 'h-3.5 w-3.5')}</span>
           </div>
           ${actions}
         </article>`;
@@ -956,7 +1073,7 @@
           <header class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
             <div class="min-w-0">
               <h2 class="text-[16px] font-bold text-slate-900">发起周度资金上交</h2>
-              <p class="mt-0.5 text-[12px] font-medium text-slate-400">17 节 · 3,160 积分 · 单向归集平台</p>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-400">${TOTALS.count} 节 · ${fmt(TOTALS.gross)} 积分 · 单向归集平台</p>
             </div>
             <button data-action="close-drawer" class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100">${icon('x', 'h-4 w-4')}</button>
           </header>
@@ -975,14 +1092,14 @@
             </div>
             ${groupBlock}
             <div class="flex items-center justify-between pt-1"><h3 class="text-[16px] font-bold text-slate-900">小班班级运营核算</h3><span class="text-[12px] font-semibold text-slate-400">R = 20%</span></div>
-            <div class="space-y-2">${SMALL.map(smallBlock).join('')}</div>
+            <div class="space-y-2">${DRAFT_ORDER.groupClasses.map(smallBlock).join('')}</div>
             <div class="rounded-2xl border ${TONES.emerald.card} p-3">
               <div class="grid grid-cols-3 divide-x divide-emerald-200/70 text-center">
                 <div><div class="text-[12px] ${TONES.emerald.sub}">账面总实收</div><div class="mt-0.5 font-mono text-[16px] font-bold ${TONES.emerald.title}">${fmt(TOTALS.gross)}</div></div>
                 <div><div class="text-[12px] ${TONES.emerald.sub}">自留盈余</div><div class="mt-0.5 font-mono text-[16px] font-bold ${TONES.emerald.title}">${fmt(TOTALS.retained)}</div></div>
                 <div><div class="text-[12px] ${TONES.emerald.sub}">应转平台</div><div class="mt-0.5 font-mono text-[16px] font-bold ${TONES.emerald.title}">${fmt(TOTALS.transfer)}</div></div>
               </div>
-              <div class="mt-2 text-center font-mono text-[12px] ${TONES.emerald.sub}">3,160 − 79 + 12 = 3,093</div>
+              <div class="mt-2 text-center font-mono text-[12px] ${TONES.emerald.sub}">${fmt(TOTALS.gross)} − ${fmt(TOTALS.retained)} + ${fmt(TOTALS.subsidy)} = ${fmt(TOTALS.transfer)}</div>
             </div>
           </div>
           <footer class="shrink-0 space-y-2 border-t border-slate-200 bg-white p-3">
@@ -993,28 +1110,69 @@
       </div>`;
     }
 
+    /* 明细聚合：学生视角按出资归属，教师视角按授课人，双视角共用同一份 lines */
+    function studentGroupsOf(order) {
+      const map = new Map();
+      (order.lines || []).forEach((l) => {
+        const key = l.funderStudent || l.student;
+        if (!map.has(key)) map.set(key, { name: key, parent: l.parent, lines: [] });
+        map.get(key).lines.push(l);
+      });
+      return [...map.values()].map((g) => {
+        const prices = [...new Set(g.lines.map((l) => l.points))];
+        const kinds = [...new Set(g.lines.map((l) => l.kind))];
+        return {
+          ...g, count: g.lines.length,
+          total: sumBy(g.lines, (l) => l.points),
+          unit: prices.length === 1 ? prices[0] : null,
+          kind: kinds.length === 1 ? kinds[0] : '混合课型',
+          transfer: g.lines.some((l) => l.transferNote)
+        };
+      });
+    }
+
+    function teacherGroupsOf(order) {
+      const map = new Map();
+      (order.lines || []).forEach((l) => {
+        if (!map.has(l.teacher)) map.set(l.teacher, { name: l.teacher, level: l.teacherLevel, lines: [] });
+        map.get(l.teacher).lines.push(l);
+      });
+      return [...map.values()].map((g) => ({
+        ...g, count: g.lines.length,
+        amount: sumBy(g.lines, (l) => l.points),
+        sub: g.lines.filter((l) => l.subFor).length
+      }));
+    }
+
+    function smallSummary(order) {
+      const rows = order.groupClasses || [];
+      const gross = sumBy(rows, (g) => g.unit * g.count);
+      const retained = sumBy(rows, (g) => g.retained);
+      return { rows, gross, retained, transfer: gross - retained };
+    }
+
     function studentGroups() {
       return `<div class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        ${STUDENTS.map((s) => `<div class="flex items-center justify-between px-3 py-2">
+        ${studentGroupsOf(DRAFT_ORDER).map((s) => `<div class="flex items-center justify-between px-3 py-2">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-1.5">
               <span class="text-[14px] font-semibold text-slate-900">${esc(s.name)}</span>
               <span class="rounded bg-slate-100 px-1 py-0.5 text-[12px] font-semibold text-slate-500">${esc(s.kind)}</span>
-              ${s.transfer ? `<span class="rounded border border-amber-200 bg-amber-50 px-1 py-0.5 text-[12px] font-bold text-amber-800">转让</span>` : ''}
+              ${s.transfer ? `<span class="rounded border border-amber-200 bg-amber-50 px-1 py-0.5 text-[12px] font-bold text-amber-800">含跨家长转让</span>` : ''}
             </div>
-            <div class="mt-0.5 text-[12px] text-slate-400">${s.transfer ? `受让学员 · 原出资人 ${esc(s.funder)}（${esc(s.originalStudent)}） · ${s.count} 节` : `出资家长 ${esc(s.parent)} · ${s.count} 节`}</div>
+            <div class="mt-0.5 text-[12px] text-slate-400">出资家长 ${esc(s.parent)} · ${s.count} 节${s.transfer ? ' · 含跨家长转让' : ''}</div>
           </div>
-          <div class="shrink-0 text-right"><div class="font-mono text-[14px] font-bold text-slate-900">${fmt(s.amount)}</div><div class="text-[12px] text-slate-400">积分</div></div>
+          <div class="shrink-0 text-right"><div class="font-mono text-[14px] font-bold text-slate-900">${fmt(s.total)}</div><div class="text-[12px] text-slate-400">积分</div></div>
         </div>`).join('')}
       </div>`;
     }
 
     function teacherGroups() {
       return `<div class="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        ${TEACHERS.map((t) => `<div class="flex items-center justify-between px-3 py-2">
+        ${teacherGroupsOf(DRAFT_ORDER).map((t) => `<div class="flex items-center justify-between px-3 py-2">
           <div class="min-w-0">
-            <div class="flex items-center gap-1.5"><span class="text-[14px] font-semibold text-slate-900">${esc(t.name)}</span>${t.sub ? `<span class="rounded border border-indigo-100 bg-indigo-50 px-1 py-0.5 text-[12px] font-bold text-indigo-700">代课 ${t.sub} 节</span>` : ''}</div>
-            <div class="mt-0.5 text-[12px] text-slate-400">${esc(t.note)} · ${t.count} 节</div>
+            <div class="flex items-center gap-1.5"><span class="text-[14px] font-semibold text-slate-900">${esc(t.name)}</span>${t.sub ? `<span class="rounded border border-purple-200 bg-purple-50 px-1 py-0.5 text-[12px] font-bold text-purple-700">代课 ${t.sub} 节</span>` : ''}</div>
+            <div class="mt-0.5 text-[12px] text-slate-400">定级 ${esc(t.level)} · ${t.count} 节</div>
           </div>
           <div class="shrink-0 text-right"><div class="font-mono text-[14px] font-bold text-slate-900">${fmt(t.amount)}</div><div class="text-[12px] text-slate-400">积分</div></div>
         </div>`).join('')}
@@ -1023,18 +1181,21 @@
 
     function smallBlock(s) {
       const netCls = s.net < 0 ? 'text-rose-700' : 'text-emerald-700';
-      const footer = s.loss
-        ? `<span class="text-rose-700">亏损贴补 ${s.loss}</span><span class="font-semibold text-slate-800">上交 ${s.transfer}</span>`
-        : `<span class="text-slate-500">小计实收 ${s.gross}</span><span class="font-semibold text-slate-800">自留 ${s.retainedTotal} · 上交 ${s.transfer}</span>`;
+      const gross = s.unit * s.count;
+      const transfer = gross - s.retained;
+      const loss = s.net < 0 ? -s.net * s.count : 0;
+      const footer = loss
+        ? `<span class="text-rose-700">亏损贴补 ${loss}</span><span class="font-semibold text-slate-800">上交 ${transfer}</span>`
+        : `<span class="text-slate-500">小计实收 ${gross}</span><span class="font-semibold text-slate-800">自留 ${s.retained} · 上交 ${transfer}</span>`;
       return `<div class="rounded-xl border border-slate-200 bg-white p-2.5">
         <div class="flex items-center justify-between"><span class="text-[14px] font-semibold text-slate-900">${esc(s.name)}</span><span class="text-[12px] text-slate-400">Max ${s.max} · ${s.count} 节</span></div>
         <div class="mt-1.5 grid grid-cols-3 gap-1 text-[12px]">
           <div><span class="text-slate-400">单节实收</span><div class="font-semibold text-slate-800">${s.unit}</div></div>
-          <div><span class="text-slate-400">课酬</span><div class="font-semibold text-slate-800">${s.pay}</div></div>
-          <div><span class="text-slate-400">工具费</span><div class="font-semibold text-slate-800">${s.tool}</div></div>
-          <div><span class="text-slate-400">净盈余</span><div class="font-semibold ${netCls}">${s.net}</div></div>
-          <div><span class="text-slate-400">平台分成</span><div class="font-semibold text-slate-800">${s.commission}</div></div>
-          <div><span class="text-slate-400">自留盈余</span><div class="font-semibold text-slate-800">${s.retained}</div></div>
+          <div><span class="text-slate-400">教师课酬</span><div class="font-semibold text-slate-800">${s.salary}</div></div>
+          <div><span class="text-slate-400">工具费</span><div class="font-semibold text-slate-800">${s.toolFee}</div></div>
+          <div><span class="text-slate-400">单节净盈余</span><div class="font-semibold ${netCls}">${s.net}</div></div>
+          <div><span class="text-slate-400">平台分成 ${s.rate}%</span><div class="font-semibold text-slate-800">${s.commission}</div></div>
+          <div><span class="text-slate-400">自留合计</span><div class="font-semibold text-slate-800">${s.retained}</div></div>
         </div>
         <div class="mt-1.5 flex justify-between border-t border-slate-100 pt-1.5 text-[12px]">${footer}</div>
       </div>`;
@@ -1145,7 +1306,7 @@
           <div class="flex justify-between rounded-xl bg-slate-50 px-3 py-2 text-[14px]"><span class="font-mono text-[12px] text-slate-500">${o.id}</span><span class="font-semibold text-slate-800">${fmt(o.transfer)} 积分</span></div>
           <div>
             <label for="rejectReason" class="mb-1 block text-[14px] font-semibold text-slate-700">驳回原因 <span class="text-rose-500">*</span></label>
-            <textarea id="rejectReason" rows="3" maxlength="200" class="h-24 w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500" placeholder="如：到账金额与单据不符">${esc(state.rejectReason)}</textarea>
+            <textarea id="rejectReason" rows="3" maxlength="200" class="h-24 w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500" placeholder="请注明存疑课次，如 TR-20261019 中 11-04 18:00 课次金额不符">${esc(state.rejectReason)}</textarea>
             <div class="mt-1 flex justify-between text-[12px] text-slate-400"><span>必填 1-200 字</span><span id="rejectCount">${state.rejectReason.length}/200</span></div>
           </div>
           <p class="text-[12px] font-medium leading-relaxed text-slate-400">驳回后单据作废，关联课次解除锁定并恢复为已结课待结算。</p>
@@ -1185,48 +1346,292 @@
     }
 
     function orderTimeline(o) {
-      const rows = [];
+      const rows = [{ text: '系统自动结课并生成转账草稿', time: o.generatedAt || o.time, done: true }];
       if (o.status === 'DRAFT') {
-        rows.push({ text: '03:30 系统生成转账草稿', time: o.time, done: true });
-        rows.push({ text: '待班长上传凭证并提交', time: '', current: true });
+        rows.push({ text: '周一 08:00 推送催办站内信与邮件', time: '', done: true });
+        rows.push({ text: '待班长线下打款、上传凭证并提交', time: '', current: true });
       } else if (o.status === 'PENDING_CONFIRMATION') {
-        rows.push({ text: '班长提交转账单', time: o.time, done: true });
-        rows.push({ text: '平台待确认收款', time: '', current: true });
+        rows.push({ text: '班长上传凭证并提交转账单', time: o.time, done: true });
+        rows.push({ text: '平台核验银行流水到账', time: '', current: true });
+        rows.push({ text: '确认收款后办理资金归集', time: '', pending: true });
       } else if (o.status === 'COMPLETED') {
-        rows.push({ text: '班长提交转账单', time: o.time, done: true });
-        rows.push({ text: '平台确认收款', time: o.confirmTime || '', done: true });
-        rows.push({ text: `${o.count} 节流转为已归集`, time: '', done: true });
+        rows.push({ text: '班长上传凭证并提交转账单', time: o.time, done: true });
+        rows.push({ text: `平台确认收款 · 经办人 ${o.confirmBy || 'Sarah'}`, time: o.confirmTime || '', done: true });
+        rows.push({ text: `${o.count} 节课次流转为已归集，进入发薪池`, time: '', done: true });
       } else {
-        rows.push({ text: '班长提交转账单', time: o.time, done: true });
+        rows.push({ text: '班长上传凭证并提交转账单', time: o.time, done: true });
         rows.push({ text: `平台驳回：${o.reject || ''}`, time: o.rejectTime || '', failed: true });
-        rows.push({ text: `${o.count} 节解除锁定`, time: '', done: true });
+        rows.push({ text: `${o.count} 节课次解除转账锁定`, time: '', done: true });
       }
       return rows.map((r) => `<div class="flex gap-2.5">
-        <div class="flex flex-col items-center"><span class="mt-0.5 h-2 w-2 rounded-full ${r.failed ? 'bg-rose-500' : r.current ? 'bg-amber-500' : 'bg-emerald-600'}"></span><span class="mt-1 w-px flex-1 bg-slate-200"></span></div>
-        <div class="pb-2"><div class="text-[14px] ${r.failed ? 'text-rose-700' : 'text-slate-700'}">${esc(r.text)}</div>${r.time ? `<div class="mt-0.5 text-[12px] text-slate-400">${esc(r.time)}</div>` : ''}</div>
+        <div class="flex flex-col items-center"><span class="mt-0.5 h-2 w-2 rounded-full ${r.failed ? 'bg-rose-500' : r.current ? 'bg-amber-500' : r.pending ? 'bg-slate-300' : 'bg-emerald-600'}"></span><span class="mt-1 w-px flex-1 bg-slate-200"></span></div>
+        <div class="pb-2"><div class="text-[14px] ${r.failed ? 'text-rose-700' : r.pending ? 'text-slate-400' : 'text-slate-700'}">${esc(r.text)}</div>${r.time ? `<div class="mt-0.5 text-[12px] text-slate-400">${esc(r.time)}</div>` : ''}</div>
       </div>`).join('');
+    }
+
+    function lineDetail(l) {
+      return `<div class="rounded-lg bg-slate-50 px-2.5 py-2">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[12px] font-semibold text-slate-700"><span class="font-mono">${esc(l.date)} ${esc(l.weekday)}</span> ${esc(l.time)}</span>
+          <span class="font-mono text-[12px] font-bold text-slate-700">${l.points}</span>
+        </div>
+        <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-400">
+          <span>${esc(l.kind)}</span><span>·</span><span>${esc(l.teacher)}</span>
+          ${l.subFor ? `<span class="font-semibold text-purple-700">· 🟣 代 ${esc(l.subFor)} 授课</span>` : ''}
+        </div>
+        ${l.transferNote ? `<div class="mt-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-1 text-[12px] font-semibold text-amber-800">${esc(l.transferNote)}</div>` : ''}
+      </div>`;
+    }
+
+    function studentDetailGroups(o) {
+      return `<div class="space-y-2">${studentGroupsOf(o).map((g) => `
+        <details class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <summary class="cursor-pointer px-3 py-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-[14px] font-bold text-slate-900">${esc(g.name)}</span>
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-500">${esc(g.kind)}</span>
+                  ${g.transfer ? `<span class="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">含跨家长转让</span>` : ''}
+                </div>
+                <div class="mt-0.5 text-[12px] text-slate-400">出资家长 ${esc(g.parent)} · ${g.count} 节${g.transfer ? ' · 转让课次归原出资人' : ''}</div>
+              </div>
+              <div class="shrink-0 text-right">
+                <div class="font-mono text-[16px] font-bold text-slate-900">${fmt(g.total)}</div>
+                <div class="text-[12px] text-slate-400">${g.unit ? `单节 ${g.unit}` : '按课次计价'}</div>
+              </div>
+            </div>
+          </summary>
+          <div class="space-y-1.5 border-t border-slate-100 px-3 py-2">${g.lines.map(lineDetail).join('')}</div>
+        </details>`).join('')}</div>`;
+    }
+
+    function teacherDetailGroups(o) {
+      return `<div class="space-y-2">${teacherGroupsOf(o).map((g) => `
+        <details class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <summary class="cursor-pointer px-3 py-2.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-[14px] font-bold text-slate-900">${esc(g.name)}</span>
+                  ${g.sub ? `<span class="rounded border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[12px] font-bold text-purple-700">🟣 代课 ${g.sub} 节</span>` : ''}
+                </div>
+                <div class="mt-0.5 text-[12px] text-slate-400">定级 ${esc(g.level)} · 带课 ${g.count} 节</div>
+              </div>
+              <div class="shrink-0 text-right">
+                <div class="font-mono text-[16px] font-bold text-slate-900">${fmt(g.amount)}</div>
+                <div class="text-[12px] text-slate-400">课次实付</div>
+              </div>
+            </div>
+          </summary>
+          <div class="space-y-1.5 border-t border-slate-100 px-3 py-2">
+            ${g.lines.map((l) => `<div class="rounded-lg bg-slate-50 px-2.5 py-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[12px] font-semibold text-slate-700"><span class="font-mono">${esc(l.date)} ${esc(l.weekday)}</span> ${esc(l.time)}</span>
+                <span class="font-mono text-[12px] font-bold text-slate-700">${l.points}</span>
+              </div>
+              <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-400">
+                <span>${esc(l.student)}</span><span>·</span><span>${esc(l.kind)}</span>
+                ${l.subFor ? `<span class="font-semibold text-purple-700">· 代 ${esc(l.subFor)} 授课</span>` : `<span>· 正课</span>`}
+              </div>
+            </div>`).join('')}
+          </div>
+        </details>`).join('')}</div>`;
+    }
+
+    function groupClassCard(g) {
+      const gross = g.unit * g.count;
+      const transfer = gross - g.retained;
+      const netCls = g.net < 0 ? 'text-rose-700' : 'text-emerald-700';
+      return `<div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[14px] font-bold text-slate-900">${esc(g.name)}</span>
+          <span class="text-[12px] font-medium text-slate-400">Max ${g.max} · ${g.count} 节</span>
+        </div>
+        <div class="mt-2 grid grid-cols-3 gap-x-2 gap-y-1.5 text-[12px]">
+          <div><div class="text-slate-400">单节实收</div><div class="font-mono font-semibold text-slate-800">${g.unit}</div></div>
+          <div><div class="text-slate-400">教师课酬</div><div class="font-mono font-semibold text-slate-800">${g.salary}</div></div>
+          <div><div class="text-slate-400">工具费 Max×6</div><div class="font-mono font-semibold text-slate-800">${g.toolFee}</div></div>
+          <div><div class="text-slate-400">单节净盈余</div><div class="font-mono font-semibold ${netCls}">${g.net}</div></div>
+          <div><div class="text-slate-400">平台分成 ${g.rate}%</div><div class="font-mono font-semibold text-slate-800">${g.commission}</div></div>
+          <div><div class="text-slate-400">班长自留合计</div><div class="font-mono font-semibold text-slate-800">${g.retained}</div></div>
+        </div>
+        <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-2 text-[12px]">
+          <span class="text-slate-500">小班实收 ${fmt(gross)}</span>
+          <span class="font-semibold text-emerald-700">自留 ${fmt(g.retained)} · 应转 ${fmt(transfer)}</span>
+        </div>
+      </div>`;
+    }
+
+    function groupClassSection(o) {
+      const s = smallSummary(o);
+      if (!s.rows.length) return '';
+      return `
+        <div class="flex items-center justify-between px-1 pt-1">
+          <h3 class="text-[16px] font-bold text-slate-900">小班运营核算</h3>
+          <span class="text-[12px] font-medium text-slate-400">${s.rows.length} 个班级 · R = 20%</span>
+        </div>
+        <div class="space-y-2">${s.rows.map(groupClassCard).join('')}</div>
+        <div class="rounded-xl border border-emerald-200/70 bg-emerald-50/80 px-3 py-2.5">
+          <div class="flex items-center justify-center gap-1.5 font-mono text-[12px] font-bold text-emerald-950">
+            <span>${fmt(s.gross)}</span><span class="text-emerald-700">−</span><span>${fmt(s.retained)}</span><span class="text-emerald-700">=</span><span>${fmt(s.transfer)}</span>
+          </div>
+          <div class="mt-0.5 text-center text-[12px] text-emerald-700">小班账面实收 − 班长自留 = 应转平台小班金额</div>
+        </div>`;
+    }
+
+    function voucherFeedback(o) {
+      if (o.status === 'COMPLETED') {
+        return `<div class="mt-2.5 rounded-xl border border-emerald-200/70 bg-emerald-50/80 px-3 py-2.5">
+          <div class="flex items-center gap-1.5 text-[12px] font-bold text-emerald-950">${icon('badge-check', 'h-4 w-4')}平台已确认收款</div>
+          <div class="mt-1 space-y-0.5 text-[12px] text-emerald-700">
+            <div>确认时间 <span class="font-mono">${esc(o.confirmTime || '')}</span></div>
+            <div>审核经办人 ${esc(o.confirmBy || 'Sarah')} · ${o.count} 节已流转为已归集</div>
+          </div>
+        </div>`;
+      }
+      if (o.status === 'CANCELLED') {
+        return `<div class="mt-2.5 rounded-xl border border-rose-200/70 bg-rose-50/80 px-3 py-2.5">
+          <div class="flex items-center gap-1.5 text-[12px] font-bold text-rose-950">${icon('circle-x', 'h-4 w-4')}平台已驳回</div>
+          <div class="mt-1 text-[12px] leading-relaxed text-rose-900/85">${esc(o.reject || '')}</div>
+          <div class="mt-1 font-mono text-[12px] text-rose-700">${esc(o.rejectTime || '')} · 关联课次已解除锁定</div>
+        </div>`;
+      }
+      if (o.status === 'PENDING_CONFIRMATION') {
+        return `<div class="mt-2.5 rounded-xl border border-amber-200/70 bg-amber-50/80 px-3 py-2.5">
+          <div class="flex items-center gap-1.5 text-[12px] font-bold text-amber-950">${icon('clock', 'h-4 w-4')}凭证已上传，等待平台核验</div>
+          <div class="mt-1 text-[12px] text-amber-900/85">提交时间 <span class="font-mono">${esc(o.time)}</span> · 平台将在周二核算日确认到账</div>
+        </div>`;
+      }
+      return `<div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+        <div class="flex items-center gap-1.5 text-[12px] font-bold text-slate-700">${icon('upload', 'h-4 w-4')}待上传打款凭证</div>
+        <div class="mt-1 text-[12px] text-slate-500">请于周一内完成线下打款并上传截图，提交后生成财务归档快照。</div>
+      </div>`;
+    }
+
+    function orderFooter(o) {
+      const off = state.online === 'off';
+      if (state.role === 'sarah') {
+        if (o.status === 'PENDING_CONFIRMATION') {
+          return `<div class="flex gap-2">
+            <button data-action="reject" data-id="${o.id}" ${off ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-white text-[16px] font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-40">驳回转账单</button>
+            <button data-action="confirm-collect" data-id="${o.id}" ${off ? 'disabled' : ''} class="h-11 flex-[1.6] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700 disabled:opacity-40">确认收款</button>
+          </div>`;
+        }
+        const note = o.status === 'COMPLETED'
+          ? '款项已确认入账，单据归档不可更改'
+          : o.status === 'CANCELLED'
+            ? '单据已驳回归档，仅供查阅历史快照'
+            : '草稿阶段由班长提交后再行审批';
+        return `<div class="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-3 text-[14px] font-semibold text-slate-500">${icon('lock', 'h-4 w-4')}${note}</div>`;
+      }
+      if (o.status === 'DRAFT') {
+        return `<div class="space-y-2">
+          <div class="text-center text-[12px] font-medium text-slate-400">请在周一内完成线下打款并上传凭证</div>
+          <button data-action="open-drawer" ${off ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">去上交并打款</button>
+        </div>`;
+      }
+      if (o.status === 'PENDING_CONFIRMATION') {
+        return `<div class="flex items-center justify-center gap-2 rounded-xl border border-amber-200/70 bg-amber-50 px-3 py-3 text-[14px] font-semibold text-amber-800">${icon('clock', 'h-4 w-4')}已提交平台审核，请耐心等待</div>`;
+      }
+      return `<div class="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-3 text-[14px] font-semibold text-slate-500">${icon('lock', 'h-4 w-4')}单据已归档，历史记录不可更改</div>`;
     }
 
     function orderDetailModal(id) {
       const o = state.orders.find((x) => x.id === id);
       if (!o) return '';
       const meta = statusMeta(o.status);
-      return modalShell(`
-        <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <div><h3 class="text-[16px] font-bold text-slate-900">转账单详情</h3><p class="mt-0.5 font-mono text-[12px] text-slate-400">${o.id}</p></div>
-          <button data-action="close-modal" class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100">${icon('x', 'h-4 w-4')}</button>
-        </div>
-        <div class="space-y-3 p-4">
-          <div class="flex items-center justify-between"><span class="text-[12px] text-slate-500">${typeLabel(o.type)} · ${o.count} 节 · ${esc(o.period)}</span>${chip(meta.label, meta.tone)}</div>
-          <div class="grid grid-cols-3 divide-x divide-slate-200 rounded-xl bg-slate-50 py-2.5 text-center">
-            <div><div class="text-[12px] text-slate-400">账面</div><div class="text-[16px] font-bold text-slate-800">${fmt(o.gross)}</div></div>
-            <div><div class="text-[12px] text-slate-400">自留</div><div class="text-[16px] font-bold text-slate-800">${fmt(o.retained)}</div></div>
-            <div><div class="text-[12px] text-slate-400">实转</div><div class="text-[16px] font-bold text-indigo-700">${fmt(o.transfer)}</div></div>
+      const tablet = state.device === 'tablet';
+      return `<div class="absolute inset-0 z-[60]">
+        <div data-action="close-modal" class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"></div>
+        <section class="${tablet
+          ? 'absolute inset-y-0 right-0 flex w-[90%] max-w-[480px] flex-col overflow-hidden border-l border-slate-200 bg-slate-50 shadow-2xl'
+          : 'absolute inset-x-0 bottom-0 flex h-[92%] flex-col overflow-hidden rounded-t-2xl bg-slate-50 shadow-2xl'}">
+          ${tablet ? '' : '<div class="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-slate-300"></div>'}
+          <header class="shrink-0 border-b border-slate-200 bg-white px-4 py-3">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <h2 class="truncate font-mono text-[16px] font-bold text-slate-900">${esc(o.id)}</h2>
+                  <button data-action="copy-order" data-id="${o.id}" class="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 transition hover:bg-slate-100" aria-label="复制单号">${icon('copy', 'h-3.5 w-3.5')}</button>
+                </div>
+                <div class="mt-0.5 font-mono text-[12px] text-slate-500">${esc(o.week)} · ${esc(o.period)}</div>
+                <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span class="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${typeLabel(o.type)}</span>
+                  ${chip(meta.label, meta.tone)}
+                </div>
+              </div>
+              <button data-action="close-modal" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-slate-100">${icon('x', 'h-4 w-4')}</button>
+            </div>
+          </header>
+
+          <div data-detail-scroll class="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+            <div class="grid grid-cols-3 overflow-hidden rounded-2xl border border-emerald-200/70 shadow-sm">
+              <div class="bg-emerald-50/80 p-2.5">
+                <div class="text-[12px] font-medium text-emerald-700">账面总额</div>
+                <div class="mt-1 font-mono text-[18px] font-bold leading-none text-emerald-950">${fmt(o.gross)}</div>
+                <div class="mt-1 text-[12px] text-emerald-700">${o.count} 节</div>
+              </div>
+              <div class="border-l border-emerald-200/70 bg-emerald-50/80 p-2.5">
+                <div class="text-[12px] font-medium text-emerald-700">自留盈余</div>
+                <div class="mt-1 font-mono text-[18px] font-bold leading-none text-emerald-950">${fmt(o.retained)}</div>
+                <div class="mt-1 text-[12px] text-emerald-700">小班预留</div>
+              </div>
+              <div class="bg-indigo-600 p-2.5">
+                <div class="text-[12px] font-medium text-indigo-100">实转金额</div>
+                <div class="mt-1 font-mono text-[18px] font-bold leading-none text-white">${fmt(o.transfer)}</div>
+                <div class="mt-1 text-[12px] text-indigo-100">${o.subsidy ? `含亏损贴补 ${o.subsidy}` : '应转平台'}</div>
+              </div>
+            </div>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-[14px] font-bold text-slate-900">打款凭证与审核反馈</h3>
+                <span class="text-[12px] font-medium text-slate-400">1 积分 = 1 元</span>
+              </div>
+              ${o.voucher
+                ? `<button data-action="voucher" data-id="${o.id}" class="mt-2.5 flex w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left transition hover:bg-slate-100">
+                    <span class="h-11 w-9 shrink-0 overflow-hidden rounded border border-slate-200 bg-white">${miniReceipt()}</span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate text-[12px] font-bold text-slate-700">cmb-${esc(o.id.slice(-4))}-voucher.jpg</span>
+                      <span class="block text-[12px] text-slate-400">打款 ¥${fmt(o.transfer)}.00 · 点击查看大图</span>
+                    </span>
+                    ${icon('maximize-2', 'h-4 w-4 shrink-0 text-slate-400')}
+                  </button>`
+                : `<div class="mt-2.5 flex items-center gap-2.5 rounded-xl border border-dashed border-slate-300 px-3 py-3 text-slate-400">${icon('image-off', 'h-4 w-4')}<span class="text-[12px] font-medium">暂无打款凭证</span></div>`}
+              ${voucherFeedback(o)}
+            </section>
+
+            <div class="flex items-center justify-between px-1 pt-1">
+              <h3 class="text-[16px] font-bold text-slate-900">课次明细</h3>
+              <span class="text-[12px] font-medium text-slate-400">${o.count} 节 · 双视角核对</span>
+            </div>
+            <div class="flex rounded-xl bg-slate-200/70 p-1">
+              <button data-action="detail-tab" data-tab="student" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.detailTab === 'student' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">按学生分组</button>
+              <button data-action="detail-tab" data-tab="teacher" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.detailTab === 'teacher' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">按教师分组</button>
+            </div>
+            ${state.detailTab === 'teacher' ? teacherDetailGroups(o) : studentDetailGroups(o)}
+
+            ${groupClassSection(o)}
+
+            <div class="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5">
+              ${icon('lock', 'mt-0.5 h-4 w-4 shrink-0 text-slate-500')}
+              <div class="min-w-0">
+                <div class="text-[12px] font-bold text-slate-700">财务归档快照 · 提交后明细与金额不可变</div>
+                <div class="mt-0.5 text-[12px] leading-relaxed text-slate-500">课次关联、金额计算与打款凭证在提交后永久锁定，后续外部数据变动不影响本单。</div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between px-1 pt-1">
+              <h3 class="text-[16px] font-bold text-slate-900">全链路流转</h3>
+              <span class="text-[12px] font-medium text-slate-400">审计留痕</span>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">${orderTimeline(o)}</div>
           </div>
-          ${o.voucher ? `<button data-action="voucher" data-id="${o.id}" class="flex w-full items-center gap-2.5 rounded-xl border border-slate-200 p-2.5 text-left"><span class="h-10 w-8 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-50">${miniReceipt()}</span><span class="flex-1 text-[12px] text-slate-600">打款凭证</span>${icon('chevron-right', 'h-3.5 w-3.5 text-slate-400')}</button>` : ''}
-          <div class="rounded-xl border border-slate-200 p-3">${orderTimeline(o)}</div>
-          ${o.status === 'DRAFT' ? `<button data-action="open-drawer" ${state.online === 'off' ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:opacity-40">去上交</button>` : ''}
-        </div>`);
+
+          <footer class="shrink-0 border-t border-slate-200 bg-white p-3">${orderFooter(o)}</footer>
+        </section>
+      </div>`;
     }
 
     function handoverConfirmModal() {
@@ -1282,6 +1687,8 @@
       state.drawer = false;
       state.voucher = false;
       state.filter = 'ALL';
+      state.detailTab = 'student';
+      state.modal = { type: 'order', id: d.id };
       renderAll();
       toast('转账单已提交，等待平台确认');
     }
@@ -1292,7 +1699,10 @@
       if (!t) return;
       if (t.status !== 'FINISHED_PENDING_SETTLEMENT') {
         if (t.status === 'TRANSFER_LOCKED') return toast('该课次已转账锁定，暂不可回退');
-        if (t.status === 'COLLECTED') return toast('409 TIMESLOT_ALREADY_SETTLED · 已归集课次不可回退');
+        if (t.status === 'COLLECTED') {
+          console.warn('409 TIMESLOT_ALREADY_SETTLED');
+          return toast('该课次已完成资金归集，不可回退');
+        }
         return toast('该课次当前不可回退');
       }
       state.rollId = id;
@@ -1323,9 +1733,12 @@
       const o = state.orders.find((x) => x.id === id);
       if (!o) return;
       o.status = 'COMPLETED';
-      o.confirmTime = '11-11 10:40';
+      o.confirmTime = '11-10 10:40';
+      o.confirmBy = 'Sarah';
       state.ts.forEach((t) => { if (t.status === 'TRANSFER_LOCKED') t.status = 'COLLECTED'; });
-      state.modal = null;
+      const returnId = state.detailReturnId;
+      state.detailReturnId = null;
+      state.modal = returnId ? { type: 'order', id: returnId } : null;
       renderAll();
       toast(`${id} 已确认收款，${o.count} 节流转为已归集`);
     }
@@ -1339,7 +1752,9 @@
       o.rejectTime = '11-10 10:42';
       state.ts.forEach((t) => { if (t.status === 'TRANSFER_LOCKED') t.status = 'FINISHED_PENDING_SETTLEMENT'; });
       if (o.type === 'RESIGNATION_HANDOVER') state.handover = 'draft';
-      state.modal = null;
+      const returnId = state.detailReturnId;
+      state.detailReturnId = null;
+      state.modal = returnId ? { type: 'order', id: returnId } : null;
       state.rejectReason = '';
       renderAll();
       toast('转账单已驳回，关联课次解除锁定');
@@ -1400,21 +1815,53 @@
       if (action === 'submit-handover') return submitHandover();
       if (action === 'rollback') return openRollback(el.dataset.id);
       if (action === 'confirm-rollback') return confirmRollback();
-      if (action === 'open-order') { state.modal = { type: 'order', id: el.dataset.id }; renderAll(); return; }
-      if (action === 'confirm-collect') { state.modal = { type: 'confirm', id: el.dataset.id }; renderAll(); return; }
+      if (action === 'open-order') {
+        state.detailTab = 'student';
+        state.detailReturnId = null;
+        state.modal = { type: 'order', id: el.dataset.id };
+        renderAll();
+        return;
+      }
+      if (action === 'copy-order') return copyOrderId(el.dataset.id);
+      if (action === 'detail-tab') {
+        state.detailTab = el.dataset.tab === 'teacher' ? 'teacher' : 'student';
+        renderAll();
+        return;
+      }
+      if (action === 'confirm-collect') {
+        if (state.modal && state.modal.type === 'order') state.detailReturnId = state.modal.id;
+        state.modal = { type: 'confirm', id: el.dataset.id };
+        renderAll();
+        return;
+      }
       if (action === 'do-collect') return confirmCollect(el.dataset.id);
       if (action === 'reject') {
         if (!requireOnline('离线模式不可驳回转账单')) return;
+        if (state.modal && state.modal.type === 'order') state.detailReturnId = state.modal.id;
         state.rejectId = el.dataset.id; state.rejectReason = ''; state.modal = { type: 'reject', id: el.dataset.id }; renderAll(); return;
       }
       if (action === 'do-reject') return confirmReject();
-      if (action === 'voucher') { state.modal = { type: 'voucher', id: el.dataset.id }; renderAll(); return; }
+      if (action === 'voucher') {
+        if (state.modal && state.modal.type === 'order') state.detailReturnId = state.modal.id;
+        state.modal = { type: 'voucher', id: el.dataset.id };
+        renderAll();
+        return;
+      }
       if (action === 'confirm-handover') {
         if (!requireOnline('离线模式不可确认移交')) return;
         state.modal = { type: 'handover' }; renderAll(); return;
       }
       if (action === 'do-handover') return confirmHandover();
-      if (action === 'close-modal') { state.modal = null; renderAll(); return; }
+      if (action === 'close-modal') {
+        if (state.detailReturnId) {
+          state.modal = { type: 'order', id: state.detailReturnId };
+          state.detailReturnId = null;
+        } else {
+          state.modal = null;
+        }
+        renderAll();
+        return;
+      }
     }
 
     document.getElementById('console').addEventListener('click', (event) => {
@@ -1451,7 +1898,7 @@
         <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
         <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
         <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc)}</p>
-        ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">打开对应原型</a>` : ''}
+        ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">${esc(item.cta || '前往')}</a>` : ''}
         <button data-action="nav" data-tab="${roleMeta().boardTab}" class="mt-3 text-[14px] font-semibold text-indigo-600">返回资金归集</button>
       </div>`;
     }

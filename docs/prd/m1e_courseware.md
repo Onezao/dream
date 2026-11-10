@@ -7,9 +7,9 @@
 | **模块代号** | `m1e` |
 | **所属模块** | 模块一：教学教务基座与主数据 (Master Data & Profiles) |
 | **文档状态** | 待评审 (Draft) |
-| **关联顶层 PRD** | [Prd-v5.md](../Prd-v5.md) |
+| **关联顶层 PRD** | [Prd-v5.md](../Prd-v5.md) ｜ [CODING_STANDARDS.md](../CODING_STANDARDS.md) ｜ [BUSINESS_RULES.md](../BUSINESS_RULES.md) |
 | **关联子模块** | [m1a_student_profile.md](./m1a_student_profile.md), [m1b_teacher_profile.md](./m1b_teacher_profile.md), [m3a_calendar_schedule.md](./m3a_calendar_schedule.md) |
-| **创建日期** | 2026-11-09 |
+| **创建与更新日期** | 2026-11-09 (创建) ｜ 2026-11-10 (升级：新建课件默认停用规则) |
 
 ---
 
@@ -73,10 +73,13 @@ flowchart TD
     InputBaseInfo --> ConfigureLevels["配置多级别 (Levels)：<br/>录入级别英文名（如 Level 1）+ 上传 0~9 张内页配图<br/>支持拖拽/点击调序"]
     ConfigureLevels --> SubmitCourseware["提交保存"]
     SubmitCourseware --> ValidatePass{"前端与服务端校验"}
-    ValidatePass -->|"通过"| SaveSuccess["入库保存并生成 12 位短 ID"]
+    ValidatePass -->|"通过"| SaveSuccess["入库保存并生成 12 位短 ID<br/><b>初始状态强制默认停用 (is_active = false)</b><br/>待管理员完善样课核验后手动开启"]
     ValidatePass -->|"未填必填项"| ShowError["标红提示阻断提交"]
     
-    ToggleActive -->|"由 停用 -> 启用"| DirectActive["更新状态为 is_active = true"]
+    SaveSuccess --> WaitReview["课件库列表中标灰显示【已停用】<br/>不暴露至学员在学课件备选池"]
+    WaitReview --> ToggleActive
+    
+    ToggleActive -->|"由 停用 -> 启用"| DirectActive["手动开启状态为 is_active = true<br/>正式开放至在学课件备选池"]
     ToggleActive -->|"由 启用 -> 停用"| SoftDeactivate["标记 is_active = false<br/>保留已有学生绑定展示，编辑时禁止新选"]
 ```
 
@@ -122,8 +125,12 @@ flowchart TD
 ### 6.1 课件主实体管理 (Courseware Master)
 - **AC-1E-01 (必填字段与中立性)**：课件创建必须包含中文名 (`name_cn`，最长 64 字符)、英文名 (`name_en`，最长 64 字符)、至少勾选 1 个归属课程类型 (`course_type_ids`)。
 - **AC-1E-02 (可选元数据)**：中文简介 (`description_cn`)、英文简介 (`description_en`)、封面配图 (`cover_url`) 为选填字段。封面配图限 1 张。
-- **AC-1E-03 (软停用与防物理删除)**：
-  - 管理员可切换课件状态为 `active` 或 `inactive`；
+- **AC-1E-03 (新建课件默认停用铁律 · Default Inactive)**：
+  - **默认停用初始化**：新建课件在创建提交入库时，其状态字段**必须且强制默认为停用 (`is_active = false`)**，严禁新建即自动启用；
+  - **教研与安全缓冲机制**：课件通常包含封面、简介及多级别（Levels）样课内页图上传，设立“默认停用”机制以确保未完工、未校验或待教研验收的半成品课件不会过早暴露，杜绝班长/管理员在学员档案中误选；
+  - **主动手动开启**：管理员录入并核验各级别定义与样课配图完整无误后，必须在课件列表页主动开启 Switch 开关或在编辑页手动切换为【启用】(`is_active = true`)，课件方可正式生效并同步至学员在学课件备选池。
+- **AC-1E-03a (软停用与防物理删除)**：
+  - 管理员可随时切换课件状态为 `active` 或 `inactive`；
   - **物理删除防护**：系统严禁提供物理删除操作（防止已有学生档案外键孤岛与排课历史割裂）。若课件从未被任何学生绑定过，支持管理员执行物理清理；一旦产生绑定记录，仅允许软停用 (`is_active = false`)。
   - 停用后，在学生档案新增选择在学课件时，下拉列表中自动隐藏该课件；名下已绑定的学生档案中继续展示，并醒目标注【已停用】灰色标签。
 
@@ -189,7 +196,8 @@ flowchart TD
   - **区块 1：基础信息**：中文名（必填）、英文名（必填）、归属课程类型（Tag 选择器，多选必填）、封面上传区（拖拽上传，支持裁剪预览）、中英文简介（Textarea）；
   - **区块 2：分级级别列表 (Levels)**：
     - 点击 `[ + 添加新级别 ]`，新增一行；
-    - 每行包含：拖拽手柄、级别英文名输入框（如 `Stage 1`）、样课配图缩略图列表（最多 9 张，展示小缩略图，支持点击加号上传或点击叉号删除，支持单级别内配图左右调序）、删除该级别按钮。
+    - 每行包含：拖拽手柄、级别英文名输入框（如 `Stage 1`）、样课配图缩略图列表（最多 9 张，展示小缩略图，支持点击加号上传或点击叉号删除，支持单级别内配图左右调序）、删除该级别按钮；
+  - **区块 3：状态与教研发布提示**：新建课件时状态开关默认处于【停用 (Off)】，表单底部带辅助说明小字：“新建课件默认处于停用状态；待完善各级别样课配图并核对无误后，可在列表或详情中手动开启启用”。
 
 ### 9.2 班长/管理员端：学生档案【在学课件配置】抽屉
 - **抽屉结构**：
@@ -215,17 +223,17 @@ flowchart TD
     
     RoleCheck -->|管理员| ManageMaster[进入课件库管理]
     ManageMaster --> MasterOp{操作类型}
-    MasterOp -->|建课件/加级别| SaveMaster[录入中英文名/封面/类型/级别配图并保存]
-    MasterOp -->|启停控制| ToggleMaster[软停用/启用课件]
+    MasterOp -->|建课件/加级别| SaveMaster[录入中英文名/封面/类型/级别配图并保存<br/><b>初始状态强制默认停用 is_active = false</b>]
+    SaveMaster --> ToggleMaster[教研核对无误后手动开启启用 is_active = true]
+    MasterOp -->|启停控制| ToggleMaster
     
     RoleCheck -->|班长/管理员| ConfigStudent[进入学生档案详情]
     ConfigStudent --> CheckLimit{当前在学课件数 < 6?}
-    CheckLimit -->|是| AddOrUpdate[选择课件 + 设定级别]
+    CheckLimit -->|是| AddOrUpdate[选择已启用的课件 + 设定级别]
     CheckLimit -->|否（已满6门）| BlockAdd[阻断新增，仅允许移除或修改级别]
     AddOrUpdate --> SaveProfile[保存档案并写入审计日志]
     
-    SaveMaster --> EndFlow([完成更新])
-    ToggleMaster --> EndFlow
+    ToggleMaster --> EndFlow([完成更新])
     SaveProfile --> SyncDownstream[即时广播至教师日历卡片 & 家长端只读卡片]
     SyncDownstream --> EndFlow
 ```
@@ -236,3 +244,4 @@ flowchart TD
 
 1. **二期演进考虑**：后续若机构教务需要更进一步按课件单元自动消课追踪，可在本模块结构化 Levels 基础上扩展 `Units / Chapters` 字段，并在结课时提供勾选项，本期保持敏捷轻量。
 2. **多语言与国际化**：课件名称与简介天然支持中英文双语存储，前端外教端默认优先呈现 `name_en` 与 `description_en`，中文家长端默认优先呈现 `name_cn` 与 `description_cn`。
+3. **新建课件默认停用机制**：课件创建落盘初始状态强制为停用（`is_active = false`），给予教研和管理员核验各级别定义与样课配图的教研缓冲期，确认无误后手动切换为启用，避免未就绪的半成品课件被误选入学员档案。
