@@ -101,6 +101,31 @@
 
 ---
 
+### 4.5 实体生命周期与状态机 (Entity Lifecycles & State Machines)
+
+M3C 负责课次权益二级流转，闭环管理核心凭证实体——**课次转让单 (CourseTransferRecord)** 的生命周期：
+
+#### 课次转让单 (CourseTransferRecord) 状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> SUBMITTED: 家长发起自主转让 / 班长代办提交
+    SUBMITTED --> COMPLETED: 守卫条件通过，事务原子交割生效 (终态)
+    SUBMITTED --> FAILED: 校验失败 (二次转让/已进入准备期/目标学员不存在) (终态)
+    COMPLETED --> [*]
+    FAILED --> [*]
+```
+
+- **状态转移规则矩阵与守卫防线**：
+
+| 初始状态 | 目标状态 | 触发角色 | 前置守卫条件与时限熔断 | 伴随副作用与数据落盘 |
+| :--- | :--- | :--- | :--- | :--- |
+| `[*]` | `SUBMITTED` | 转出家长 / 班长 | 点击【确认转让】 | 系统锁定目标 TS 并启动前置防呆校验流水线。 |
+| `SUBMITTED` | `COMPLETED` (已交割) | 系统引擎 | 1. 距开课 $\ge 3\text{h}$；<br>2. 仅限 1v1 固定位与 TS 课时；<br>3. `is_transferred == false` (防二次转让)；<br>4. 接收方学员昵称 100% 精确匹配且非本人。 | 1. 事务内原子更新 TS `actual_student_profile_id` 为受让学员；<br>2. TS 置 `is_transferred = true`；<br>3. 原 `holder_id` 与原购课单出资人**绝对保持原值不变**；<br>4. 向转出家长、受让家长、授课外教并发派发通知。 |
+| `SUBMITTED` | `FAILED` (交割失败) | 系统引擎 | 命中任一阻断规则：<br>• 距开课 $< 3\text{h}$<br>• 已发生过转让 (`is_transferred == true`)<br>• 小班课或临时课<br>• 接收人未找到 | 拒绝交割并原子回滚；页面弹出明确错误提示（如 `TRANSFERRED_COURSE_CANNOT_RETRANSFER`）；目标 TS 保持原状。 |
+
+---
+
 ## 5. 用户故事 (User Stories)
 
 - **US-3C-01**：作为一个二胎家长，我想要将大宝无法参加的固定位一键划转给二宝，以便于课时在家庭内部充分利用且不繁琐。

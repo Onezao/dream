@@ -109,6 +109,37 @@
 - 裂变过程任一步失败：整体回滚，单据保持 `PENDING_PAYMENT`。
 - 凭证上传失败：不影响单据创建，可重试上传。
 
+### 4.6 购课单全生命周期状态机与 TS 裂变规则矩阵 (Course Purchase Order Lifecycle)
+
+> **【实体生命周期 SSOT 归口声明】**：`CoursePurchaseOrder`（购课单）的生命周期状态机与流转规则 100% 统一由本 PRD 管辖与维护。后续任何涉及购课单状态枚举、跃迁约束或副作用的修改，必须且只能修改本文档。
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING_PAYMENT: 线下收款录单 / 固定位提前7天自动预排续费
+    
+    PENDING_PAYMENT --> PAID: 班长/管理员确认到账 (原子裂变生成待排期 TS)
+    PENDING_PAYMENT --> CANCELLED: 开课前24h逾期未付自动释放 / 经办人主动作废
+    
+    PAID --> PAID: 关联部分 TS 冲退 (打上 PARTIALLY_REFUNDED 标记，M2B 驱动)
+    PAID --> REFUNDED: 关联剩余全部 TS 冲退 (M2B 驱动终态)
+    PAID --> TERMINATED: 小班课提前结课解散 (M1C 驱动终态，未排课次作废)
+    
+    CANCELLED --> [*]
+    REFUNDED --> [*]
+    TERMINATED --> [*]
+```
+
+#### 状态转移与守卫规则矩阵 (State Transition Matrix)
+
+| 当前状态 | 目标状态 | 触发事件 / 动作 | 操作人 / 驱动源 | 前置守卫条件与时限熔断 | 伴随副作用与资产流转 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`[*]`** | `PENDING_PAYMENT` (待付款确认) | 手动录入购课单 / 固定位续费预排跑批 | 班长 / 管理员 / `dream-worker` | 输入实收积分 $\ge 0$；若有价差需满足 `force_submit=true`；小班课必须已委任外教 | 创建购课单主记录；若是固定位续费预排，联动 M3A 锁定 72h HOLD 网格并发送通知 |
+| `PENDING_PAYMENT` | `PAID` (已付款生效) | 确认核实收款到账 | 班长 / 管理员 | 单据处于 `PENDING_PAYMENT`；资金已实际线下入账 | 原子裂变生成 $N$ 节待排期 TS；根据尾差吸收算法固化各 TS 财务快照；锁定资金持有方 `holder_id`；锁定 12.5% 请假配额；若是固定位续费单，清除 HOLD 标志正式锁定 |
+| `PENDING_PAYMENT` | `CANCELLED` (已作废) | 经办人作废 / 逾期自动释放 | 班长 / 管理员 / `dream-worker` | 未确认收款前；或距下一轮首节开课前 24h 逾期未付 | 单据置为已作废；若关联固定位续费预排，联动 M3A 原子释放未来预占日历网格为 🟢【空闲可约】 |
+| `PAID` | `PAID` (部分退款标记) | 关联部分课次冲退成功 | M2B 退款子模块驱动 | 经办人通过 M2B 勾选退款部分 TS 并完成打款确认 | 单据主体保持 `PAID`，新增打上 `is_partially_refunded = true` 标签；原购课单请假总配额保持原值不扣减 |
+| `PAID` | `REFUNDED` (全额退款) | 关联剩余有效 TS 全部冲退 | M2B 退款子模块驱动 | 经办人通过 M2B 将该单下所有剩余有效 TS 完成冲退确认 | 单据流转为终态 `REFUNDED`；该购课单下所有课次资产彻底清零闭环 |
+| `PAID` | `TERMINATED` (提前终止) | 小班课提前结课解散 | M1C 班级管理驱动 | 小班主理人在 M1C 执行【提前结课解散】 | 单据流转为终态 `TERMINATED`；单据记录已完课与作废课时快照；未完课 TS 批量注销且不产生退款单 |
+
 ---
 
 ## 5. 用户故事 (User Stories)

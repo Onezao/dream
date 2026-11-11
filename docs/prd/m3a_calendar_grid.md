@@ -215,6 +215,36 @@ M3A 只保留两个入口；转让的资格校验、昵称核验、二次确认�
 
 ---
 
+### 4.10 实体生命周期与状态机 (Entity Lifecycles & State Machines)
+
+M3A 作为日历人机控制台，闭环管理以下 2 大调度流转实体的生命周期：
+
+#### 1. 72h 续费预占锁 (RenewalHoldLease)
+- **定位**：固定位到期前 7 天，系统自动为原学员在下一轮对应时段生成的排期保护租约。
+- **生命周期状态机**：
+
+```mermaid
+stateDiagram-v2
+    [*] --> HOLD_ACTIVE: 到期前7天周一 08:30 系统自动生成预排
+    HOLD_ACTIVE --> CONVERTED: 家长在 72h 内完成续费付款确认 (转为正式固定位)
+    HOLD_ACTIVE --> EXPIRED_RELEASED: 72h 倒计时结束未付款 (系统自动释放排期)
+    CONVERTED --> [*]
+    EXPIRED_RELEASED --> [*]
+```
+
+- **状态转移规则与时效守卫**：
+  | 状态跃迁 | 触发事件 / 角色 | 前置条件与时限规则 | 伴随副作用与日历视觉 |
+  | :--- | :--- | :--- | :--- |
+  | `[*] -> HOLD_ACTIVE` | 周期跑批 (`dream-worker`) | 4 周固定位到期前 7 天（最后一周周一 08:30） | 日历渲染为**橙黄虚线预占卡** (`border-dashed border-amber-400`)，锁定网格；生成处于 `PENDING_PAYMENT` 的续费单。 |
+  | `HOLD_ACTIVE -> CONVERTED` | 家长付款 / 班长确认 | 72h 保护窗口期内付款成功 | 虚线转为正式实线 🟠 固定位；TS 属性 `is_hold` 转为 `false`；全额锁定下轮 4 周排期。 |
+  | `HOLD_ACTIVE -> EXPIRED_RELEASED` | 系统定时器超时 | 72h 倒计时归零且仍未付款 | 自动解散预占 TS，日历网格恢复为 🟢【空闲可约】放行其他家长抢位；续费单标记逾期作废。 |
+
+#### 2. 同师同格平移挪位 (RescheduleEvent) — 权能边界与指针引用
+- **权能边界定位**：M3A 仅作为日历网格的人机交互控制台，负责在单元格抽屉内承接【调课/挪位】的点击交互，并在日历上高亮候选的 🟢 空闲格；
+- **单一事实源 (SSOT)**：同师挪位的业务实体定义、状态流转、时限熔断（距开课 $\ge 3\text{h}$）、轮次范围限制及配额记账 **100% 由 [m3b_attendance_substitution.md Section 4.2 / 4.10](./m3b_attendance_substitution.md)** 统一管辖与权威校验，M3A 绝不重复定义挪位状态机与校验规则。
+
+---
+
 ## 5. 验收标准 (Acceptance Criteria, AC)
 
 | 编号 | 验收项 | 验收操作与输入 | 预期输出与量化断言 |

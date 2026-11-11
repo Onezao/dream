@@ -2,6 +2,7 @@
 
 > **文档状态**：PROPOSED (已封板评审) ｜ **版本**：v1.0 ｜ **管辖领域**：全场景排课、抢位约课、续费预占 (HOLD) 与小班整班调度
 > **关联子模块**：[m3a_calendar_grid.md](./m3a_calendar_grid.md) (周日历看板), [m2a_course_orders.md](./m2a_course_orders.md) (购课单与TS资产), [m4_notification.md](./m4_notification.md) (协同通知)
+> **【实体生命周期归口说明】**：本模块专职承接批量排课调度事务与冲突降级算法，驱动 TS 课次资产由 `待排期` 流转至 `已排期`。其中 72h 续费预占锁（`RenewalHoldLease`）的核心状态机由 [m3a_calendar_grid.md Section 4.10](./m3a_calendar_grid.md) 统领管辖，TS 课次全局状态机由 [docs/BUSINESS_RULES.md Section 3.2](../BUSINESS_RULES.md) 统领管辖。
 
 ---
 

@@ -131,6 +131,34 @@ flowchart TD
 - 若班长打款金额有误或凭证模糊，平台管理员在审核时点击【驳回转账单】并输入驳回原因；
 - 转账单状态变更为 `CANCELLED`，关联的 TS 解除转账锁定，恢复为 `已结课(待结算)`，班长可重新发起打包。
 
+### 4.6 周转账单全生命周期状态机与流转规则矩阵 (Transfer Order Lifecycle)
+
+> **【实体生命周期 SSOT 归口声明】**：`TransferOrder`（周转账单）的生命周期状态机与流转规则 100% 统一由本 PRD 管辖与维护。后续任何涉及周转账单状态枚举、跃迁约束或离职移交守卫的修改，必须且只能修改本文档。
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT: 周一 03:30 自动跑批生成 / 离职移交发起
+    
+    DRAFT --> PENDING_CONFIRMATION: 班长线下打款并上传凭证确认
+    DRAFT --> CANCELLED: 经办人主动作废草稿 (释放 TS 转账锁定)
+    
+    PENDING_CONFIRMATION --> COMPLETED: 周二管理员核验到账放行 (TS 跃迁为 COLLECTED 终态)
+    PENDING_CONFIRMATION --> CANCELLED: 管理员审核驳回 (释放 TS 转账锁定恢复待结算)
+    
+    COMPLETED --> [*]
+    CANCELLED --> [*]
+```
+
+#### 状态转移与守卫规则矩阵 (State Transition Matrix)
+
+| 当前状态 | 目标状态 | 触发事件 / 动作 | 操作人 / 驱动源 | 前置守卫条件与时限熔断 | 伴随副作用与资产流转 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`[*]`** | `DRAFT` (待确认草稿) | 周一转账草稿跑批 / 班长发起离职移交 | `dream-worker` / 离职班长 / 管理员 | 上周已结课 TS 应上交总额 $> 0$；或离职班长名下有未结托管 TS | 创建单据主记录；关联 TS 流转为 `TRANSFER_LOCKED` 预锁定，禁止在其他单据重复勾选；周一 08:00 催办提醒 |
+| `DRAFT` | `PENDING_CONFIRMATION` (待平台确认) | 班长线下打款并点击确认已转账 | 负责班长 / 离职班长 | 单据处于 `DRAFT`；必须上传 1~5 张打款截图凭证 | 单据状态流转为 `PENDING_CONFIRMATION`；班长主页待办消红；通知平台管理员在后台待审核列表呈现 |
+| `DRAFT` | `CANCELLED` (已作废) | 经办人作废草稿单 | 班长 / 管理员 | 单据处于 `DRAFT` 且未打款；填写作废原因 | 单据跃迁为终态 `CANCELLED`；关联 TS 解除 `TRANSFER_LOCKED` 锁定，恢复为 `FINISHED_PENDING_SETTLEMENT` 可用态 |
+| `PENDING_CONFIRMATION` | `COMPLETED` (已归集放行) | 平台管理员核验银行流水确认到账 | 平台管理员 | 单据处于 `PENDING_CONFIRMATION`；资金实际已到平台对公账户 | 单据跃迁为终态 `COMPLETED`；常规转账单关联 TS 状态原子跃迁为 `COLLECTED`；若是离职移交单，单内 TS 资金持有方原子改绑为平台 |
+| `PENDING_CONFIRMATION` | `CANCELLED` (审核驳回) | 管理员审核驳回打款凭证 | 平台管理员 | 单据处于 `PENDING_CONFIRMATION`；必须录入 1-200 字驳回原因 | 单据跃迁为终态 `CANCELLED`；关联 TS 解除 `TRANSFER_LOCKED` 锁定恢复待结算；向班长派发驳回通知，允许重新打款建单 |
+
 ---
 
 ## 5. 用户故事 (User Stories)

@@ -23,6 +23,28 @@
 ### 1.4 纵深防御与越权 (IDOR) 绝对红线
 - 查询、更新或操作任何属于用户/家长的实体（学生档案、购课单、TS 课次、请假、留言）时，在 Service 层鉴权的基础上，**Mapper/SQL 层必须物理强制包含 `account_id` 或 `student_profile_id` 过滤条件**，严禁仅凭单据 ID 越权操作。
 
+### 1.5 实体生命周期 SSOT 管辖铁律 (Entity Lifecycle SSOT Matrix)
+- **唯一定义源**：本文档统领系统宏观业务哲学、财课隔离与 TS 课次全局运转中枢（见 3.2 节）。除 TS 全局中枢外，**全系统所有业务实体的完整生命周期状态机、触发事件、前置守卫与资产流转规则，统一且唯一收敛归属于各业务模块专属 PRD 文档**。
+- **后续修改归口铁律**：**后续任何关于实体生命周期、状态跃迁或流转约束的修改，统一且必须直接修改对应模块专属 PRD 文档**，严禁在其他子模块中越界复读或私自篡改定义。跨模块业务协同必须采用“单向指针 (Pointer Reference)”引用对应归口 PRD。
+
+| 业务实体对象 | 所属业务域 | 专属归口 PRD 文档 | 唯一真相源章节 |
+| :--- | :--- | :--- | :--- |
+| **学生档案 (`StudentProfile`)** | M1A 学员管理 | [`docs/prd/m1a_student_profile.md`](./prd/m1a_student_profile.md) | Section 4.6 学员档案全生命周期与资产安全流转 |
+| **教师/班长档案 (`TeacherProfile` / `MonitorProfile`)** | M1B 师资管理 | [`docs/prd/m1b_teacher_profile.md`](./prd/m1b_teacher_profile.md) | Section 4.7 教师与班长档案全生命周期与离职交接 |
+| **小班课班级 (`Class`)** | M1C 班级管理 | [`docs/prd/m1c_classes.md`](./prd/m1c_classes.md) | Section 4.2 班级全生命周期与提前结课解散规则 |
+| **家校留言 (`ProfileMessage`)** | M1D 留言板 | [`docs/prd/m1d_profile_messages.md`](./prd/m1d_profile_messages.md) | Section 4.4 留言生命周期状态机与限期撤回规则 |
+| **课件与在学配置 (`Courseware`)** | M1E 课件库 | [`docs/prd/m1e_courseware.md`](./prd/m1e_courseware.md) | Section 4.3 课件生命周期与学员绑定升阶规则 |
+| **购课单 (`CoursePurchaseOrder`)** | M2A 购课单据 | [`docs/prd/m2a_course_orders.md`](./prd/m2a_course_orders.md) | Section 4.2 购课单生命周期与 TS 裂变规则 |
+| **退款单 (`RefundOrder`)** | M2B 退款管理 | [`docs/prd/m2b_refund_orders.md`](./prd/m2b_refund_orders.md) | Section 4.2 退款单生命周期与违约金拆分审核 |
+| **续费预占锁 (`RenewalHoldLease`)** | M3A 日历排班 | [`docs/prd/m3a_calendar_grid.md`](./prd/m3a_calendar_grid.md) | Section 4.10 72h续费预占锁 (HOLD) 全生命周期 |
+| **代课工单 / 教师请假 / 学员请假 / 单节异常工单** | M3B 考勤与代课 | [`docs/prd/m3b_attendance_substitution.md`](./prd/m3b_attendance_substitution.md) | Section 4.10 考勤与代课四大实体状态机与流转矩阵 |
+| **课次转让单 (`CourseTransferRecord`)** | M3C 课程转让 | [`docs/prd/m3c_course_transfer.md`](./prd/m3c_course_transfer.md) | Section 4.5 课次转让单生命周期与防二次转让守卫 |
+| **排课工作台调度事务 (`ScheduleBatchTask`)** | M3D 排课工作台 | [`docs/prd/m3d_course_scheduling.md`](./prd/m3d_course_scheduling.md) | Section 4.3 排课批量事务与 72h HOLD 预占联动 |
+| **站内信 / 邮件投递任务 (`Notification` / `EmailDispatch`)** | M4 通知网络 | [`docs/prd/m4_notification.md`](./prd/m4_notification.md) | Section 4.4 通知与邮件任务生命周期状态机 |
+| **周转账单 (`TransferOrder`)** | M5A 转账归集 | [`docs/prd/m5a_transfer_collection.md`](./prd/m5a_transfer_collection.md) | Section 4.2 周转账单生命周期与对账确认 |
+| **教师周课酬单 (`TeacherSalaryReport`)** | M5B 周度结算 | [`docs/prd/m5b_weekly_settlement.md`](./prd/m5b_weekly_settlement.md) | Section 4.6 教师周课酬单生命周期与发薪归档 |
+| **TS (TimeSlot - 最小课次流转枢纽)** | 全域流转枢纽 | [`docs/BUSINESS_RULES.md`](./BUSINESS_RULES.md) | Section 3.2 TS 全局生命周期状态机 (全系统统领封板) |
+
 ---
 
 ## 2. 账号与档案解耦模型 (Account vs. Profile)
@@ -72,14 +94,54 @@ flowchart TD
 - **原子财务快照设计 (不可篡改)**：
   - TS 表中必须冗余固化生成时刻的财务快照字段：`total_points`（实付总积分）、`teacher_salary_points`（教师课酬）、`extra_prep_fee_points`（额外备课费）、`tool_fee_points`（平台工具费）。杜绝后续教师定级调整或全局费率变更破坏历史账目。
   - 冗余记录代课双追踪字段：`original_teacher_id`（原教师，用于课表呈现被代课状态）与 `current_teacher_id`（实际授课教师，用于周课酬单归集）。
-- **生命周期状态机**：
-  $$\text{待排期} \xrightarrow{\text{预约排课}} \text{已排期} \xrightarrow{\text{次日02:00}} \text{已结课(待结算)} \xrightarrow{\text{周末归集}} \text{已结算}$$
-  $$\text{待排期/已排期} \xrightarrow{\text{退款/作废}} \text{已取消}$$
-- **异常未上课回退补生机制 (关键财务兜底)**：
-  - 若授课教师实际未上课，但跨过次日凌晨已被系统跑批自动变更为 `已结课(待结算)`：
-  - 1v1 课次由负责班长或管理员操作，**小班课次仅限小班课主理人或管理员操作**（外教绑定班长仅只读不可越权回退），在后台将该 TS 手动标记为 `已取消`；
-  - 系统强制向 `audit_logs` 写入审计日志，并在小班课跨班长场景下同步向外教本人及实际授课外教的绑定班长推送考勤异常回退通知；
-  - 系统在原购课单下**自动补生 1 节全新的【待排期 TS】**，同时在课酬核算统计中物理剔除原 TS，保障家长权益与财务合规。
+- **TS 全局生命周期状态机 (The Central Pivot State Machine)**：
+  TS 是全系统业务唯一运转枢纽，其状态机在全系统具有最高法律效力，各子模块（M2A/M3A/M3B/M3C/M5A/M5B）严格遵循此全局定义，禁止私设状态：
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING_SCHEDULE: 购课单审核生效 (M2A 裂变生成)
+    
+    PENDING_SCHEDULE --> SCHEDULED: 家长/班长自主排课 / 续费自动预排 (M3A/M3D)
+    PENDING_SCHEDULE --> CANCELLED: 退款审核通过全额作废 (M2B)
+    
+    SCHEDULED --> PENDING_SCHEDULE: 临时课提前 >=24h 请假退回 (M3B)
+    SCHEDULED --> SCHEDULED: 同师挪位 / 课次转让 / 指派代课 (M3A/B/C)
+    SCHEDULED --> CANCELLED: 固定位开课前 >=24h 退款作废 (M2B)
+    SCHEDULED --> FINISHED_PENDING_SETTLEMENT: 次日 02:00 自动结课跑批 (M5A)
+    
+    FINISHED_PENDING_SETTLEMENT --> CANCELLED: 异常未上课回退 (M5A 补生待排TS)
+    FINISHED_PENDING_SETTLEMENT --> TRANSFER_LOCKED: 周一 03:30 周转单草稿跑批打包预锁定 (M5A)
+    
+    TRANSFER_LOCKED --> FINISHED_PENDING_SETTLEMENT: 转账单驳回或重置 (M5A)
+    TRANSFER_LOCKED --> COLLECTED: 平台管理员确认收款审核通过 (M5A)
+    
+    COLLECTED --> SETTLED: 周三平台管理员教师发薪完成 (M5B 终态)
+    
+    SETTLED --> [*]
+    CANCELLED --> [*]
+```
+
+- **TS 核心状态枚举与转移规则矩阵 (State Transition Matrix)**：
+
+| 当前状态 | 目标状态 | 触发事件 / 动作 | 操作人 | 前置守卫条件与时限熔断 | 伴随副作用与资产流转 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`[*]`** | `PENDING_SCHEDULE` (待排期) | 购课单支付并审核通过 | 班长 / 管理员 | 购课单流转为 `PAID` | 系统原子裂变生成 $N$ 个待排 TS；固化财务快照与资金持有方 `holder_id`。 |
+| `PENDING_SCHEDULE` | `SCHEDULED` (已排期) | 选定空闲网格排课预约 | 家长 / 班长 | 目标外教网格为 🟢 空闲态；若小班课需委任外教连续双格 | 占用日历网格；写入 `lesson_date`、`time_slot` 与实际上课学生。 |
+| `PENDING_SCHEDULE` | `CANCELLED` (已取消) | 办理课时退款 | 管理员 | 购课单发起退费并通过 | TS 永久作废；触发资金扣减违约金后原路清退。 |
+| `SCHEDULED` | `PENDING_SCHEDULE` (待排期) | 临时课自主请假 | 家长 | 距开课 $\ge 24\text{h}$；消耗 12.5% 请假配额 | 释放日历网格变回 🟢；TS 重置为待排期，课时资产全额保留。 |
+| `SCHEDULED` | `SCHEDULED` (已排期) | 同师同格平移挪位 | 家长 / 班长 | 距开课 $\ge 3\text{h}$；目标为同一老师空闲时段 | 原网格释放，新网格锁定；受让课次限在原 4 周轮次内挪位。 |
+| `SCHEDULED` | `SCHEDULED` (已排期) | 课次转让交割 | 转出家长 / 班长 | 距开课 $\ge 3\text{h}$；仅限 1v1 固定位与 TS 课时；`is_transferred == false` | 切换 `student_profile_id`；标记 `is_transferred = true`（绝对禁止二次转让）；原出资人不变。 |
+| `SCHEDULED` | `SCHEDULED` (已排期) | 指派临时代课 | 班长 | 距开课 $\ge 3\text{h}$ (停电不可抗力豁免至 $\ge 15\text{m}$)；代课外教有时段资质 | 原教师 `original_teacher_id` 锁定，`current_teacher_id` 指向代课教师；代课双视角日历染色。 |
+| `SCHEDULED` | `FINISHED_PENDING_SETTLEMENT` (已结课待结算) | 每日自动结课跑批 | `dream-worker` | 每日服务器时间 02:00；排课日期为前一日且非取消态 | 批量流转为待结算态；写入结课跑批审计日志。 |
+| `FINISHED_PENDING_SETTLEMENT` | `CANCELLED` (已取消) | 异常未上课回退补生 | 班长 / 管理员 | 尚未进入 `COMPLETED` 转账单；强制录入 1-200 字异常原因 | 原 TS 作废并从课酬工具费中剔除：<br>• **1v1 课次**：原单下为学生补生 1 节全新待排 TS；<br>• **小班课次**：原单下向班级待排池 (`class_id`) 退回补生 1 节待排期，严禁关联学生档案。 |
+| `FINISHED_PENDING_SETTLEMENT` | `TRANSFER_LOCKED` (转账锁定) | 周一转账草稿跑批 | `dream-worker` | 每周一服务器时间 03:30；扫描上一自然周已结课 TS | 关联至当周 `DRAFT` 转账单；禁止在其他单据重复勾选。 |
+| `TRANSFER_LOCKED` | `COLLECTED` (已归集) | 平台审核转账单收款 | 平台管理员 | 班长已打款并上传凭证；管理员确认到账放行 | 转账单跃迁为 `COMPLETED`；资金正式归集到平台中枢。 |
+| `COLLECTED` | `SETTLED` (已结算终态) | 周三平台发薪履约 | 平台管理员 | 每周三结算日管理员确认发放课酬 | 教师周结单流转为 `SETTLED`；全链路生命周期圆满闭环归档。 |
+
+- **关键业务修饰标记与布尔状态位 (Flags & Attributes)**：
+  - `is_hold` (续费预占锁)：固定位到期前 7 天自动续费预排时为 `true`，触发 72h 倒计时；家长完成续费后置为 `false`；逾期未付自动释放；
+  - `is_transferred` (转让锁定位)：发生过转让后永久置为 `true`，全系统物理拦截二次转让；
+  - `is_group` (小班课标识)：连续双网格（50分钟）课次，绑定 `class_id`，绝对不维护 `student_profile_id`。
 
 ### 3.3 退款单 (Refund Order)
 - **业务优先级**：优先引导同师挪位或群内转让；垫底退费必须提前 24 小时提交申请。
