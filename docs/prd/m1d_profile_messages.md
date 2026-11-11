@@ -118,8 +118,8 @@ flowchart TD
 
 1. **查看人权限鉴权 (`GET /api/v1/students/:student_id/messages`)**：
    - **家长身份鉴权**：系统提取当前会话 `current_user_id`，查询 `dream.student_profiles` 物理比对 `parent_user_id`。若 `student.parent_user_id != current_user_id`，直接阻断并抛出 `403 FORBIDDEN`，彻底防御家长修改 URL 中的 `student_id` 越权查看他人孩子隐私；
-   - **家长端 SQL 物理过滤铁律**：当请求者为家长时，Mapper 层执行的 SQL 必须显式追加 **`AND visibility = 'PUBLIC' AND is_revoked = false AND deleted_at IS NULL`**。**绝对禁止在 API 响应数据包中包含任何 `INTERNAL` 类型的留言实体或其内部字段**，100% 杜绝网络抓包泄露内部备忘；
-   - **外教身份鉴权**：外教查阅学员留言板时，系统校验该外教是否为该学员的绑定主讲教师，或在排课履约历史中存在授课记录（`EXISTS (SELECT 1 FROM dream.teaching_sessions WHERE student_profile_id = :student_id AND (current_teacher_id = :teacher_id OR original_teacher_id = :teacher_id))`），防止无教学关联的外教跨权窥探；
+   - **家长端数据物理隔离铁律**：当请求者为家长时，系统在数据查询层必须强制限定仅检索公开可见且未被撤回的有效留言实体。**绝对禁止在 API 响应数据包中包含任何 `INTERNAL` 类型的留言实体或其内部字段**，100% 杜绝网络抓包泄露内部备忘；
+   - **外教身份鉴权**：外教查阅学员留言板时，系统严格校验该外教是否为该学员的绑定主讲教师、当前授课教师或排课履约历史中曾为其授课的关联教师，防止无教学关联的外教跨权窥探；
    - **班长身份鉴权**：校验该学员是否为该班长直接所辖学员，或该学员排期中的教师属于该班长管辖外教；
    - **管理员身份鉴权**：放行全平台审计查阅。
 2. **发布防篡改铁律 (`POST /api/v1/students/:student_id/messages`)**：

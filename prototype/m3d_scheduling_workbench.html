@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Dream · 批量排课工作台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['SFMono-Regular', 'Menlo', 'Consolas', 'Liberation Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
+  <div id="app"></div>
+
+  <!-- Tailwind CDN 动态类安全垫 -->
+  <div class="hidden">
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-w-[720px] max-h-[78%]"></span>
+    <span class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] grid-cols-2 grid-cols-4"></span>
+    <span class="from-slate-900 via-fuchsia-950 to-slate-800 from-slate-900 via-violet-950 to-slate-800 from-slate-800 via-blue-900 to-slate-700 bg-gradient-to-br"></span>
+    <span class="bg-emerald-50 border-emerald-200 text-emerald-700 bg-emerald-50/80 bg-emerald-500 bg-emerald-600 text-emerald-800 text-emerald-950"></span>
+    <span class="bg-amber-50 border-amber-300 text-amber-900 bg-amber-50/70 border-amber-400 border-dashed text-amber-800 bg-amber-100 bg-amber-500"></span>
+    <span class="bg-rose-50 border-rose-200 text-rose-700 bg-rose-50/80 text-rose-800 bg-rose-500 bg-rose-600"></span>
+    <span class="bg-teal-50 border-teal-200 text-teal-700 bg-teal-50/70 border-2 border-teal-400 text-teal-950 bg-teal-100 text-teal-800"></span>
+    <span class="bg-indigo-50 text-indigo-700 border-indigo-200 ring-indigo-500 bg-indigo-600 text-indigo-800 bg-indigo-100"></span>
+    <span class="bg-slate-50 bg-slate-50/80 bg-slate-100 border-slate-200 border-slate-300 text-slate-500 text-slate-600 text-slate-700 bg-slate-200"></span>
+    <span class="bg-slate-900/40 bg-slate-900/90 text-white/70 ring-white/10 ring-white/15 bg-white/10 bg-white/15 bg-white/20"></span>
+    <span class="h-7 h-[26px] h-11 h-14 h-16 h-[56px] w-9 w-10 w-11 w-12 h-2"></span>
+    <span class="text-[18px] text-[16px] text-[14px] text-[12px] text-[11px] font-mono"></span>
+    <span class="opacity-60 opacity-70 ring-2 ring-inset rounded-xl rounded-2xl rounded-3xl rounded-md"></span>
+  </div>
+
+  <script>
+    /* (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
+    'use strict';
+
+    /* ------------------------------------------------------------------
+     * 演示数据
+     * ------------------------------------------------------------------ */
+    const DAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const DAY_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const TODAY_LABEL = '演示日 11-10 周二';
+
+    const STUDENTS = {
+      alice: {
+        key: 'alice',
+        id: 'stu_alice',
+        name: 'AliceZ12',
+        nickname: 'Alice',
+        age: 12,
+        emoji: '👧',
+        credits: 8,
+        preference: '🌙 平时晚间 18:30-20:30',
+        windowLabel: '18:00 - 21:00',
+        times: ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30'],
+        intentStart: 18 * 60 + 30,
+        intentEnd: 20 * 60 + 30,
+        hold: { day: 0, time: '19:00' }
+      },
+      bob: {
+        key: 'bob',
+        id: 'stu_bob',
+        name: 'BobZ10',
+        nickname: 'Bob',
+        age: 10,
+        emoji: '👦',
+        credits: 4,
+        preference: '☀️ 周末上午 09:00-11:30',
+        windowLabel: '09:00 - 12:00',
+        times: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30'],
+        intentStart: 9 * 60,
+        intentEnd: 11 * 60 + 30,
+        hold: null
+      },
+      charlie: {
+        key: 'charlie',
+        id: 'stu_charlie',
+        name: 'CharlieL08',
+        nickname: 'Charlie',
+        age: 8,
+        emoji: '🧒',
+        credits: 2,
+        preference: '🌙 平时晚间 18:30-20:30',
+        windowLabel: '18:00 - 21:00',
+        times: ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30'],
+        intentStart: 18 * 60 + 30,
+        intentEnd: 20 * 60 + 30,
+        hold: null
+      }
+    };
+
+    const TEACHERS = {
+      david: {
+        key: 'david',
+        id: 'tea_david',
+        name: 'David Miller',
+        short: 'David',
+        initial: 'D',
+        level: 'Senior',
+        load: 18,
+        manager: 'Leo'
+      },
+      linda: {
+        key: 'linda',
+        id: 'tea_linda',
+        name: 'Linda Wu',
+        short: 'Linda',
+        initial: 'L',
+        level: 'Standard',
+        load: 14,
+        manager: 'Leo'
+      }
+    };
+
+    const CLASSES = {
+      ket1: {
+        key: 'ket1',
+        name: 'KET 冲刺精讲小班',
+        code: 'KET1',
+        enrolled: 3,
+        capacity: 4,
+        owner: 'Leo',
+        teacher: 'david',
+        weeks: 16,
+        credits: 32
+      },
+      mov2: {
+        key: 'mov2',
+        name: 'Movers 进阶班',
+        code: 'MOV2',
+        enrolled: 3,
+        capacity: 4,
+        owner: 'Leo',
+        teacher: null,
+        weeks: 16,
+        credits: 16
+      }
+    };
+
+    const RECOMMENDATIONS = {
+      'david-alice': [{ day: 1, time: '19:00' }, { day: 3, time: '19:30' }],
+      'david-bob': [{ day: 5, time: '09:00' }, { day: 6, time: '09:30' }],
+      'david-charlie': [{ day: 2, time: '19:00' }, { day: 4, time: '19:30' }],
+      'linda-alice': [{ day: 0, time: '18:30' }, { day: 2, time: '19:00' }],
+      'linda-bob': [{ day: 5, time: '10:00' }, { day: 6, time: '09:00' }],
+      'linda-charlie': [{ day: 1, time: '19:30' }, { day: 3, time: '19:00' }]
+    };
+
+    const BUSY = {
+      david: {
+        0: { '18:30': 'Alic', '19:30': 'Bria' },
+        1: { '18:00': 'Alic', '20:00': 'Sam' },
+        2: { '18:00': 'Char', '20:30': 'BobZ' },
+        3: { '18:00': 'Alic' },
+        4: { '18:30': 'BobZ', '20:30': 'Alic' },
+        5: { '10:00': 'KET', '11:00': 'Alic' },
+        6: { '10:30': 'Bria' }
+      },
+      linda: {
+        0: { '19:30': 'Alic', '20:30': 'Sam' },
+        1: { '18:30': 'BobZ', '20:00': 'Alic' },
+        2: { '18:00': 'Char', '19:30': 'Bria' },
+        3: { '18:30': 'Alic' },
+        4: { '20:00': 'BobZ' },
+        5: { '10:30': 'KET' },
+        6: { '10:00': 'Char', '11:30': 'Alic' }
+      }
+    };
+
+    const CLOSED = {
+      david: new Set(['0|20:30', '6|20:00']),
+      linda: new Set(['0|18:00', '2|20:30'])
+    };
+
+    const LEAVE = {
+      david: new Set(['3|20:30']),
+      linda: new Set(['5|20:00'])
+    };
+
+    const WEEK_PREVIEW = [
+      { no: '第 1 周', date: '11.16' },
+      { no: '第 2 周', date: '11.23' },
+      { no: '第 3 周', date: '11.30' },
+      { no: '第 4 周', date: '12.07' }
+    ];
+
+    const GRID_DATES = ['11.16', '11.17', '11.18', '11.19', '11.20', '11.21', '11.22'];
+    const GROUP_TIMES = ['09:00', '10:00', '11:00'];
+
+    /* ------------------------------------------------------------------
+     * 状态与地址参数
+     * ------------------------------------------------------------------ */
+    const state = {
+      role: 'monitor',
+      mode: 'batch_fixed',
+      device: 'mobile',
+      online: true,
+      scenario: 'normal',
+      student: 'alice',
+      teacher: 'david',
+      classId: 'ket1',
+      selectedSlots: [],
+      overlay: null,
+      candidateAck: false,
+      conflictDetail: null,
+      completed: null,
+      toast: ''
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const roleParam = params.get('role');
+    const modeParam = params.get('mode');
+    const studentParam = params.get('studentId');
+    const teacherParam = params.get('teacherId');
+    const scenarioParam = params.get('scenario');
+    const deviceParam = params.get('device');
+
+    if (['monitor', 'admin', 'parent'].includes(roleParam)) state.role = roleParam;
+    if (modeParam === 'batch_group' || modeParam === 'batch_fixed') state.mode = modeParam;
+    if (deviceParam === 'tablet') state.device = 'tablet';
+    if (['normal', 'hold-shift', 'hold-convert', 'conflict', 'insufficient', 'group', 'group-blocked'].includes(scenarioParam)) {
+      state.scenario = scenarioParam;
+    }
+
+    function applyScenarioPreset(name, resetRole) {
+      state.scenario = name || 'normal';
+      state.overlay = null;
+      state.completed = null;
+      state.candidateAck = false;
+      state.conflictDetail = null;
+      state.toast = '';
+
+      if (name === 'hold-shift') {
+        state.mode = 'batch_fixed';
+        state.student = 'alice';
+        state.teacher = 'david';
+        state.selectedSlots = [{ day: 1, time: '19:30' }, { day: 3, time: '19:30' }];
+      } else if (name === 'hold-convert') {
+        state.mode = 'batch_fixed';
+        state.student = 'alice';
+        state.teacher = 'david';
+        state.selectedSlots = [{ day: 0, time: '19:00' }, { day: 1, time: '19:30' }];
+      } else if (name === 'conflict') {
+        state.mode = 'batch_fixed';
+        state.student = 'alice';
+        state.teacher = 'david';
+        state.selectedSlots = [{ day: 1, time: '19:00' }, { day: 3, time: '19:30' }];
+      } else if (name === 'insufficient') {
+        state.mode = 'batch_fixed';
+        state.student = 'charlie';
+        state.teacher = 'david';
+        state.selectedSlots = [{ day: 2, time: '19:00' }];
+      } else if (name === 'group') {
+        state.mode = 'batch_group';
+        state.classId = 'ket1';
+        state.teacher = 'david';
+        state.selectedSlots = [{ day: 5, time: '10:00' }, { day: 6, time: '09:00' }];
+      } else if (name === 'group-blocked') {
+        state.mode = 'batch_group';
+        state.classId = 'mov2';
+        state.teacher = null;
+        state.selectedSlots = [];
+      } else {
+        state.mode = 'batch_fixed';
+        state.student = 'alice';
+        state.teacher = 'david';
+        state.selectedSlots = [];
+      }
+
+      if (resetRole) state.role = name === 'parent' ? 'parent' : 'monitor';
+    }
+
+    applyScenarioPreset(state.scenario, false);
+
+    if (modeParam === 'batch_group' && state.scenario !== 'group' && state.scenario !== 'group-blocked') {
+      state.mode = 'batch_group';
+      state.classId = 'ket1';
+      state.selectedSlots = [{ day: 5, time: '10:00' }, { day: 6, time: '09:00' }];
+      state.teacher = state.teacher || 'david';
+    }
+
+    const studentIdMap = { stu_alice: 'alice', stu_bob: 'bob', stu_charlie: 'charlie' };
+    const teacherIdMap = { tea_david: 'david', tea_linda: 'linda' };
+    if (studentIdMap[studentParam]) state.student = studentIdMap[studentParam];
+    if (teacherIdMap[teacherParam] && state.scenario !== 'group-blocked') {
+      state.teacher = teacherIdMap[teacherParam];
+    }
+    if (state.scenario === 'insufficient') {
+      state.student = 'charlie';
+      state.selectedSlots = [{ day: 2, time: '19:00' }];
+    }
+
+    if (state.role === 'parent') {
+      state.completed = null;
+      state.overlay = null;
+    }
+
+    /* ------------------------------------------------------------------
+     * 通用工具
+     * ------------------------------------------------------------------ */
+    const esc = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
+
+    function toMinutes(time) {
+      const bits = time.split(':').map(Number);
+      return bits[0] * 60 + bits[1];
+    }
+
+    function endTime(time) {
+      const total = toMinutes(time) + 30;
+      return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+    }
+
+    function endHour(time) {
+      return `${String(Number(time.slice(0, 2)) + 1).padStart(2, '0')}:00`;
+    }
+
+    function currentStudent() { return STUDENTS[state.student]; }
+    function currentTeacher() { return state.teacher ? TEACHERS[state.teacher] : null; }
+    function currentClass() { return CLASSES[state.classId]; }
+    function recKey() { return `${state.teacher || 'none'}-${state.student}`; }
+    function isParent() { return state.role === 'parent'; }
+    function isAdmin() { return state.role === 'admin'; }
+    function teacherScopeLabel() { return isAdmin() ? '平台调度' : '管辖外教'; }
+
+    function isSelected(day, time) {
+      return state.selectedSlots.some((slot) => slot.day === day && slot.time === time);
+    }
+    function removeSlot(day, time) {
+      state.selectedSlots = state.selectedSlots.filter((slot) => !(slot.day === day && slot.time === time));
+      syncCandidateAck();
+    }
+    function orderedSlots() {
+      return [...state.selectedSlots].sort((a, b) => a.day - b.day || toMinutes(a.time) - toMinutes(b.time));
+    }
+    function slotsLabel(slots = orderedSlots()) {
+      return slots.map((slot) => `${DAY_LABELS[slot.day]} ${slot.time}`).join('、');
+    }
+    function slotsParam(slots = orderedSlots()) {
+      return slots.map((slot) => `${DAY_EN[slot.day]}:${slot.time}`).join(',');
+    }
+
+    function hasCandidateSelected() {
+      return state.scenario === 'conflict' && isSelected(1, '19:30');
+    }
+    function syncCandidateAck() {
+      if (!hasCandidateSelected()) state.candidateAck = false;
+    }
+
+    function fixedCreditUnit() { return 4; }
+    function groupCreditUnit() { return 16; }
+    function maxFixedSlots() { return Math.floor(currentStudent().credits / fixedCreditUnit()); }
+    function maxGroupSlots() { return Math.floor(currentClass().credits / groupCreditUnit()); }
+
+    function isHoldSlot(slot) {
+      if (!slot || state.mode === 'batch_group') return false;
+      const hold = activeHold();
+      return !!hold && hold.day === slot.day && hold.time === slot.time;
+    }
+    function billableSlots() {
+      return state.selectedSlots.filter((slot) => !isHoldSlot(slot));
+    }
+    function billableCount() {
+      return billableSlots().length;
+    }
+    function convertedCount() {
+      return state.mode === 'batch_group' ? 0 : state.selectedSlots.length - billableCount();
+    }
+
+    function slotHasConflict(slot) {
+      return state.scenario === 'conflict' && slot.day === 1 && slot.time === '19:00';
+    }
+    function conflictSlots() { return orderedSlots().filter(slotHasConflict); }
+
+    function activeHold() {
+      if (state.student === 'alice' && state.scenario !== 'conflict') {
+        return { day: 0, time: '19:00' };
+      }
+      return null;
+    }
+
+    function conflictOriginal() {
+      return state.scenario === 'conflict' ? { day: 1, time: '19:00' } : null;
+    }
+
+    function conflictCandidate() {
+      return state.scenario === 'conflict' ? { day: 1, time: '19:30' } : null;
+    }
+
+    function isIntent(time, student = currentStudent()) {
+      const mins = toMinutes(time);
+      return mins >= student.intentStart && mins < student.intentEnd;
+    }
+
+    /* ------------------------------------------------------------------
+     * 网格状态计算
+     * ------------------------------------------------------------------ */
+    function fixedCell(day, time) {
+      const teacherKey = state.teacher || 'david';
+      const hold = activeHold();
+      const original = conflictOriginal();
+      const candidate = conflictCandidate();
+
+      if (original && original.day === day && original.time === time) {
+        return { kind: 'original', label: '⚠', cls: 'border-rose-300 bg-emerald-50 text-rose-700' };
+      }
+      if (candidate && candidate.day === day && candidate.time === time) {
+        return { kind: 'candidate', label: '候补', cls: 'border-amber-400 border-dashed bg-amber-50/70 text-amber-800' };
+      }
+      if (hold && hold.day === day && hold.time === time) {
+        return { kind: 'hold', label: '预', cls: 'border-amber-400 border-dashed bg-amber-50/70 text-amber-800' };
+      }
+
+      const busy = BUSY[teacherKey] && BUSY[teacherKey][day] && BUSY[teacherKey][day][time];
+      if (busy) {
+        return { kind: 'busy', label: busy, cls: 'border-amber-300 bg-amber-50 text-amber-900' };
+      }
+      if (LEAVE[teacherKey] && LEAVE[teacherKey].has(`${day}|${time}`)) {
+        return { kind: 'leave', label: '假', cls: 'border-rose-200 bg-rose-50 text-rose-700' };
+      }
+      if (CLOSED[teacherKey] && CLOSED[teacherKey].has(`${day}|${time}`)) {
+        return { kind: 'closed', label: '休', cls: 'border-slate-200 bg-slate-100 text-slate-500' };
+      }
+      if (isIntent(time)) {
+        return { kind: 'available', label: '可排', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+      }
+      return { kind: 'available', label: '可排', cls: 'border-slate-200 bg-slate-50/80 text-slate-500 opacity-60' };
+    }
+
+    function canPickFixed(day, time) {
+      const status = fixedCell(day, time);
+      return ['available', 'original', 'candidate', 'hold'].includes(status.kind);
+    }
+
+    function groupBlock(day, time) {
+      const cls = currentClass();
+      const activeTeacher = cls.teacher;
+      if (!activeTeacher) return { kind: 'closed', label: '休' };
+      if (day === 5 && time === '10:00') return { kind: 'full', label: '16/16' };
+      if (day === 6 && time === '09:00') return { kind: 'full', label: '16/16' };
+      if (day === 6 && time === '10:00') return { kind: 'partial', label: '15/16', week: 8, reason: '班级外出活动' };
+      return { kind: 'closed', label: '休' };
+    }
+
+    function selectedGroupBlocks() {
+      if (state.mode !== 'batch_group') return [];
+      return orderedSlots().map((slot) => ({ slot, block: groupBlock(slot.day, slot.time) }));
+    }
+
+    function selectedIsCandidate() {
+      return hasCandidateSelected();
+    }
+
+    function fixedAllGreen() {
+      return state.selectedSlots.length > 0 && conflictSlots().length === 0;
+    }
+
+    function groupAllGreen() {
+      const blocks = selectedGroupBlocks();
+      return blocks.length > 0 && blocks.every((item) => item.block.kind === 'full');
+    }
+
+    function creditsNeeded() {
+      return state.mode === 'batch_group'
+        ? state.selectedSlots.length * groupCreditUnit()
+        : billableCount() * fixedCreditUnit();
+    }
+
+    function creditsEnough() {
+      if (state.mode === 'batch_group') return state.selectedSlots.length <= maxGroupSlots();
+      return currentStudent().credits >= creditsNeeded();
+    }
+
+    function confirmReady() {
+      if (isParent()) return false;
+      if (!state.online || state.completed) return false;
+      if (!state.selectedSlots.length) return false;
+      if (state.mode === 'batch_group') {
+        if (!currentClass().teacher) return false;
+        if (!creditsEnough()) return false;
+        return groupAllGreen();
+      }
+      if (!creditsEnough()) return false;
+      if (!fixedAllGreen()) return false;
+      if (hasCandidateSelected() && !state.candidateAck) return false;
+      return true;
+    }
+
+    /* ------------------------------------------------------------------
+     * 页面骨架
+     * ------------------------------------------------------------------ */
+    function render(preserveScroll = true) {
+      const previous = document.getElementById('content');
+      const previousTop = previous ? previous.scrollTop : 0;
+      const app = document.getElementById('app');
+      app.innerHTML = `${renderConsole()}${renderFrame()}`;
+      const next = document.getElementById('content');
+      if (next) next.scrollTop = preserveScroll ? previousTop : 0;
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function renderFrame() {
+      const frameSize = state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]';
+      return `<main class="flex justify-center px-4 py-6">
+        <div id="frame" class="relative flex ${frameSize} shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
+          ${renderBanner()}
+          ${!state.online && !isParent() ? renderOfflineStrip() : ''}
+          ${isParent() ? renderParentView() : renderWorkbench()}
+          ${renderOverlay()}
+          ${state.toast ? renderToast() : ''}
+        </div>
+      </main>`;
+    }
+
+    function renderWorkbench() {
+      return `<div id="content" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div class="mx-auto w-full max-w-[720px] px-3 pb-4 pt-3">
+          ${renderContent()}
+        </div>
+      </div>
+      ${renderConfirmBar()}`;
+    }
+
+    function renderContent() {
+      if (state.mode === 'batch_group') {
+        return `${renderGroupContext()}
+          ${currentClass().teacher ? renderGroupSummary() : ''}
+          ${currentClass().teacher ? renderGroupGrid() : renderBlockedCard()}`;
+      }
+      return `${state.scenario === 'conflict' ? renderConflictTicket() : ''}
+        ${renderFixedContext()}
+        ${state.scenario === 'conflict' ? '' : renderRecommendations()}
+        ${renderFixedGrid()}`;
+    }
+
+    /* ------------------------------------------------------------------
+     * Banner / 权限页
+     * ------------------------------------------------------------------ */
+    function roleMeta() {
+      if (state.role === 'admin') {
+        return { banner: 'from-slate-900 via-violet-950 to-slate-800', initial: 'S' };
+      }
+      if (state.role === 'parent') {
+        return { banner: 'from-slate-800 via-blue-900 to-slate-700', initial: 'A' };
+      }
+      return { banner: 'from-slate-900 via-fuchsia-950 to-slate-800', initial: 'L' };
+    }
+
+    function renderBanner() {
+      const meta = roleMeta();
+      const title = isParent() ? '排课工作台' : (state.mode === 'batch_group' ? '小班整班排课' : '批量固定位排课');
+      const subtitle = isParent()
+        ? ''
+        : (state.mode === 'batch_group' ? '全学期 16 周 · 11.16 - 03.08' : '未来 4 周 · 11.16 - 12.13');
+      const backRole = isParent() ? 'parent' : state.role;
+      return `<header class="relative flex h-16 shrink-0 items-center gap-2 overflow-hidden bg-gradient-to-br ${meta.banner} px-3 text-white">
+        <span class="pointer-events-none absolute -right-7 -top-9 h-24 w-24 rounded-full border border-white/10"></span>
+        <span class="pointer-events-none absolute right-16 top-5 h-14 w-14 rounded-full border border-white/10"></span>
+        <span class="pointer-events-none absolute -bottom-8 left-20 h-20 w-20 rounded-full bg-white/5"></span>
+        <a href="m3a_calendar_grid.html?role=${backRole}" class="relative flex h-9 shrink-0 items-center gap-0.5 rounded-xl bg-white/10 pl-1 pr-2 text-[12px] font-semibold ring-1 ring-white/15 transition hover:bg-white/20" aria-label="返回课表">
+          ${icon('chevron-left', 'h-4 w-4')}取消
+        </a>
+        <div class="relative min-w-0 flex-1">
+          <h1 class="truncate text-[18px] font-bold tracking-tight">${title}</h1>
+          ${subtitle ? `<p class="mt-0.5 truncate text-[12px] font-medium text-white/70">${subtitle}</p>` : ''}
+        </div>
+        ${isParent() ? '' : `<button data-action="open-rules" class="relative flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[12px] font-semibold text-white/80 transition hover:bg-white/10 hover:text-white">
+          ${icon('info', 'h-4 w-4')}规则
+        </button>`}
+      </header>`;
+    }
+
+    function renderOfflineStrip() {
+      return `<div class="flex shrink-0 items-center gap-1.5 border-b border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
+        ${icon('wifi-off', 'h-4 w-4 shrink-0 text-amber-600')}
+        <span class="truncate">离线只读：可查看排课方案，暂不可提交</span>
+      </div>`;
+    }
+
+    function renderParentView() {
+      return `<div id="content" class="min-h-0 flex-1 overflow-y-auto">
+        <div class="mx-auto flex h-full w-full max-w-[520px] flex-col items-center justify-center px-6 pb-8 text-center">
+          <div class="grid h-16 w-16 place-items-center rounded-2xl border border-indigo-100 bg-indigo-50 text-indigo-700 shadow-sm">
+            ${icon('lock', 'h-7 w-7')}
+          </div>
+          <h2 class="mt-4 text-[18px] font-bold text-slate-900">批量排课由班长发起</h2>
+          <p class="mt-2 max-w-[310px] text-[14px] font-medium leading-relaxed text-slate-600">你可以在课表中查看孩子的完整安排，临时约课请直接选择空闲时段。</p>
+          <a href="m3a_calendar_grid.html?role=parent" class="mt-5 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-5 text-[16px] font-bold text-white shadow-sm transition hover:bg-indigo-700">
+            ${icon('calendar-days', 'h-4 w-4')}查看我的课表
+          </a>
+          <p class="mt-3 text-[12px] font-medium text-slate-500">孩子的课程变动会通过通知中心同步</p>
+        </div>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 固定位上下文
+     * ------------------------------------------------------------------ */
+    function renderFixedContext() {
+      const student = currentStudent();
+      const teacher = currentTeacher();
+      const hold = activeHold();
+      const conflict = state.scenario === 'conflict';
+      const holdText = conflict ? '原时段 周二 19:00' : (hold ? `续费预占 ${DAY_LABELS[hold.day]} ${hold.time}` : '');
+      return `<section aria-label="排课对象">
+        <button data-action="open-students" class="w-full rounded-2xl border border-slate-200/80 bg-white p-3 text-left shadow-sm transition active:scale-[0.995]">
+          <div class="flex items-start gap-2.5">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-indigo-100 bg-indigo-50 text-[16px] font-bold text-indigo-700">${esc(student.nickname.slice(0, 1))}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <h2 class="truncate text-[16px] font-bold text-slate-900">${esc(student.name)}（${esc(student.nickname)}）</h2>
+                <span class="flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-indigo-600">切换 ${icon('chevron-down', 'h-3.5 w-3.5')}</span>
+              </div>
+              <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                <span class="text-[12px] font-medium text-slate-600">${student.age} 岁</span>
+                <span class="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[12px] font-semibold text-indigo-700">固定位课时 ${student.credits} 节可用</span>
+                ${holdText ? `<span class="rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[12px] font-semibold text-amber-900">${holdText}</span>` : ''}
+              </div>
+              <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span class="inline-flex items-center rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-medium text-indigo-700">${esc(student.preference)}</span>
+                <span class="text-[12px] font-medium text-slate-500">可排时间 ${student.windowLabel}</span>
+              </div>
+            </div>
+          </div>
+        </button>
+
+        <button data-action="open-teachers" class="mt-2 flex w-full items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3 py-2.5 text-left shadow-sm transition active:scale-[0.995]">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-bold text-slate-700">${teacher.initial}</span>
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center gap-1.5">
+              <span class="truncate text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
+              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${teacher.level}</span>
+            </span>
+            <span class="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600">
+              <span>${teacherScopeLabel()}</span>
+              <span class="text-slate-300">·</span>
+              <span>本周已排 ${teacher.load} 节</span>
+            </span>
+          </span>
+          <span class="flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-slate-600">切换 ${icon('chevron-down', 'h-3.5 w-3.5')}</span>
+        </button>
+      </section>`;
+    }
+
+    function renderRecommendations() {
+      const recs = RECOMMENDATIONS[recKey()] || [];
+      return `<section class="mt-3" aria-label="黄金推荐">
+        <div class="mb-1.5 flex items-center justify-between gap-2 px-0.5">
+          <h2 class="text-[14px] font-bold text-slate-900">黄金推荐</h2>
+          <span class="text-[12px] font-medium text-slate-500">外教空闲与学员意向的交集</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          ${recs.map((rec) => {
+            const active = isSelected(rec.day, rec.time);
+            return `<button data-action="pick-slot" data-day="${rec.day}" data-time="${rec.time}" class="rounded-xl border p-2.5 text-left shadow-sm transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-indigo-50 ring-2 ring-inset ring-indigo-500' : 'border-emerald-200 bg-emerald-50/80'}">
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-[12px] font-bold ${active ? 'text-indigo-700' : 'text-emerald-800'}">${active ? '✓ 已选' : '🟢 推荐'}</span>
+                <span class="text-[12px] font-semibold ${active ? 'text-indigo-600' : 'text-emerald-700'}">4 周全通</span>
+              </div>
+              <div class="mt-1 text-[16px] font-bold tracking-tight text-slate-900">${DAY_LABELS[rec.day]} ${rec.time}</div>
+            </button>`;
+          }).join('')}
+        </div>
+      </section>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 固定位纯净网格
+     * ------------------------------------------------------------------ */
+    function renderFixedGrid() {
+      const student = currentStudent();
+      const teacher = currentTeacher();
+      const rows = student.times;
+      return `<section class="mt-3" aria-label="可排时段">
+        <div class="mb-1.5 flex items-center justify-between gap-2 px-0.5">
+          <h2 class="text-[14px] font-bold text-slate-900">可排时段</h2>
+          <span class="text-[12px] font-medium text-slate-500">${esc(teacher.short)} 老师 · 未来 4 周</span>
+        </div>
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-slate-50">
+            <div class="flex h-9 items-center justify-center text-[11px] font-semibold text-slate-500">时间</div>
+            ${DAY_LABELS.map((day, index) => `<div class="flex h-9 flex-col items-center justify-center border-l border-slate-100">
+              <span class="text-[12px] font-bold leading-none text-slate-700">${day}</span>
+              <span class="mt-0.5 font-mono text-[11px] font-medium leading-none text-slate-500">${GRID_DATES[index]}</span>
+            </div>`).join('')}
+          </div>
+          <div>
+            ${rows.map((time) => `<div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-t border-slate-100 first:border-t-0">
+              <div class="sticky left-0 z-20 flex h-7 items-center justify-center border-r border-slate-100 bg-white font-mono text-[11px] font-medium text-slate-600">${time}</div>
+              ${DAY_LABELS.map((_, day) => {
+                const status = fixedCell(day, time);
+                const selected = isSelected(day, time);
+                const pickable = canPickFixed(day, time);
+                const cls = selected
+                  ? 'border-indigo-300 bg-indigo-50 text-indigo-700 ring-2 ring-inset ring-indigo-500'
+                  : status.cls;
+                const label = selected
+                  ? (status.kind === 'candidate' ? '候补' : status.kind === 'original' ? '冲突' : '已选')
+                  : status.label;
+                return `<button data-action="pick-slot" data-day="${day}" data-time="${time}" ${pickable ? '' : 'disabled'} aria-label="${DAY_LABELS[day]} ${time} ${esc(status.label)}" class="m-px flex h-[26px] min-w-0 items-center justify-center overflow-hidden rounded-md border px-0.5 text-[11px] font-bold leading-none transition active:scale-95 ${pickable ? '' : 'cursor-not-allowed'} ${cls}">
+                  <span class="truncate">${esc(label)}</span>
+                </button>`;
+              }).join('')}
+            </div>`).join('')}
+          </div>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 bg-slate-50/60 px-2 py-1.5 text-[12px] font-medium text-slate-500">
+            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-emerald-300"></span>可排</span>
+            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-amber-300"></span>已排 / 续费预占</span>
+            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-rose-300"></span>请假 / 冲突</span>
+            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-slate-300"></span>休息</span>
+          </div>
+        </div>
+        ${renderWeekPreview()}
+      </section>`;
+    }
+
+    function renderWeekPreview() {
+      const slots = orderedSlots();
+      const conflict = conflictSlots().length > 0;
+      return `<div class="mt-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+        <div class="mb-1.5 flex items-center justify-between gap-2">
+          <h3 class="text-[12px] font-bold text-slate-700">未来 4 周穿透预览</h3>
+          <span class="text-[12px] font-medium ${!slots.length ? 'text-slate-500' : conflict ? 'text-rose-700' : 'text-emerald-700'}">${!slots.length ? '等待选择时段' : conflict ? '存在冲突周' : '全部可排'}</span>
+        </div>
+        ${!slots.length ? `<div class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-2 py-3 text-center text-[12px] font-medium text-slate-500">选择一个或多个时段后显示</div>` : `<div class="space-y-1">
+          ${slots.map((slot) => {
+            const bad = slotHasConflict(slot);
+            return `<div class="rounded-lg border px-1.5 py-1 ${bad ? 'border-rose-200 bg-rose-50/80' : 'border-emerald-200 bg-emerald-50/60'}">
+              <div class="flex items-center gap-1.5">
+                <span class="w-[64px] shrink-0 truncate text-[12px] font-bold ${bad ? 'text-rose-800' : 'text-slate-800'}">${DAY_LABELS[slot.day]} ${slot.time}</span>
+                <div class="flex flex-1 items-center gap-1">
+                  ${WEEK_PREVIEW.map((week, index) => {
+                    const weekBad = bad && index === 2;
+                    return `<span class="flex flex-1 items-center justify-center rounded-md border px-0.5 py-0.5 text-[12px] font-bold leading-none ${weekBad ? 'border-rose-300 bg-rose-100 text-rose-700' : 'border-emerald-200 bg-white text-emerald-700'}">W${index + 1} ${weekBad ? '✕' : '✓'}</span>`;
+                  }).join('')}
+                </div>
+              </div>
+              ${bad ? `<div class="mt-1 pl-[70px] text-[12px] font-semibold leading-tight text-rose-700">第 3 周（11.30）外教休假</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>`}
+      </div>`;
+    }
+
+    function renderConflictTicket() {
+      const adopted = selectedIsCandidate();
+      return `<section class="mb-2.5 overflow-hidden rounded-2xl border border-rose-200 bg-rose-50/80 shadow-sm">
+        <div class="p-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-rose-600 text-white">${icon('siren', 'h-4 w-4')}</span>
+            <h2 class="text-[14px] font-bold text-rose-900">续费时段冲突</h2>
+            <span class="ml-auto rounded-md border border-rose-200 bg-white px-1.5 py-0.5 text-[12px] font-bold text-rose-700">待确认</span>
+          </div>
+          <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-rose-800">Alice 原周二 19:00 因外教第 3 周休假无法继承。已临时保留候补时段 [周二 19:30]，请尽快与家长确认。</p>
+          <div class="mt-2 flex gap-2">
+            <button data-action="adopt-candidate" class="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-indigo-600 px-2 text-[12px] font-bold text-white transition active:bg-indigo-700 ${adopted ? 'opacity-70' : ''}">
+              ${icon(adopted ? 'check' : 'calendar-check', 'h-3.5 w-3.5')}${adopted ? '已采用候补时段' : '采用候补时段'}
+            </button>
+            <button data-action="contact-parent" class="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-white px-2 text-[12px] font-semibold text-rose-800 transition active:bg-rose-50">
+              ${icon('message-circle', 'h-3.5 w-3.5')}联系家长
+            </button>
+          </div>
+        </div>
+        <div class="border-t border-rose-200/70 bg-white/75 px-3 py-2">
+          <p class="text-[12px] font-medium leading-relaxed text-slate-700"><span class="font-bold text-slate-800">家长端将看到：</span>因授课老师作息调整，已为您预留备选时段 [周二 19:30]，请联系班长确认。<span class="text-slate-500">24 小时未确认自动释放。</span></p>
+        </div>
+      </section>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 小班上下文与 16 周网格
+     * ------------------------------------------------------------------ */
+    function renderGroupContext() {
+      const cls = currentClass();
+      const teacher = cls.teacher ? TEACHERS[cls.teacher] : null;
+      return `<section aria-label="班级排课对象">
+        <div class="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+          <div class="flex items-start gap-2.5">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-teal-200 bg-teal-50 text-teal-700">${icon('users', 'h-5 w-5')}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5">
+                <h2 class="truncate text-[16px] font-bold text-slate-900">${esc(cls.name)}</h2>
+                <span class="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-700">${cls.code}</span>
+              </div>
+              <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">👥 在读 ${cls.enrolled}/${cls.capacity} 人</span>
+                <span class="rounded-md border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[12px] font-semibold text-teal-700">小班课时 ${cls.credits} 节可用</span>
+                <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">主理人 ${cls.owner}</span>
+                <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">全学期 ${cls.weeks} 周</span>
+                ${!teacher ? '<span class="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[12px] font-bold text-rose-700">授课外教 未委任</span>' : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+        ${teacher ? `<div class="mt-2 flex w-full items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-bold text-slate-700">${teacher.initial}</span>
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center gap-1.5">
+              <span class="truncate text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
+              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${teacher.level}</span>
+            </span>
+            <span class="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600">
+              <span>授课外教</span><span class="text-slate-300">·</span><span>本周已排 ${teacher.load} 节</span>
+            </span>
+          </span>
+          <span class="rounded-md border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[12px] font-semibold text-teal-700">已委任</span>
+        </div>` : ''}
+      </section>`;
+    }
+
+    function renderGroupSummary() {
+      const slots = orderedSlots();
+      const allFull = slots.length > 0 && groupAllGreen();
+      const viewingPartial = !!state.conflictDetail;
+      const partial = !allFull && viewingPartial;
+      const rightMain = allFull ? `${slots.length} 个时段` : partial ? '15/16' : '16/16';
+      const rightSub = allFull ? '均 16 周全通' : partial ? '局部冲突' : '周全通';
+      const subtitle = slots.length
+        ? `已选 ${slots.length} 个时段 · 每段独立 16 周穿透`
+        : partial ? `已查看 ${DAY_LABELS[state.conflictDetail.day]} ${state.conflictDetail.time} 的冲突详情` : '全学期每周 50 分钟 · 优先推荐全通时段';
+      return `<section class="mt-3" aria-label="16 周连贯度">
+        <div class="flex items-center justify-between gap-3 rounded-2xl border ${partial ? 'border-amber-200 bg-amber-50/80' : 'border-teal-200 bg-teal-50/70'} p-3 shadow-sm">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="grid h-7 w-7 place-items-center rounded-lg ${partial ? 'bg-amber-100 text-amber-800' : 'bg-teal-100 text-teal-700'}">${icon(partial ? 'triangle-alert' : 'sparkles', 'h-4 w-4')}</span>
+              <h2 class="text-[14px] font-bold text-slate-900">16 周连贯度</h2>
+            </div>
+            <p class="mt-1 text-[12px] font-medium text-slate-600">${subtitle}</p>
+          </div>
+          <div class="shrink-0 text-right">
+            <div class="text-[18px] font-bold ${partial ? 'text-amber-800' : 'text-teal-800'}">${rightMain}</div>
+            <div class="text-[12px] font-semibold ${partial ? 'text-amber-700' : 'text-teal-700'}">${rightSub}</div>
+          </div>
+        </div>
+      </section>`;
+    }
+
+    function renderGroupGrid() {
+      const detail = state.conflictDetail;
+      return `<section class="mt-3" aria-label="小班整班时段">
+        <div class="mb-1.5 flex items-center justify-between gap-2 px-0.5">
+          <h2 class="text-[14px] font-bold text-slate-900">整班时段</h2>
+          <span class="text-[12px] font-medium text-slate-500">${esc(currentClass().code)} · 每周 1 小时</span>
+        </div>
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-slate-50">
+            <div class="flex h-9 items-center justify-center text-[11px] font-semibold text-slate-500">时间</div>
+            ${DAY_LABELS.map((day, index) => `<div class="flex h-9 flex-col items-center justify-center border-l border-slate-100">
+              <span class="text-[12px] font-bold leading-none text-slate-700">${day}</span>
+              <span class="mt-0.5 font-mono text-[11px] font-medium leading-none text-slate-500">${GRID_DATES[index]}</span>
+            </div>`).join('')}
+          </div>
+          <div>
+            ${GROUP_TIMES.map((time) => `<div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-t border-slate-100 first:border-t-0">
+              <div class="sticky left-0 z-20 flex h-[56px] items-center justify-center border-r border-slate-100 bg-white font-mono text-[11px] font-medium text-slate-600">${time}</div>
+              ${DAY_LABELS.map((_, day) => {
+                const block = groupBlock(day, time);
+                const selected = isSelected(day, time);
+                const viewing = !!detail && detail.day === day && detail.time === time;
+                const pickable = block.kind === 'full' || block.kind === 'partial';
+                let cls = 'border-slate-200 bg-slate-100 text-slate-500';
+                if (block.kind === 'full') cls = 'border-2 border-teal-400 bg-teal-50 text-teal-950';
+                if (block.kind === 'partial') cls = 'border border-amber-300 bg-amber-50 text-amber-900';
+                if (selected) cls = 'border-indigo-300 bg-indigo-50 text-indigo-700 ring-2 ring-inset ring-indigo-500';
+                if (viewing && !selected) cls = `${cls} ring-2 ring-inset ring-amber-500`;
+                return `<button data-action="pick-group-slot" data-day="${day}" data-time="${time}" ${pickable ? '' : 'disabled'} aria-label="${DAY_LABELS[day]} ${time} ${block.kind === 'full' ? '16 周全通' : block.kind === 'partial' ? '15 周可排' : '不可用'}" class="m-px flex h-[54px] min-w-0 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md px-0.5 text-[11px] font-bold leading-tight transition active:scale-95 ${pickable ? '' : 'cursor-not-allowed'} ${cls}">
+                  ${selected ? `<span class="rounded bg-indigo-600 px-1 py-0.5 text-[11px] leading-none text-white">已选</span>` : ''}
+                  ${!selected && block.kind === 'full' ? `<span class="rounded bg-teal-600 px-1 py-0.5 text-[11px] leading-none text-white">[G]</span>` : ''}
+                  ${!selected && block.kind === 'full' ? `<span class="text-[11px] leading-none">${block.label}</span>` : ''}
+                  ${selected ? `<span class="text-[11px] leading-none">16/16</span>` : ''}
+                  ${block.kind === 'partial' ? `<span class="text-[11px] leading-none">⚠️ ${block.label}</span><span class="text-[11px] leading-none">第 8 周</span>` : ''}
+                  ${block.kind === 'closed' ? `<span class="text-[11px] leading-none">休</span>` : ''}
+                </button>`;
+              }).join('')}
+            </div>`).join('')}
+          </div>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 bg-slate-50/60 px-2 py-1.5 text-[12px] font-medium text-slate-500">
+            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-teal-400"></span>16 周全通</span>
+            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-amber-300"></span>局部冲突</span>
+            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-slate-300"></span>不可用</span>
+          </div>
+        </div>
+        ${detail ? `<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5">
+          <div class="flex items-center gap-1.5 text-[12px] font-bold text-amber-900">${icon('triangle-alert', 'h-3.5 w-3.5')}第 ${detail.week} 周冲突 · ${DAY_LABELS[detail.day]} ${detail.time}</div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-800">${esc(detail.reason)}，无法整学期排定。该时段未加入已选，可改选上方 16 周全通时段。</p>
+        </div>` : ''}
+        ${renderCoherenceBar()}
+      </section>`;
+    }
+
+    function renderCoherenceBar() {
+      const slots = orderedSlots();
+      return `<div class="mt-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[12px] font-bold text-slate-700">16 周连贯度预览</span>
+          <span class="text-[12px] font-bold ${slots.length ? 'text-teal-700' : 'text-slate-500'}">${slots.length ? `${slots.length} 个时段 · 每段 16/16` : '等待选择时段'}</span>
+        </div>
+        ${!slots.length ? `<div class="mt-1.5 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-2 py-3 text-center text-[12px] font-medium text-slate-500">选择一个或多个时段后显示</div>` : `<div class="mt-1.5 space-y-1.5">
+          ${slots.map((slot) => `<div class="rounded-lg border border-teal-200 bg-teal-50/50 px-1.5 py-1">
+            <div class="flex items-center gap-1.5">
+              <span class="w-[64px] shrink-0 truncate text-[12px] font-bold text-slate-800">${DAY_LABELS[slot.day]} ${slot.time}</span>
+              <span class="shrink-0 text-[12px] font-semibold text-teal-700">16/16 周全通</span>
+            </div>
+            <div class="mt-1 flex gap-0.5 pl-0">
+              ${Array.from({ length: 16 }, () => '<span class="h-2 flex-1 rounded-full bg-emerald-500"></span>').join('')}
+            </div>
+          </div>`).join('')}
+        </div>`}
+      </div>`;
+    }
+
+    function renderBlockedCard() {
+      return `<section class="mt-3 rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-sm">
+        <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">${icon('user-x', 'h-6 w-6')}</div>
+        <h2 class="mt-3 text-[16px] font-bold text-slate-900">请先委任授课老师</h2>
+        <p class="mx-auto mt-1.5 max-w-[280px] text-[14px] font-medium leading-relaxed text-slate-600">请先在班级管理中委任授课老师后再排课</p>
+        <a href="m1c_classes.html" class="mt-3 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 text-[14px] font-bold text-white transition hover:bg-indigo-700">
+          ${icon('arrow-up-right', 'h-4 w-4')}去班级管理
+        </a>
+      </section>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 吸底确认栏
+     * ------------------------------------------------------------------ */
+    function bottomState() {
+      const s = {
+        disabled: true,
+        title: '',
+        subtitle: '',
+        error: '',
+        summary: '',
+        chips: [],
+        showCandidate: false,
+        holdNotice: null,
+        buttonLabel: ''
+      };
+      const slots = orderedSlots();
+      const count = slots.length;
+
+      if (state.mode === 'batch_group') {
+        const cls = currentClass();
+        s.buttonLabel = count
+          ? `确认整班排课 16 周（${count} 个时段 · 扣减 ${count * groupCreditUnit()} 节小班课时）`
+          : '确认整班排课 16 周';
+        if (!cls.teacher) {
+          s.title = '请先在班级管理中委任授课老师';
+          s.subtitle = '完成委任后即可选择整班时段';
+          return s;
+        }
+        if (!count) {
+          s.title = '请选择整班时段';
+          s.subtitle = state.conflictDetail
+            ? `${DAY_LABELS[state.conflictDetail.day]} ${state.conflictDetail.time} 第 ${state.conflictDetail.week} 周冲突，未加入已选`
+            : '小班课按全学期 16 周连续双格排定，可多选';
+          return s;
+        }
+        s.title = `已选 ${count} 个时段`;
+        s.chips = slots;
+        const remaining = cls.credits - creditsNeeded();
+        s.summary = `共扣 16×${count} 节小班课时 · ${remaining >= 0 ? `剩余 ${remaining} 节` : `尚缺 ${-remaining} 节`}`;
+        if (!creditsEnough()) {
+          s.subtitle = '请取消部分时段后再确认';
+          s.error = `小班课时不足，最多选 ${maxGroupSlots()} 个时段`;
+          return s;
+        }
+        const bad = selectedGroupBlocks().find((item) => item.block.kind !== 'full');
+        if (bad) {
+          s.subtitle = '每个时段独立执行 16 周连贯度校验';
+          s.error = `${DAY_LABELS[bad.slot.day]} ${bad.slot.time} 全学期未全部可排`;
+          return s;
+        }
+        s.subtitle = '全学期 16 周全通 · 单一事务整批锁定';
+        s.disabled = !confirmReady();
+        return s;
+      }
+
+      s.buttonLabel = count
+        ? `确认批量锁定 4 周（${count} 个时段 · 扣减 ${billableCount() * fixedCreditUnit()} 节固定位）`
+        : '确认批量锁定 4 周';
+      if (!count) {
+        s.title = '请选择每周时段';
+        s.subtitle = '可一次选择多个时段批量锁定；推荐时段已按学员意向筛选';
+        if (!activeHold() && currentStudent().credits < fixedCreditUnit()) {
+          s.error = `固定位课时不足 4 节（仅剩 ${currentStudent().credits} 节）`;
+        }
+        return s;
+      }
+      s.title = `已选 ${count} 个时段`;
+      s.chips = slots;
+      const credits = currentStudent().credits;
+      const billable = billableCount();
+      const converted = convertedCount();
+      const remaining = credits - creditsNeeded();
+      s.summary = converted > 0
+        ? `预占转正 ${converted} 个 · 新排 ${billable} 个 · 共扣 4×${billable} 节固定位 · ${remaining >= 0 ? `剩余 ${remaining} 节` : `尚缺 ${-remaining} 节`}`
+        : `共扣 4×${count} 节固定位 · ${remaining >= 0 ? `剩余 ${remaining} 节` : `尚缺 ${-remaining} 节`}`;
+      if (!creditsEnough()) {
+        s.subtitle = '请取消部分时段或先完成续费';
+        s.error = count === 1
+          ? `固定位课时不足 4 节（仅剩 ${credits} 节）`
+          : `固定位课时不足（需 ${creditsNeeded()} 节，仅剩 ${credits} 节）`;
+        return s;
+      }
+      const conflicts = conflictSlots();
+      if (conflicts.length) {
+        s.subtitle = '整批确认前会再次复核全部时段';
+        s.error = `${slotsLabel(conflicts)} 第 3 周外教休假，整批暂不能锁定`;
+        return s;
+      }
+      const hold = activeHold();
+      if (hold) {
+        const inSelection = isSelected(hold.day, hold.time);
+        s.holdNotice = {
+          convert: inSelection,
+          text: inSelection
+            ? '原预占位将转为正式固定位'
+            : `原预占位 [${DAY_LABELS[hold.day]} ${hold.time}] 将自动释放`,
+          detail: inSelection
+            ? '该预占时段保留在已选清单中，确认后直接转为实线固定位，不重复扣占。'
+            : '确认后原时段立即释放，不会同时占用两个时段，续费权益无缝继承。'
+        };
+      }
+      if (hasCandidateSelected()) {
+        s.showCandidate = true;
+        if (!state.candidateAck) s.error = '请先与家长确认候补时段后再确认';
+      }
+      s.subtitle = `${count > 1 ? '每个时段独立' : '所选时段'} 4 周全通校验 · 单一事务整批锁定`;
+      s.disabled = !confirmReady();
+      return s;
+    }
+
+    function renderSlotChips(slots) {
+      return `<div class="mt-1.5 flex gap-1.5 overflow-x-auto pb-1">
+        ${slots.map((slot) => `<button data-action="remove-slot" data-day="${slot.day}" data-time="${slot.time}" class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[12px] font-semibold text-indigo-700 transition active:bg-indigo-100" aria-label="取消 ${DAY_LABELS[slot.day]} ${slot.time}">
+          <span>${DAY_LABELS[slot.day]} ${slot.time}</span>
+          <span class="text-[14px] leading-none text-indigo-400">×</span>
+        </button>`).join('')}
+      </div>`;
+    }
+
+    function renderConfirmBar() {
+      const s = bottomState();
+      const offline = !state.online;
+      const disabled = s.disabled || offline;
+      const hasChips = s.chips.length > 0;
+      return `<section class="relative z-40 shrink-0 border-t border-slate-200 bg-white px-3 pb-2.5 pt-2 shadow-[0_-6px_18px_rgba(15,23,42,0.06)]" aria-label="确认排课">
+        <div class="mx-auto w-full max-w-[720px]">
+          ${s.holdNotice ? `<div class="mb-2 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-2">
+            <div class="flex items-center gap-1.5 text-[12px] font-bold text-amber-900">💡 ${esc(s.holdNotice.text)}</div>
+            <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-800">${esc(s.holdNotice.detail)}</p>
+          </div>` : ''}
+          ${s.showCandidate ? `<div class="mb-2 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-2">
+            <div class="flex items-center gap-1.5 text-[12px] font-bold text-amber-900">${icon('clock-3', 'h-3.5 w-3.5')}候补时段已临时保留 24 小时</div>
+            <label class="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[12px] font-semibold text-amber-900">
+              <input type="checkbox" id="candidateAck" ${state.candidateAck ? 'checked' : ''} class="h-4 w-4 rounded border-amber-300 accent-indigo-600">
+              已与家长确认候补时段
+            </label>
+          </div>` : ''}
+          ${hasChips ? `<div class="flex items-center justify-between gap-2">
+            <div class="min-w-0 truncate text-[16px] font-bold text-slate-900">${s.title}</div>
+            <button data-action="clear-slots" class="shrink-0 rounded-md px-1.5 py-0.5 text-[12px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">清空</button>
+          </div>
+          ${renderSlotChips(s.chips)}
+          <div class="mt-0.5 text-[12px] font-semibold text-slate-700">${s.summary}</div>` : `<div class="truncate text-[16px] font-bold text-slate-900">${s.title}</div>`}
+          <div class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${s.subtitle}</div>
+          ${s.error ? `<div class="mt-1 text-[12px] font-bold text-rose-700">${esc(s.error)}</div>` : ''}
+          ${offline ? `<div class="mt-1 text-[12px] font-bold text-amber-700">当前为离线只读，暂不可提交</div>` : ''}
+          <button data-action="confirm-booking" ${disabled ? 'disabled' : ''} class="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl px-2 ${state.mode === 'batch_group' ? 'text-[12px]' : 'text-[14px]'} font-bold transition ${disabled ? 'cursor-not-allowed bg-slate-200 text-slate-500' : 'bg-indigo-600 text-white shadow-sm active:bg-indigo-700'}">
+            ${icon(disabled ? 'lock' : 'check-check', 'h-4 w-4 shrink-0')}
+            <span class="truncate">${s.buttonLabel}</span>
+          </button>
+        </div>
+      </section>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 抽屉、成功反馈与提示
+     * ------------------------------------------------------------------ */
+    function renderOverlay() {
+      if (!state.overlay) return '';
+      if (state.completed) return renderSuccess();
+      const content = state.overlay === 'students'
+        ? renderStudentSheet()
+        : state.overlay === 'teachers'
+          ? renderTeacherSheet()
+          : renderRulesSheet();
+      return `<div class="absolute inset-0 z-50">
+        <button data-action="close-overlay" class="absolute inset-0 h-full w-full bg-slate-900/40" aria-label="关闭"></button>
+        <div class="absolute inset-x-0 bottom-0 max-h-[78%] overflow-y-auto rounded-t-3xl border-t border-slate-200 bg-white px-4 pb-5 pt-2.5 shadow-2xl">
+          <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200"></div>
+          ${content}
+        </div>
+      </div>`;
+    }
+
+    function sheetHeader(title, subtitle) {
+      return `<div class="mb-3 flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="text-[16px] font-bold text-slate-900">${title}</h2>
+          ${subtitle ? `<p class="mt-0.5 text-[12px] font-medium text-slate-600">${subtitle}</p>` : ''}
+        </div>
+        <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600" aria-label="关闭">${icon('x', 'h-4 w-4')}</button>
+      </div>`;
+    }
+
+    function renderStudentSheet() {
+      return `${sheetHeader('切换学员', '课时与意向作息跟随学员档案')}
+        <div class="space-y-2">
+          ${Object.values(STUDENTS).map((student) => {
+            const active = student.key === state.student;
+            return `<button data-action="select-student" data-key="${student.key}" class="flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${active ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl ${active ? 'bg-white text-indigo-700' : 'bg-slate-100 text-slate-700'} text-[14px] font-bold">${esc(student.nickname.slice(0, 1))}</span>
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-1.5">
+                  <span class="truncate text-[14px] font-bold text-slate-900">${esc(student.name)}</span>
+                  <span class="text-[12px] font-medium text-slate-500">${student.age} 岁</span>
+                </span>
+                <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(student.preference)}</span>
+              </span>
+              <span class="shrink-0 text-right">
+                <span class="block text-[14px] font-bold ${student.credits < 4 ? 'text-amber-700' : 'text-indigo-700'}">${student.credits} 节</span>
+                <span class="block text-[12px] font-medium text-slate-500">固定位</span>
+              </span>
+              ${active ? `<span class="shrink-0 text-indigo-600">${icon('check-circle-2', 'h-4 w-4')}</span>` : ''}
+            </button>`;
+          }).join('')}
+        </div>`;
+    }
+
+    function renderTeacherSheet() {
+      return `${sheetHeader('切换授课外教', isAdmin() ? '平台调度可选择全部外教' : '仅可选择 Leo 管辖的外教')}
+        <div class="space-y-2">
+          ${Object.values(TEACHERS).map((teacher) => {
+            const active = teacher.key === state.teacher;
+            return `<button data-action="select-teacher" data-key="${teacher.key}" class="flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${active ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl ${active ? 'bg-white text-indigo-700' : 'bg-slate-100 text-slate-700'} text-[14px] font-bold">${teacher.initial}</span>
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-1.5">
+                  <span class="truncate text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${teacher.level}</span>
+                </span>
+                <span class="mt-0.5 block text-[12px] font-medium text-slate-600">${teacherScopeLabel()} · ${teacher.manager} 团队 · 本周已排 ${teacher.load} 节</span>
+              </span>
+              ${active ? `<span class="shrink-0 text-indigo-600">${icon('check-circle-2', 'h-4 w-4')}</span>` : ''}
+            </button>`;
+          }).join('')}
+        </div>`;
+    }
+
+    function renderRulesSheet() {
+      const rules = [
+        { icon: 'calendar-range', title: '4 周完整锁定', text: '固定位以连续 4 周为一组，4 周全部可排才会锁定；任一周冲突都不会占用原时段。' },
+        { icon: 'move-right', title: '冲突就近候补', text: '遇到外教休假或临时占用，系统会就近推荐可用时段，并临时保留 24 小时。' },
+        { icon: 'refresh-cw', title: '续费预占平移', text: '换到新时段后，原预占时段会立即释放，不会同时占用两个时段，续费权益无缝继承。' },
+        { icon: 'users', title: '小班整学期', text: '小班按全学期 16 周整班排定，所有周次都可排才会确认。' },
+        { icon: 'mouse-pointer-click', title: '临时约课边界', text: '日常 1~4 节临时约课，请在课表绿色空闲格直接预约；本工作台只处理 4 周固定位与 16 周小班整班排课。' }
+      ];
+      return `${sheetHeader('排课规则', '确认前请留意以下安排')}
+        <div class="space-y-2.5">
+          ${rules.map((rule, index) => `<div class="flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50/60 p-2.5">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700">${icon(rule.icon, 'h-4 w-4')}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[12px] font-bold text-indigo-700">0${index + 1}</span>
+                <h3 class="text-[14px] font-bold text-slate-900">${rule.title}</h3>
+              </div>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">${rule.text}</p>
+            </div>
+          </div>`).join('')}
+        </div>`;
+    }
+
+    function renderSuccess() {
+      const data = state.completed;
+      const isGroup = data.isGroup;
+      const fixedBillable = data.billable ?? data.count;
+      const creditsLine = isGroup
+        ? `共扣 16×${data.count} 节小班课时`
+        : `共扣 4×${fixedBillable} 节固定位课时`;
+      return `<div class="absolute inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm">
+        <div class="max-h-[92%] w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-2xl">
+          <div class="mx-auto grid h-14 w-14 place-items-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600">${icon('check', 'h-7 w-7')}</div>
+          <h2 class="mt-3 text-[18px] font-bold text-slate-900">${isGroup ? '全学期 16 周已排定' : '未来 4 周已锁定'}</h2>
+          <p class="mt-1 text-[14px] font-semibold text-slate-700">${isGroup ? `已选 ${data.count} 个时段 · 共扣 ${16 * data.count} 节小班课时` : `已选 ${data.count} 个时段 · 共扣 ${4 * fixedBillable} 节固定位课时`}</p>
+          <div class="mt-3 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left">
+            ${data.slots.map((slot) => {
+              const convertedSlot = !isGroup && data.holdMode === 'converted' && data.hold && data.hold.day === slot.day && data.hold.time === slot.time;
+              return `<div class="flex items-center justify-between gap-2 rounded-lg bg-white px-2 py-1.5">
+                <span class="min-w-0 truncate text-[14px] font-bold text-slate-900">${DAY_LABELS[slot.day]} ${slot.time} - ${isGroup ? endHour(slot.time) : endTime(slot.time)}</span>
+                <span class="shrink-0 rounded-md border px-1.5 py-0.5 text-[12px] font-bold ${convertedSlot ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}">${isGroup ? '16/16 全通' : convertedSlot ? '预占转正' : '4 周已锁'}</span>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="mt-2 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
+            <div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">${icon('check-circle-2', 'h-3.5 w-3.5 shrink-0 text-emerald-600')}${creditsLine}</div>
+            <div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">${icon('bell', 'h-3.5 w-3.5 shrink-0 text-indigo-600')}${isGroup ? `已通知班级家长与 ${currentClass().teacher ? TEACHERS[currentClass().teacher].short : '授课'} 老师` : `已通知家长与 ${currentTeacher().short} 老师`}</div>
+            ${!isGroup && data.holdMode === 'released' ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('undo-2', 'h-3.5 w-3.5 shrink-0 text-amber-600')}原预占位 [${DAY_LABELS[data.hold.day]} ${data.hold.time}] 已释放</div>` : ''}
+            ${!isGroup && data.holdMode === 'converted' ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('badge-check', 'h-3.5 w-3.5 shrink-0 text-amber-600')}原预占位 [${DAY_LABELS[data.hold.day]} ${data.hold.time}] 已转为正式固定位</div>` : ''}
+            ${!isGroup && data.converted > 0 ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('shield-check', 'h-3.5 w-3.5 shrink-0 text-amber-600')}预占转正不重复扣减</div>` : ''}
+            ${!isGroup && !data.holdMode ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-600">${icon('move-right', 'h-3.5 w-3.5 shrink-0 text-slate-500')}全部时段已在单一事务内原子锁定</div>` : ''}
+          </div>
+          <a href="${data.link}" class="mt-4 flex h-11 items-center justify-center rounded-xl bg-indigo-600 text-[14px] font-bold text-white transition hover:bg-indigo-700">返回课表</a>
+        </div>
+      </div>`;
+    }
+
+    function renderToast() {
+      return `<div class="pointer-events-none absolute left-1/2 top-20 z-[100] w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-3.5 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl">${esc(state.toast)}</div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 操作与状态切换
+     * ------------------------------------------------------------------ */
+    function showToast(message) {
+      state.toast = message;
+      render(true);
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => {
+        state.toast = '';
+        render(true);
+      }, 2600);
+    }
+
+    function pickFixedSlot(day, time) {
+      if (!canPickFixed(day, time)) return;
+      if (isSelected(day, time)) {
+        removeSlot(day, time);
+        state.completed = null;
+        render(true);
+        return;
+      }
+      const target = { day, time };
+      if (!isHoldSlot(target) && billableCount() >= maxFixedSlots()) {
+        showToast(`固定位课时不足，最多选 ${maxFixedSlots()} 个时段`);
+        return;
+      }
+      state.selectedSlots.push(target);
+      state.completed = null;
+      syncCandidateAck();
+      render(true);
+    }
+
+    function pickGroupSlot(day, time) {
+      const block = groupBlock(day, time);
+      if (block.kind !== 'full' && block.kind !== 'partial') return;
+      if (block.kind === 'partial') {
+        state.conflictDetail = { day, time, week: block.week, reason: block.reason };
+        state.completed = null;
+        render(true);
+        return;
+      }
+      if (isSelected(day, time)) {
+        removeSlot(day, time);
+      } else {
+        const max = maxGroupSlots();
+        if (state.selectedSlots.length >= max) {
+          showToast(`小班课时不足，最多选 ${max} 个时段`);
+          return;
+        }
+        state.selectedSlots.push({ day, time });
+      }
+      state.conflictDetail = null;
+      state.completed = null;
+      render(true);
+    }
+
+    function chooseStudent(key) {
+      if (!STUDENTS[key]) return;
+      state.student = key;
+      state.overlay = null;
+      state.completed = null;
+      state.candidateAck = false;
+      state.conflictDetail = null;
+      state.selectedSlots = [];
+      if (state.scenario === 'conflict' && key !== 'alice') state.scenario = 'normal';
+      if (state.scenario === 'insufficient' && key !== 'charlie') state.scenario = 'normal';
+      render(true);
+    }
+
+    function chooseTeacher(key) {
+      if (!TEACHERS[key]) return;
+      state.teacher = key;
+      state.overlay = null;
+      state.completed = null;
+      state.candidateAck = false;
+      state.selectedSlots = [];
+      state.conflictDetail = null;
+      if (state.scenario === 'conflict') state.scenario = 'normal';
+      render(true);
+    }
+
+    function confirmBooking() {
+      if (!confirmReady()) return;
+      const slots = orderedSlots();
+      if (!slots.length) return;
+      const first = slots[0];
+      const isGroup = state.mode === 'batch_group';
+      if (isGroup) {
+        const link = `m3a_calendar_grid.html?role=${state.role}&booked=1&mode=group&slots=${encodeURIComponent(slotsParam(slots))}&day=${DAY_EN[first.day]}&time=${first.time}`;
+        state.completed = {
+          isGroup: true,
+          slots,
+          count: slots.length,
+          credits: slots.length * groupCreditUnit(),
+          link
+        };
+      } else {
+        const hold = activeHold();
+        const holdMode = hold ? (isSelected(hold.day, hold.time) ? 'converted' : 'released') : null;
+        const link = `m3a_calendar_grid.html?role=${state.role}&booked=1&mode=fixed&slots=${encodeURIComponent(slotsParam(slots))}&day=${DAY_EN[first.day]}&time=${first.time}`;
+        state.completed = {
+          isGroup: false,
+          slots,
+          count: slots.length,
+          billable: billableCount(),
+          converted: convertedCount(),
+          credits: billableCount() * fixedCreditUnit(),
+          holdMode,
+          hold,
+          link
+        };
+      }
+      state.overlay = 'success';
+      render(true);
+    }
+
+    function adoptCandidate() {
+      if (state.scenario !== 'conflict') return;
+      const candidate = { day: 1, time: '19:30' };
+      const originalIndex = state.selectedSlots.findIndex((slot) => slot.day === 1 && slot.time === '19:00');
+      if (originalIndex >= 0) {
+        state.selectedSlots[originalIndex] = candidate;
+      } else if (!isSelected(candidate.day, candidate.time)) {
+        if (billableCount() >= maxFixedSlots()) {
+          showToast(`固定位课时不足，最多选 ${maxFixedSlots()} 个时段`);
+          return;
+        }
+        state.selectedSlots.push(candidate);
+      }
+      state.candidateAck = false;
+      state.completed = null;
+      render(true);
+    }
+
+    function resetDemo() {
+      state.role = 'monitor';
+      state.device = 'mobile';
+      state.online = true;
+      state.overlay = null;
+      state.completed = null;
+      state.toast = '';
+      applyScenarioPreset('normal', false);
+      render(false);
+    }
+
+    function setControl(group, value) {
+      state.completed = null;
+      state.overlay = null;
+      state.toast = '';
+      if (group === 'role') {
+        state.role = value;
+        if (value === 'parent') {
+          state.overlay = null;
+        }
+        render(false);
+        return;
+      }
+      if (group === 'mode') {
+        state.mode = value;
+        state.candidateAck = false;
+        state.conflictDetail = null;
+        if (value === 'batch_group') {
+          if (state.scenario !== 'group-blocked') {
+            state.classId = 'ket1';
+            state.teacher = state.teacher || 'david';
+            state.selectedSlots = [{ day: 5, time: '10:00' }, { day: 6, time: '09:00' }];
+            state.scenario = 'group';
+          }
+        } else {
+          state.scenario = 'normal';
+          state.selectedSlots = [];
+        }
+        render(false);
+        return;
+      }
+      if (group === 'device') {
+        state.device = value;
+        render(false);
+        return;
+      }
+      if (group === 'network') {
+        state.online = value === 'on';
+        render(false);
+      }
+    }
+
+    /* ------------------------------------------------------------------
+     * 演示控制台
+     * ------------------------------------------------------------------ */
+    function segment(group, options, activeValue) {
+      return `<div class="inline-flex rounded-xl bg-slate-100 p-1">
+        ${options.map((option) => `<button data-control="${group}" data-value="${option.value}" class="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition ${activeValue === option.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">${option.label}</button>`).join('')}
+      </div>`;
+    }
+
+    function renderConsole() {
+      const scenarios = [
+        { value: 'normal', label: '固定位常规' },
+        { value: 'hold-shift', label: 'HOLD 平移' },
+        { value: 'hold-convert', label: 'HOLD 转正' },
+        { value: 'conflict', label: '续费冲突降级' },
+        { value: 'insufficient', label: '课时不足' },
+        { value: 'group', label: '小班 16 周' },
+        { value: 'group-blocked', label: '小班未委任' },
+        { value: 'parent', label: '家长视角' }
+      ];
+      return `<header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div class="mx-auto max-w-[1400px] px-4 py-2.5">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div class="flex items-center gap-2">
+              <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">D</span>
+              <div>
+                <div class="text-[14px] font-bold text-slate-900">M3D 排课工作台演示控制台</div>
+                <div class="text-[12px] font-medium text-slate-500">沉浸式排课 · 意向交集 · 多时段 4周原子锁定 · 16周小班双格</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] font-medium text-slate-500">角色</span>
+              ${segment('role', [{ value: 'monitor', label: '班长' }, { value: 'admin', label: '管理员' }, { value: 'parent', label: '家长' }], state.role)}
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] font-medium text-slate-500">模式</span>
+              ${segment('mode', [{ value: 'batch_fixed', label: '固定位' }, { value: 'batch_group', label: '小班' }], state.mode)}
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] font-medium text-slate-500">设备</span>
+              ${segment('device', [{ value: 'mobile', label: '手机' }, { value: 'tablet', label: '平板' }], state.device)}
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[12px] font-medium text-slate-500">网络</span>
+              ${segment('network', [{ value: 'on', label: '在线' }, { value: 'off', label: '离线' }], state.online ? 'on' : 'off')}
+            </div>
+            <div class="ml-auto flex items-center gap-2">
+              <span class="hidden text-[12px] font-medium text-slate-500 xl:inline">${TODAY_LABEL}</span>
+              <button data-action="reset-demo" class="rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">重置演示</button>
+              <a href="../docs/prd/m3d_course_scheduling.md" class="rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-indigo-700 transition hover:bg-indigo-50">PRD 文档</a>
+            </div>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-1.5">
+            <span class="mr-1 text-[12px] font-medium text-slate-500">场景</span>
+            ${scenarios.map((scenario) => `<button data-scenario="${scenario.value}" class="rounded-lg border px-2 py-1.5 text-[12px] font-semibold transition ${((!isParent() && state.scenario === scenario.value) || (scenario.value === 'parent' && isParent())) ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">${scenario.label}</button>`).join('')}
+          </div>
+        </div>
+      </header>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 事件绑定
+     * ------------------------------------------------------------------ */
+    document.addEventListener('click', (event) => {
+      const control = event.target.closest('[data-control]');
+      if (control) {
+        setControl(control.dataset.control, control.dataset.value);
+        return;
+      }
+
+      const scenarioButton = event.target.closest('[data-scenario]');
+      if (scenarioButton) {
+        const scenario = scenarioButton.dataset.scenario;
+        state.completed = null;
+        state.overlay = null;
+        if (scenario === 'parent') {
+          state.role = 'parent';
+          state.scenario = 'parent';
+        } else {
+          if (state.role === 'parent') state.role = 'monitor';
+          applyScenarioPreset(scenario, false);
+        }
+        render(false);
+        return;
+      }
+
+      const trigger = event.target.closest('[data-action]');
+      if (!trigger) return;
+      const action = trigger.dataset.action;
+
+      if (action === 'open-students') {
+        state.overlay = 'students';
+        render(true);
+      } else if (action === 'open-teachers') {
+        state.overlay = 'teachers';
+        render(true);
+      } else if (action === 'open-rules') {
+        state.overlay = 'rules';
+        render(true);
+      } else if (action === 'close-overlay') {
+        state.overlay = null;
+        render(true);
+      } else if (action === 'select-student') {
+        chooseStudent(trigger.dataset.key);
+      } else if (action === 'select-teacher') {
+        chooseTeacher(trigger.dataset.key);
+      } else if (action === 'pick-slot') {
+        pickFixedSlot(Number(trigger.dataset.day), trigger.dataset.time);
+      } else if (action === 'pick-group-slot') {
+        pickGroupSlot(Number(trigger.dataset.day), trigger.dataset.time);
+      } else if (action === 'remove-slot') {
+        removeSlot(Number(trigger.dataset.day), trigger.dataset.time);
+        state.completed = null;
+        render(true);
+      } else if (action === 'clear-slots') {
+        state.selectedSlots = [];
+        state.candidateAck = false;
+        state.completed = null;
+        state.toast = '';
+        render(true);
+      } else if (action === 'adopt-candidate') {
+        adoptCandidate();
+      } else if (action === 'contact-parent') {
+        showToast('已生成联系提醒，家长端将同步展示备选时段');
+      } else if (action === 'confirm-booking') {
+        confirmBooking();
+      } else if (action === 'reset-demo') {
+        resetDemo();
+      }
+    });
+
+    document.addEventListener('change', (event) => {
+      if (event.target && event.target.id === 'candidateAck') {
+        state.candidateAck = event.target.checked;
+        render(true);
+      }
+    });
+
+    render(false);
+  </script>
+</body>
+</html>

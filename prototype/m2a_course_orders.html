@@ -212,19 +212,19 @@
     const NAVS = {
       monitor: [
         { id: 'home', icon: 'home', label: '首页', desc: '回到班长工作台首页查看教务待办。', href: 'm0_workspace_home.html?role=monitor' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的本周课表与课程安排。', href: 'm3a_calendar_schedule.html' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的本周课表与课程安排。', href: 'm3a_calendar_grid.html' },
         { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '购课单与所辖学员教务。', board: true },
         { id: 'me', icon: 'user', label: '我的', desc: '查看个人设置与家庭档案。', href: 'm0_workspace_home.html?role=monitor&view=me' }
       ],
       parent: [
         { id: 'home', icon: 'home', label: '首页', desc: '回到家长工作台首页查看家庭日程。', href: 'm0_workspace_home.html?role=user' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的 7 色周课表与多孩切换。', href: 'm3a_calendar_schedule.html' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的 7 色周课表与多孩切换。', href: 'm3a_calendar_grid.html' },
         { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '浏览小班课与 1v1 自由约课。', href: 'm1c_classes.html' },
         { id: 'me', icon: 'user', label: '我的', desc: '查看学员档案下的购课单与账单。', board: true }
       ],
       admin: [
         { id: 'home', icon: 'home', label: '首页', desc: '回到运营中枢查看平台结算待办。', href: 'm0_workspace_home.html?role=admin' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的本周课表与课程安排。', href: 'm3a_calendar_schedule.html' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的本周课表与课程安排。', href: 'm3a_calendar_grid.html' },
         { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '全校教师、学员与小班的教务运营入口。', href: 'm0_workspace_home.html?role=admin&view=ops' },
         { id: 'settings', icon: 'settings', label: '管理与设置', desc: '查看全平台购课单、凭证与财务审计。', board: true }
       ]
@@ -427,7 +427,7 @@
       return `<div class="rounded-xl border px-2.5 py-2 ${T.card}"><div class="text-[12px] font-medium ${T.sub}">${esc(label)}</div><div class="mt-0.5 font-mono text-[18px] font-bold ${T.right}">${esc(value)}</div></div>`;
     }
     function pageHeader(title, subtitle, right = '') {
-      return `<div class="flex items-end justify-between gap-3 px-1"><div class="min-w-0"><h1 class="text-[18px] font-bold tracking-tight text-slate-900">${esc(title)}</h1><p class="mt-0.5 text-[12px] font-medium text-slate-400">${esc(subtitle)}</p></div>${right}</div>`;
+      return `<div class="flex items-end justify-between gap-3 px-1"><div class="min-w-0"><h1 class="text-[18px] font-bold tracking-tight text-slate-900">${esc(title)}</h1><p class="mt-0.5 text-[12px] font-medium text-slate-500">${esc(subtitle)}</p></div>${right}</div>`;
     }
     function backRow(label) {
       return `<button data-action="back-list" class="flex items-center gap-1 text-[14px] font-semibold text-slate-500 transition hover:text-slate-800">${icon('chevron-left', 'h-4 w-4')}${esc(label)}</button>`;
@@ -567,7 +567,7 @@
     }
     function renderPlaceholder() {
       const item = navItems().find((n) => n.id === state.navTab);
-      if (!item) return `<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>`;
+      if (!item) return `<div class="p-8 text-center text-[14px] font-medium text-slate-500">页面不存在</div>`;
       return `<div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
         <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200">${icon(item.icon, 'h-6 w-6')}</div>
         <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
@@ -583,24 +583,23 @@
     function renderList() {
       const scoped = scopedOrders();
       const pending = scoped.filter((o) => o.status === 'PENDING_PAYMENT').length;
-      const paid = scoped.filter((o) => o.status === 'PAID').length;
-      const cancelled = scoped.filter((o) => o.status === 'CANCELLED').length;
       const list = filteredOrders();
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
       const isParent = state.role === 'parent';
       const canCreate = state.role !== 'parent' && state.online === 'on';
-      const context = isParent ? `只读 · 当前 ${state.parentChild}` : state.role === 'admin' ? '全平台收款单据 · 凭证审计' : `资金持有人 Leo · 待确认收款 ${pending} 单`;
+      const holderLabel = state.role === 'admin' ? '全平台单据' : '资金持有人 Leo';
+      const firstLine = isParent
+        ? `<p class="min-w-0 text-[12px] font-semibold text-slate-600">只读 · 当前 ${esc(state.parentChild)}</p>`
+        : `<div class="min-w-0 flex items-center gap-2">
+            <span class="text-[12px] font-semibold text-slate-600">${esc(holderLabel)}</span>
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-bold ${pending > 0 ? 'bg-amber-50 text-amber-900 ring-1 ring-amber-300' : 'bg-slate-100 text-slate-600'}">待确认收款 <strong class="font-bold">${pending}</strong> 单</span>
+          </div>`;
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         <div class="flex items-center justify-between gap-3 px-1">
-          <p class="min-w-0 text-[12px] font-medium text-slate-500">${esc(context)}</p>
+          ${firstLine}
           ${isParent ? '' : `<button data-action="open-create" ${canCreate ? '' : 'disabled'} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">+ 录入购课单</button>`}
         </div>
         ${isParent ? childSelector() : ''}
-        <div class="grid grid-cols-3 gap-2">
-          ${miniStat('待确认收款', pending, 'amber')}
-          ${miniStat('已购课', paid, 'emerald')}
-          ${miniStat('已作废', cancelled, 'slate')}
-        </div>
         <div class="flex gap-1 rounded-2xl bg-slate-200/60 p-1">
           ${[['all', '全部'], ['PENDING_PAYMENT', '待确认'], ['PAID', '已购课'], ['CANCELLED', '已作废']].map(([v, label]) => `<button data-action="set-status" data-value="${v}" class="flex-1 rounded-xl py-2 text-[12px] font-bold transition ${state.statusFilter === v ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">${label}</button>`).join('')}
         </div>
@@ -614,70 +613,89 @@
           </div>
         </div>
         <div id="orderList" class="${grid}">
-          ${list.length ? list.map(renderOrderCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-400">暂无符合条件的购课单</div>`}
+          ${list.length ? list.map(renderOrderCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">暂无符合条件的购课单</div>`}
         </div>
         <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">${isParent ? '仅展示当前宝贝名下、非小班整班的购课单，只读；如需调整请联系负责班长。' : state.role === 'admin' ? '管理员可查看全平台单据、录入或作废任一班长名下待付款单据。' : '班长仅可查看与操作本人持有的购课单，越权请求返回无权限。待委任老师的小班暂不可录入整班购课单。'}</div>
       </div>`;
     }
     function childSelector() {
       return `<div class="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
-        <div class="flex items-center justify-between"><span class="text-[12px] font-medium text-slate-400">当前宝贝档案</span><span class="text-[12px] font-medium text-slate-400">只读</span></div>
+        <div class="flex items-center justify-between"><span class="text-[12px] font-medium text-slate-600">当前宝贝档案</span><span class="text-[12px] font-medium text-slate-600">只读</span></div>
         <div class="mt-2 grid grid-cols-2 gap-2">${PARENT_CHILDREN.map((ch) => { const on = ch.name === state.parentChild; return `<button data-action="select-child" data-child="${ch.name}" class="flex h-10 items-center justify-center gap-1.5 rounded-xl text-[14px] font-semibold transition ${on ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"><span class="grid h-6 w-6 place-items-center rounded-full text-[12px] font-bold ${on ? 'bg-white/15 text-white' : 'bg-white text-indigo-700'}">${esc(ch.name.charAt(0))}</span>${esc(ch.name)}</button>`; }).join('')}</div>
       </div>`;
     }
     function renderOrderCard(o) {
-      const sm = statusMeta(o.status);
-      const tone = sm.tone;
-      const T = TONES[tone];
-      const src = sourceMeta(o.source);
-      const auto = o.source === 'AUTO_RENEWAL';
       const pending = o.status === 'PENDING_PAYMENT';
       const paid = o.status === 'PAID';
+      const cancelled = o.status === 'CANCELLED';
       const isParent = state.role === 'parent';
       const canOp = canOperate(o);
+      const auto = o.source === 'AUTO_RENEWAL';
+      const src = sourceMeta(o.source);
       const hours = Number(o.expireHours || 99);
       const urgent = auto && pending && hours <= 48;
       const red = auto && pending && hours <= 24;
+
+      // 方案 3: 常态纯白 + 仅待办单微黄浅底 + 全面高清晰度深黑灰字
+      let cardCls = 'rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm';
+      if (pending) {
+        cardCls = 'rounded-2xl border border-amber-300 bg-amber-50/50 p-3.5 shadow-sm';
+      } else if (cancelled) {
+        cardCls = 'rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 opacity-65';
+      }
+
+      const statusBadge = pending
+        ? `<span class="inline-flex shrink-0 items-center rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[12px] font-bold text-amber-900">待确认收款</span>`
+        : paid
+          ? `<span class="inline-flex shrink-0 items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-700">已购课</span>`
+          : `<span class="inline-flex shrink-0 items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-500">已作废</span>`;
+
+      const typeBadge = `<span class="inline-flex shrink-0 items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${esc(typeLabel(o.orderType))}</span>`;
+      const srcBadge = `<span class="inline-flex shrink-0 items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${esc(src.label)}</span>`;
+      const transferBadge = o.sourceClassId ? `<span class="inline-flex shrink-0 items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">承接原班</span>` : '';
+      const trialBadge = o.isTrial ? `<span class="inline-flex shrink-0 items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">平台托管</span>` : '';
+
       const actions = isParent
-        ? `<button data-action="open-order" data-id="${o.id}" class="h-8 rounded-lg ${T.action} px-2.5 text-[12px] font-bold">查看明细</button>${auto ? `<button data-action="open-contact" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border ${SOFT_BTN[tone]} px-2.5 text-[12px] font-bold disabled:opacity-40">协调换师</button>` : ''}`
+        ? `<button data-action="open-order" data-id="${o.id}" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-800 hover:bg-slate-50">查看明细</button>${auto ? `<button data-action="open-contact" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40">协调换师</button>` : ''}`
         : canOp && pending
-          ? `${auto ? `<button data-action="open-edit" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border ${SOFT_BTN[tone]} px-2.5 text-[12px] font-bold disabled:opacity-40">修改</button>` : ''}<button data-action="open-cancel" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border ${SOFT_BTN[tone]} px-2.5 text-[12px] font-bold disabled:opacity-40">作废</button><button data-action="open-confirm" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg ${T.action} px-2.5 text-[12px] font-bold disabled:opacity-50">确认收款</button>`
+          ? `${auto ? `<button data-action="open-edit" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40">修改</button>` : ''}<button data-action="open-cancel" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-40">作废</button><button data-action="open-confirm" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50">确认收款</button>`
           : paid
-            ? `<button data-action="open-fission" data-id="${o.id}" class="h-8 rounded-lg border ${SOFT_BTN[tone]} px-2.5 text-[12px] font-bold">课次明细</button>`
-            : `<button data-action="open-order" data-id="${o.id}" class="h-8 rounded-lg border ${SOFT_BTN[tone]} px-2.5 text-[12px] font-bold">查看明细</button>`;
-      return `<article data-action="open-order" data-id="${o.id}" role="button" tabindex="0" class="cursor-pointer rounded-2xl border p-3.5 shadow-sm transition active:scale-[0.995] ${T.card}">
+            ? `<button data-action="open-fission" data-id="${o.id}" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-800 hover:bg-slate-50">课次明细</button>`
+            : `<button data-action="open-order" data-id="${o.id}" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-800 hover:bg-slate-50">查看明细</button>`;
+
+      return `<article data-action="open-order" data-id="${o.id}" role="button" tabindex="0" class="cursor-pointer transition hover:shadow-md active:scale-[0.995] ${cardCls}">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-1.5">
-              <span class="truncate text-[16px] font-bold ${T.title}">${esc(studentLabel(o))}</span>
-              ${chip(typeLabel(o.orderType), tone)}
-              ${chip(src.label, tone)}
-              ${o.sourceClassId ? chip('承接原班', tone) : ''}
-              ${o.isTrial ? chip('平台托管', tone) : ''}
+              <span class="truncate text-[16px] font-bold text-slate-900">${esc(studentLabel(o))}</span>
+              ${typeBadge}
+              ${srcBadge}
+              ${transferBadge}
+              ${trialBadge}
             </div>
-            <div class="mt-0.5 truncate text-[14px] font-medium ${T.body}">${esc(teacherLabel(o))}</div>
+            <div class="mt-0.5 truncate text-[14px] font-semibold text-slate-700">${esc(teacherLabel(o))}</div>
           </div>
-          <span class="shrink-0">${chip(sm.label, tone)}</span>
+          <span class="shrink-0">${statusBadge}</span>
         </div>
-        <div class="mt-2 grid grid-cols-3 gap-1 text-center">
-          <div><div class="text-[12px] font-medium ${T.sub}">课时</div><div class="mt-0.5 font-mono text-[16px] font-bold ${T.title}">${o.lessonCount} 节</div></div>
-          <div><div class="text-[12px] font-medium ${T.sub}">实收</div><div class="mt-0.5 font-mono text-[16px] font-bold ${T.title}">${o.paidPoints} 积分</div></div>
-          <div><div class="text-[12px] font-medium ${T.sub}">请假额度</div><div class="mt-0.5 font-mono text-[16px] font-bold ${T.title}">${o.leaveQuota} 节</div></div>
+        <div class="mt-2.5 grid grid-cols-3 gap-1 rounded-xl bg-slate-50 py-1.5 px-1 text-center border border-slate-200/80">
+          <div><div class="text-[12px] font-semibold text-slate-600">课时</div><div class="mt-0.5 font-mono text-[16px] font-bold text-slate-900">${o.lessonCount} <span class="text-[12px] font-medium text-slate-600">节</span></div></div>
+          <div><div class="text-[12px] font-semibold text-slate-600">实收</div><div class="mt-0.5 font-mono text-[16px] font-bold text-slate-900">${o.paidPoints} <span class="text-[12px] font-medium text-slate-600">积分</span></div></div>
+          <div><div class="text-[12px] font-semibold text-slate-600">请假额度</div><div class="mt-0.5 font-mono text-[16px] font-bold text-slate-900">${o.leaveQuota} <span class="text-[12px] font-medium text-slate-600">节</span></div></div>
         </div>
-        <div class="mt-1.5 flex items-center justify-between gap-2 text-[12px] font-medium ${T.sub}">
+        <div class="mt-2 flex items-center justify-between gap-2 text-[12px] font-medium text-slate-600">
           <span>凭证：${o.hasVoucher ? `已上传 ${o.voucherCount || 1} 张` : '待补'}</span>
-          <span>${esc(o.createdAt)}</span>
+          <span class="font-mono text-slate-600">${esc(o.createdAt)}</span>
         </div>
-        ${auto ? `<div class="mt-1.5 rounded-lg bg-white/60 px-2 py-1.5">
-          <div class="flex items-center justify-between gap-2"><span class="text-[12px] font-bold ${T.sub}">HOLD ${holdLabel(o)}</span>${pending ? `<span class="font-mono text-[12px] ${T.sub}">${o.expireHours}h</span>` : ''}</div>
-          ${Number(o.previousRate) && Number(o.currentRate) && Number(o.previousRate) !== Number(o.currentRate) ? `<div class="mt-0.5 flex flex-wrap items-center gap-1 text-[12px] font-bold ${T.sub}"><span>原 ${levelLabel(o.previousLevel || o.teacherLevel)} · ${o.previousRate} 积分/节</span><span>→</span><span>新 ${levelLabel(o.teacherLevel)} · ${o.currentRate} 积分/节</span></div>` : ''}
-          <p class="mt-0.5 line-clamp-2 text-[12px] ${T.body}">${esc(o.priceChangeReason || '')}</p>
+        ${auto ? `<div class="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
+          <div class="flex items-center justify-between gap-2"><span class="text-[12px] font-bold text-slate-700">HOLD ${holdLabel(o)}</span>${pending ? `<span class="font-mono text-[12px] font-bold text-slate-600">${o.expireHours}h</span>` : ''}</div>
+          ${Number(o.previousRate) && Number(o.currentRate) && Number(o.previousRate) !== Number(o.currentRate) ? `<div class="mt-0.5 flex flex-wrap items-center gap-1 text-[12px] font-bold text-slate-700"><span>原 ${levelLabel(o.previousLevel || o.teacherLevel)} · ${o.previousRate} 积分/节</span><span>→</span><span>新 ${levelLabel(o.teacherLevel)} · ${o.currentRate} 积分/节</span></div>` : ''}
+          <p class="mt-0.5 line-clamp-2 text-[12px] font-medium text-slate-600 leading-relaxed">${esc(o.priceChangeReason || '')}</p>
         </div>` : ''}
-        ${urgent ? `<div class="mt-1 rounded-lg border px-2 py-1.5 text-[12px] font-bold ${red ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-300 bg-white/70 text-amber-800'}">${red ? `距 24h 自动作废仅剩 ${o.expireHours} 小时` : `48h 临期提醒 · 距自动作废仅剩 ${o.expireHours} 小时`}</div>` : ''}
-        ${o.status === 'CANCELLED' && o.cancelReason === 'EXPIRED_OVERDUE' ? `<div class="mt-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-[12px] font-bold text-rose-700">24h 逾期自动作废 · HOLD 已释放</div>` : ''}
-        ${o.isForced ? `<div class="mt-1 rounded-lg bg-white/60 px-2 py-1.5 text-[12px] font-medium ${T.body}"><span class="font-bold">强制提交：</span>${esc(o.forceReason)}</div>` : ''}
-        <div class="mt-2 flex items-center justify-between gap-2 border-t border-black/5 pt-2">
-          <div class="min-w-0 truncate text-[12px] font-medium ${T.sub}">${isParent ? `经办班长 ${esc(holderLabel(o.holder))}` : `资金持有 ${esc(holderLabel(o.holder))}`}</div>
+        ${urgent ? `<div class="mt-2 rounded-lg border px-2.5 py-1 text-[12px] font-bold ${red ? 'border-rose-300 bg-rose-50 text-rose-800' : 'border-amber-300 bg-amber-50 text-amber-900'}">${red ? `距 24h 自动作废仅剩 ${o.expireHours} 小时` : `48h 临期提醒 · 距自动作废仅剩 ${o.expireHours} 小时`}</div>` : ''}
+        ${o.status === 'CANCELLED' && o.cancelReason === 'EXPIRED_OVERDUE' ? `<div class="mt-1 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-1.5 text-[12px] font-bold text-rose-800">24h 逾期自动作废 · HOLD 已释放</div>` : ''}
+        ${o.isForced ? `<div class="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[12px] font-medium text-slate-700"><span class="font-bold">强制提交：</span>${esc(o.forceReason)}</div>` : ''}
+        <div class="mt-2.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+          <div class="min-w-0 truncate text-[12px] font-medium text-slate-600">${isParent ? `经办班长 ${esc(holderLabel(o.holder))}` : `资金持有 <strong class="font-bold text-slate-900">${esc(holderLabel(o.holder))}</strong>`}</div>
           <div class="flex shrink-0 gap-1.5">${actions}</div>
         </div>
       </article>`;
@@ -730,10 +748,10 @@
             ${chip(sm.label, tone)}
           </div>
           <div class="mt-2.5 grid grid-cols-2 gap-1.5">
-            <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-[12px] font-medium text-slate-400">单据编号</div><div class="mt-0.5 truncate font-mono text-[12px] font-semibold text-slate-800">${esc(o.id)}</div></div>
-            <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-[12px] font-medium text-slate-400">${isParent ? '经办班长' : '资金持有方'}</div><div class="mt-0.5 truncate text-[14px] font-semibold text-slate-900">${esc(holderLabel(o.holder))}</div></div>
-            <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-[12px] font-medium text-slate-400">创建时间</div><div class="mt-0.5 truncate text-[14px] font-semibold text-slate-900">${esc(o.createdAt)}</div></div>
-            <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-[12px] font-medium text-slate-400">请假额度</div><div class="mt-0.5 text-[14px] font-semibold text-slate-900">${o.leaveQuota} 节</div></div>
+            <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-[12px] font-medium text-slate-600">单据编号</div><div class="mt-0.5 truncate font-mono text-[12px] font-semibold text-slate-800">${esc(o.id)}</div></div>
+            <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-[12px] font-medium text-slate-600">${isParent ? '经办班长' : '资金持有方'}</div><div class="mt-0.5 truncate text-[14px] font-semibold text-slate-900">${esc(holderLabel(o.holder))}</div></div>
+            <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-[12px] font-medium text-slate-600">创建时间</div><div class="mt-0.5 truncate text-[14px] font-semibold text-slate-900">${esc(o.createdAt)}</div></div>
+            <div class="rounded-lg bg-slate-50 px-2.5 py-2"><div class="text-[12px] font-medium text-slate-600">请假额度</div><div class="mt-0.5 text-[14px] font-semibold text-slate-900">${o.leaveQuota} 节</div></div>
           </div>
         </section>
 
@@ -770,6 +788,7 @@
           <p class="mt-1.5 rounded-lg bg-white/60 px-2.5 py-2 text-[12px] font-medium leading-relaxed ${T.body}"><span class="font-bold">调价原因：</span>${esc(o.priceChangeReason || '')}${priceChanged ? ` 单节${priceDelta > 0 ? '上调' : '下调'} ${Math.abs(priceDelta)} 积分。` : ''}</p>
           <p class="mt-1 text-[12px] font-bold ${T.sub}">如超出预算，可联系班长协调其他教师或调整上课方案。</p>
           <div class="mt-1.5 rounded-lg bg-white/60 px-2.5 py-2 text-[12px] font-medium ${T.body}">${esc(o.preScheduleSlots || '')}</div>
+          <p class="mt-1 text-[12px] font-medium ${T.sub}">每轮最后一周周一 08:30 提前 7 天自动预排，并锁定未来 4 周日历。</p>
           ${holdGrid(o)}
           <p class="mt-1 text-[12px] font-medium ${T.sub}">${holdNote}</p>
           ${urgent ? `<div class="mt-1.5 rounded-lg border px-2.5 py-2 text-[12px] font-bold ${red ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-300 bg-white/70 text-amber-800'}">${red ? `距 24h 自动作废仅剩 ${o.expireHours} 小时` : `48h 临期提醒 · 距自动作废仅剩 ${o.expireHours} 小时`}</div>` : ''}
@@ -793,7 +812,7 @@
 
         <section class="rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm">
           <div class="flex items-center justify-between gap-2"><h2 class="text-[16px] font-bold text-slate-900">支付凭证</h2><span class="text-[12px] font-medium ${o.hasVoucher ? 'text-emerald-600' : 'text-amber-700'}">${o.hasVoucher ? `已上传 ${o.voucherCount || 1} 张` : '未上传'}</span></div>
-          <p class="mt-0.5 text-[12px] font-medium text-slate-400">JPG / PNG / PDF · 单文件 ≤10MB · 每单最多 5 份</p>
+          <p class="mt-0.5 text-[12px] font-medium text-slate-600">JPG / PNG / PDF · 单文件 ≤10MB · 每单最多 5 份</p>
           <div class="mt-2 flex gap-2">
             ${pending || paid ? `<button data-action="toast" data-message="${o.hasVoucher ? '已打开支付凭证' : '暂无凭证，请联系经办班长上传'}" class="h-8 rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-200">查看凭证</button>` : ''}
             ${!isParent && (pending || paid) ? `<button data-action="open-voucher" data-id="${o.id}" ${state.online === 'off' || (o.voucherCount || 0) >= 5 ? 'disabled' : ''} class="h-8 rounded-lg bg-indigo-50 px-2.5 text-[12px] font-bold text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40">上传凭证</button>` : ''}
@@ -854,7 +873,7 @@
         <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92%] w-full max-w-[560px] flex-col rounded-t-3xl bg-white p-4 shadow-2xl">
           <div class="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-slate-300"></div>
           <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 pb-2.5">
-            <div class="min-w-0"><h2 class="text-[16px] font-bold text-slate-900">录入购课单</h2><p class="mt-0.5 text-[12px] font-medium text-slate-400">确认到账后生成课次 · 余数归入末节</p></div>
+            <div class="min-w-0"><h2 class="text-[16px] font-bold text-slate-900">录入购课单</h2><p class="mt-0.5 text-[12px] font-medium text-slate-500">确认到账后生成课次 · 余数归入末节</p></div>
             <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto py-3">
@@ -902,7 +921,7 @@
               </div>
               <div id="createForceBox" class="${mismatch && !pendingClass ? '' : 'hidden'} rounded-xl border border-amber-200 bg-amber-50 p-3"><div class="text-[14px] font-semibold text-amber-900">金额不符：需强制提交并留痕</div><input id="createForceReason" value="${esc(f.forceReason)}" maxlength="200" placeholder="强制录单原因（1-200 字）" class="mt-1.5 h-10 w-full rounded-lg border border-amber-300 bg-white px-3 text-[14px] text-slate-900 outline-none"></div>
               <div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
-                <div class="flex items-center justify-between"><span class="text-[14px] font-semibold text-slate-800">支付凭证</span><span class="text-[12px] font-medium text-slate-400">${f.vouchers.length}/5</span></div>
+                <div class="flex items-center justify-between"><span class="text-[14px] font-semibold text-slate-800">支付凭证</span><span class="text-[12px] font-medium text-slate-600">${f.vouchers.length}/5</span></div>
                 <label class="mt-1.5 flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white text-[12px] font-semibold text-slate-600">${icon('upload', 'h-4 w-4 text-slate-400')}选择 JPG/PNG/PDF（≤10MB）<input id="createVoucherInput" type="file" accept="image/jpeg,image/png,application/pdf" multiple class="hidden"></label>
                 <div class="mt-1.5 space-y-1">${f.vouchers.map((v, i) => `<div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px]"><span class="truncate">${esc(v.name)}</span><button data-action="remove-voucher" data-index="${i}" class="shrink-0 font-semibold text-rose-600">移除</button></div>`).join('')}</div>
               </div>
@@ -964,7 +983,7 @@
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
         <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92%] w-full max-w-[560px] flex-col rounded-t-3xl bg-white p-4 shadow-2xl">
           <div class="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-slate-300"></div>
-          <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 pb-2.5"><div class="min-w-0"><h2 class="text-[16px] font-bold text-slate-900">修改续费单</h2><p class="mt-0.5 text-[12px] font-medium text-slate-400">${esc(o.student)} · ${esc(o.teacherName)} · 确认收款前可调整</p></div><button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button></div>
+          <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 pb-2.5"><div class="min-w-0"><h2 class="text-[16px] font-bold text-slate-900">修改续费单</h2><p class="mt-0.5 text-[12px] font-medium text-slate-500">${esc(o.student)} · ${esc(o.teacherName)} · 确认收款前可调整</p></div><button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button></div>
           <div class="min-h-0 flex-1 overflow-y-auto py-3">
             <div class="space-y-3">
               <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] leading-relaxed text-amber-900">
@@ -1029,8 +1048,8 @@
       const list = generateTSFission(o);
       return `<div class="absolute inset-0 z-50"><div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div><div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[85%] w-full max-w-[560px] flex-col rounded-t-3xl bg-white p-4 shadow-2xl">
         <div class="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-slate-300"></div>
-        <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 pb-2.5"><div><h2 class="text-[16px] font-bold text-slate-900">课次明细</h2><p class="mt-0.5 text-[12px] font-medium text-slate-400">${esc(studentLabel(o))} · ${o.lessonCount} 节 · 余数归入末节</p></div><button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button></div>
-        <div class="min-h-0 flex-1 space-y-1.5 overflow-y-auto py-3">${list.map((ts) => `<div class="flex items-center justify-between rounded-xl border ${ts.last ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 bg-slate-50/60'} px-3 py-2"><div class="min-w-0"><div class="truncate font-mono text-[12px] font-semibold text-slate-700">${esc(ts.tsId)}</div><div class="text-[12px] font-medium text-slate-400">持有方 ${esc(holderLabel(ts.holder))} · 待排期</div></div><div class="text-right"><div class="font-mono text-[14px] font-bold text-indigo-700">${ts.points} 积分</div>${ts.last && o.paidPoints % Math.max(1, o.lessonCount) > 0 ? '<div class="text-[12px] font-medium text-indigo-600">★ 含取整余数</div>' : ''}</div></div>`).join('')}</div>
+        <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 pb-2.5"><div><h2 class="text-[16px] font-bold text-slate-900">课次明细</h2><p class="mt-0.5 text-[12px] font-medium text-slate-500">${esc(studentLabel(o))} · ${o.lessonCount} 节 · 余数归入末节</p></div><button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button></div>
+        <div class="min-h-0 flex-1 space-y-1.5 overflow-y-auto py-3">${list.map((ts) => `<div class="flex items-center justify-between rounded-xl border ${ts.last ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 bg-slate-50/60'} px-3 py-2"><div class="min-w-0"><div class="truncate font-mono text-[12px] font-semibold text-slate-700">${esc(ts.tsId)}</div><div class="text-[12px] font-medium text-slate-600">持有方 ${esc(holderLabel(ts.holder))} · 待排期</div></div><div class="text-right"><div class="font-mono text-[14px] font-bold text-indigo-700">${ts.points} 积分</div>${ts.last && o.paidPoints % Math.max(1, o.lessonCount) > 0 ? '<div class="text-[12px] font-medium text-indigo-600">★ 含取整余数</div>' : ''}</div></div>`).join('')}</div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600">课次合计 <b class="text-slate-900">${list.reduce((s, x) => s + x.points, 0)} 积分</b> = 单据实收 ${o.paidPoints} 积分</div>
         <button data-action="close-overlay" class="mt-2 h-11 w-full rounded-xl bg-slate-900 text-[16px] font-semibold text-white">关闭</button>
       </div></div>`;
@@ -1045,7 +1064,7 @@
     function renderVoucherModal() {
       const v = state.voucher;
       return modalShell(`${modalHeader('上传支付凭证', `单号：${v.orderId || ''}`)}
-        <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center"><label class="block cursor-pointer"><input id="voucherFile" type="file" accept="image/jpeg,image/png,application/pdf" class="hidden"><div class="mx-auto grid h-11 w-11 place-items-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-600">${icon('camera', 'h-5 w-5')}</div><div class="mt-1.5 text-[14px] font-semibold text-slate-800">${v.file ? esc(v.file.name) : '点击选择凭证文件'}</div><p class="mt-0.5 text-[12px] font-medium text-slate-400">JPG / PNG / PDF · 单文件 ≤10MB · 每单最多 5 份</p></label><button data-action="sample-voucher" class="mt-1.5 text-[12px] font-bold text-indigo-600">使用示例凭证</button></div>
+        <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center"><label class="block cursor-pointer"><input id="voucherFile" type="file" accept="image/jpeg,image/png,application/pdf" class="hidden"><div class="mx-auto grid h-11 w-11 place-items-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-600">${icon('camera', 'h-5 w-5')}</div><div class="mt-1.5 text-[14px] font-semibold text-slate-800">${v.file ? esc(v.file.name) : '点击选择凭证文件'}</div><p class="mt-0.5 text-[12px] font-medium text-slate-600">JPG / PNG / PDF · 单文件 ≤10MB · 每单最多 5 份</p></label><button data-action="sample-voucher" class="mt-1.5 text-[12px] font-bold text-indigo-600">使用示例凭证</button></div>
         <div class="mt-2"><label for="voucherAmount" class="mb-1 block text-[14px] font-semibold text-slate-700">付款金额（积分）</label><input id="voucherAmount" type="number" value="${esc(v.amount)}" class="h-11 w-full rounded-xl border border-slate-200 px-3 text-[16px] text-slate-900 outline-none"></div>
         <div class="mt-2"><label for="voucherRemark" class="mb-1 block text-[14px] font-semibold text-slate-700">转账单号 / 备注</label><input id="voucherRemark" value="${esc(v.remark)}" class="h-11 w-full rounded-xl border border-slate-200 px-3 text-[16px] text-slate-900 outline-none"></div>
         ${v.error ? `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(v.error)}</div>` : ''}

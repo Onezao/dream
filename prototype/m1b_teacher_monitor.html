@@ -73,7 +73,7 @@
 
       <div class="ml-auto hidden items-center gap-1.5 lg:flex">
         <a href="../docs/prd/m1b_teacher_profile.md" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">
-          <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M1B PRD
+          <i data-lucide="file-text" class="h-3.5 w-3.5"></i>需求文档
         </a>
         <a href="m1b_teacher_parent.html" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">
           <i data-lucide="external-link" class="h-3.5 w-3.5"></i>家长端
@@ -179,13 +179,13 @@
     const NAVS = {
       monitor: [
         { id: 'home', icon: 'home', label: '首页', desc: '查看教务待办与家庭日程。', href: 'm0_workspace_home.html?role=monitor', cta: '进入工作台' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的当周课表与课程安排。', href: 'm3a_calendar_schedule.html', cta: '查看完整课表' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的当周课表与课程安排。', href: 'm3a_calendar_grid.html', cta: '查看完整课表' },
         { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '管理所辖外教、学员与班级。', href: null },
         { id: 'me', icon: 'user', label: '我的', desc: '管理个人设置、账务与家庭档案。', href: 'm0_workspace_home.html?role=monitor&view=me', cta: '进入个人中心' }
       ],
       admin: [
         { id: 'home', icon: 'home', label: '首页', desc: '查看平台结算待办与运营概览。', href: 'm0_workspace_home.html?role=admin', cta: '进入工作台' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的当周课表与课程安排。', href: 'm3a_calendar_schedule.html', cta: '查看完整课表' },
+        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的当周课表与课程安排。', href: 'm3a_calendar_grid.html', cta: '查看完整课表' },
         { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '查看全校教师、学员与小班的教务运营。', href: 'm0_workspace_home.html?role=admin&view=ops', cta: '进入教务中心' },
         { id: 'settings', icon: 'settings', label: '管理与设置', desc: '管理班长、教师团队与平台配置。', href: null }
       ]
@@ -427,6 +427,7 @@
       navTab: 'ops',
       device: 'mobile',
       online: 'on',
+      playingVideo: false,
       teachers: JSON.parse(JSON.stringify(INITIAL_TEACHERS)),
       monitors: JSON.parse(JSON.stringify(INITIAL_MONITORS)),
       classes: JSON.parse(JSON.stringify(INITIAL_CLASSES)),
@@ -741,6 +742,7 @@
       state.page = role === 'admin' ? 'monitors' : 'teachers';
       state.navTab = role === 'admin' ? 'settings' : 'ops';
       state.overlay = null;
+      state.playingVideo = false;
       state.teacherQuery = '';
       state.teacherFilter = 'all';
       state.adminTeacherFilter = 'all';
@@ -754,7 +756,7 @@
     function setView(view) {
       if (view === 'teachers') {
         state.page = 'teachers';
-        state.navTab = state.role === 'admin' ? 'settings' : 'ops';
+        state.navTab = 'ops';
       }
       if (view === 'detail') {
         if (state.role === 'monitor' && !myTeachers().length) {
@@ -763,7 +765,7 @@
         } else {
           ensureActiveTeacher();
           state.page = 'teacherDetail';
-          state.navTab = state.role === 'admin' ? 'settings' : 'ops';
+          state.navTab = 'ops';
         }
       }
       if (view === 'form' && state.role === 'monitor') startTeacherForm('create');
@@ -772,6 +774,7 @@
         state.navTab = 'settings';
       }
       state.overlay = null;
+      state.playingVideo = false;
       renderAll();
     }
 
@@ -802,6 +805,7 @@
       state.form = emptyTeacherForm();
       state.formReturnPage = 'teachers';
       state.overlay = null;
+      state.playingVideo = false;
       state.resignTeacher = { cleared: false };
       state.appoint = { email: '', name: '', phone: '', error: '' };
       state.rebind = { monitorId: null, targetId: '', teacherIds: [], classIds: [], error: '' };
@@ -903,7 +907,7 @@
     }
 
     function renderContentFallback() {
-      return `<div class="p-8 text-center text-[14px] font-medium text-slate-400">页面不存在</div>`;
+      return `<div class="p-8 text-center text-[14px] font-medium text-slate-500">页面不存在</div>`;
     }
 
     /* ------------------------------------------------------------------
@@ -913,7 +917,7 @@
       return `<div class="flex items-end justify-between gap-3 px-1">
         <div class="min-w-0">
           <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${esc(title)}</h1>
-          ${subtitle ? `<p class="mt-0.5 text-[12px] font-medium text-slate-400">${esc(subtitle)}</p>` : ''}
+          ${subtitle ? `<p class="mt-0.5 text-[12px] font-medium text-slate-500">${esc(subtitle)}</p>` : ''}
         </div>
         ${right}
       </div>`;
@@ -951,7 +955,7 @@
         ${teacherSearchBox('搜索姓名、技能或 ClassIn 教室')}
         ${statusSegment(base)}
         <div class="${grid}">
-          ${filtered.length ? filtered.map((t) => teacherCard(t, 'monitor')).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-400">${base.length ? '没有符合条件的教师' : '暂无负责教师，先代录一位外教吧'}</div>`}
+          ${filtered.length ? filtered.map((t) => teacherCard(t, 'monitor')).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">${base.length ? '没有符合条件的教师' : '暂无负责教师，先代录一位外教吧'}</div>`}
         </div>
         <button data-action="create-teacher" ${offline ? 'disabled' : ''} class="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-slate-300 bg-white py-4 text-[14px] font-semibold ${offline ? 'cursor-not-allowed text-slate-400' : 'text-indigo-700 hover:bg-indigo-50/40'}">
           ${icon('plus', 'h-4 w-4')}代录新外教
@@ -982,7 +986,7 @@
         </div>
         ${statusSegment(attrBase, 'admin-teacher-filter', state.adminTeacherFilter, false)}
         <div class="${grid}">
-          ${filtered.length ? filtered.map((t) => teacherCard(t, 'admin')).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-400">没有匹配的教师</div>`}
+          ${filtered.length ? filtered.map((t) => teacherCard(t, 'admin')).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">没有匹配的教师</div>`}
         </div>
       </div>`;
     }
@@ -1014,13 +1018,13 @@
         </div>
         <div class="mt-2.5 flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
           <div class="flex min-w-0 items-center gap-1.5 text-[12px] font-medium text-slate-500">
-            ${icon('activity', 'h-3.5 w-3.5 shrink-0 text-slate-400')}
+            ${icon('activity', 'h-3.5 w-3.5 shrink-0 text-slate-500')}
             <span class="truncate">当周授课负荷 <span class="font-bold text-slate-900">${load.used}/${load.capacity} 节</span></span>
           </div>
           <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${media.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}">${media.ok ? '资料齐全' : '待补资料'}</span>
         </div>
         <div class="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
-          <span class="min-w-0 truncate text-[12px] font-medium text-slate-400">负责班长 ${esc(monitorDisplayName(t))}</span>
+          <span class="min-w-0 truncate text-[12px] font-medium text-slate-500">负责班长 ${esc(monitorDisplayName(t))}</span>
           <div class="flex shrink-0 items-center gap-1.5">
             ${mode === 'monitor'
               ? (pending
@@ -1106,25 +1110,31 @@
             </div>
           </div>
           <p id="introText" class="mt-2.5 whitespace-pre-line text-[14px] font-medium leading-relaxed ${intro && intro.trim() ? 'text-slate-700' : 'text-amber-700'}">${esc(intro && intro.trim() ? intro : introPlaceholder)}</p>
-          <p class="mt-2 text-[12px] font-medium text-slate-400">最多 2000 字符 · 中英双语均为必填</p>
+          <p class="mt-2 text-[12px] font-medium text-slate-500">最多 2000 字符 · 中英双语均为必填</p>
         </section>
 
         <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
           <div class="flex items-center justify-between gap-2">
             <h2 class="text-[16px] font-bold text-slate-900">多媒体资料</h2>
-            <span class="text-[12px] font-medium text-slate-400">照片 / 视频 / 教室码</span>
+            <span class="text-[12px] font-medium text-slate-500">照片 / 视频 / 教室码</span>
           </div>
 
-          ${t.media.video ? `<button data-action="open-video" class="mt-2.5 block w-full overflow-hidden rounded-xl border border-slate-200">
+          ${t.media.video ? (state.playingVideo ? `<div class="mt-2.5 overflow-hidden rounded-xl border border-slate-200 bg-black">
+            <video controls autoplay playsinline class="aspect-video w-full bg-black" src="${esc(t.media.video.url)}"></video>
+            <div class="flex items-center justify-between gap-2 bg-white px-2.5 py-2">
+              <span class="min-w-0 truncate text-[14px] font-semibold text-slate-800">${esc(t.media.video.name)}</span>
+              <button data-action="stop-video" class="shrink-0 text-[12px] font-semibold text-slate-600">收起</button>
+            </div>
+          </div>` : `<button data-action="play-video" class="mt-2.5 block w-full overflow-hidden rounded-xl border border-slate-200">
             <div class="relative flex aspect-video w-full items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-700">
               <span class="grid h-12 w-12 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/30">${icon('play', 'ml-0.5 h-6 w-6')}</span>
               <span class="absolute bottom-2 right-2 rounded-md bg-slate-900/80 px-1.5 py-0.5 font-mono text-[12px] font-semibold text-white">${esc(t.media.video.duration)}</span>
             </div>
             <div class="flex items-center justify-between bg-white px-2.5 py-2">
               <span class="truncate text-[14px] font-semibold text-slate-800">${esc(t.media.video.name)}</span>
-              <span class="shrink-0 text-[12px] font-medium text-slate-400">${esc(t.media.video.size)} · 点击播放</span>
+              <span class="shrink-0 text-[12px] font-medium text-slate-500">${esc(t.media.video.size)} · 点击就地播放</span>
             </div>
-          </button>` : `<div class="mt-2.5 rounded-xl border border-dashed border-amber-200 bg-amber-50 px-3 py-4 text-center text-[12px] font-medium text-amber-800">待上传试讲视频（≤50MB）</div>`}
+          </button>`) : `<div class="mt-2.5 rounded-xl border border-dashed border-amber-200 bg-amber-50 px-3 py-4 text-center text-[12px] font-medium text-amber-800">待上传试讲视频（MP4 · ≤50MB）</div>`}
 
           <div class="mt-2.5 grid grid-cols-3 gap-1.5">
             ${(t.photos || []).map((p, i) => `<button data-action="open-photo" data-index="${i}" class="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100" aria-label="查看第 ${i + 1} 张照片">
@@ -1137,11 +1147,11 @@
           <div class="mt-2 grid grid-cols-2 gap-1.5">
             <button data-action="open-qr" ${t.media.qr ? '' : 'disabled'} class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 text-left disabled:opacity-40">
               <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-50 p-1 ring-1 ring-slate-200">${t.media.qr ? (t.qrDataUrl ? `<img src="${esc(t.qrDataUrl)}" class="h-full w-full object-contain" alt="">` : qrSvg(t.name)) : icon('qr-code', 'h-5 w-5 text-slate-300')}</span>
-              <span class="min-w-0"><span class="block truncate text-[12px] font-bold text-slate-700">ClassIn 二维码</span><span class="block text-[12px] text-slate-400">${t.media.qr ? '点击放大' : '待补'}</span></span>
+              <span class="min-w-0"><span class="block truncate text-[12px] font-bold text-slate-700">ClassIn 二维码</span><span class="block text-[12px] text-slate-500">${t.media.qr ? '点击放大' : '待补'}</span></span>
             </button>
             <div class="rounded-xl border border-slate-200 bg-white p-2">
               <div class="text-[12px] font-bold text-slate-700">风采相册</div>
-              <div class="mt-0.5 text-[14px] font-semibold text-slate-900">${(t.photos || []).length}/6 <span class="text-[12px] font-medium text-slate-400">· 主头像已标记</span></div>
+              <div class="mt-0.5 text-[14px] font-semibold text-slate-900">${(t.photos || []).length}/6 <span class="text-[12px] font-medium text-slate-500">· 主头像已标记</span></div>
             </div>
           </div>
 
@@ -1194,7 +1204,7 @@
                 <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${isEdit ? '编辑教师档案' : '录入教师档案'}</h1>
                 ${state.online === 'off' ? `<span class="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[12px] font-bold text-rose-700">离线不可保存</span>` : ''}
               </div>
-              <p class="mt-0.5 text-[12px] font-medium text-slate-400">${isEdit ? '编辑后按发布状态同步至家长端选课大厅' : '新教师默认绑定当前班长 Leo；补齐资料后方可上架'}</p>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isEdit ? '编辑后按发布状态同步至家长端选课大厅' : '新教师默认绑定当前班长 Leo；补齐资料后方可上架'}</p>
             </div>
 
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
@@ -1229,7 +1239,7 @@
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <div class="flex items-center justify-between">
                 <h2 class="text-[16px] font-bold text-slate-900">擅长课程类型 <span class="text-rose-500">*</span></h2>
-                <span class="text-[12px] font-medium text-slate-400">至少 1 项</span>
+                <span class="text-[12px] font-medium text-slate-500">至少 1 项</span>
               </div>
               <div class="mt-2 flex flex-wrap gap-1.5">
                 ${COURSE_TYPES.map((t) => {
@@ -1240,19 +1250,19 @@
             </section>
 
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-              <h2 class="text-[16px] font-bold text-slate-900">中英双语简介</h2>
+              <h2 class="text-[16px] font-bold text-slate-900">中英双语简介 <span class="text-rose-500">*</span></h2>
               <div class="mt-2.5 ${introGrid}">
                 <div>
                   <div class="mb-1 flex items-center justify-between">
                     <label for="fIntroZh" class="text-[14px] font-semibold text-slate-700">中文简介 <span class="text-rose-500">*</span></label>
-                    <span class="font-mono text-[12px] text-slate-400"><span id="zhCount">${f.introZh.length}</span>/2000</span>
+                    <span class="font-mono text-[12px] text-slate-500"><span id="zhCount">${f.introZh.length}</span>/2000</span>
                   </div>
                   <textarea id="fIntroZh" maxlength="2000" placeholder="外教中文翻译履历..." class="h-28 w-full rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(f.introZh)}</textarea>
                 </div>
                 <div>
                   <div class="mb-1 flex items-center justify-between">
                     <label for="fIntroEn" class="text-[14px] font-semibold text-slate-700">English Intro <span class="text-rose-500">*</span></label>
-                    <span class="font-mono text-[12px] text-slate-400"><span id="enCount">${f.introEn.length}</span>/2000</span>
+                    <span class="font-mono text-[12px] text-slate-500"><span id="enCount">${f.introEn.length}</span>/2000</span>
                   </div>
                   <textarea id="fIntroEn" maxlength="2000" placeholder="Original English bio..." class="h-28 w-full rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(f.introEn)}</textarea>
                 </div>
@@ -1261,21 +1271,21 @@
 
             <section id="formMedia" class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
               <h2 class="text-[16px] font-bold text-slate-900">多媒体资料</h2>
-              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-400">照片用于家长端风采相册；主头像独立 1:1 裁切。</p>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">照片用于家长端风采相册；主头像独立 1:1 裁切。</p>
 
               <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5">
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-[14px] font-semibold text-slate-800">风采相册 <span class="text-rose-500">*</span></span>
                   <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${media.photo ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'}">${f.photos.length}/6 · 最少 1 张，最多 6 张</span>
                 </div>
-                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-400">拖拽卡片调整顺序；点选任意照片设为主头像并执行 1:1 独立裁切。</p>
+                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">拖拽卡片调整顺序；点选任意照片设为主头像并执行 1:1 独立裁切。</p>
                 <div class="mt-2 ${albumGrid}">
                   ${f.photos.map((p, i) => renderFormPhotoCard(p, i)).join('')}
                   ${f.photos.length < 6 ? `<label class="flex min-h-[140px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-white/70 text-slate-500 transition hover:border-indigo-300 hover:bg-indigo-50/40">
                     <input id="fPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden">
                     <span class="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-700">${icon('plus', 'h-4 w-4')}</span>
                     <span class="text-[12px] font-semibold">上传照片（可多选）</span>
-                    <span class="text-[12px] font-medium text-slate-400">支持常见图片格式</span>
+                    <span class="text-[12px] font-medium text-slate-500">支持常见图片格式</span>
                   </label>` : ''}
                 </div>
                 ${f.photos.length <= 1 ? `<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-amber-700">仅剩最后 1 张照片，删除按钮已禁用：教师档案必须保留至少 1 张照片作为主头像。</p>` : ''}
@@ -1295,7 +1305,7 @@
                         ? `<div class="grid h-16 w-16 place-items-center rounded-lg bg-white p-1 ring-1 ring-slate-200">${qrSvg(f.name || 'ClassIn')}</div>`
                         : `<div class="grid h-16 w-16 place-items-center rounded-lg bg-white text-slate-300 ring-1 ring-slate-200">${icon('qr-code', 'h-6 w-6')}</div>`}
                   </div>
-                  <p class="mt-1 text-center text-[12px] font-medium text-slate-400">点击选择二维码图片</p>
+                  <p class="mt-1 text-center text-[12px] font-medium text-slate-500">点击选择二维码图片</p>
                 </label>
 
                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
@@ -1320,10 +1330,10 @@
                 </label>
                 ${video ? `<div class="mt-1.5 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-2 py-1.5">
                   <span class="truncate text-[12px] font-medium text-slate-700">${esc(video.name)}</span>
-                  <span class="shrink-0 font-mono text-[12px] text-slate-400">${esc(video.size)} · ${esc(video.duration)}</span>
+                  <span class="shrink-0 font-mono text-[12px] text-slate-500">${esc(video.size)} · ${esc(video.duration)}</span>
                 </div>` : ''}
                 ${f.videoError ? `<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-[12px] font-medium text-rose-700">${esc(f.videoError)}</div>` : ''}
-                <div class="mt-1.5 text-[12px] font-medium text-slate-400">家长端卡片内就地播放</div>
+                <div class="mt-1.5 text-[12px] font-medium text-slate-500">家长端卡片内就地播放</div>
               </div>
             </section>
 
@@ -1331,10 +1341,10 @@
               <button data-action="toggle-publish" class="flex w-full items-center justify-between gap-3">
                 <div class="text-left">
                   <div class="text-[16px] font-semibold text-slate-900">保存后同步至家长端选课大厅</div>
-                  <div class="mt-0.5 text-[12px] font-medium text-slate-400">关闭后保存为待完善草稿，不会上架</div>
+                  <div class="mt-0.5 text-[12px] font-medium text-slate-500">关闭后保存为待完善草稿，不会上架</div>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
-                  <span id="publishLabel" class="text-[12px] font-semibold ${f.publish ? 'text-indigo-700' : 'text-slate-400'}">${f.publish ? '已开启' : '已关闭'}</span>
+                  <span id="publishLabel" class="text-[12px] font-semibold ${f.publish ? 'text-indigo-700' : 'text-slate-500'}">${f.publish ? '已开启' : '已关闭'}</span>
                   <span id="publishTrack" class="relative h-6 w-11 rounded-full transition ${f.publish ? 'bg-indigo-600' : 'bg-slate-300'}">
                     <span id="publishKnob" class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${f.publish ? 'translate-x-5' : 'translate-x-0'}"></span>
                   </span>
@@ -1397,9 +1407,9 @@
           ${[['all', '全部', all.length], ['active', '在职', active.length], ['resigned', '已离职', resigned.length]].map(([key, label, count]) => `<button data-action="monitor-filter" data-filter="${key}" class="flex-1 rounded-xl py-2 text-[12px] font-bold transition ${state.monitorFilter === key ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">${label}${countLabel(count)}</button>`).join('')}
         </div>
         <div id="monitorList" class="${grid}">
-          ${list.length ? list.map(monitorCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-400">暂无班长</div>`}
+          ${list.length ? list.map(monitorCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">暂无班长</div>`}
         </div>
-        <div id="monitorCount" class="text-center text-[12px] font-medium text-slate-400">共 ${list.length} 条 · 第 1/1 页 · 每页 20 条</div>
+        <div id="monitorCount" class="text-center text-[12px] font-medium text-slate-500">共 ${list.length} 条 · 第 1/1 页 · 每页 20 条</div>
       </div>`;
     }
 
@@ -1417,7 +1427,7 @@
                 ${m.isAdminSelf ? `<span class="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">管理员兼班长</span>` : ''}
               </div>
               <div class="mt-0.5 truncate text-[12px] font-medium text-slate-500">${esc(m.email)}</div>
-              <div class="truncate font-mono text-[12px] font-medium text-slate-400">${esc(m.phone)} · 委任 ${esc(m.appointedAt)}</div>
+              <div class="truncate font-mono text-[12px] font-medium text-slate-500">${esc(m.phone)} · 委任 ${esc(m.appointedAt)}</div>
             </div>
           </div>
         </div>
@@ -1444,7 +1454,7 @@
               ${m.isAdminSelf ? '' : `<button data-action="open-dismiss" data-id="${m.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-[12px] font-bold text-rose-700 disabled:opacity-40">解除职务</button>`}
             </div>`}
         </div>
-        ${resigned ? `<div class="mt-1.5 text-[12px] font-medium text-slate-400">已离职 · 历史单据只读追溯 · 不可再新增教师 / 小班 / 收款</div>` : ''}
+        ${resigned ? `<div class="mt-1.5 text-[12px] font-medium text-slate-500">已离职 · 历史单据只读追溯 · 不可再新增教师 / 小班 / 收款</div>` : ''}
       </article>`;
     }
 
@@ -1454,7 +1464,7 @@
       const list = filteredMonitors();
       if (el) {
         el.className = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
-        el.innerHTML = list.length ? list.map(monitorCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-400">暂无班长</div>`;
+        el.innerHTML = list.length ? list.map(monitorCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">暂无班长</div>`;
       }
       if (count) count.textContent = `共 ${list.length} 条 · 第 1/1 页 · 每页 20 条`;
       if (window.lucide) lucide.createIcons();
@@ -1465,7 +1475,6 @@
      * ------------------------------------------------------------------ */
     function renderOverlay() {
       if (!state.overlay) return '';
-      if (state.overlay.type === 'video') return renderVideoModal();
       if (state.overlay.type === 'qr') return renderQrModal();
       if (state.overlay.type === 'photo') return renderPhotoLightbox();
       if (state.overlay.type === 'avatarCrop') return renderAvatarCropModal();
@@ -1495,23 +1504,6 @@
       </div>`;
     }
 
-    function renderVideoModal() {
-      const t = teacherById(state.activeTeacherId);
-      const video = t && t.media.video;
-      if (!video) return '';
-      return `<div class="absolute inset-0 z-50">
-        <div class="absolute inset-0 bg-slate-900/70" data-action="close-overlay"></div>
-        <div class="absolute inset-x-3 top-1/2 mx-auto max-w-[560px] -translate-y-1/2 overflow-hidden rounded-2xl bg-slate-900 p-3 shadow-2xl">
-          <div class="mb-2 flex items-center justify-between px-1">
-            <span class="truncate text-[14px] font-semibold text-white">${esc(video.name)}</span>
-            <button data-action="close-overlay" class="grid h-8 w-8 place-items-center rounded-lg text-slate-300 hover:bg-white/10" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
-          </div>
-          <video controls playsinline autoplay class="aspect-video w-full rounded-xl bg-black" src="${esc(video.url)}"></video>
-          <p class="mt-2 text-center text-[12px] font-medium text-slate-400">教师试讲视频 · 支持全屏播放</p>
-        </div>
-      </div>`;
-    }
-
     function renderQrModal() {
       const t = teacherById(state.activeTeacherId);
       if (!t) return '';
@@ -1526,7 +1518,7 @@
           </div>
           <div class="mt-3 text-[16px] font-bold text-slate-900">${esc(t.name)}</div>
           <p class="mt-1 text-[12px] font-medium text-slate-500">长按识别 / 使用 ClassIn 扫码添加</p>
-          <p class="mt-1 text-[12px] font-medium text-slate-400">教师 ClassIn 教室二维码 · 可放大扫码</p>
+          <p class="mt-1 text-[12px] font-medium text-slate-500">教师 ClassIn 教室二维码 · 可放大扫码</p>
         </div>
       </div>`;
     }
@@ -1593,7 +1585,7 @@
               </label>
             </div>
           </div>
-          <p class="mt-2 text-[12px] font-medium text-slate-400">相册其余照片保持原始比例，仅主头像按 1:1 裁切保存。</p>
+          <p class="mt-2 text-[12px] font-medium text-slate-500">相册其余照片保持原始比例，仅主头像按 1:1 裁切保存。</p>
           <div class="mt-3 flex gap-2">
             <button data-action="reset-crop" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">恢复居中</button>
             <button data-action="confirm-crop" class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white">确认设为主头像</button>
@@ -1626,11 +1618,11 @@
         ${modalHeader(`办理教师离职：${t.name}`, `${t.level} · 需完成全部教务交接后方可离职`)}
         <p class="mt-2.5 text-[14px] font-medium leading-relaxed text-slate-600">该教师尚有未来未执行教务，必须全部交接清零后方可办理离职。</p>
         <div class="mt-2.5 space-y-1.5">
-          ${category('未来 1-7 天临时课', details.temp, '节', '去调配代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.student)}`)}
-          ${category('未来固定位 / 预占 HOLD', details.fixed, '名学员', '去协调换师', (x) => `${esc(x.student)} · ${esc(x.schedule)} · 剩余 ${x.remaining} 节`)}
+          ${category('防线 A · 未来 1-7 天临时课', details.temp, '节', '去调配代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.student)}`)}
+          ${category('防线 B · 未来固定位 / 预占 HOLD', details.fixed, '名学员', '去协调换师', (x) => `${esc(x.student)} · ${esc(x.schedule)} · 剩余 ${x.remaining} 节`)}
           <div class="rounded-xl border border-slate-200 bg-white p-2.5">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-[14px] font-bold text-slate-800">担任主讲人的小班课</div>
+              <div class="text-[14px] font-bold text-slate-800">防线 C · 担任主讲人的小班课</div>
               ${details.classes.length
                 ? `<span class="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">${details.classes.length} 个班待处理</span>`
                 : `<span class="shrink-0 text-[12px] font-bold text-emerald-700">已清零</span>`}
@@ -1647,13 +1639,13 @@
               </div>`).join('')}
             </div>` : ''}
           </div>
-          ${category('被指派且未执行的代课任务', details.sub, '节', '去交接代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.className)}`)}
+          ${category('附加校验 · 被指派且未执行的代课任务', details.sub, '节', '去交接代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.className)}`)}
         </div>
         <label class="mt-2.5 flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
           <input id="resignCleared" type="checkbox" ${cleared ? 'checked' : ''} class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-indigo-600">
-          <span class="text-[14px] font-medium text-slate-700">已完成全部交接确认<span class="mt-0.5 block text-[12px] font-medium text-slate-400">勾选后确认办理离职按钮可用</span></span>
+          <span class="text-[14px] font-medium text-slate-700">已完成全部交接确认<span class="mt-0.5 block text-[12px] font-medium text-slate-500">勾选后确认办理离职按钮可用</span></span>
         </label>
-        <p class="mt-2.5 text-[12px] font-medium leading-relaxed text-slate-400">离职后档案从选课大厅下架并保留历史记录；历史已完课课酬正常参与周结发薪，历史留言与评价永久只读。</p>
+        <p class="mt-2.5 text-[12px] font-medium leading-relaxed text-slate-500">离职后档案从选课大厅下架并保留历史记录；历史已完课课酬正常参与周结发薪，历史留言与评价永久只读。</p>
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">取消</button>
           <button id="btnResignTeacher" data-action="resign-confirm" ${cleared ? '' : 'disabled'} class="h-11 flex-1 rounded-xl bg-rose-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认办理离职</button>
@@ -1680,7 +1672,7 @@
           </div>
         </div>
         <div class="mt-2.5 rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">委任后可进入班长工作台管理所辖教师、小班与托管课次。已离职档案将复用并恢复在职。</div>
-        <div class="mt-1.5 text-[12px] font-medium text-slate-400">输入已注册邮箱后自动匹配账号；已离职班长可复用档案重新委任。</div>
+        <div class="mt-1.5 text-[12px] font-medium text-slate-500">输入已注册邮箱后自动匹配账号；已离职班长可复用档案重新委任。</div>
         ${state.appoint.error ? `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(state.appoint.error)}</div>` : ''}
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">取消</button>
@@ -1711,8 +1703,8 @@
             ${teachers.map((t) => `<label class="flex items-center gap-2.5 rounded-lg border border-slate-200 px-2.5 py-2">
               <input type="checkbox" data-rebind-teacher="${t.id}" ${state.rebind.teacherIds.includes(t.id) ? 'checked' : ''} class="h-4 w-4 rounded border-slate-300 accent-indigo-600">
               <span class="min-w-0 flex-1 truncate text-[14px] font-medium text-slate-800">${esc(t.name)}</span>
-              <span class="shrink-0 text-[12px] font-medium text-slate-400">${esc(t.level)}</span>
-            </label>`).join('') || '<p class="text-[12px] font-medium text-slate-400">暂无教师</p>'}
+              <span class="shrink-0 text-[12px] font-medium text-slate-500">${esc(t.level)}</span>
+            </label>`).join('') || '<p class="text-[12px] font-medium text-slate-500">暂无教师</p>'}
           </div>
         </div>
         <div class="mt-3">
@@ -1721,8 +1713,8 @@
             ${classes.map((c) => `<label class="flex items-center gap-2.5 rounded-lg border border-slate-200 px-2.5 py-2">
               <input type="checkbox" data-rebind-class="${c.id}" ${state.rebind.classIds.includes(c.id) ? 'checked' : ''} class="h-4 w-4 rounded border-slate-300 accent-indigo-600">
               <span class="min-w-0 flex-1 truncate text-[14px] font-medium text-slate-800">${esc(c.name)}</span>
-              <span class="shrink-0 text-[12px] font-medium text-slate-400">${esc(c.students)} 人</span>
-            </label>`).join('') || '<p class="text-[12px] font-medium text-slate-400">暂无小班</p>'}
+              <span class="shrink-0 text-[12px] font-medium text-slate-500">${esc(c.students)} 人</span>
+            </label>`).join('') || '<p class="text-[12px] font-medium text-slate-500">暂无小班</p>'}
           </div>
         </div>
         <div class="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">仅变更教务管辖；历史购课单与课次资金归属不变，未来排课与教务沟通由接手班长接管。</div>
@@ -1785,7 +1777,7 @@
           <input id="dismissConfirmName" value="${esc(state.dismiss.confirmName)}" ${canConfirm ? '' : 'disabled'} placeholder="${esc(m.name)}" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
         </div>
         ${state.dismiss.error ? `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(state.dismiss.error)}</div>` : ''}
-        <p class="mt-2.5 text-[12px] font-medium leading-relaxed text-slate-400">解除后仅收回班长权限，账号保留；兼任家长的账号仍可登录家长端。历史单据与资金流水只读追溯。</p>
+        <p class="mt-2.5 text-[12px] font-medium leading-relaxed text-slate-500">解除后仅收回班长权限，账号保留；兼任家长的账号仍可登录家长端。历史单据与资金流水只读追溯。</p>
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">取消</button>
           <button id="btnDismiss" data-action="dismiss-submit" ${canConfirm && nameOk ? '' : 'disabled'} class="h-11 flex-1 rounded-xl bg-rose-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">确认解除</button>
@@ -1820,8 +1812,8 @@
           <div class="mt-1 space-y-1">
             ${teachers.map((t) => `<div class="flex items-center justify-between rounded-lg border border-slate-200 px-2.5 py-2">
               <span class="min-w-0 truncate text-[14px] font-medium text-slate-800">${esc(t.name)}</span>
-              <span class="shrink-0 text-[12px] font-medium text-slate-400">${esc(t.level)} · 当周 ${weeklyLoad(t).used}/${weeklyLoad(t).capacity} 节</span>
-            </div>`).join('') || '<p class="text-[12px] font-medium text-slate-400">暂无外教</p>'}
+              <span class="shrink-0 text-[12px] font-medium text-slate-500">${esc(t.level)} · 当周 ${weeklyLoad(t).used}/${weeklyLoad(t).capacity} 节</span>
+            </div>`).join('') || '<p class="text-[12px] font-medium text-slate-500">暂无外教</p>'}
           </div>
         </div>
         <div class="mt-3">
@@ -1829,8 +1821,8 @@
           <div class="mt-1 space-y-1">
             ${classes.map((c) => `<div class="flex items-center justify-between rounded-lg border border-slate-200 px-2.5 py-2">
               <span class="min-w-0 truncate text-[14px] font-medium text-slate-800">${esc(c.name)}</span>
-              <span class="shrink-0 text-[12px] font-medium text-slate-400">${esc(c.students)} 人</span>
-            </div>`).join('') || '<p class="text-[12px] font-medium text-slate-400">暂无小班</p>'}
+              <span class="shrink-0 text-[12px] font-medium text-slate-500">${esc(c.students)} 人</span>
+            </div>`).join('') || '<p class="text-[12px] font-medium text-slate-500">暂无小班</p>'}
           </div>
         </div>
         <button data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">关闭</button>
@@ -1885,6 +1877,7 @@
       state.page = 'teacherForm';
       state.navTab = 'ops';
       state.overlay = null;
+      state.playingVideo = false;
       renderAll();
       updateIntroCounters();
     }
@@ -1949,7 +1942,7 @@
       const knob = $('publishKnob');
       if (label) {
         label.textContent = on ? '已开启' : '已关闭';
-        label.className = `text-[12px] font-semibold ${on ? 'text-indigo-700' : 'text-slate-400'}`;
+        label.className = `text-[12px] font-semibold ${on ? 'text-indigo-700' : 'text-slate-500'}`;
       }
       if (track) track.className = `relative h-6 w-11 rounded-full transition ${on ? 'bg-indigo-600' : 'bg-slate-300'}`;
       if (knob) knob.className = `absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-5' : 'translate-x-0'}`;
@@ -1964,7 +1957,7 @@
       const resigned = state.monitors.find((m) => m.email.toLowerCase() === email && m.status === 'resigned');
       let html = '';
       let blocked = false;
-      let tone = 'text-slate-400';
+      let tone = 'text-slate-500';
       if (!email) {
         html = '输入已注册邮箱检索账号';
       } else if (!isEmailValid(email)) {
@@ -2013,9 +2006,9 @@
       if (!f.specialties.length) return '请至少选择 1 个擅长课程类型';
       if (!f.introZh.trim()) return '请填写中文简介';
       if (f.introZh.length > 2000) return '中文简介不能超过 2000 字符';
+      if (!f.introEn.trim()) return '请填写英文简介';
       if (f.introEn.length > 2000) return '英文简介不能超过 2000 字符';
       if (f.publish) {
-        if (!f.introEn.trim()) return '发布前请补全英文简介，或关闭同步保存为草稿';
         if (!f.photos.length) return '发布前请上传至少 1 张风采相册照片，或关闭同步保存为草稿';
         if (!f.avatarPhotoId) return '发布前请选择并裁切 1 张 1:1 主头像，或关闭同步保存为草稿';
         if (!f.media.qr) return '发布前请上传 ClassIn 二维码，或关闭同步保存为草稿';
@@ -2353,7 +2346,7 @@
       const wasMain = state.form.avatarPhotoId === photoId;
       photos.splice(index, 1);
       if (wasMain) {
-        const promoted = photos[Math.min(index, photos.length - 1)] || photos[0];
+        const promoted = photos[0];
         state.form.avatarPhotoId = promoted.id;
         state.form.avatarDataUrl = promoted.dataUrl;
         cropToDataUrl(promoted.dataUrl).then((url) => {
@@ -2467,15 +2460,17 @@
       }
       if (action === 'back-teachers') {
         state.page = 'teachers';
-        state.navTab = state.role === 'admin' ? 'settings' : 'ops';
+        state.navTab = 'ops';
         state.overlay = null;
+        state.playingVideo = false;
         return renderAll();
       }
       if (action === 'open-teacher') {
         state.activeTeacherId = el.dataset.id;
         state.page = 'teacherDetail';
-        state.navTab = state.role === 'admin' ? 'settings' : 'ops';
+        state.navTab = 'ops';
         state.introLang = 'zh';
+        state.playingVideo = false;
         state.overlay = null;
         return renderAll();
       }
@@ -2499,10 +2494,14 @@
         });
         return;
       }
-      if (action === 'open-video') {
+      if (action === 'play-video') {
         const t = teacherById(state.activeTeacherId);
         if (!t || !t.media.video) return showToast('该教师暂未上传试讲视频');
-        state.overlay = { type: 'video' };
+        state.playingVideo = true;
+        return renderAll();
+      }
+      if (action === 'stop-video') {
+        state.playingVideo = false;
         return renderAll();
       }
       if (action === 'open-qr') {

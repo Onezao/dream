@@ -53,6 +53,14 @@
         </div>
       </div>
 
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">语言</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-console-lang="zh" class="lang-btn rounded-lg px-2.5 py-1.5 font-semibold">中文</button>
+          <button data-console-lang="en" class="lang-btn rounded-lg px-2.5 py-1.5 font-semibold">English</button>
+        </div>
+      </div>
+
       <div class="flex items-center gap-1.5">
         <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
       </div>
@@ -107,8 +115,8 @@
     };
 
     const PARENT_QUICK = [
-      { icon: 'calendar-plus', label: '预约上课', href: 'm3a_calendar_schedule.html?role=parent&view=calendar' },
-      { icon: 'repeat-2', label: '课程转让', href: 'm3c_course_transfer.html?role=parent&page=list' },
+      { icon: 'calendar-plus', label: '预约上课', href: 'm3a_calendar_grid.html?role=parent&child=alice&week=0' },
+      { icon: 'repeat-2', label: '课程转让', href: 'm3c_course_transfer.html?role=amy&mode=slot&from=home' },
       { icon: 'baby', label: '孩子档案', href: 'm1a_student_profile.html?role=parent&page=center' },
       { icon: 'receipt', label: '购课账单', href: 'm2a_course_orders.html?role=parent&page=list' }
     ];
@@ -133,7 +141,7 @@
         banner: 'from-slate-800 via-emerald-900 to-slate-700',
         greeting: '晚上好，David', date: '2026-11-10 周二',
         summary: '今天还有 5 节课 · 2 节代课 · 课后反馈待补录',
-        en: { greeting: 'Good evening, David', date: 'Nov 10, 2026 · Tue', summary: '5 lessons left today · 2 substitute · feedback pending' },
+        en: { greeting: 'Good evening, David', date: 'Nov 10, 2026 · Tue', summary: '5 lessons left · 2 substitutes' },
         unread: 5,
         nav: [
           { id: 'home', icon: 'home', label: '首页', labelEn: 'Home' },
@@ -141,10 +149,10 @@
           { id: 'me', icon: 'user', label: '我的', labelEn: 'Me' }
         ],
         quick: { mode: 'single', items: [
-          { icon: 'calendar-days', label: '课表看板', href: 'm3a_calendar_schedule.html?role=teacher&view=calendar&teacher_id=tc_david0001' },
-          { icon: 'palmtree', label: '请假申请', href: 'm3b_attendance_substitution.html?role=teacher&page=leave' },
-          { icon: 'id-card', label: '个人名片', href: 'm1b_teacher_parent.html?teacher_id=tc_david0001' },
-          { icon: 'history', label: '授课历史', href: 'm5b_weekly_settlement.html?role=david&tab=teacher&view=grid' }
+          { icon: 'calendar-days', label: '课表看板', labelEn: 'Schedule', href: 'm3a_calendar_grid.html?role=teacher&teacher=david&week=0' },
+          { icon: 'palmtree', label: '请假申请', labelEn: 'Request leave', href: 'm3b_attendance_substitution.html?role=teacher&page=leave' },
+          { icon: 'id-card', label: '个人名片', labelEn: 'Profile', href: 'm1b_teacher_parent.html?teacher_id=tc_david0001' },
+          { icon: 'history', label: '授课历史', labelEn: 'History', href: 'm5b_weekly_settlement.html?role=david&tab=teacher&view=grid' }
         ] }
       },
       monitor: {
@@ -213,9 +221,9 @@
     };
 
     const TYPE_META = {
-      fixed: { label: '固定位', chip: 'border-amber-200 bg-amber-100 text-amber-800' },
-      temp: { label: '临时课', chip: 'border-indigo-200 bg-indigo-100 text-indigo-700' },
-      group: { label: '小班课', chip: 'border-slate-200 bg-slate-100 text-slate-700' }
+      fixed: { label: '固定位', labelEn: 'Fixed', chip: 'border-amber-200 bg-amber-100 text-amber-800' },
+      temp: { label: '临时课', labelEn: 'Temp', chip: 'border-indigo-200 bg-indigo-100 text-indigo-700' },
+      group: { label: '小班课', labelEn: 'Group', chip: 'border-slate-200 bg-slate-100 text-slate-700' }
     };
 
     const CHILD_DASH = {
@@ -224,7 +232,7 @@
         done: 1, total: 3, pending: 2,
         next: {
           date: '今天 (11-10) 周二', time: '19:00 - 19:55', merged: 2, type: 'fixed',
-          teacher: 'David Miller', account: 'david.miller', room: 'ClassIn 教室 A-302', countdown: '45 分钟后上课'
+          teacher: 'David Miller', account: '982-123-456', room: 'ClassIn: 982-123-456', countdown: '45 分钟后上课'
         },
         last: { date: '周一 (11-09)', time: '18:00 - 18:25', merged: 1, type: 'temp', teacher: 'Linda Chen', status: '已完课' },
         comm: '最新: 2 小时前 · David 老师',
@@ -243,7 +251,7 @@
         done: 0, total: 1, pending: 1,
         next: {
           date: '周四 (11-12)', time: '20:00 - 20:25', merged: 1, type: 'temp',
-          teacher: 'Linda Chen', account: 'linda.chen', room: 'ClassIn 教室 B-106', countdown: ''
+          teacher: 'Linda Chen', account: '883-456-789', room: 'ClassIn: 883-456-789', countdown: ''
         },
         last: null,
         comm: '最新: 昨天 20:30 · Elena 老师',
@@ -343,21 +351,21 @@
     const WEEK_LESSONS = {
       alice: {
         '-1': [
-          { id: 'alice-p1', day: 0, hour: 18, minute: 0, type: 'fixed', teacher: 'David Miller', account: 'david.miller', course: '少儿英语' },
-          { id: 'alice-p2', day: 3, hour: 19, minute: 0, type: 'temp', teacher: 'Linda Chen', account: 'linda.chen', course: '生活口语' },
-          { id: 'alice-p3', day: 6, hour: 20, minute: 0, type: 'fixed', teacher: 'David Miller', account: 'david.miller', course: '少儿英语' }
+          { id: 'alice-p1', day: 0, hour: 18, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语' },
+          { id: 'alice-p2', day: 3, hour: 19, minute: 0, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语' },
+          { id: 'alice-p3', day: 6, hour: 20, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语' }
         ],
         '0': [
-          { id: 'alice-c1', day: 0, hour: 18, minute: 0, type: 'temp', teacher: 'Linda Chen', account: 'linda.chen', course: '生活口语', hours: -24, past: true },
-          { id: 'alice-c2', day: 1, hour: 19, minute: 0, type: 'fixed', teacher: 'David Miller', account: 'david.miller', course: '少儿英语', hours: 0.75 },
-          { id: 'alice-c3', day: 1, hour: 19, minute: 30, type: 'fixed', teacher: 'David Miller', account: 'david.miller', course: '少儿英语', hours: 1.25 }
+          { id: 'alice-c1', day: 0, hour: 18, minute: 0, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语', hours: -24, past: true },
+          { id: 'alice-c2', day: 1, hour: 19, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语', hours: 0.75 },
+          { id: 'alice-c3', day: 1, hour: 19, minute: 30, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语', hours: 1.25 }
         ],
         '1': [
-          { id: 'alice-n1', day: 0, hour: 18, minute: 0, type: 'fixed', teacher: 'David Miller', account: 'david.miller', course: '少儿英语', hours: 168 },
-          { id: 'alice-n2', day: 1, hour: 17, minute: 30, type: 'temp', teacher: 'Linda Chen', account: 'linda.chen', course: '生活口语', hours: 143 },
-          { id: 'alice-n3', day: 2, hour: 19, minute: 0, type: 'temp', teacher: 'Linda Chen', account: 'linda.chen', course: '生活口语', hours: 167 },
-          { id: 'alice-n4', day: 4, hour: 18, minute: 0, type: 'sub', teacher: 'Elena Wu', account: 'elena.wu', course: '少儿英语', hours: 191 },
-          { id: 'alice-n5', day: 5, hour: 20, minute: 0, type: 'fixed', teacher: 'David Miller', account: 'david.miller', course: '少儿英语', hours: 208 }
+          { id: 'alice-n1', day: 0, hour: 18, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语', hours: 168 },
+          { id: 'alice-n2', day: 1, hour: 17, minute: 30, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语', hours: 143 },
+          { id: 'alice-n3', day: 2, hour: 19, minute: 0, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语', hours: 167 },
+          { id: 'alice-n4', day: 4, hour: 18, minute: 0, type: 'sub', teacher: 'Elena Wu', account: '774-219-338', course: '少儿英语', hours: 191 },
+          { id: 'alice-n5', day: 5, hour: 20, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语', hours: 208 }
         ]
       },
       bob: {
@@ -365,11 +373,11 @@
           { id: 'bob-p1', day: 5, hour: 20, minute: 30, type: 'suspended', teacher: '', account: '', course: 'KET 冲刺班', duration: 50 }
         ],
         '0': [
-          { id: 'bob-c1', day: 3, hour: 20, minute: 0, type: 'temp', teacher: 'Linda Chen', account: 'linda.chen', course: '生活口语', hours: 48 }
+          { id: 'bob-c1', day: 3, hour: 20, minute: 0, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语', hours: 48 }
         ],
         '1': [
-          { id: 'bob-n1', day: 1, hour: 20, minute: 0, type: 'fixed', teacher: 'David Miller', account: 'david.miller', course: '生活口语', hours: 194 },
-          { id: 'bob-n2', day: 3, hour: 19, minute: 0, type: 'fixed', teacher: 'David Miller', account: 'david.miller', course: '生活口语', hours: 241 },
+          { id: 'bob-n1', day: 1, hour: 20, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '生活口语', hours: 194 },
+          { id: 'bob-n2', day: 3, hour: 19, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '生活口语', hours: 241 },
           { id: 'bob-n3', day: 6, hour: 20, minute: 30, type: 'suspended', teacher: '', account: '', course: 'KET 冲刺班', duration: 50 }
         ]
       }
@@ -401,6 +409,7 @@
     const state = {
       role: 'user', device: 'mobile', tab: 'home', lang: 'zh',
       overlay: null, legalDoc: 'terms', opsTab: 'teachers',
+      opsSchedule: null,
       scheduleChild: 'alice', scheduleWeek: 0, scheduleScroll: null,
       selectedLesson: null, qrTeacher: null, qrReturn: null,
       teacherUpcomingLoads: 0, teacherCompletedLoads: 0
@@ -410,7 +419,9 @@
     if (params.get('role') && ROLES[params.get('role')]) state.role = params.get('role');
     if (params.get('device') === 'tablet') state.device = 'tablet';
     if (params.get('tab')) state.tab = params.get('tab');
-    if (params.get('lang') === 'en') state.lang = 'en';
+    const langParam = params.get('lang');
+    state.lang = langParam === 'en' ? 'en' : langParam === 'zh' ? 'zh' : (state.role === 'teacher' ? 'en' : 'zh');
+    if (['alice', 'bob'].includes(params.get('child'))) state.scheduleChild = params.get('child');
     if (params.get('overlay')) state.overlay = params.get('overlay');
     if (params.get('doc')) state.legalDoc = params.get('doc');
     if (params.get('opsTab')) state.opsTab = params.get('opsTab');
@@ -421,6 +432,11 @@
 
     function roleMeta() { return ROLES[state.role]; }
     function isTeacherEn() { return state.role === 'teacher' && state.lang === 'en'; }
+    function t(zh, en) { return isTeacherEn() ? en : zh; }
+    function typeLabel(type) {
+      const meta = TYPE_META[type] || TYPE_META.fixed;
+      return isTeacherEn() ? meta.labelEn : meta.label;
+    }
     function homeGreeting() { return isTeacherEn() && roleMeta().en ? roleMeta().en.greeting : roleMeta().greeting; }
     function homeDate() { return isTeacherEn() && roleMeta().en ? roleMeta().en.date : roleMeta().date; }
     function homeSummary() { return isTeacherEn() && roleMeta().en ? roleMeta().en.summary : roleMeta().summary; }
@@ -436,6 +452,7 @@
     function resetDemo() {
       state.role = 'user'; state.device = 'mobile'; state.tab = 'home'; state.lang = 'zh';
       state.overlay = null; state.legalDoc = 'terms'; state.opsTab = 'teachers';
+      state.opsSchedule = null;
       state.scheduleChild = 'alice'; state.scheduleWeek = 0; state.scheduleScroll = null;
       state.selectedLesson = null; state.qrTeacher = null; state.qrReturn = null;
       state.teacherUpcomingLoads = 0; state.teacherCompletedLoads = 0;
@@ -463,13 +480,19 @@
       const r = roleMeta();
       const unread = r.unread || 0;
       const badgeText = unread > 99 ? '99+' : String(unread);
+      const ops = state.opsSchedule;
       return `
         <header class="relative flex h-16 shrink-0 items-center overflow-hidden bg-gradient-to-br ${r.banner} px-4 text-white">
           ${PATTERNS[r.key]}
           <div class="relative flex w-full items-center justify-between gap-2">
             <div class="flex min-w-0 items-center gap-2.5">
-              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">${r.initial}</span>
-              <h1 class="truncate text-[18px] font-bold tracking-tight">${esc(pageTitle())}</h1>
+              ${ops
+                ? `<button data-action="ops-schedule-back" class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/20 transition hover:bg-white/25" aria-label="返回">${icon('chevron-left', 'h-5 w-5')}</button>`
+                : `<span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">${r.initial}</span>`}
+              <div class="min-w-0">
+                <h1 class="truncate text-[18px] font-bold tracking-tight">${esc(ops ? (ops.kind === 'group' ? `${ops.name}的课表` : `${ops.name} 的课表`) : pageTitle())}</h1>
+                ${ops && ops.subtitle ? `<p class="mt-0.5 truncate text-[12px] font-medium text-white/70">${esc(ops.subtitle)}</p>` : ''}
+              </div>
             </div>
             <button data-action="notifications" class="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/20 transition hover:bg-white/25" aria-label="通知">
               ${icon('bell', 'h-[18px] w-[18px]')}
@@ -500,7 +523,8 @@
      * 通用小组件
      * ------------------------------------------------------------------ */
     function quickButton(q, compact = false) {
-      const inner = `<span class="grid ${compact ? 'h-8 w-8' : 'h-9 w-9'} place-items-center rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700">${icon(q.icon, 'h-4 w-4')}</span><span class="text-[12px] font-bold text-slate-700">${esc(q.label)}</span>`;
+      const label = isTeacherEn() && q.labelEn ? q.labelEn : q.label;
+      const inner = `<span class="grid ${compact ? 'h-8 w-8' : 'h-9 w-9'} place-items-center rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700">${icon(q.icon, 'h-4 w-4')}</span><span class="text-[12px] font-bold text-slate-700">${esc(label)}</span>`;
       const cls = compact
         ? 'flex flex-col items-center gap-1 rounded-xl bg-slate-50/80 py-2 transition active:scale-95'
         : 'flex flex-col items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-white px-1 py-2.5 shadow-sm transition active:scale-95';
@@ -542,10 +566,10 @@
     function teacherStatsCapsule() {
       return `<div class="flex h-9 items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-2.5 text-[12px]">
         <div class="flex items-center gap-3 whitespace-nowrap">
-          <span class="font-medium text-slate-500">本周已授 <span class="font-bold text-slate-800">12/30</span> 节</span>
-          <span class="font-medium text-slate-500">上周完成 <span class="font-bold text-emerald-700">25/25</span> 节</span>
+          <span class="font-medium text-slate-500">${t('本周已授', 'Taught this week')} <span class="font-bold text-slate-800">12/30</span>${t(' 节', '')}</span>
+          <span class="font-medium text-slate-500">${t('上周完成', 'Last week')} <span class="font-bold text-emerald-700">25/25</span>${t(' 节', '')}</span>
         </div>
-        <a href="m5b_weekly_settlement.html?role=david&tab=teacher&view=grid" target="_blank" rel="noopener" class="shrink-0 font-bold text-indigo-600">对账 ↗</a>
+        <a href="m5b_weekly_settlement.html?role=david&tab=teacher&view=grid" target="_blank" rel="noopener" class="shrink-0 font-bold text-indigo-600">${t('对账 ↗', 'Reconcile ↗')}</a>
       </div>`;
     }
 
@@ -582,13 +606,13 @@
           <div class="mt-0.5 text-[12px] font-medium text-amber-700">${esc(n.teacher)} · ${esc(n.room)}</div>
           <div class="mt-2 grid grid-cols-2 gap-1.5">
             <button data-action="qr" data-teacher="${esc(n.teacher)}" data-account="${esc(n.account)}" class="flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100">${icon('qr-code', 'h-3.5 w-3.5')}教室号 / 扫码进班</button>
-            <button data-action="toast" data-message="正在唤醒 ClassIn 教室…" class="flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100">${icon('external-link', 'h-3.5 w-3.5')}进入Classin</button>
+            <button data-action="toast" data-message="正在进入 ClassIn 教室…" class="flex h-9 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100">${icon('external-link', 'h-3.5 w-3.5')}进入Classin</button>
           </div>
         </div>` : `
         <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-2.5">
           <div class="text-[12px] font-medium text-slate-500">下次上课 · 本周暂无待上课程</div>
           <div class="mt-2 flex flex-wrap gap-1.5">
-            <a href="m3a_calendar_schedule.html?role=parent&view=calendar" target="_blank" rel="noopener" class="flex h-8 items-center rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white">立即约课</a>
+            <a href="m3a_calendar_grid.html?role=parent&child=alice&week=0" target="_blank" rel="noopener" class="flex h-8 items-center rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white">立即约课</a>
             <button data-action="toast" data-message="已通知班长为您排课" class="h-8 rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700">联系班长排课</button>
             <a href="m2a_course_orders.html?role=parent&page=list" target="_blank" rel="noopener" class="flex h-8 items-center rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-700">去购课续费</a>
           </div>
@@ -682,27 +706,30 @@
       return Math.min(total, 6 + loads * 6);
     }
 
-    function renderLoadMore(kind, shown, total, label) {
+    function renderLoadMore(kind, shown, total) {
       const loads = kind === 'upcoming' ? state.teacherUpcomingLoads : state.teacherCompletedLoads;
       if (loads >= 5 || shown >= total) {
-        return `<a href="m3a_calendar_schedule.html?role=teacher&view=calendar&teacher_id=tc_david0001" target="_blank" rel="noopener" class="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[14px] font-bold text-indigo-600 shadow-sm">${icon('calendar-days', 'h-4 w-4')}打开完整课表 ↗</a>`;
+        return `<a href="m3a_calendar_grid.html?role=teacher&teacher=david&week=0" target="_blank" rel="noopener" class="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[14px] font-bold text-indigo-600 shadow-sm">${icon('calendar-days', 'h-4 w-4')}${t('打开完整课表', 'Open full schedule')} ↗</a>`;
       }
-      return `<button data-action="load-more" data-list="${kind}" class="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[14px] font-bold text-slate-600 shadow-sm transition hover:bg-slate-50">${label} (还有 ${total - shown} 条) ▾</button>`;
+      const label = kind === 'upcoming' ? t('加载更多待上课', 'Load more') : t('加载更多刚结束', 'Load more');
+      const remain = total - shown;
+      return `<button data-action="load-more" data-list="${kind}" class="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[14px] font-bold text-slate-600 shadow-sm transition hover:bg-slate-50">${label} (${t(`还有 ${remain} 条`, `${remain} more`)}) ▾</button>`;
     }
 
     function teacherUpcomingCard(item) {
       const meta = TYPE_META[item.type] || TYPE_META.fixed;
+      const mergedText = item.merged > 1 ? (isTeacherEn() ? ` · ${item.merged} lessons back-to-back` : ` · 连续 ${item.merged} 节`) : '';
       return `<article class="rounded-xl border border-amber-200/70 bg-amber-50/80 p-2.5 shadow-sm">
         <div class="flex flex-wrap items-center gap-1.5">
           <span class="text-[14px] font-bold text-amber-950">${esc(item.student)}</span>
-          <span class="rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${meta.chip}">${meta.label}</span>
-          ${item.sub ? `<span class="rounded-full border border-purple-200 bg-purple-100 px-1.5 py-0.5 text-[12px] font-bold text-purple-700">🟣 代课</span>` : ''}
+          <span class="rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${meta.chip}">${typeLabel(item.type)}</span>
+          ${item.sub ? `<span class="rounded-full border border-purple-200 bg-purple-100 px-1.5 py-0.5 text-[12px] font-bold text-purple-700">${t('🟣 代课', 'Substitute')}</span>` : ''}
         </div>
-        <div class="mt-0.5 text-[12px] font-medium text-amber-700">${esc(item.when)}${item.merged > 1 ? ` · 连续 ${item.merged} 节` : ''}</div>
+        <div class="mt-0.5 text-[12px] font-medium text-amber-700">${esc(item.when)}${mergedText}</div>
         ${item.countdown ? `<div class="text-[12px] font-bold text-amber-800">${esc(item.countdown)}</div>` : ''}
         <div class="mt-2 flex gap-1.5">
-          <button data-action="toast" data-message="正在打开 ${esc(item.student)} 的留言板" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-amber-600 text-[12px] font-bold text-white transition hover:bg-amber-700">${icon('message-square', 'h-3.5 w-3.5')}留言备忘</button>
-          <button data-action="toast" data-message="正在唤醒 ClassIn 教室…" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100">${icon('door-open', 'h-3.5 w-3.5')}进教室</button>
+          <button data-action="toast" data-message="${esc(t(`正在打开 ${item.student} 的留言板`, `Opening ${item.student}'s lesson notes`))}" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-amber-600 text-[12px] font-bold text-white transition hover:bg-amber-700">${icon('message-square', 'h-3.5 w-3.5')}${t('留言备忘', 'Lesson notes')}</button>
+          <button data-action="toast" data-message="${esc(t('正在进入 ClassIn 教室…', 'Entering ClassIn classroom…'))}" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100">${icon('door-open', 'h-3.5 w-3.5')}${t('进教室', 'Enter classroom')}</button>
         </div>
       </article>`;
     }
@@ -710,24 +737,25 @@
     function teacherCompletedCard(item) {
       const meta = TYPE_META[item.type] || TYPE_META.fixed;
       const done = item.feedback;
+      const mergedText = item.merged > 1 ? (isTeacherEn() ? ` · ${item.merged} lessons back-to-back` : ` · 连续 ${item.merged} 节`) : '';
       const typeChip = done
-        ? `<span class="text-[12px] font-semibold text-slate-500">${meta.label}</span>`
-        : `<span class="rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${meta.chip}">${meta.label}</span>`;
+        ? `<span class="text-[12px] font-semibold text-slate-500">${typeLabel(item.type)}</span>`
+        : `<span class="rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${meta.chip}">${typeLabel(item.type)}</span>`;
       return `<article class="rounded-xl border p-2.5 shadow-sm ${done ? 'border-slate-200 bg-slate-50' : 'border-amber-200/70 bg-amber-50/80'}">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-1.5">
               <span class="text-[14px] font-bold ${done ? 'text-slate-900' : 'text-amber-950'}">${esc(item.student)}</span>
               ${typeChip}
-              <span class="rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${done ? 'border-slate-200 bg-white text-slate-500' : 'border-amber-200 bg-amber-100 text-amber-800'}">已完课</span>
-              ${item.sub ? `<span class="rounded-full border border-purple-200 bg-purple-100 px-1.5 py-0.5 text-[12px] font-bold text-purple-700">🟣 代课</span>` : ''}
+              <span class="rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${done ? 'border-slate-200 bg-white text-slate-500' : 'border-amber-200 bg-amber-100 text-amber-800'}">${t('已完课', 'Completed')}</span>
+              ${item.sub ? `<span class="rounded-full border border-purple-200 bg-purple-100 px-1.5 py-0.5 text-[12px] font-bold text-purple-700">${t('🟣 代课', 'Substitute')}</span>` : ''}
             </div>
-            <div class="mt-0.5 text-[12px] font-medium ${done ? 'text-slate-500' : 'text-amber-700'}">${esc(item.when)}${item.merged > 1 ? ` · 连续 ${item.merged} 节` : ''}</div>
+            <div class="mt-0.5 text-[12px] font-medium ${done ? 'text-slate-500' : 'text-amber-700'}">${esc(item.when)}${mergedText}</div>
             ${done && item.note ? `<p class="mt-0.5 truncate text-[12px] text-slate-500">${esc(item.note)}</p>` : ''}
           </div>
           ${done
-            ? `<button data-action="toast" data-message="正在打开交流记录" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-100 px-2 text-[12px] font-semibold text-slate-600">${icon('message-square', 'h-3.5 w-3.5')}交流记录</button>`
-            : `<button data-action="toast" data-message="正在打开 ${esc(item.student)} 的反馈" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-amber-600 px-2 text-[12px] font-bold text-white transition hover:bg-amber-700">${icon('pen-line', 'h-3.5 w-3.5')}写反馈</button>`}
+            ? `<button data-action="toast" data-message="${esc(t('正在打开交流记录', 'Opening messages'))}" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-slate-100 px-2 text-[12px] font-semibold text-slate-600">${icon('message-square', 'h-3.5 w-3.5')}${t('交流记录', 'Messages')}</button>`
+            : `<button data-action="toast" data-message="${esc(t(`正在打开 ${item.student} 的反馈`, `Opening feedback for ${item.student}`))}" class="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-amber-600 px-2 text-[12px] font-bold text-white transition hover:bg-amber-700">${icon('pen-line', 'h-3.5 w-3.5')}${t('写反馈', 'Write feedback')}</button>`}
         </div>
       </article>`;
     }
@@ -742,19 +770,19 @@
           ${teacherStatsCapsule()}
           <section>
             <div class="mb-1.5 flex items-center justify-between px-1">
-              <h2 class="text-[16px] font-bold text-slate-900">待上课（近 7 天）</h2>
-              <span class="text-[12px] font-medium text-slate-400">${upShown}/${TEACHER_UPCOMING.length} 条</span>
+              <h2 class="text-[16px] font-bold text-slate-900">${t('待上课（近 7 天）', 'Upcoming (7 days)')}</h2>
+              <span class="text-[12px] font-medium text-slate-400">${upShown}/${TEACHER_UPCOMING.length}${t(' 条', '')}</span>
             </div>
             <div class="space-y-2">${TEACHER_UPCOMING.slice(0, upShown).map(teacherUpcomingCard).join('')}</div>
-            ${renderLoadMore('upcoming', upShown, TEACHER_UPCOMING.length, '加载更多待上课')}
+            ${renderLoadMore('upcoming', upShown, TEACHER_UPCOMING.length)}
           </section>
           <section>
             <div class="mb-1.5 flex items-center justify-between px-1">
-              <h2 class="text-[16px] font-bold text-slate-900">刚结束（近 7 天）</h2>
-              <span class="text-[12px] font-medium text-slate-400">${compShown}/${TEACHER_COMPLETED.length} 条</span>
+              <h2 class="text-[16px] font-bold text-slate-900">${t('刚结束（近 7 天）', 'Recently completed (7 days)')}</h2>
+              <span class="text-[12px] font-medium text-slate-400">${compShown}/${TEACHER_COMPLETED.length}${t(' 条', '')}</span>
             </div>
             <div class="space-y-2">${TEACHER_COMPLETED.slice(0, compShown).map(teacherCompletedCard).join('')}</div>
-            ${renderLoadMore('completed', compShown, TEACHER_COMPLETED.length, '加载更多刚结束')}
+            ${renderLoadMore('completed', compShown, TEACHER_COMPLETED.length)}
           </section>
         </div>`;
     }
@@ -826,7 +854,6 @@
     const PARENT_LEGEND = [
       ['固定位', 'bg-amber-400'],
       ['临时课', 'bg-yellow-400'],
-      ['代上课', 'bg-purple-500'],
       ['被代课', 'bg-blue-500'],
       ['停课待补', 'bg-slate-300'],
       ['已请假', 'bg-rose-500']
@@ -887,7 +914,7 @@
             </div>
             <div class="flex shrink-0 items-center justify-between gap-2 border-t border-slate-100 px-2.5 py-1.5 text-[12px] font-medium text-slate-400">
               <span>06:00 - 23:30 · 上下滚动查看</span>
-              <a href="m3a_calendar_schedule.html" target="_blank" rel="noopener" class="shrink-0 font-bold text-indigo-600">查看完整课表 ↗</a>
+              <a href="m3a_calendar_grid.html" target="_blank" rel="noopener" class="shrink-0 font-bold text-indigo-600">查看完整课表 ↗</a>
             </div>
           </section>
         </div>`;
@@ -938,8 +965,83 @@
               ${grid.map((row) => `<div class="flex h-7 items-center justify-end border-b border-r border-slate-100 pr-1 font-mono text-[12px] font-bold text-slate-400">${row.time}</div>${row.cells.map((c) => `<div class="m-[1px] flex h-[26px] items-center justify-center rounded-md border text-[11px] font-bold ${GRID_COLORS[c.c]}">${c.t}</div>`).join('')}`).join('')}
             </div>
           </section>
-          <a href="m3a_calendar_schedule.html" target="_blank" rel="noopener" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white shadow-sm">${icon('external-link', 'h-4 w-4')}查看完整课表</a>
+          <a href="m3a_calendar_grid.html" target="_blank" rel="noopener" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white shadow-sm">${icon('external-link', 'h-4 w-4')}查看完整课表</a>
         </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 课表穿透：统一 iframe 挂载 M3A embed 视图
+     * ------------------------------------------------------------------ */
+    function renderScheduleEmbed() {
+      if (state.role === 'teacher') {
+        return `<div class="h-full w-full overflow-hidden">
+          <iframe src="m3a_calendar_grid.html?embed=1&role=teacher&teacher=david&week=0" title="${isTeacherEn() ? 'Weekly schedule' : '教师课表'}" loading="eager" class="h-full w-full border-0"></iframe>
+        </div>`;
+      }
+      return `<div class="h-full w-full overflow-hidden">
+        <iframe src="m3a_calendar_grid.html?embed=1&role=parent&child=${state.scheduleChild || 'alice'}&week=0" title="学生课表" loading="eager" class="h-full w-full border-0"></iframe>
+      </div>`;
+    }
+
+    const OPS_STUDENT_EMBED = {
+      AliceZ12: { child: 'alice', demo: false },
+      BobZ10: { child: 'bob', demo: false },
+      KevinZ09: { child: 'alice', demo: true }
+    };
+    const OPS_TEACHER_EMBED = {
+      'David Miller': 'david',
+      'Linda Chen': 'linda',
+      'Elena Wu': 'elena',
+      'Kevin Zhou': 'david'
+    };
+    const OPS_TEACHER_WEEK = {
+      david: '18/24',
+      linda: '14/24',
+      elena: '6/24'
+    };
+    const OPS_GROUP_EMBED = {
+      'KET 冲刺 A 班': 'elena',
+      'Daisy 口语班': 'linda'
+    };
+
+    function openOpsSchedule(kind, name) {
+      let title = name;
+      let subtitle = '';
+      let url = '';
+      let demo = false;
+      if (kind === 'student') {
+        const s = OPS_STUDENTS.find((item) => item.name === name) || OPS_STUDENTS[0];
+        const map = OPS_STUDENT_EMBED[s.name] || { child: 'alice', demo: true };
+        title = s.name.replace(/Z\d+$/, '') || s.name;
+        subtitle = `授课外教: ${s.teacher} · 本周 2 节${map.demo ? ' · 演示数据' : ''}`;
+        url = `m3a_calendar_grid.html?embed=1&role=parent&child=${map.child}&week=0&from=ops`;
+        demo = map.demo;
+      } else if (kind === 'teacher') {
+        const teacher = OPS_TEACHERS.find((item) => item.name === name) || OPS_TEACHERS[0];
+        const key = OPS_TEACHER_EMBED[teacher.name] || 'david';
+        title = teacher.name;
+        subtitle = `本周已排 ${OPS_TEACHER_WEEK[key] || '18/24'} 节 · ${teacher.skills.join(' / ')}`;
+        url = `m3a_calendar_grid.html?embed=1&role=monitor&teacher=${key}&week=0&from=ops`;
+      } else {
+        const group = OPS_GROUPS.find((item) => item.name === name) || OPS_GROUPS[0];
+        const key = OPS_GROUP_EMBED[group.name] || OPS_TEACHER_EMBED[group.teacher] || 'david';
+        title = group.name;
+        subtitle = `主讲 ${group.teacher} · 在读 ${group.cur}/${group.max} 人`;
+        url = `m3a_calendar_grid.html?embed=1&role=monitor&teacher=${key}&week=0&from=ops`;
+      }
+      state.opsSchedule = { kind, name: title, subtitle, url, demo };
+      state.overlay = null;
+    }
+
+    function renderOpsSchedule() {
+      const schedule = state.opsSchedule;
+      if (!schedule) return '';
+      return `<div class="flex h-full w-full flex-col overflow-hidden">
+        ${schedule.demo ? `<div class="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1.5 text-[12px] font-semibold text-amber-900">演示数据 · 该学员暂无独立课表，暂以 Alice 的课表展示</div>` : ''}
+        <div class="min-h-0 flex-1 overflow-hidden">
+          <iframe src="${schedule.url}" title="${esc(schedule.name)} 的课表" loading="eager" class="h-full w-full border-0"></iframe>
+        </div>
+      </div>`;
     }
 
     /* ------------------------------------------------------------------
@@ -960,10 +1062,10 @@
     ];
 
     const OPS_TEACHERS = [
-      { name: 'David Miller', level: 'L5', skills: ['少儿英语', 'KET'], room: 'A-302', load: '26/30 节', owner: '⭐ 我直管' },
-      { name: 'Linda Chen', level: 'L4', skills: ['生活口语', '少儿英语'], room: 'B-106', load: '22/30 节', owner: 'Leo 班' },
-      { name: 'Elena Wu', level: 'L4', skills: ['KET', 'PET'], room: 'C-201', load: '18/30 节', owner: 'Leo 班' },
-      { name: 'Kevin Zhou', level: 'L3', skills: ['少儿英语', '雅思'], room: 'D-405', load: '20/30 节', owner: '平台直管' }
+      { name: 'David Miller', level: 'L5', skills: ['少儿英语', 'KET'], room: '982-123-456', load: '26/30 节', owner: '⭐ 我直管' },
+      { name: 'Linda Chen', level: 'L4', skills: ['生活口语', '少儿英语'], room: '883-456-789', load: '22/30 节', owner: 'Leo 班' },
+      { name: 'Elena Wu', level: 'L4', skills: ['KET', 'PET'], room: '774-219-338', load: '18/30 节', owner: 'Leo 班' },
+      { name: 'Kevin Zhou', level: 'L3', skills: ['少儿英语', '雅思'], room: '665-382-901', load: '20/30 节', owner: '平台直管' }
     ];
 
     const OPS_STUDENTS = [
@@ -1035,7 +1137,7 @@
           </div>
         </div>
         <div class="mt-2 flex gap-1.5">
-          <a href="m3a_calendar_schedule.html?role=${isAdmin ? 'admin' : 'monitor'}&view=calendar" target="_blank" rel="noopener" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('calendar-days', 'h-3.5 w-3.5')}查看周排期</a>
+          <button data-action="ops-schedule" data-kind="teacher" data-name="${esc(t.name)}" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('calendar-days', 'h-3.5 w-3.5')}查看周排期</button>
           <a href="m1b_teacher_monitor.html?role=${isAdmin ? 'admin' : 'monitor'}&page=teachers" target="_blank" rel="noopener" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('user-round', 'h-3.5 w-3.5')}档案 / 风采 ↗</a>
         </div>
       </article>`).join('')}</div>`;
@@ -1055,8 +1157,8 @@
           ${isAdmin ? `<span class="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-medium text-slate-500">${esc(s.owner)}</span>` : ''}
         </div>
         <div class="mt-2 flex gap-1.5">
-          <a href="m3a_calendar_schedule.html?role=${isAdmin ? 'admin' : 'monitor'}&view=calendar" target="_blank" rel="noopener" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('calendar-days', 'h-3.5 w-3.5')}查看课表</a>
-          <a href="m3a_calendar_schedule.html?role=${isAdmin ? 'admin' : 'monitor'}&view=calendar" target="_blank" rel="noopener" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('calendar-plus', 'h-3.5 w-3.5')}买4排4</a>
+          <button data-action="ops-schedule" data-kind="student" data-name="${esc(s.name)}" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('calendar-days', 'h-3.5 w-3.5')}查看课表</button>
+          <a href="m3a_calendar_grid.html?role=${isAdmin ? 'admin' : 'monitor'}&view=calendar" target="_blank" rel="noopener" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('calendar-plus', 'h-3.5 w-3.5')}买4排4</a>
           <a href="m1a_student_profile.html?role=${isAdmin ? 'admin' : 'monitor'}&page=center" target="_blank" rel="noopener" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('folder-open', 'h-3.5 w-3.5')}档案 / 学情 ↗</a>
         </div>
       </article>`).join('')}</div>`;
@@ -1076,7 +1178,7 @@
           <div><div class="text-slate-400">本周课酬</div><div class="font-bold text-emerald-700">${esc(g.pay)}</div></div>
         </div>
         <div class="mt-2 flex gap-1.5">
-          <a href="m3a_calendar_schedule.html?role=${isAdmin ? 'admin' : 'monitor'}&view=calendar" target="_blank" rel="noopener" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('calendar-days', 'h-3.5 w-3.5')}小班日历</a>
+          <button data-action="ops-schedule" data-kind="group" data-name="${esc(g.name)}" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('calendar-days', 'h-3.5 w-3.5')}小班日历</button>
           <a href="m1c_classes.html?role=${isAdmin ? 'admin' : 'monitor'}&page=classes" target="_blank" rel="noopener" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">${icon('users', 'h-3.5 w-3.5')}名单调配</a>
         </div>
       </article>`).join('')}</div>`;
@@ -1091,13 +1193,13 @@
         <div class="flex min-w-0 items-center gap-3">
           <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500">${icon('globe', 'h-4 w-4')}</span>
           <div class="min-w-0">
-            <div class="text-[14px] font-bold text-slate-800">中英双语</div>
-            <div class="truncate text-[12px] text-slate-400">即时生效 · 自动保存偏好</div>
+            <div class="text-[14px] font-bold text-slate-800">${t('中英双语', 'Language')}</div>
+            <div class="truncate text-[12px] text-slate-400">${t('即时生效 · 自动保存偏好', 'Instant apply · saved automatically')}</div>
           </div>
         </div>
         <div class="inline-flex shrink-0 rounded-lg bg-slate-100 p-0.5">
-          <button data-action="set-lang" data-lang="zh" class="h-7 whitespace-nowrap rounded-md px-2.5 text-[12px] font-bold transition ${lang === 'zh' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">中</button>
-          <button data-action="set-lang" data-lang="en" class="h-7 whitespace-nowrap rounded-md px-2.5 text-[12px] font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">En</button>
+          <button data-action="set-lang" data-lang="zh" class="h-7 whitespace-nowrap rounded-md px-2.5 text-[12px] font-bold transition ${lang === 'zh' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">中文</button>
+          <button data-action="set-lang" data-lang="en" class="h-7 whitespace-nowrap rounded-md px-2.5 text-[12px] font-bold transition ${lang === 'en' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}">English</button>
         </div>
       </div>`;
     }
@@ -1185,6 +1287,16 @@
       const admin = roleMeta();
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         ${profileCard(admin)}
+        <section>
+          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-400">学员课表穿透</div>
+          <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+            ${OPS_STUDENTS.slice(0, 2).map((s) => `<div class="flex items-center gap-3 border-b border-slate-100 px-3.5 py-3 last:border-0">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-700">${icon('calendar-days', 'h-4 w-4')}</span>
+              <span class="min-w-0 flex-1"><span class="block text-[14px] font-bold text-slate-800">${esc(s.name)}</span><span class="block truncate text-[12px] text-slate-500">主讲 ${esc(s.teacher)} · ${esc(s.assets)}</span></span>
+              <button data-action="ops-schedule" data-kind="student" data-name="${esc(s.name)}" class="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">查看课表</button>
+            </div>`).join('')}
+          </div>
+        </section>
         <section>
           <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-400">平台机构管理</div>
           <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
@@ -1314,9 +1426,9 @@
       return sheetShell('扫码 / 教室号', '家长手机对准上课设备扫码进班', `<div class="flex flex-col items-center">
         <div class="grid h-52 w-52 grid-cols-8 gap-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">${Array.from({ length: 64 }, (_, i) => `<span class="${[0,1,2,7,8,9,14,15,16,23,24,31,32,39,40,47,48,49,54,55,56,57,62,63].includes(i) || i % 7 === 0 ? 'bg-slate-900' : 'bg-white'} rounded-[1px]"></span>`).join('')}</div>
         <div class="mt-3 text-[16px] font-bold text-slate-900">${esc(teacher.name)}</div>
-        <div class="mt-1 font-mono text-[12px] text-slate-500">ClassIn 账号 · ${esc(teacher.account)}</div>
-        <button data-action="copy-id" data-account="${esc(teacher.account)}" class="mt-3 h-10 rounded-xl border border-slate-200 bg-slate-50 px-4 text-[14px] font-semibold text-slate-700">复制 ClassIn 账号</button>
-        <p class="mt-3 text-[12px] leading-relaxed text-slate-400">学生用平板 / 电脑进教室，家长手机扫码或复制账号即可。</p>
+        <div class="mt-1 font-mono text-[12px] text-slate-500">ClassIn 教室号 · ${esc(teacher.account)}</div>
+        <button data-action="copy-id" data-account="${esc(teacher.account)}" class="mt-3 h-10 rounded-xl border border-slate-200 bg-slate-50 px-6 text-[14px] font-semibold text-slate-700">复制</button>
+        <p class="mt-3 text-[12px] leading-relaxed text-slate-400">学生用平板 / 电脑进教室，家长手机扫码或复制即可。</p>
       </div>`);
     }
 
@@ -1360,16 +1472,16 @@
             <div class="mt-0.5 truncate text-[14px] font-bold text-slate-900">${esc(lesson.teacher)}</div>
           </div>
           <div class="shrink-0 text-right">
-            <div class="text-[12px] font-medium text-slate-500">ClassIn 账号</div>
+            <div class="text-[12px] font-medium text-slate-500">ClassIn 教室号</div>
             <div class="mt-0.5 font-mono text-[12px] font-semibold text-slate-700">${esc(lesson.account)}</div>
           </div>
         </div>
-        <button data-action="copy-id" data-account="${esc(lesson.account)}" class="mt-2 h-8 w-full rounded-lg border border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-700">复制 ClassIn 账号</button>
+        <button data-action="copy-id" data-account="${esc(lesson.account)}" class="mt-2 h-8 w-full rounded-lg border border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-700">复制</button>
       </div>`;
 
       const classinRow = (isSuspended || isPast) ? '' : `<div class="grid grid-cols-2 gap-2">
         <button data-action="qr" data-teacher="${esc(lesson.teacher)}" data-account="${esc(lesson.account)}" class="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-200">${icon('qr-code', 'h-4 w-4')}扫码 / 教室号</button>
-        <button data-action="toast" data-message="正在唤醒 Classin 教室…" class="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-200">${icon('external-link', 'h-4 w-4')}进入Classin</button>
+        <button data-action="toast" data-message="正在进入 ClassIn 教室…" class="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-200">${icon('external-link', 'h-4 w-4')}进入Classin</button>
       </div>`;
 
       let rules;
@@ -1411,7 +1523,7 @@
         ${teacherCard}
         ${classinRow}
         ${rules}
-        <a href="m3a_calendar_schedule.html" target="_blank" rel="noopener" class="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white text-[14px] font-semibold text-slate-700">${icon('calendar-days', 'h-4 w-4')}查看完整课表</a>
+        <a href="m3a_calendar_grid.html" target="_blank" rel="noopener" class="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white text-[14px] font-semibold text-slate-700">${icon('calendar-days', 'h-4 w-4')}查看完整课表</a>
       </div>`, 'max-h-[62%]');
     }
 
@@ -1430,8 +1542,9 @@
      * 渲染与交互
      * ------------------------------------------------------------------ */
     function renderContent() {
+      if (state.opsSchedule && (state.tab === 'ops' || state.tab === 'settings')) return renderOpsSchedule();
       if (state.tab === 'home') return renderHome();
-      if (state.tab === 'schedule') return state.role === 'teacher' ? renderTeacherSchedule() : renderParentSchedule();
+      if (state.tab === 'schedule') return renderScheduleEmbed();
       if (state.tab === 'ops') return (state.role === 'monitor' || state.role === 'admin') ? renderOps() : renderPlaceholder();
       if (state.tab === 'me') return renderMe();
       if (state.tab === 'settings') return state.role === 'admin' ? renderAdminSettings() : renderPlaceholder();
@@ -1482,6 +1595,10 @@
         const on = btn.dataset.device === state.device;
         btn.className = `device-btn rounded-lg px-2.5 py-1.5 font-semibold transition ${on ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`;
       });
+      document.querySelectorAll('#console .lang-btn').forEach((btn) => {
+        const on = btn.dataset.consoleLang === state.lang;
+        btn.className = `lang-btn rounded-lg px-2.5 py-1.5 font-semibold transition ${on ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`;
+      });
     }
 
     function filterOps(value) {
@@ -1498,10 +1615,11 @@
       state.tab = 'home';
       state.overlay = null;
       state.opsTab = 'teachers';
+      state.opsSchedule = null;
       state.scheduleChild = 'alice'; state.scheduleWeek = 0; state.scheduleScroll = null;
       state.selectedLesson = null; state.qrTeacher = null; state.qrReturn = null;
       state.teacherUpcomingLoads = 0; state.teacherCompletedLoads = 0;
-      if (role !== 'teacher') state.lang = 'zh';
+      state.lang = role === 'teacher' ? 'en' : 'zh';
       renderAll();
       $('content').scrollTop = 0;
       toast(`已切换到${ROLES[role].label}`);
@@ -1512,6 +1630,7 @@
       const enteringSchedule = tab === 'schedule' && state.tab !== 'schedule';
       state.tab = tab;
       state.overlay = null;
+      state.opsSchedule = null;
       state.selectedLesson = null;
       state.qrTeacher = null;
       state.qrReturn = null;
@@ -1530,7 +1649,7 @@
       if (state.role === 'teacher') {
         toast(lang === 'zh' ? '已切换为中文' : 'Language: English');
       } else {
-        toast(lang === 'zh' ? '已切换为中文偏好' : '已切换为 En 偏好（教师端完整生效）');
+        toast(lang === 'zh' ? '已切换为中文偏好' : 'Language preference saved: English');
       }
     }
 
@@ -1539,6 +1658,8 @@
       if (roleBtn) return setRole(roleBtn.dataset.role);
       const deviceBtn = event.target.closest('[data-device]');
       if (deviceBtn) { state.device = deviceBtn.dataset.device; renderAll(); return; }
+      const langBtn = event.target.closest('[data-console-lang]');
+      if (langBtn) return setLang(langBtn.dataset.consoleLang);
       if (event.target.closest('#btnResetDemo')) return resetDemo();
     });
 
@@ -1554,6 +1675,18 @@
       if (action === 'ops-jump') {
         state.opsTab = el.dataset.opsTab || 'teachers';
         return navTo('ops');
+      }
+      if (action === 'ops-schedule') {
+        openOpsSchedule(el.dataset.kind, el.dataset.name);
+        renderAll();
+        $('content').scrollTop = 0;
+        return;
+      }
+      if (action === 'ops-schedule-back') {
+        state.opsSchedule = null;
+        renderAll();
+        $('content').scrollTop = 0;
+        return;
       }
       if (action === 'load-more') {
         if (el.dataset.list === 'upcoming') state.teacherUpcomingLoads = Math.min(5, state.teacherUpcomingLoads + 1);
@@ -1613,11 +1746,17 @@
       if (action === 'ops-tab') { state.opsTab = el.dataset.tab || 'teachers'; renderAll(); return; }
       if (action === 'set-lang') return setLang(el.dataset.lang);
       if (action === 'copy-id') {
-        const text = el.dataset.account || (state.qrTeacher && state.qrTeacher.account) || 'david.miller';
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast('已复制 ClassIn 账号')).catch(() => toast(text));
+        const text = el.dataset.account || (state.qrTeacher && state.qrTeacher.account) || '982-123-456';
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(`已复制: ${text}`)).catch(() => toast(text));
         else toast(text);
       }
     });
+
+    const opsViewParam = params.get('opsView');
+    if (opsViewParam && (state.tab === 'ops' || state.tab === 'settings')) {
+      const defaults = { student: 'AliceZ12', teacher: 'David Miller', group: 'KET 冲刺 A 班' };
+      openOpsSchedule(opsViewParam, params.get('opsName') || defaults[opsViewParam]);
+    }
 
     renderAll();
   </script>

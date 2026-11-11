@@ -32,6 +32,11 @@
   - 前端 100% 由 **Tailwind CSS** 处理样式，严禁在前端代码中编写任何手写 CSS（包括 `<style>` 块或外部 `.css` 文件）。
 - **`dream-core` 语言中立铁律**：
   - 严禁在 `dream-core` 中硬编码中文字符串。入参校验 Schema 与业务异常 `ApiError` 统一使用标准英文信息与大写错误码（如 `PRICE_CALCULATION_MISMATCH`），由前端结合 `vue-i18n` 统一拦截翻译。
+- **资产与 Skill 物理强绑定铁律 (Asset-to-Skill Routing · 零手动声明，自动路径分流)**：
+  - **用户指令免显式输入**：用户下达需求时**完全无需手动输入 skill 名字**，Agent 自动根据目标文件路径进行智能拦截与分流；
+  - **修改 `docs/prd/` 目录的 `.md` 文件（执行模式 2 · 敏捷内联 + 显式声明）**：在主会话内执行以保障高响应速度，执行时必须显式声明“【已激活 write-prd 规范】”并严格遵循 PRD 编写规范（验收标准 AC 必须量化可测、严禁技术框架/SQL/代码侵入、业务规则闭环）；
+  - **修改 `prototype/` 目录的 `.html` 文件（执行模式 1 · 物理子代理派发）**：**必须通过 `invoke_subagent` 派发名为 `Prototype-Designer` 的独立子代理**物理隔离执行。严格遵循高质感原则、100% Tailwind CSS（严禁手写 CSS）、真实逼真业务 Mock 数据、移动端 390×812 适配及 [DESIGN.md](./DESIGN.md) 视觉规范，完成修改后子代理必须通过 Node.js VM 语法校验并向主会话交付；
+  - **双向联动与工作流次序**：若单一需求同时涉及 PRD 规约与原型页面，必须严格遵循 **“Docs First（主会话先 PRD 业务封板，后派发子代理 Prototype 视觉对齐）”** 的两阶段工作流，严禁脱离 PRD 擅自在原型中发明业务逻辑。
 
 ---
 
@@ -76,7 +81,7 @@
 - **deploy**：激活 `deployment-ops`，执行本地组装、容器验证或云端部署。
 - **auth**：激活 `npm-auth-handler`，自动刷新 GCP 私有仓库认证。
 - **copyright**：激活 `copyright-guard`，对全项目源码进行版权头审计与补全。
-- **prd / write-prd**：激活 `write-prd`，按照标准化流程撰写功能与产品需求规格说明书。
+- **prd / write-prd**：激活 `write-prd`，按照标准化流程撰写功能与产品需求规格说明书，强制管辖 `docs/prd/` 目录下所有 PRD 文件。
 
 ---
 
@@ -85,7 +90,7 @@
 以下指令跨项目通用：
 - **brainstorm**：触发 `brainstorm-master` 进行创意与需求收敛。
 - **design / tdd**：触发 `technical-design-doc-creator` 技能进行符合工程规范的高合规技术方案设计。
-- **prototype**：触发 `prototype` 技能，快速生成纯独立单文件即抛型 HTML 交互原型。
+- **prototype**：触发 `prototype` 技能，快速生成与维护高保真单文件 HTML 交互原型，强制管辖 `prototype/` 目录下所有原型文件。
 - **implement**：触发 `subagent-driven-development` 进行多子代理隔离 TDD 代码与单测实现。**[禁用约束] 本项目物理禁用 `implement-master`，由 `subagent-driven-development` 全面替代**（严禁删除或修改全局 `implement-master` 技能文件，确保其他工程正常复用）。
 - **fix / debug**：触发 `bug-hunter` 进行侦探式深度排障。
 - **test**：触发 `test-fixer` 运行并自动修复单元测试。

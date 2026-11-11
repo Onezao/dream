@@ -8,7 +8,7 @@
 | **所属模块** | 模块一：教学教务基座与主数据 (Master Data & Profiles) |
 | **文档状态** | 待评审 (Draft) |
 | **关联顶层 PRD** | [Prd-v5.md](../Prd-v5.md) ｜ [CODING_STANDARDS.md](../CODING_STANDARDS.md) ｜ [BUSINESS_RULES.md](../BUSINESS_RULES.md) |
-| **关联子模块** | [m1a_student_profile.md](./m1a_student_profile.md), [m1b_teacher_profile.md](./m1b_teacher_profile.md), [m3a_calendar_schedule.md](./m3a_calendar_schedule.md) |
+| **关联子模块** | [m1a_student_profile.md](./m1a_student_profile.md), [m1b_teacher_profile.md](./m1b_teacher_profile.md), [m3a_calendar_grid.md](./m3a_calendar_grid.md), [m3d_course_scheduling.md](./m3d_course_scheduling.md) |
 | **创建与更新日期** | 2026-11-09 (创建) ｜ 2026-11-10 (升级：新建课件默认停用规则) |
 
 ---

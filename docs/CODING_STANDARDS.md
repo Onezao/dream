@@ -273,3 +273,46 @@ dream/
   - 所有 `.ts`, `.js`, `.vue` 源码文件顶部必须包含统一版权声明：
     `/** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */`
 - **私有库认证**：构建首步必须配置 Google Artifact Registry 认证：`npx google-artifactregistry-auth`。
+
+---
+
+## 8. 前端工程、双轨制路由与多角色场域隔离规范 (Frontend Architecture & Routing Standards)
+
+针对少儿教务中“不同角色页面显示内容差异巨大、后端数据 API 差异巨大”的现实，前端工程严格执行**“双轨制路由策略 (Dual-Track Routing Strategy)”**与**“场域代码物理分包”**铁律，彻底杜绝多角色巨石组件（Mega-Components）与权限逻辑混杂：
+
+### 8.1 双轨制路由策略 (Dual-Track Routing Strategy)
+1. **差异巨大页面：强制实行【角色前缀物理隔离路由】**：
+   - 首页、业务中心/教务中心、个人治理等在 UI 版式、操作权限与后端数据模型上 100% 毫无共同点的页面，必须采用独立的角色路由前缀：
+     - 家长专属场域：`/parent/home`, `/parent/services`, `/parent/me`
+     - 班长专属场域：`/monitor/home`, `/monitor/ops`, `/monitor/me`
+     - 教师专属场域：`/teacher/home`, `/teacher/resources`, `/teacher/me`
+     - 管理员专属场域：`/admin/home`, `/admin/settings`
+   - **根路由智能分流**：用户访问根路径 `/` 或登录成功后，Vue Router 守卫仅根据当前登录账号的最高主角色直接 302 重定向到对应场域主页（如 `/monitor/home`），严禁共用单个巨型 `/home`。
+2. **结构高度一致页面：保持【通用资产路由 + 实体参数】**：
+   - 视觉表现、核心算法与数据模型全站统一的时间资产与单据页面，保持通用路径，避免重复造轮子：
+     - 7 色周度日历看板：`/calendar`（通过 `?studentId=` 或 `?teacherId=` 自适应加载）；
+     - 消息通知中心：`/notifications`（全站唯一的单列表手风琴页面）；
+     - 购课单详情：`/orders/:orderId`；
+     - 退款单详情：`/refunds/:refundId`；
+     - 课件样章大屏预览：`/courseware/:cwId/preview`。
+
+### 8.2 前端路由与后端 API 1:1 镜像对称铁律
+- **镜像映射**：前端在特定角色路由下发起的数据请求，必须且只能映射到后端对应角色前缀的 API 接入层：
+  - 前端 `/parent/*` $\longleftrightarrow$ 后端 `/api/dream/v1/parent/*` (挂载 `requireRole('parent')`)
+  - 前端 `/monitor/*` $\longleftrightarrow$ 后端 `/api/dream/v1/monitor/*` (挂载 `requireRole('monitor')`)
+  - 前端 `/teacher/*` $\longleftrightarrow$ 后端 `/api/dream/v1/teacher/*` (挂载 `requireRole('teacher')`)
+  - 前端 `/admin/*` $\longleftrightarrow$ 后端 `/api/dream/v1/admin/*` (挂载 `requireRole('admin')`)
+- **路由级防越权拦截**：Vue Router `beforeEach` 守卫依据 `meta.roles` 实施物理拦截，严禁无该角色权限的用户进入对应场域；后端 API 实施第二道绝对防线，严禁仅依靠前端做权限判断。
+
+### 8.3 视图代码目录物理隔离与异步加载
+- **分角色物理分包**：`dream-frontend/src/views/` 目录下必须按角色设立独立子目录：
+  - `src/views/parent/` (ParentHomeView.vue, ParentServicesView.vue 等)
+  - `src/views/monitor/` (MonitorHomeView.vue, MonitorOpsView.vue 等)
+  - `src/views/teacher/` (TeacherHomeView.vue, TeacherResourcesView.vue 等)
+  - `src/views/admin/` (AdminHomeView.vue, AdminSettingsView.vue 等)
+- **零巨石组件红线**：严禁在一个 View 中编写跨角色的巨型 `v-if/v-else` 逻辑；单页面代码量原则上控制在 300 行以内。
+- **异步按需分包**：所有路由组件必须采用 `() => import(...)` 动态加载，确保纯家长用户绝对不会下载管理员或班长的重型管理代码包，实现极致首屏性能与构建安全。
+
+### 8.4 移动端 4 主 Tab 底部导航与场域穿透锁定规范 (AC-M0-28)
+- 全系统移动端（PWA）统一遵循底部 4 个主 Tab 布局，主 Tab 之间切换不展示返回箭头；
+- **公私隔离穿透锁定**：当班长在 Tab 3【教务中心】穿透查阅学员课表时，路由显式声明为 `/monitor/ops/students/:studentId/calendar`，路由元信息标记 `meta: { activeTab: 'ops' }`，底栏必须 100% 锁定高亮在 Tab 3，严禁跳切到私域 Tab 2 课表，杜绝公私数据串扰。
