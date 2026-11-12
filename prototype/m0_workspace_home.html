@@ -73,7 +73,7 @@
   </header>
 
   <main class="flex justify-center px-4 py-6">
-    <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
+    <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
       <div id="banner" class="shrink-0"></div>
       <div id="content" class="min-h-0 flex-1 overflow-y-auto"></div>
       <nav id="bottomnav" class="shrink-0"></nav>
@@ -169,13 +169,15 @@
           { id: 'me', icon: 'user', label: '我的' }
         ],
         quick: {
-          mode: 'dual', title1: '教务管理', title2: '我的孩子', items1: [
-            { icon: 'receipt', label: '线下录单', href: 'm2a_course_orders.html?role=monitor&page=create' },
-            { icon: 'calendar-days', label: '教务排课', href: 'm3d_scheduling_workbench.html?role=monitor' },
-            { icon: 'user-round', label: '负责外教', tab: 'ops', opsTab: 'teachers' },
-            { icon: 'landmark', label: '周转账单', href: 'm5a_transfer_collection.html?role=leo&view=overview' }
-          ],
-          items2: PARENT_QUICK
+          mode: 'multi', rows: [
+            { label: '公事', title: '教务管理', items: [
+              { icon: 'receipt', label: '线下录单', href: 'm2a_course_orders.html?role=monitor&page=create' },
+              { icon: 'calendar-days', label: '教务排课', href: 'm3d_scheduling_workbench.html?role=monitor' },
+              { icon: 'user-round', label: '负责外教', tab: 'ops', opsTab: 'teachers' },
+              { icon: 'landmark', label: '周转账单', href: 'm5a_transfer_collection.html?role=leo&view=overview' }
+            ] },
+            { label: '家庭', title: '我的孩子', items: PARENT_QUICK }
+          ]
         }
       },
       admin: {
@@ -191,13 +193,21 @@
           { id: 'settings', icon: 'settings', label: '管理与设置' }
         ],
         quick: {
-          mode: 'dual', title1: '平台运营', title2: '我的孩子', items1: [
-            { icon: 'landmark', label: '审核转账', href: 'm5a_transfer_collection.html?role=sarah&view=overview' },
-            { icon: 'wallet', label: '教师发薪', href: 'm5b_weekly_settlement.html?role=sarah&tab=teacher&view=grid' },
-            { icon: 'user-plus', label: '试课建档', href: 'm1a_student_profile.html?role=admin&page=trials' },
-            { icon: 'bar-chart-3', label: '工具费单', href: 'm5b_weekly_settlement.html?role=sarah&view=fee' }
-          ],
-          items2: PARENT_QUICK
+          mode: 'multi', rows: [
+            { label: '公事', title: '平台运营', items: [
+              { icon: 'landmark', label: '审核转账', href: 'm5a_transfer_collection.html?role=sarah&view=overview' },
+              { icon: 'wallet', label: '教师发薪', href: 'm5b_weekly_settlement.html?role=sarah&tab=teacher&view=grid' },
+              { icon: 'user-plus', label: '试课建档', href: 'm1a_student_profile.html?role=admin&page=trials' },
+              { icon: 'bar-chart-3', label: '工具费单', href: 'm5b_weekly_settlement.html?role=sarah&view=fee' }
+            ] },
+            { label: '公事', title: '教务调度', items: [
+              { icon: 'file-pen-line', label: '线下录单', href: 'm2a_course_orders.html?role=admin&page=create' },
+              { icon: 'calendar-days', label: '教务排课', href: 'm3d_scheduling_workbench.html?role=admin' },
+              { icon: 'user-round', label: '负责外教', tab: 'ops', opsTab: 'teachers' },
+              { icon: 'landmark', label: '周转账单', href: 'm5a_transfer_collection.html?role=sarah&view=overview' }
+            ] },
+            { label: '家庭', title: '我的孩子', items: PARENT_QUICK }
+          ]
         }
       }
     };
@@ -535,10 +545,10 @@
      * ------------------------------------------------------------------ */
     function quickButton(q, compact = false) {
       const label = isTeacherEn() && q.labelEn ? q.labelEn : q.label;
-      const inner = `<span class="grid ${compact ? 'h-6 w-6' : 'h-8 w-8'} place-items-center rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700">${icon(q.icon, compact ? 'h-3.5 w-3.5' : 'h-4 w-4')}</span><span class="text-[12px] font-bold ${compact ? 'leading-none' : 'leading-tight'} text-slate-700">${esc(label)}</span>`;
+      const inner = `<span class="grid ${compact ? 'h-6 w-6' : 'h-8 w-8'} place-items-center rounded-full border border-slate-200 bg-white text-indigo-600">${icon(q.icon, compact ? 'h-3.5 w-3.5' : 'h-4 w-4')}</span><span class="text-[12px] font-bold ${compact ? 'leading-none' : 'leading-tight'} text-slate-700">${esc(label)}</span>`;
       const cls = compact
-        ? 'flex flex-col items-center gap-0.5 rounded-xl bg-slate-50/80 py-1 transition active:scale-95'
-        : 'flex flex-col items-center gap-1 rounded-2xl border border-slate-200/80 bg-white px-1 py-2 shadow-sm transition active:scale-95';
+        ? 'flex flex-col items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-50/70 py-1 transition active:scale-95'
+        : 'flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/70 px-1 py-2 transition active:scale-95';
       if (q.href) return `<a href="${q.href}" target="_blank" rel="noopener" class="${cls}">${inner}</a>`;
       if (q.tab) return `<button data-action="quick-tab" data-tab="${q.tab}" ${q.opsTab ? `data-ops-tab="${q.opsTab}"` : ''} class="${cls}">${inner}</button>`;
       return `<button data-action="toast" data-message="${esc(q.msg || '')}" class="${cls}">${inner}</button>`;
@@ -549,16 +559,12 @@
         return `<section class="grid grid-cols-4 gap-2">${role.quick.items.map((q) => quickButton(q)).join('')}</section>`;
       }
       return `
-        <section class="rounded-2xl border border-slate-200/80 bg-white p-1 shadow-sm">
-          <div class="flex items-center px-1 text-[12px] font-bold text-slate-400">
-            <span>公事 · ${esc(role.quick.title1)}</span>
-          </div>
-          <div class="grid grid-cols-4 gap-1">${role.quick.items1.map((q) => quickButton(q, true)).join('')}</div>
-          <div class="flex items-center gap-1.5 px-1">
-            <span class="text-[12px] font-bold text-slate-400">家庭 · ${esc(role.quick.title2)}</span>
-            <span class="h-px flex-1 bg-slate-100"></span>
-          </div>
-          <div class="grid grid-cols-4 gap-1">${role.quick.items2.map((q) => quickButton(q, true)).join('')}</div>
+        <section class="space-y-1.5">
+          ${role.quick.rows.map((row) => `
+            <div>
+              <div class="px-1 text-[12px] font-bold text-slate-600">${esc(row.label)} · ${esc(row.title)}</div>
+              <div class="mt-1 grid grid-cols-4 gap-1">${row.items.map((q) => quickButton(q, true)).join('')}</div>
+            </div>`).join('')}
         </section>`;
     }
 
@@ -1691,7 +1697,7 @@
 
     function renderAll() {
       const frame = $('frame');
-      frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
+      frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
       const contentEl = $('content');
       const top = contentEl.scrollTop;
       $('banner').innerHTML = renderBanner();
