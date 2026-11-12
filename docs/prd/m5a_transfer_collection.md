@@ -55,16 +55,17 @@
 ### 4.1 次日凌晨 02:00 自动结课批处理流 (`dream-worker`)
 1. 每日服务器时间凌晨 02:00，`dream-worker` 自动触发每日结课跑批 Job。
 2. 系统检索前一自然日（06:00 - 00:00 营业期内）、当前处于 `已排期` 状态且未被冻结或取消的全部 TS。
-3. 批处理程序在事务内将这些 TS 的状态批量更新为 **`已结课(待结算)`**（`status = 'FINISHED_PENDING_SETTLEMENT'`）。
-4. 系统生成结课批次流水日志，记录本次结课的 TS 总数与时间戳。
+3. 批处理程序在事务内将这些 TS 的状态批量更新为终态 **`已结课`**（`status = 'COMPLETED'`）。
+4. 系统生成结课批次流水日志，记录本次结课的 TS 总数与时间戳。教务履约就此圆满达成，TS 状态不再承载后续财务过程。
 
 ### 4.2 异常未上课回退补生待排 TS 流程 (Rollback with Compensation)
-1. 教师实际未上课（如网络中断、教师旷工），但跨过次日凌晨已被系统自动置为 `已结课(待结算)`。
+1. 教师实际未上课（如网络中断、教师旷工），但跨过次日凌晨已被系统自动置为 `COMPLETED`（已结课）。
 2. 班长或管理员在后台找到该节异常 TS，点击【异常未上课回退】。
 3. 系统校验该 TS 的财务状态：**该 TS 必须尚未被包含在状态为 `COMPLETED` 的转账单中**。
+   - 若该 TS 暂未进入任何转账单，或所关联的转账单仍处于 `DRAFT` / `PENDING_CONFIRMATION` 待审核态，允许执行回退；若有关联的草稿/待审转账单，系统自动从中剔除该 TS 并重算单据总额。
 4. 经办人强制输入异常回退原因（必填，1-200 字，如“外教网络故障缺席，与家长协商补课”）。
 5. 系统在数据库事务内原子执行：
-   - 将该节异常 TS 状态由 `已结课(待结算)` 更新为终态 **`已取消`**（物理剔除出后续周课酬单与平台工具费单核算）；
+   - 将该节异常 TS 状态由 `COMPLETED` 更新为终态 **`已取消` (`CANCELLED`)**（物理剔除出后续周课酬单与平台工具费单核算）；
    - 系统定位该 TS 所属的原购课单，在原单下**自动补生 1 节全新的【待排期 TS】**（完全继承原单的资金持有方 `holder_id`、原购课家长、原购课学生，以及单节财务快照）；
    - 记录全链路操作审计日志（记录操作人、时间戳、原 TS ID、补生 TS ID 及原因）。
 6. 学生档案名下可用待排课时自动恢复 1 节，后续可正常重新约课。
@@ -73,10 +74,10 @@
 
 ```mermaid
 flowchart TD
-    JobStart(["每周一 03:30 (dream-worker)"]) --> AutoDraft["扫描上周已结课 TS (funds_holder = monitor)<br/>自动执行四元分账公式，计算应上交金额"]
+    JobStart(["每周一 03:30 (dream-worker)"]) --> AutoDraft["扫描上周已结课 TS (status = COMPLETED & holder = monitor)<br/>自动执行四元分账公式，计算应上交金额"]
     AutoDraft --> CheckAmount{"应上交总额 > 0 ?"}
     CheckAmount -->|"否（金额 ≤ 0）"| SkipDraft["智能免打扰：不生成单据，不发通知"]
-    CheckAmount -->|"是"| CreateDraft["自动生成【待确认转账草稿单】(状态: DRAFT)<br/>关联 TS 预锁定，防止重复打包"]
+    CheckAmount -->|"是"| CreateDraft["自动生成【待确认转账草稿单】(状态: DRAFT)<br/>写入 transfer_order_items，唯一索引防重复打包"]
     
     CreateDraft --> Cron0800(["每周一 08:00 定时催办 Job"])
     Cron0800 --> SendAlert["向班长发送 M4 站内信 + 高优先级邮件通知<br/>班长主页待办透出【待上交转账单 (1)】"]
@@ -85,15 +86,15 @@ flowchart TD
     MonitorAction --> UploadVoucher["上传打款截图凭证并点击【确认已转账】"]
     UploadVoucher --> SubmitSuccess["单据状态流转为 PENDING_CONFIRMATION (待平台确认)"]
     
-    SubmitSuccess --> TuesdayAudit["【周二核算日】管理员在后台核验银行流水到账后点击【确认收款】<br/>单据跃迁为 COMPLETED，TS 标记为已归集"]
+    SubmitSuccess --> TuesdayAudit["【周二核算日】管理员在后台核验银行流水到账后点击【确认收款】<br/>单据跃迁为 COMPLETED，资金正式完成中枢归集"]
     TuesdayAudit --> WednesdayPay["【周三发薪日】平台统一全额发放教师课酬<br/>（若个别班长未转账，平台先行垫付兜底并记欠款应收）"]
 ```
 
 1. **每周一 03:30 系统自动跑批预生成【待确认转账草稿单 (DRAFT)】**：
    - 在凌晨 02:00 每日结课与 03:00 教师周课酬跑批完成后，`dream-worker` 自动触发班长转账草稿生成 Job；
-   - 检索上一自然周（周一 00:00:00 至 周日 24:00:00）由当前班长收款托管且处于 `已结课(待结算)` 的全部 TS；
+   - 检索上一自然周（周一 00:00:00 至 周日 24:00:00）由当前班长收款托管且处于 `COMPLETED`（已结课）且未被包含在有效转账单中的全部 TS；
    - **智能免打扰规则**：若该班长上周应上交总额 $\le 0$（上周无课或结余冲抵），系统不生成单据，不触发任何通知；
-   - 若应上交总额 $> 0$，系统在单一事务内自动创建转账草稿单（状态为 `DRAFT`），将这批 TS 预锁定，并预先算清：
+   - 若应上交总额 $> 0$，系统在单一事务内自动创建转账草稿单（状态为 `DRAFT`），将这批 TS 写入 `transfer_order_items` 明细表（依托 `UNIQUE (ts_id)` 物理唯一约束拦截重复打包），并预先算清：
      - ① 1v1 课次实付总积分；
      - ② 小班课固定工具费（$Max \times 6$）；
      - ③ 小班课平台服务分成（按 $R\%$ 扣减班长留存收益）；
@@ -109,7 +110,7 @@ flowchart TD
    - 单据状态原子流转为 `PENDING_CONFIRMATION`（待平台审核确认）。
 4. **周二核算日 (Tuesday Audit)**：
    - 平台管理员在后台集中查验各班长提交的转账单及银行打款流水；
-   - 确认到账后点击【确认收款】，单据状态流转为终态 `COMPLETED`，关联 TS 状态流转为 `已归集`。
+   - 确认到账后点击【确认收款】，单据状态流转为终态 `COMPLETED`，表征资金正式颗粒归仓。底层 TS 状态保持 `COMPLETED`，无需繁琐反向回写。
 5. **周三发薪日与平台兜底策略 (Wednesday Payroll & Platform Fallback)**：
    - 平台管理员根据生成的【教师周课酬单】统一全额向授课外教发放薪酬，保障外教履约信心与教学稳定性；
    - **平台兜底发薪红线**：若个别班长周二前未完成资金转账上交，平台先行全额垫付发薪；未上交资金在管理后台标红预警，自动计入该班长对平台的应收款项（欠款），由财务线下微信群直接跟进催缴，严禁向外教转嫁班长拖欠风险。
@@ -129,7 +130,7 @@ flowchart TD
 
 ### 4.5 转账单作废与驳回分支
 - 若班长打款金额有误或凭证模糊，平台管理员在审核时点击【驳回转账单】并输入驳回原因；
-- 转账单状态变更为 `CANCELLED`，关联的 TS 解除转账锁定，恢复为 `已结课(待结算)`，班长可重新发起打包。
+- 转账单状态变更为 `CANCELLED`，系统自动解除明细表的 TS 关联记录，TS 主表保持 `COMPLETED` 状态，自动重新回到待勾选池，班长可重新发起打包。
 
 ### 4.6 周转账单全生命周期状态机与流转规则矩阵 (Transfer Order Lifecycle)
 
@@ -137,13 +138,13 @@ flowchart TD
 
 ```mermaid
 stateDiagram-v2
-    [*] --> DRAFT: 周一 03:30 自动跑批生成 / 离职移交发起
+    [*] --> DRAFT: 周一凌晨 03点30分 自动跑批生成 / 离职移交发起
     
     DRAFT --> PENDING_CONFIRMATION: 班长线下打款并上传凭证确认
-    DRAFT --> CANCELLED: 经办人主动作废草稿 (释放 TS 转账锁定)
+    DRAFT --> CANCELLED: 经办人主动作废草稿 (释放明细关联)
     
-    PENDING_CONFIRMATION --> COMPLETED: 周二管理员核验到账放行 (TS 跃迁为 COLLECTED 终态)
-    PENDING_CONFIRMATION --> CANCELLED: 管理员审核驳回 (释放 TS 转账锁定恢复待结算)
+    PENDING_CONFIRMATION --> COMPLETED: 周二管理员核验到账放行 (资金正式归集终态)
+    PENDING_CONFIRMATION --> CANCELLED: 管理员审核驳回 (释放明细关联恢复待打包)
     
     COMPLETED --> [*]
     CANCELLED --> [*]
@@ -153,11 +154,11 @@ stateDiagram-v2
 
 | 当前状态 | 目标状态 | 触发事件 / 动作 | 操作人 / 驱动源 | 前置守卫条件与时限熔断 | 伴随副作用与资产流转 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`[*]`** | `DRAFT` (待确认草稿) | 周一转账草稿跑批 / 班长发起离职移交 | `dream-worker` / 离职班长 / 管理员 | 上周已结课 TS 应上交总额 $> 0$；或离职班长名下有未结托管 TS | 创建单据主记录；关联 TS 流转为 `TRANSFER_LOCKED` 预锁定，禁止在其他单据重复勾选；周一 08:00 催办提醒 |
+| **`[*]`** | `DRAFT` (待确认草稿) | 周一转账草稿跑批 / 班长发起离职移交 | `dream-worker` / 离职班长 / 管理员 | 上周已结课 TS 应上交总额 $> 0$；或离职班长名下有未结托管 TS | 创建单据主记录；写入 `transfer_order_items`，利用 `UNIQUE (ts_id)` 物理唯一约束拦截重复打包；周一 08:00 催办提醒；TS 主表保持 `COMPLETED` 不变 |
 | `DRAFT` | `PENDING_CONFIRMATION` (待平台确认) | 班长线下打款并点击确认已转账 | 负责班长 / 离职班长 | 单据处于 `DRAFT`；必须上传 1~5 张打款截图凭证 | 单据状态流转为 `PENDING_CONFIRMATION`；班长主页待办消红；通知平台管理员在后台待审核列表呈现 |
-| `DRAFT` | `CANCELLED` (已作废) | 经办人作废草稿单 | 班长 / 管理员 | 单据处于 `DRAFT` 且未打款；填写作废原因 | 单据跃迁为终态 `CANCELLED`；关联 TS 解除 `TRANSFER_LOCKED` 锁定，恢复为 `FINISHED_PENDING_SETTLEMENT` 可用态 |
-| `PENDING_CONFIRMATION` | `COMPLETED` (已归集放行) | 平台管理员核验银行流水确认到账 | 平台管理员 | 单据处于 `PENDING_CONFIRMATION`；资金实际已到平台对公账户 | 单据跃迁为终态 `COMPLETED`；常规转账单关联 TS 状态原子跃迁为 `COLLECTED`；若是离职移交单，单内 TS 资金持有方原子改绑为平台 |
-| `PENDING_CONFIRMATION` | `CANCELLED` (审核驳回) | 管理员审核驳回打款凭证 | 平台管理员 | 单据处于 `PENDING_CONFIRMATION`；必须录入 1-200 字驳回原因 | 单据跃迁为终态 `CANCELLED`；关联 TS 解除 `TRANSFER_LOCKED` 锁定恢复待结算；向班长派发驳回通知，允许重新打款建单 |
+| `DRAFT` | `CANCELLED` (已作废) | 经办人作废草稿单 | 班长 / 管理员 | 单据处于 `DRAFT` 且未打款；填写作废原因 | 单据跃迁为终态 `CANCELLED`；解除 `transfer_order_items` 明细关联，TS 自动重新恢复为可打包状态 |
+| `PENDING_CONFIRMATION` | `COMPLETED` (已归集放行) | 平台管理员核验银行流水确认到账 | 平台管理员 | 单据处于 `PENDING_CONFIRMATION`；资金实际已到平台对公账户 | 单据跃迁为终态 `COMPLETED`；资金正式归集平台中枢；若是离职移交单，单内 TS 资金持有方原子改绑为平台；TS 主表保持 `COMPLETED` 零开销 |
+| `PENDING_CONFIRMATION` | `CANCELLED` (审核驳回) | 管理员审核驳回打款凭证 | 平台管理员 | 单据处于 `PENDING_CONFIRMATION`；必须录入 1-200 字驳回原因 | 单据跃迁为终态 `CANCELLED`；解除 `transfer_order_items` 关联；向班长派发驳回通知，允许重新打款建单 |
 
 ---
 
@@ -180,11 +181,11 @@ stateDiagram-v2
 ### 6.1 每日凌晨 02:00 自动结课跑批
 - **AC-5A-01**：`dream-worker` 必须配置每日服务器时间 02:00 定时执行自动结课 Job。
 - **AC-5A-02**：扫描目标严格限定为：上课日期等于前一日、处于 06:00-00:00 营业期内、且当前状态为 `SCHEDULED`（已排期）的 TS。
-- **AC-5A-03**：命中 TS 的状态必须批量原子变更为 `FINISHED_PENDING_SETTLEMENT`（已结课待结算），并记录批处理日志（批次号、处理条数、耗时）。
+- **AC-5A-03**：命中 TS 的状态必须批量原子变更为终态 `COMPLETED`（已结课 · 履约终态），并记录批处理日志（批次号、处理条数、耗时）。
 
 ### 6.2 异常未上课回退补生兜底
-- **AC-5A-04**：处于 `已结课(待结算)` 状态的 TS 允许班长或管理员操作【异常未上课回退】；操作必须强制录入 1-200 字原因，空原因为非法请求。
-- **AC-5A-05**：若目标 TS 已被关联在状态为 `COMPLETED` 的转账单中，系统必须物理置灰阻断回退操作，返回错误码 `409 TIMESLOT_ALREADY_SETTLED`。
+- **AC-5A-04**：处于 `COMPLETED`（已结课）状态的 TS 允许班长或管理员操作【异常未上课回退】；操作必须强制录入 1-200 字原因，空原因为非法请求。
+- **AC-5A-05**：若目标 TS 已被关联在状态为 `COMPLETED` 的转账单中，系统必须物理置灰阻断回退操作，返回错误码 `409 TIMESLOT_ALREADY_SETTLED`；若关联的转账单仍处于 `DRAFT` 或 `PENDING_CONFIRMATION`，执行回退时自动从关联单据明细中剔除该 TS 并动态重算转账总额。
 - **AC-5A-06**：回退操作在事务内原子执行：
   - 原异常 TS 状态变更为终态 `CANCELLED`（已取消），物理从周课酬与工具费统计中剔除；
   - **1v1 课次补生分支**：在原购课单下自动补生 1 节全新的 `PENDING_SCHEDULE`（待排期）TS，其 `holder_id`、原购课家长、原学生及财务快照与原 TS 完全一致；
@@ -193,9 +194,9 @@ stateDiagram-v2
 
 ### 6.3 班长转账单打包与双视角对账
 - **AC-5A-07**：班长转账单仅允许上交给固定接收方：平台管理员；**系统严禁支持班长之间的横向转账**。
-- **AC-5A-08**：转账单勾选池仅允许包含当前登录班长名下持有的、且处于 `FINISHED_PENDING_SETTLEMENT` 的有效 TS。
+- **AC-5A-08**：转账单勾选池仅允许包含当前登录班长名下持有的、且处于 `COMPLETED` 且未被任何未作废转账单包含的有效 TS。
 - **AC-5A-09**：转账单界面必须支持**【按学生分组汇总】**与**【按教师分组汇总】**双视图无缝切换；发生过跨家长转让的 TS，在汇总统计时**出资人必须严格归属于原购课学生/家长名下**。
-- **AC-5A-09a（周一 03:30 转账草稿自动生成跑批）**：`dream-worker` 必须配置每周一服务器时间 03:30 自动执行转账草稿跑批 Job，扫描上一自然周已结课 TS，按班长自动计算四元分账并生成处于 `DRAFT` 状态的转账草稿单，将关联 TS 状态置为转账预锁定；若应交总额 $\le 0$，系统智能跳过免打扰，不生成单据。
+- **AC-5A-09a（周一 03:30 转账草稿自动生成跑批）**：`dream-worker` 必须配置每周一服务器时间 03:30 自动执行转账草稿跑批 Job，扫描上一自然周已结课 TS，按班长自动计算四元分账并生成处于 `DRAFT` 状态的转账草稿单，向 `transfer_order_items` 明细表写入关联并依托 `UNIQUE (ts_id)` 物理唯一约束防重；若应交总额 $\le 0$，系统智能跳过免打扰，不生成单据。
 - **AC-5A-09b（周一 08:00 转账催办定时提醒 Job）**：`dream-worker` 必须配置每周一服务器时间 08:00 自动扫描处于 `DRAFT` 状态的转账单，通过 M4 向相关班长并发推送二级必达站内信与高优先级邮件，并在班长工作台主页待办区域透出 `待上交转账单 (1)`。
 - **AC-5A-09c（周三平台兜底全额发薪与欠款留痕）**：周三平台管理员按教师周课酬单全额发薪，不以班长转账到账为前置阻断；若个别班长周二前未完成转账，平台先行垫付保障外教信誉，未转资金在管理后台标红预警并计入应收欠款，由财务跟进追缴。
 
@@ -210,9 +211,9 @@ stateDiagram-v2
 
 ### 6.5 转账单生命周期与凭证审核
 - **AC-5A-12**：新建转账单必须上传至少 1 张打款转账截图凭证（支持 JPG/PNG/PDF，单文件 $\le 10$MB）；未上传凭证禁止提交。
-- **AC-5A-13**：提交后单据状态由草稿 `DRAFT` 流转为 `PENDING_CONFIRMATION`（待平台审核），关联的所有 TS 状态标记为转账锁定（`TRANSFER_LOCKED`），禁止重复打包。
-- **AC-5A-14**：平台管理员在后台点击【确认收款】后，转账单状态跃迁为终态 `COMPLETED`，关联 TS 状态流转为终态 `COLLECTED`（已归集）。
-- **AC-5A-15**：若管理员点击【驳回/作废】，单据状态变为 `CANCELLED`，关联 TS 立即解除锁定，恢复为 `FINISHED_PENDING_SETTLEMENT`。
+- **AC-5A-13**：提交后单据状态由草稿 `DRAFT` 流转为 `PENDING_CONFIRMATION`（待平台审核），底层通过 `transfer_order_items` 的 `UNIQUE (ts_id)` 物理唯一约束保障排他防重打包，TS 主表保持 `COMPLETED` 状态不变。
+- **AC-5A-14**：平台管理员在后台点击【确认收款】后，转账单状态跃迁为终态 `COMPLETED`，表征资金正式完成平台中枢归集，关联 TS 状态保持 `COMPLETED` 零冗余回写。
+- **AC-5A-15**：若管理员点击【驳回/作废】，单据状态变为 `CANCELLED`，系统自动解除明细表的 TS 关联关系，该批 TS 自动重新释放回待打包池。
 - **AC-5A-15a（已创建转账单详情双视角全量明细与快照存证）**：
   - 无论处于何种状态（`DRAFT`、`PENDING_CONFIRMATION`、`COMPLETED`、`CANCELLED`），转账单详情页必须**与新建转账单完全看齐，全量呈现双视角分组课次明细**，严禁仅展示三列数字汇总：
     - **Tab 1【按学生分组汇总】**：展示出资学生姓名、出资家长、课次数、单节实付积分、小计金额；支持展开查看每节课的上课日期时段、课型标签与授课外教；跨家长转让的课次严格归属原出资学生展示；
@@ -369,51 +370,52 @@ stateDiagram-v2
 
 ## 10. 用户流程图 (User Flow Diagram)
 
+### 10.1 每日凌晨完课自动结课跑批流 (Daily Midnight Fulfillment Batch)
 ```mermaid
 flowchart TD
-    %% 凌晨自动结课
-    subgraph 每日凌晨跑批
-        BatchStart([每日 02:00 定时触发]) --> ScanFinished[扫描前一日 06:00-00:00\n处于已排期的 TS]
-        ScanFinished --> AutoFinish[批量原子更新为\n已结课待结算 FINISHED_PENDING_SETTLEMENT]
-        AutoFinish --> BatchEnd([结课跑批完成])
-    end
-    
-    %% 异常未上课回退补生
-    subgraph 异常未上课回退补生
-        ExStart([发现老师未上课但已结课]) --> CheckSettled{是否已被打入\nCOMPLETED 转账单?}
-        CheckSettled -- 是 已完成转账 --> DenyRollback[物理置灰阻断回退\n提示联系财务走线下冲正]
-        CheckSettled -- 否 尚未归集 --> InputReason[输入 1-200 字回退原因]
-        InputReason --> AtomicRollback[事务原子执行:\n1. 异常 TS 状态置为 已取消 CANCELLED\n2. 原购课单下自动补生 1 节全新待排期 TS\n3. 写入 audit_logs 审计日志]
-        AtomicRollback --> RollbackEnd([学生课时恢复\n课酬物理剔除])
-    end
+    BatchStart([每日 02:00 定时触发]) --> ScanFinished["扫描前一日 06:00-00:00\n处于已排期的 TS"]
+    ScanFinished --> AutoFinish["批量原子更新为\n已结课 COMPLETED"]
+    AutoFinish --> BatchEnd([结课跑批完成])
+```
 
-    %% 周度转账单归集
-    subgraph 班长向平台周度转账归集
-        WeeklyDraft([周一 03:30 系统预生成转账单草稿 DRAFT]) --> WeeklyRemind([周一 08:00 定时推送催办提醒])
-        WeeklyRemind --> OpenTransfer[班长查看待办 进入转账单详情]
-        OpenTransfer --> LoadTS[核对名下已结课待结算 TS]
-        LoadTS --> GroupView[双视角核对:\n按学生分组汇总 / 按教师分组汇总\n转让课次严格归属原出资人]
-        GroupView --> CalcSmallGroup[自动执行小班约定基准核算公式:\n自动扣除班长自留盈余\n亏损由班长自垫补足]
-        CalcSmallGroup --> ShowSummary[呈现三列总账:\n账面实收 ｜ 自留盈余 ｜ 实际应转平台]
-        ShowSummary --> OfflinePay[班长周一线下转账打款给平台管理员]
-        OfflinePay --> UploadProof[上传银行打款凭证截图]
-        UploadProof --> SubmitOrder[提交转账单 PENDING_CONFIRMATION\n关联 TS 置为转账锁定]
-        
-        SubmitOrder --> AdminAudit{平台管理员周二审核}
-        AdminAudit -- 凭证有误/未到账 --> RejectOrder[点击驳回 CANCELLED\n关联 TS 解除锁定]
-        RejectOrder --> OpenTransfer
-        AdminAudit -- 查验银行流水到账 --> ConfirmCollect[点击确认收款 COMPLETED\n关联 TS 流转为已归集 COLLECTED]
-        ConfirmCollect --> CollectEnd([资金归集完成\n周三进入发薪闭环])
-    end
+### 10.2 异常未上课回退补生流 (Exception Rollback & Regeneration Flow)
+```mermaid
+flowchart TD
+    ExStart([发现老师未上课但已结课]) --> CheckSettled{是否已被打入\nCOMPLETED 转账单?}
+    CheckSettled -- 是 已完成转账 --> DenyRollback["物理置灰阻断回退\n提示联系财务走线下冲正"]
+    CheckSettled -- 否 尚未归集 --> InputReason[输入 1-200 字回退原因]
+    InputReason --> AtomicRollback["事务原子执行:\n1. 异常 TS 状态置为 已取消 CANCELLED\n2. 原购课单下自动补生 1 节全新待排期 TS\n3. 写入 audit_logs 审计日志"]
+    AtomicRollback --> RollbackEnd([学生课时恢复\n课酬物理剔除])
+```
+
+### 10.3 班长向平台周度转账归集流 (Weekly Transfer Collection Flow)
+```mermaid
+flowchart TD
+    WeeklyDraft([周一 03:30 系统预生成转账单草稿 DRAFT]) --> WeeklyRemind([周一 08:00 定时推送催办提醒])
+    WeeklyRemind --> OpenTransfer[班长查看待办 进入转账单详情]
+    OpenTransfer --> LoadTS[核对名下 COMPLETED 结课 TS]
+    LoadTS --> GroupView["双视角核对:\n按学生分组汇总 / 按教师分组汇总\n转让课次严格归属原出资人"]
+    GroupView --> CalcSmallGroup["自动执行小班约定基准核算公式:\n自动扣除班长自留盈余\n亏损由班长自垫补足"]
+    CalcSmallGroup --> ShowSummary["呈现三列总账:\n账面实收 ｜ 自留盈余 ｜ 实际应转平台"]
+    ShowSummary --> OfflinePay[班长周一线下转账打款给平台管理员]
+    OfflinePay --> UploadProof[上传银行打款凭证截图]
+    UploadProof --> SubmitOrder[提交转账单 PENDING_CONFIRMATION\n明细唯一索引物理防重]
     
-    %% 离职移交
-    subgraph 班长离职未结移交
-        ResignStart([班长离职交接]) --> PackUnfinished[一键打包名下所有未结 TS\n包含 待排期 与 未结已排期]
-        PackUnfinished --> PayPlatform[全额上交未结托管资金并上传凭证]
-        PayPlatform --> AdminConfirmResign[平台管理员确认收款]
-        AdminConfirmResign --> RebindHolder[批量将所有未结 TS 的 holder_id\n改绑为平台管理员账号]
-        RebindHolder --> ResignEnd([离职班长财务解绑完成])
-    end
+    SubmitOrder --> AdminAudit{平台管理员周二审核}
+    AdminAudit -- 凭证有误/未到账 --> RejectOrder[点击驳回 CANCELLED\n解除明细关联恢复可用]
+    RejectOrder --> OpenTransfer
+    AdminAudit -- 查验银行流水到账 --> ConfirmCollect[点击确认收款 COMPLETED\n资金完成中枢归集]
+    ConfirmCollect --> CollectEnd([资金归集完成\n周三进入发薪闭环])
+```
+
+### 10.4 班长离职未结资金移交流 (Monitor Resignation Handover Flow)
+```mermaid
+flowchart TD
+    ResignStart([班长离职交接]) --> PackUnfinished[一键打包名下所有未结 TS\n包含 待排期 与 未结已排期]
+    PackUnfinished --> PayPlatform[全额上交未结托管资金并上传凭证]
+    PayPlatform --> AdminConfirmResign[平台管理员确认收款]
+    AdminConfirmResign --> RebindHolder[批量将所有未结 TS 的 holder_id\n改绑为平台管理员账号]
+    RebindHolder --> ResignEnd([离职班长财务解绑完成])
 ```
 
 ---

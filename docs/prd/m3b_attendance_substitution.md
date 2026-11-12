@@ -256,7 +256,7 @@ stateDiagram-v2
     PENDING_DISPATCH --> ASSIGNED: 班长选定并委派代课外教
     PENDING_DISPATCH --> CANCELLED: 原教师撤回请假(销假) / 距开课<15m小班停课兜底
     ASSIGNED --> CANCELLED: 开课前 >=3h 班长撤销代课指派
-    ASSIGNED --> FULFILLED: 次日 02:00 自动结课，代课课酬计入代课老师周结单
+    ASSIGNED --> FULFILLED: 次日凌晨 02点 自动结课，代课课酬计入代课老师周结单
     FULFILLED --> [*]
     CANCELLED --> [*]
 ```
@@ -272,26 +272,76 @@ stateDiagram-v2
 
 #### 2. 教师请假申请单 (TeacherLeaveRequest)
 - **定位**：外教主动发起的单节或 1~12 节批量请假申请凭证。
-- **状态流转**：
-  - `APPLIED`（已申请）：外教勾选时段提交（若为空闲时段直接置为不可约 `GRAY`；若有课次则触发 `DISPATCHING`）；
-  - `DISPATCHING`（代课调度中）：关联的课次全部生成 `SubstitutionTask`，班长正在调配；
-  - `RESOLVED`（调度结案）：全部关联课次完成代课指派或整班停课退期；
-  - `REVOKED`（教师主动销假）：在开课前 $\ge 3\text{h}$ 且尚未被指派代课前，教师一键撤回请假，日历恢复原状。
+- **生命周期状态机**：
+
+```mermaid
+stateDiagram-v2
+    [*] --> APPLIED: 教师提交请假申请 (单节或 1~12 节批量时段)
+    APPLIED --> RESOLVED: 所选时段全为空闲无课格 (原子置灰排他阻断)
+    APPLIED --> DISPATCHING: 所选时段包含已排课次 (挂起代课调度待办包)
+    
+    DISPATCHING --> RESOLVED: 所有关联代课工单完成指派或整班停课退期待排
+    DISPATCHING --> REVOKED: 开课前 >=3h 教师主动撤回请假 (销假恢复原状)
+    
+    RESOLVED --> [*]
+    REVOKED --> [*]
+```
+
+- **状态转移规则与时限守卫**：
+  | 初始状态 | 目标状态 | 触发角色 | 前置条件与时限守卫 | 伴随副作用 |
+  | :--- | :--- | :--- | :--- | :--- |
+  | `[*]` | `APPLIED` | 授课教师 | 教师勾选 1~12 节连续单元格并选择不可抗力分类 | 单据初始化；系统实时计算受影响排课明细与空闲时段。 |
+  | `APPLIED` | `RESOLVED` | 系统引擎 | 申请时段内全部为 🟢 空闲单元格（无学生预约） | 单元格原子置为 🔴【已请假】排他阻断新预约；无需班长干预，流程直接结案。 |
+  | `APPLIED` | `DISPATCHING` | 系统引擎 | 申请时段内存在 $\ge 1$ 节已排期课次 | 系统拆单并发生成 `SubstitutionTask`；向负责班长派发置顶调度待办包 🚨；M4 触发家长预警。 |
+  | `DISPATCHING` | `RESOLVED` | 负责班长 / 小班主理人 | 关联的所有课次均完成代课委派（`ASSIGNED`）或整班停课退期 | 待办包消红核销；教师请假单归档闭环。 |
+  | `DISPATCHING` | `REVOKED` | 授课教师 | 距开课时间 $\ge 3\text{h}$ 且关联课次尚未被指派代课外教 | 教师一键撤回请假；自动作废未处置的代课工单；日历网格恢复原任课状态。 |
 
 #### 3. 学员请假与配额流水 (StudentLeaveLedger)
 - **定位**：记录临时课学员请假流水与每 4 周 12.5% 请假配额的扣减/返还事实。
-- **状态流转**：
-  - `ACTIVE`（生效扣减）：距开课 $\ge 24\text{h}$ 家长自主请假成功，临时课退回待排期，购课单累计 `已用请假次数 +1`；
-  - `RELEASED`（返还作废）：管理员特批撤销请假或异常回退时，返还已扣配额 (`已用次数 -1`)；
-  - `SETTLED`（周期归档）：当前 4 周轮次结案，未用配额自然清零（不可跨期结转）。
+- **生命周期状态机**：
+
+```mermaid
+stateDiagram-v2
+    [*] --> ACTIVE: 家长自助或班长代办请假成功 (已用配额 +1)
+    
+    ACTIVE --> RELEASED: 管理员特批冲正撤销或异常回退核销 (配额返还 -1)
+    ACTIVE --> SETTLED: 当前 4 周购课周期届满归档 (不可跨期结转自然失效)
+    
+    RELEASED --> [*]
+    SETTLED --> [*]
+```
+
+- **状态转移规则与时限守卫**：
+  | 初始状态 | 目标状态 | 触发角色 | 前置条件与时限守卫 | 伴随副作用 |
+  | :--- | :--- | :--- | :--- | :--- |
+  | `[*]` | `ACTIVE` | 家长 / 负责班长 | 距开课 $\ge 24\text{h}$ 且 `已用请假次数 < 配额上限`（12.5%） | 临时课 TS 退回 `待排期`；流水落盘生效；原购课单累加 1 次已用请假次数；日历网格释放为空闲 🟢。 |
+  | `ACTIVE` | `RELEASED` | 平台管理员 / 系统 | 客服特批请假、教师原因停课误扣或异常未上课回退 | 记录冲正红字流水；原购课单 `已用请假次数 -1` 返还配额；原流水标记作废释放。 |
+  | `ACTIVE` | `SETTLED` | 系统定时 Job | 当前购课单所属 4 周轮次已满并完成自动归档 | 该轮次配额池结算封闭，未用配额不可跨期结转自动清零；本条流水转为历史只读归档。 |
 
 #### 4. 单节课履约异常工单 (LessonExceptionTicket)
 - **定位**：针对教师迟到旷课、学员缺席、设备故障的客诉仲裁与处置记录。
-- **状态流转**：
-  - `REPORTED`（已上报）：家长上报缺勤或班长巡视打标；
-  - `INVESTIGATING`（核实中）：调取 ClassIn 进班打卡日志核实真实授课时长；
-  - `COMPENSATED`（已补课结案）：核实外教缺勤，TS 状态置为 `CANCELLED`，原单下为学生补生 1 节待排 TS（小班退班级池）；
-  - `DISMISSED`（已驳回）：核实学员自身原因旷课或双方协商一致，按正常完课计入教师课酬并结案。
+- **生命周期状态机**：
+
+```mermaid
+stateDiagram-v2
+    [*] --> REPORTED: 家长反馈未上课或班长巡视打标 (生成异常处置待办)
+    
+    REPORTED --> INVESTIGATING: 班长或管理员介入调取 ClassIn 打卡记录
+    
+    INVESTIGATING --> COMPENSATED: 核实外教缺勤旷课 (TS 补生待排期，教师课酬扣除)
+    INVESTIGATING --> DISMISSED: 核实学员原因旷课或双方协商一致 (维持正常课酬结案)
+    
+    COMPENSATED --> [*]
+    DISMISSED --> [*]
+```
+
+- **状态转移规则与时限守卫**：
+  | 初始状态 | 目标状态 | 触发角色 | 前置条件与时限守卫 | 伴随副作用 |
+  | :--- | :--- | :--- | :--- | :--- |
+  | `[*]` | `REPORTED` | 家长 / 班长 | 课程已到开课时间但出现缺勤，或开课后 24h 内提起异议 | 生成异常处置待办并关联对应 `ts_id`；班长/管理员工作台呈现高亮提醒。 |
+  | `REPORTED` | `INVESTIGATING` | 班长 / 管理员 | 经办人点击【异常处理】抽屉进入仲裁审查 | 系统自动拉取 ClassIn API 进出房间打卡日志与真实音视频推流时长作为核验凭证。 |
+  | `INVESTIGATING` | `COMPENSATED` | 管理员 / 班长 | 核实外教迟到旷课或平台故障责任（授课时长 $<15\text{m}$） | 原 TS 状态置为 `CANCELLED` 并从教师周结单剔除；原购课单为学员补生 1 节全新待排 TS；记入审计日志。 |
+  | `INVESTIGATING` | `DISMISSED` | 管理员 / 班长 | 核实为学员个人原因旷课，或外教正常履约达标 | TS 保持正常完课计入次日凌晨结课；维持外教课酬权益；工单驳回并备注结案原因。 |
 
 ---
 
@@ -603,7 +653,7 @@ flowchart TD
     CheckTimeRule -- "delta_t >= 24h" --> AdvanceWindow{远期窗口变更}
     AdvanceWindow --> CheckType{课程班型}
     
-    CheckType -- 1v1 固定位 --> FixedBranch[固定位不可退回待排\n支持: 1. 同师挪位\n2. 课程转让\n3. 垫底退款 M2B]
+    CheckType -- 1v1 固定位 --> FixedBranch["固定位不可退回待排\n支持: 1. 同师挪位\n2. 课程转让\n3. 垫底退款 M2B"]
     FixedBranch -- "同师挪位（本轮4周内）" --> MoveSame[同一老师空闲格\n固定位限本轮4周 / 临时课限前后7天\n每节限挪1次 · 不扣请假配额]
     
     CheckType -- 1v1 临时课 --> TempBranch{选择操作}
@@ -626,7 +676,7 @@ flowchart TD
     BreakGlassFlow & NormalTicket --> NotifyParents[M4 10秒内群发家长安抚预警\n承诺本次变动绝对免扣配额]
     NotifyParents --> MonitorBatchDispatch{班长应急调度处置}
     
-    MonitorBatchDispatch -- 指派代课老师 --> ApplySub[is_substitute=true\n原老师显示 🔵被代课 / 代课老师显示 🟣代上课\n课酬归代课老师 资金持有人锁定]
+    MonitorBatchDispatch -- 指派代课老师 --> ApplySub["is_substitute=true\n原老师显示 🔵被代课 / 代课老师显示 🟣代上课\n课酬归代课老师 资金持有人锁定"]
     ApplySub --> CheckRevert{若原老师销假}
     CheckRevert -- ">= 24h" --> AllowRevert[班长点击撤销代课 恢复原老师]
     CheckRevert -- "< 24h" --> DenyRevert[强制锁死代课 必须由代课老师上完]

@@ -321,7 +321,7 @@ flowchart TD
     Scan -- 是 --> Calc[继承常规固定位课表\n排除偶发请假 调取最新定级]
     Calc --> CreateAuto[自动生成待付款 PENDING_PAYMENT\nsource=AUTO_RENEWAL]
     CreateAuto --> HoldGrid[M3A 日历时段进入 续费预占 HOLD 虚线]
-    CreateAuto --> SendMail[派发首封邮件: 续费账单与调价说明]
+    CreateAuto --> SendMail["派发首封邮件: 续费账单与调价说明"]
     
     CreateManual --> PendingState[待付款 PENDING_PAYMENT]
     CreateAuto --> PendingState
@@ -331,7 +331,7 @@ flowchart TD
     SendUrgent --> MonitorAction{班长操作与时效}
     CheckUrgent -- 否 --> MonitorAction
     
-    MonitorAction -- 距离开课<24h 仍未付款 --> AutoExpire[系统自动作废 CANCELLED\n原因: EXPIRED_OVERDUE]
+    MonitorAction -- 距离开课<24h 仍未付款 --> AutoExpire["系统自动作废 CANCELLED\n原因: EXPIRED_OVERDUE"]
     AutoExpire --> ReleaseGrid[M3A 释放日历预占为空闲 🟢]
     
     MonitorAction -- 修改课时/时段 --> EditOrder[班长修改单据 重新测算]

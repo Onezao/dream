@@ -399,13 +399,13 @@ flowchart TD
     CardView --> CardType{卡片内容形态}
     
     CardType -- 短通知正文 --> DirectRead[列表卡片内直接完整阅读\n零跳转 · 一目了然]
-    CardType -- 长篇排课表格 / 长通知 --> CollapsedCard[默认展示核心摘要\n显示 [展开明细 ▾] 按钮]
+    CardType -- 长篇排课表格 / 长通知 --> CollapsedCard["默认展示核心摘要\n显示【展开明细 ▾】按钮"]
     
     CollapsedCard --> ClickExpand[点击卡片或展开按钮]
     ClickExpand --> InPlaceExpand[在当前列表位置就地手风琴平滑展开\n完整展示4周排期表格与双语正文\n自动核销未读红点 · 保持屏幕视口位置]
-    InPlaceExpand --> ClickAction[点击业务主按钮 如【查看课表】/【进入教室】\n或点击 [收起明细 ▴] 折叠还原]
+    InPlaceExpand --> ClickAction["点击业务主按钮 如【查看课表】/【进入教室】\n或点击【收起明细 ▴】折叠还原"]
     
-    OpenListPage --> ClickAllRead[点击顶部 [全部标为已读]]
+    OpenListPage --> ClickAllRead["点击顶部【全部标为已读】按钮"]
     ClickAllRead --> BatchClear[二次确认后一键核销全部未读红点]
 ```
 

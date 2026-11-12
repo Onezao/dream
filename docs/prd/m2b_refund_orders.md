@@ -294,7 +294,7 @@ flowchart TD
     CheckPenalty -- 否 --> ShowError[红字报错并阻断提交]
     ShowError --> InputPenalty
     CheckPenalty -- 是 --> SubmitCreate[提交创建退款单]
-    SubmitCreate --> StatePending[单据状态: PENDING_REFUND\n关联 TS 置为退款预锁定]
+    SubmitCreate --> StatePending["单据状态: PENDING_REFUND\n关联 TS 置为退款预锁定"]
     
     StatePending --> ActionBranch{后续经办动作}
     
@@ -316,7 +316,7 @@ flowchart TD
         CheckParentOrder -- 仍有剩余TS --> SetParentPartial[原购课单标记 PARTIALLY_REFUNDED]
     end
     
-    AtomicTx --> SendMail[异步任务: 向管理员官方邮箱派发退款通知邮件]
+    AtomicTx --> SendMail["异步任务: 向管理员官方邮箱派发退款通知邮件"]
     SendMail --> SuccessEnd([退款业务闭环终态])
 ```
 

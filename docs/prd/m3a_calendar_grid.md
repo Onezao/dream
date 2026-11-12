@@ -225,7 +225,7 @@ M3A 作为日历人机控制台，闭环管理以下 2 大调度流转实体的�
 
 ```mermaid
 stateDiagram-v2
-    [*] --> HOLD_ACTIVE: 到期前7天周一 08:30 系统自动生成预排
+    [*] --> HOLD_ACTIVE: 到期前7天周一早 08点30分 系统自动生成预排
     HOLD_ACTIVE --> CONVERTED: 家长在 72h 内完成续费付款确认 (转为正式固定位)
     HOLD_ACTIVE --> EXPIRED_RELEASED: 72h 倒计时结束未付款 (系统自动释放排期)
     CONVERTED --> [*]

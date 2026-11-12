@@ -67,10 +67,10 @@
 flowchart TD
     PO["1. 购课单 (Course Purchase Order)\n按单购课即时裂变 TS"] -->|裂变| TS["2. TS (TimeSlot)\n最小课次财务与排课枢纽"]
     TS -->|排课排期| TS_SCHED["已排期 TS"]
-    TS_SCHED -->|次日02:00跑批| TS_DONE["已结课(待结算) TS"]
-    TS_DONE -->|周末跑批归集| TO["4. 周转账单 (Transfer Order)\n班长向平台单向归集"]
-    TS_DONE -->|周末跑批生成| SR_T["5. 教师周课酬单\n只出节数，不出金额"]
-    TS_DONE -->|周末跑批生成| SR_P["5. 平台周工具费单\n纯财务报表，无状态"]
+    TS_SCHED -->|次日 02点跑批| TS_DONE["已结课 TS (履约终态 COMPLETED)"]
+    TS_DONE -->|周一跑批归集| TO["4. 周转账单 (Transfer Order)\n班长向平台单向归集"]
+    TS_DONE -->|周一跑批生成| SR_T["5. 教师周课酬单\n只出节数，不出金额"]
+    TS_DONE -->|周一跑批生成| SR_P["5. 平台周工具费单\n纯财务报表，无状态"]
     TS -.->|垫底退款申请| RO["3. 退款单 (Refund Order)\n原路扣减/违约金比例拆分"]
     TS_DONE -.->|异常未上课回退| TS_CANCEL["取消结课并自动补生新待排期TS"]
 ```
@@ -94,30 +94,24 @@ flowchart TD
 - **原子财务快照设计 (不可篡改)**：
   - TS 表中必须冗余固化生成时刻的财务快照字段：`total_points`（实付总积分）、`teacher_salary_points`（教师课酬）、`extra_prep_fee_points`（额外备课费）、`tool_fee_points`（平台工具费）。杜绝后续教师定级调整或全局费率变更破坏历史账目。
   - 冗余记录代课双追踪字段：`original_teacher_id`（原教师，用于课表呈现被代课状态）与 `current_teacher_id`（实际授课教师，用于周课酬单归集）。
-- **TS 全局生命周期状态机 (The Central Pivot State Machine)**：
-  TS 是全系统业务唯一运转枢纽，其状态机在全系统具有最高法律效力，各子模块（M2A/M3A/M3B/M3C/M5A/M5B）严格遵循此全局定义，禁止私设状态：
+- **TS 全局生命周期状态机 (The Central Pivot State Machine · 履约与结算解耦模型)**：
+  TS 是全系统教务履约与排课运转的最小原子中枢。系统确立**“教务履约与财务结算严格解耦”**铁律：TS 状态机纯粹聚焦于教学履约周期，次日凌晨跑批结课落盘 `COMPLETED` 即为履约终态；后续周转账单归集与教师周结发薪完全由下游财务单据独立管辖，严禁将财务过程态污染至 TS 实体：
 
 ```mermaid
 stateDiagram-v2
     [*] --> PENDING_SCHEDULE: 购课单审核生效 (M2A 裂变生成)
     
-    PENDING_SCHEDULE --> SCHEDULED: 家长/班长自主排课 / 续费自动预排 (M3A/M3D)
+    PENDING_SCHEDULE --> SCHEDULED: 家长或班长排课预约 / 续费自动预排 (M3A/M3D)
     PENDING_SCHEDULE --> CANCELLED: 退款审核通过全额作废 (M2B)
     
     SCHEDULED --> PENDING_SCHEDULE: 临时课提前 >=24h 请假退回 (M3B)
     SCHEDULED --> SCHEDULED: 同师挪位 / 课次转让 / 指派代课 (M3A/B/C)
     SCHEDULED --> CANCELLED: 固定位开课前 >=24h 退款作废 (M2B)
-    SCHEDULED --> FINISHED_PENDING_SETTLEMENT: 次日 02:00 自动结课跑批 (M5A)
+    SCHEDULED --> COMPLETED: 次日凌晨 02点 自动结课跑批 (履约终态)
     
-    FINISHED_PENDING_SETTLEMENT --> CANCELLED: 异常未上课回退 (M5A 补生待排TS)
-    FINISHED_PENDING_SETTLEMENT --> TRANSFER_LOCKED: 周一 03:30 周转单草稿跑批打包预锁定 (M5A)
+    COMPLETED --> CANCELLED: 异常未上课回退 (M5A 补生待排TS，前置要求关联转账单未归集)
     
-    TRANSFER_LOCKED --> FINISHED_PENDING_SETTLEMENT: 转账单驳回或重置 (M5A)
-    TRANSFER_LOCKED --> COLLECTED: 平台管理员确认收款审核通过 (M5A)
-    
-    COLLECTED --> SETTLED: 周三平台管理员教师发薪完成 (M5B 终态)
-    
-    SETTLED --> [*]
+    COMPLETED --> [*]
     CANCELLED --> [*]
 ```
 
@@ -132,11 +126,13 @@ stateDiagram-v2
 | `SCHEDULED` | `SCHEDULED` (已排期) | 同师同格平移挪位 | 家长 / 班长 | 距开课 $\ge 3\text{h}$；目标为同一老师空闲时段 | 原网格释放，新网格锁定；受让课次限在原 4 周轮次内挪位。 |
 | `SCHEDULED` | `SCHEDULED` (已排期) | 课次转让交割 | 转出家长 / 班长 | 距开课 $\ge 3\text{h}$；仅限 1v1 固定位与 TS 课时；`is_transferred == false` | 切换 `student_profile_id`；标记 `is_transferred = true`（绝对禁止二次转让）；原出资人不变。 |
 | `SCHEDULED` | `SCHEDULED` (已排期) | 指派临时代课 | 班长 | 距开课 $\ge 3\text{h}$ (停电不可抗力豁免至 $\ge 15\text{m}$)；代课外教有时段资质 | 原教师 `original_teacher_id` 锁定，`current_teacher_id` 指向代课教师；代课双视角日历染色。 |
-| `SCHEDULED` | `FINISHED_PENDING_SETTLEMENT` (已结课待结算) | 每日自动结课跑批 | `dream-worker` | 每日服务器时间 02:00；排课日期为前一日且非取消态 | 批量流转为待结算态；写入结课跑批审计日志。 |
-| `FINISHED_PENDING_SETTLEMENT` | `CANCELLED` (已取消) | 异常未上课回退补生 | 班长 / 管理员 | 尚未进入 `COMPLETED` 转账单；强制录入 1-200 字异常原因 | 原 TS 作废并从课酬工具费中剔除：<br>• **1v1 课次**：原单下为学生补生 1 节全新待排 TS；<br>• **小班课次**：原单下向班级待排池 (`class_id`) 退回补生 1 节待排期，严禁关联学生档案。 |
-| `FINISHED_PENDING_SETTLEMENT` | `TRANSFER_LOCKED` (转账锁定) | 周一转账草稿跑批 | `dream-worker` | 每周一服务器时间 03:30；扫描上一自然周已结课 TS | 关联至当周 `DRAFT` 转账单；禁止在其他单据重复勾选。 |
-| `TRANSFER_LOCKED` | `COLLECTED` (已归集) | 平台审核转账单收款 | 平台管理员 | 班长已打款并上传凭证；管理员确认到账放行 | 转账单跃迁为 `COMPLETED`；资金正式归集到平台中枢。 |
-| `COLLECTED` | `SETTLED` (已结算终态) | 周三平台发薪履约 | 平台管理员 | 每周三结算日管理员确认发放课酬 | 教师周结单流转为 `SETTLED`；全链路生命周期圆满闭环归档。 |
+| `SCHEDULED` | `COMPLETED` (已结课 · 终态) | 每日自动结课跑批 | `dream-worker` | 每日服务器时间 02:00；排课日期为前一日且非取消态 | 批量流转为终态 `COMPLETED`；写入结课跑批流水日志；履约圆满达成。 |
+| `COMPLETED` | `CANCELLED` (已取消) | 异常未上课回退补生 | 班长 / 管理员 | 该 TS 尚未被包含在状态为 `COMPLETED` 的转账单中；强制输入 1-200 字异常原因 | 原 TS 作废并从周课酬/工具费单中剔除；关联待办草稿转账单自动剔除重算：<br>• **1v1 课次**：原单下为学生补生 1 节全新待排 TS；<br>• **小班课次**：原单下向班级待排池 (`class_id`) 退回补生 1 节待排期，严禁关联学生档案。 |
+
+- **教务履约与财务结算解耦铁律 (Decoupled Schedule & Settlement Model)**：
+  1. **TS 终态收敛于教务履约**：TS 作为最小排课与授课单元，次日凌晨 02点 结课落盘为 `COMPLETED` 即告教务履约圆满达成，不再承载任何下游财务流转状态；
+  2. **周转账单防重归口关联表物理约束**：周一生成转账单草稿时，通过关联表 `dream.transfer_order_items (transfer_order_id, ts_id)` 的 `UNIQUE (ts_id)` 数据库物理唯一约束拦截重复打包，彻底摒弃在 TS 主表改状态的旧模式；若转账单驳回或作废，只需删除关联项，TS 主表保持 `COMPLETED` 不变；
+  3. **资金归集与发薪闭环在财务单据**：周二平台确认资金归集由 `TransferOrder.status = 'COMPLETED'` 表征；周三平台发薪完成由 `TeacherSalaryReport.status = 'SETTLED'` 表征并对其包含的 TS 执行物理只读冻结（禁止退款、挪位与转让），无需回写 TS 表。
 
 - **关键业务修饰标记与布尔状态位 (Flags & Attributes)**：
   - `is_hold` (续费预占锁)：固定位到期前 7 天自动续费预排时为 `true`，触发 72h 倒计时；家长完成续费后置为 `false`；逾期未付自动释放；
