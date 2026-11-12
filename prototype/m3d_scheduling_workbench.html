@@ -144,6 +144,18 @@
         teacher: null,
         weeks: 16,
         credits: 16
+      },
+      ket1p: {
+        key: 'ket1p',
+        name: 'KET 冲刺精讲小班',
+        code: 'KET1',
+        enrolled: 3,
+        capacity: 4,
+        owner: 'Leo',
+        teacher: 'david',
+        weeks: 16,
+        credits: 1,
+        pendingMakeup: 1
       }
     };
 
@@ -226,9 +238,10 @@
     const deviceParam = params.get('device');
 
     if (['monitor', 'admin', 'parent'].includes(roleParam)) state.role = roleParam;
-    if (modeParam === 'batch_group' || modeParam === 'batch_fixed') state.mode = modeParam;
+    if (modeParam === 'group_makeup' || modeParam === 'makeup') state.mode = 'group_makeup';
+    else if (modeParam === 'batch_group' || modeParam === 'batch_fixed') state.mode = modeParam;
     if (deviceParam === 'tablet') state.device = 'tablet';
-    if (['normal', 'hold-shift', 'hold-convert', 'conflict', 'insufficient', 'group', 'group-blocked'].includes(scenarioParam)) {
+    if (['normal', 'hold-shift', 'hold-convert', 'conflict', 'insufficient', 'group', 'group-blocked', 'group-makeup'].includes(scenarioParam)) {
       state.scenario = scenarioParam;
     }
 
@@ -270,6 +283,11 @@
         state.classId = 'mov2';
         state.teacher = null;
         state.selectedSlots = [];
+      } else if (name === 'group-makeup') {
+        state.mode = 'group_makeup';
+        state.classId = 'ket1p';
+        state.teacher = 'david';
+        state.selectedSlots = [];
       } else {
         state.mode = 'batch_fixed';
         state.student = 'alice';
@@ -282,6 +300,13 @@
 
     applyScenarioPreset(state.scenario, false);
 
+    if (modeParam === 'group_makeup' || modeParam === 'makeup') {
+      state.mode = 'group_makeup';
+      state.classId = 'ket1p';
+      state.teacher = 'david';
+      state.selectedSlots = [];
+    }
+
     if (modeParam === 'batch_group' && state.scenario !== 'group' && state.scenario !== 'group-blocked') {
       state.mode = 'batch_group';
       state.classId = 'ket1';
@@ -291,9 +316,22 @@
 
     const studentIdMap = { stu_alice: 'alice', stu_bob: 'bob', stu_charlie: 'charlie' };
     const teacherIdMap = { tea_david: 'david', tea_linda: 'linda' };
+    const classIdMap = { ket1: 'ket1', ket1p: 'ket1p', mov2: 'mov2' };
     if (studentIdMap[studentParam]) state.student = studentIdMap[studentParam];
     if (teacherIdMap[teacherParam] && state.scenario !== 'group-blocked') {
       state.teacher = teacherIdMap[teacherParam];
+    }
+    if (classIdMap[params.get('classId')]) state.classId = classIdMap[params.get('classId')];
+    if (state.mode === 'group_makeup') {
+      state.classId = 'ket1p';
+      state.teacher = 'david';
+      state.selectedSlots = [];
+    }
+    if (state.mode === 'batch_group' && currentClass().credits < 16) {
+      state.mode = 'group_makeup';
+      state.classId = 'ket1p';
+      state.teacher = 'david';
+      state.selectedSlots = [];
     }
     if (state.scenario === 'insufficient') {
       state.student = 'charlie';
@@ -364,8 +402,9 @@
 
     function fixedCreditUnit() { return 4; }
     function groupCreditUnit() { return 16; }
+    function isGroupMakeup() { return state.mode === 'group_makeup'; }
     function maxFixedSlots() { return Math.floor(currentStudent().credits / fixedCreditUnit()); }
-    function maxGroupSlots() { return Math.floor(currentClass().credits / groupCreditUnit()); }
+    function maxGroupSlots() { return isGroupMakeup() ? 1 : Math.floor(currentClass().credits / groupCreditUnit()); }
 
     function isHoldSlot(slot) {
       if (!slot || state.mode === 'batch_group') return false;
@@ -457,9 +496,21 @@
       return { kind: 'closed', label: '休' };
     }
 
+    function makeupBlock(day, time) {
+      if (!currentClass().teacher) return { kind: 'closed', label: '休' };
+      if ((day === 5 && time === '10:00') || (day === 6 && time === '09:00') || (day === 6 && time === '10:00')) {
+        return { kind: 'available', label: '可排' };
+      }
+      return { kind: 'closed', label: '休' };
+    }
+
+    function groupCell(day, time) {
+      return isGroupMakeup() ? makeupBlock(day, time) : groupBlock(day, time);
+    }
+
     function selectedGroupBlocks() {
-      if (state.mode !== 'batch_group') return [];
-      return orderedSlots().map((slot) => ({ slot, block: groupBlock(slot.day, slot.time) }));
+      if (state.mode !== 'batch_group' && state.mode !== 'group_makeup') return [];
+      return orderedSlots().map((slot) => ({ slot, block: groupCell(slot.day, slot.time) }));
     }
 
     function selectedIsCandidate() {
@@ -472,16 +523,18 @@
 
     function groupAllGreen() {
       const blocks = selectedGroupBlocks();
-      return blocks.length > 0 && blocks.every((item) => item.block.kind === 'full');
+      return blocks.length > 0 && blocks.every((item) => isGroupMakeup() ? item.block.kind === 'available' : item.block.kind === 'full');
     }
 
     function creditsNeeded() {
+      if (state.mode === 'group_makeup') return state.selectedSlots.length;
       return state.mode === 'batch_group'
         ? state.selectedSlots.length * groupCreditUnit()
         : billableCount() * fixedCreditUnit();
     }
 
     function creditsEnough() {
+      if (state.mode === 'group_makeup') return state.selectedSlots.length <= 1 && currentClass().credits >= 1;
       if (state.mode === 'batch_group') return state.selectedSlots.length <= maxGroupSlots();
       return currentStudent().credits >= creditsNeeded();
     }
@@ -490,6 +543,11 @@
       if (isParent()) return false;
       if (!state.online || state.completed) return false;
       if (!state.selectedSlots.length) return false;
+      if (state.mode === 'group_makeup') {
+        if (!currentClass().teacher) return false;
+        if (state.selectedSlots.length !== 1) return false;
+        return groupCell(state.selectedSlots[0].day, state.selectedSlots[0].time).kind === 'available';
+      }
       if (state.mode === 'batch_group') {
         if (!currentClass().teacher) return false;
         if (!creditsEnough()) return false;
@@ -517,7 +575,7 @@
     function renderFrame() {
       const frameSize = state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]';
       return `<main class="flex justify-center px-4 py-6">
-        <div id="frame" class="relative flex ${frameSize} shrink-0 flex-col overflow-hidden rounded-3xl bg-slate-50 shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
+        <div id="frame" class="relative flex ${frameSize} shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
           ${renderBanner()}
           ${!state.online && !isParent() ? renderOfflineStrip() : ''}
           ${isParent() ? renderParentView() : renderWorkbench()}
@@ -537,6 +595,11 @@
     }
 
     function renderContent() {
+      if (state.mode === 'group_makeup') {
+        return `${renderGroupContext()}
+          ${renderMakeupTaskCard()}
+          ${currentClass().teacher ? renderGroupGrid() : renderBlockedCard()}`;
+      }
       if (state.mode === 'batch_group') {
         return `${renderGroupContext()}
           ${currentClass().teacher ? renderGroupSummary() : ''}
@@ -563,10 +626,14 @@
 
     function renderBanner() {
       const meta = roleMeta();
-      const title = isParent() ? '排课工作台' : (state.mode === 'batch_group' ? '小班整班排课' : '批量固定位排课');
+      const title = isParent()
+        ? '排课工作台'
+        : (state.mode === 'group_makeup' ? '小班单节补排' : state.mode === 'batch_group' ? '小班整班排课' : '批量固定位排课');
       const subtitle = isParent()
         ? ''
-        : (state.mode === 'batch_group' ? '全学期 16 周 · 11.16 - 03.08' : '未来 4 周 · 11.16 - 12.13');
+        : (state.mode === 'group_makeup'
+          ? '暂停待排退回 1 节 · 单周选位'
+          : state.mode === 'batch_group' ? '全学期 16 周 · 11.16 - 03.08' : '未来 4 周 · 11.16 - 12.13');
       const backRole = isParent() ? 'parent' : state.role;
       return `<header class="relative flex h-16 shrink-0 items-center gap-2 overflow-hidden bg-gradient-to-br ${meta.banner} px-3 text-white">
         <span class="pointer-events-none absolute -right-7 -top-9 h-24 w-24 rounded-full border border-white/10"></span>
@@ -595,12 +662,12 @@
     function renderParentView() {
       return `<div id="content" class="min-h-0 flex-1 overflow-y-auto">
         <div class="mx-auto flex h-full w-full max-w-[520px] flex-col items-center justify-center px-6 pb-8 text-center">
-          <div class="grid h-16 w-16 place-items-center rounded-2xl border border-indigo-100 bg-indigo-50 text-indigo-700 shadow-sm">
+          <div class="grid h-16 w-16 place-items-center rounded-2xl border border-indigo-100 bg-indigo-50 text-indigo-700">
             ${icon('lock', 'h-7 w-7')}
           </div>
           <h2 class="mt-4 text-[18px] font-bold text-slate-900">批量排课由班长发起</h2>
           <p class="mt-2 max-w-[310px] text-[14px] font-medium leading-relaxed text-slate-600">你可以在课表中查看孩子的完整安排，临时约课请直接选择空闲时段。</p>
-          <a href="m3a_calendar_grid.html?role=parent" class="mt-5 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-5 text-[16px] font-bold text-white shadow-sm transition hover:bg-indigo-700">
+          <a href="m3a_calendar_grid.html?role=parent" class="mt-5 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-5 text-[16px] font-bold text-white transition hover:bg-indigo-700">
             ${icon('calendar-days', 'h-4 w-4')}查看我的课表
           </a>
           <p class="mt-3 text-[12px] font-medium text-slate-500">孩子的课程变动会通过通知中心同步</p>
@@ -618,7 +685,7 @@
       const conflict = state.scenario === 'conflict';
       const holdText = conflict ? '原时段 周二 19:00' : (hold ? `续费预占 ${DAY_LABELS[hold.day]} ${hold.time}` : '');
       return `<section aria-label="排课对象">
-        <button data-action="open-students" class="w-full rounded-2xl border border-slate-200/80 bg-white p-3 text-left shadow-sm transition active:scale-[0.995]">
+        <button data-action="open-students" class="w-full rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3 text-left transition active:scale-[0.995]">
           <div class="flex items-start gap-2.5">
             <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-indigo-100 bg-indigo-50 text-[16px] font-bold text-indigo-700">${esc(student.nickname.slice(0, 1))}</span>
             <div class="min-w-0 flex-1">
@@ -639,7 +706,7 @@
           </div>
         </button>
 
-        <button data-action="open-teachers" class="mt-2 flex w-full items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3 py-2.5 text-left shadow-sm transition active:scale-[0.995]">
+        <button data-action="open-teachers" class="mt-2 flex w-full items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-left transition active:scale-[0.995]">
           <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-bold text-slate-700">${teacher.initial}</span>
           <span class="min-w-0 flex-1">
             <span class="flex items-center gap-1.5">
@@ -648,7 +715,7 @@
             </span>
             <span class="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600">
               <span>${teacherScopeLabel()}</span>
-              <span class="text-slate-300">·</span>
+              <span class="text-slate-500">·</span>
               <span>本周已排 ${teacher.load} 节</span>
             </span>
           </span>
@@ -667,7 +734,7 @@
         <div class="grid grid-cols-2 gap-2">
           ${recs.map((rec) => {
             const active = isSelected(rec.day, rec.time);
-            return `<button data-action="pick-slot" data-day="${rec.day}" data-time="${rec.time}" class="rounded-xl border p-2.5 text-left shadow-sm transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-indigo-50 ring-2 ring-inset ring-indigo-500' : 'border-emerald-200 bg-emerald-50/80'}">
+            return `<button data-action="pick-slot" data-day="${rec.day}" data-time="${rec.time}" class="rounded-xl border p-2.5 text-left transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-slate-50/70 ring-2 ring-inset ring-indigo-500' : 'border-slate-200/80 bg-slate-50/70'}">
               <div class="flex items-center justify-between gap-1">
                 <span class="text-[12px] font-bold ${active ? 'text-indigo-700' : 'text-emerald-800'}">${active ? '✓ 已选' : '🟢 推荐'}</span>
                 <span class="text-[12px] font-semibold ${active ? 'text-indigo-600' : 'text-emerald-700'}">4 周全通</span>
@@ -691,7 +758,7 @@
           <h2 class="text-[14px] font-bold text-slate-900">可排时段</h2>
           <span class="text-[12px] font-medium text-slate-500">${esc(teacher.short)} 老师 · 未来 4 周</span>
         </div>
-        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70">
           <div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-slate-50">
             <div class="flex h-9 items-center justify-center text-[11px] font-semibold text-slate-500">时间</div>
             ${DAY_LABELS.map((day, index) => `<div class="flex h-9 flex-col items-center justify-center border-l border-slate-100">
@@ -732,7 +799,7 @@
     function renderWeekPreview() {
       const slots = orderedSlots();
       const conflict = conflictSlots().length > 0;
-      return `<div class="mt-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+      return `<div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2">
         <div class="mb-1.5 flex items-center justify-between gap-2">
           <h3 class="text-[12px] font-bold text-slate-700">未来 4 周穿透预览</h3>
           <span class="text-[12px] font-medium ${!slots.length ? 'text-slate-500' : conflict ? 'text-rose-700' : 'text-emerald-700'}">${!slots.length ? '等待选择时段' : conflict ? '存在冲突周' : '全部可排'}</span>
@@ -759,7 +826,7 @@
 
     function renderConflictTicket() {
       const adopted = selectedIsCandidate();
-      return `<section class="mb-2.5 overflow-hidden rounded-2xl border border-rose-200 bg-rose-50/80 shadow-sm">
+      return `<section class="mb-2.5 overflow-hidden rounded-2xl border border-rose-200 bg-rose-50/80">
         <div class="p-2.5">
           <div class="flex items-center gap-1.5">
             <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-rose-600 text-white">${icon('siren', 'h-4 w-4')}</span>
@@ -788,8 +855,9 @@
     function renderGroupContext() {
       const cls = currentClass();
       const teacher = cls.teacher ? TEACHERS[cls.teacher] : null;
+      const makeup = isGroupMakeup();
       return `<section aria-label="班级排课对象">
-        <div class="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+        <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
           <div class="flex items-start gap-2.5">
             <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-teal-200 bg-teal-50 text-teal-700">${icon('users', 'h-5 w-5')}</span>
             <div class="min-w-0 flex-1">
@@ -799,15 +867,15 @@
               </div>
               <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">👥 在读 ${cls.enrolled}/${cls.capacity} 人</span>
-                <span class="rounded-md border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[12px] font-semibold text-teal-700">小班课时 ${cls.credits} 节可用</span>
+                <span class="rounded-md border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[12px] font-semibold text-teal-700">${makeup ? `待补排 ${cls.pendingMakeup || 1} 节` : `小班课时 ${cls.credits} 节可用`}</span>
                 <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">主理人 ${cls.owner}</span>
-                <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">全学期 ${cls.weeks} 周</span>
+                <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${makeup ? '单节补排' : `全学期 ${cls.weeks} 周`}</span>
                 ${!teacher ? '<span class="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[12px] font-bold text-rose-700">授课外教 未委任</span>' : ''}
               </div>
             </div>
           </div>
         </div>
-        ${teacher ? `<div class="mt-2 flex w-full items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-3 py-2.5 shadow-sm">
+        ${teacher ? `<div class="mt-2 flex w-full items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5">
           <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-bold text-slate-700">${teacher.initial}</span>
           <span class="min-w-0 flex-1">
             <span class="flex items-center gap-1.5">
@@ -815,11 +883,28 @@
               <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${teacher.level}</span>
             </span>
             <span class="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600">
-              <span>授课外教</span><span class="text-slate-300">·</span><span>本周已排 ${teacher.load} 节</span>
+              <span>授课外教</span><span class="text-slate-500">·</span><span>本周已排 ${teacher.load} 节</span>
             </span>
           </span>
           <span class="rounded-md border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[12px] font-semibold text-teal-700">已委任</span>
         </div>` : ''}
+      </section>`;
+    }
+
+    function renderMakeupTaskCard() {
+      const cls = currentClass();
+      return `<section class="mt-3 rounded-2xl border border-amber-300 bg-amber-50/50 p-3" aria-label="待补排">
+        <div class="flex items-start gap-2">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-800">${icon('bell', 'h-4 w-4')}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5">
+              <h2 class="truncate text-[14px] font-bold text-amber-950">小班课待补排</h2>
+              <span class="ml-auto shrink-0 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">${cls.pendingMakeup || 1} 节</span>
+            </div>
+            <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-800">暂停待排退回的散课次已进入单节补排模式；选择单周连续双格后确认，待办自动核销。</p>
+            <div class="mt-1.5 text-[12px] font-bold text-indigo-700">立即补排 →</div>
+          </div>
+        </div>
       </section>`;
     }
 
@@ -834,7 +919,7 @@
         ? `已选 ${slots.length} 个时段 · 每段独立 16 周穿透`
         : partial ? `已查看 ${DAY_LABELS[state.conflictDetail.day]} ${state.conflictDetail.time} 的冲突详情` : '全学期每周 50 分钟 · 优先推荐全通时段';
       return `<section class="mt-3" aria-label="16 周连贯度">
-        <div class="flex items-center justify-between gap-3 rounded-2xl border ${partial ? 'border-amber-200 bg-amber-50/80' : 'border-teal-200 bg-teal-50/70'} p-3 shadow-sm">
+        <div class="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
               <span class="grid h-7 w-7 place-items-center rounded-lg ${partial ? 'bg-amber-100 text-amber-800' : 'bg-teal-100 text-teal-700'}">${icon(partial ? 'triangle-alert' : 'sparkles', 'h-4 w-4')}</span>
@@ -852,12 +937,13 @@
 
     function renderGroupGrid() {
       const detail = state.conflictDetail;
-      return `<section class="mt-3" aria-label="小班整班时段">
+      const makeup = isGroupMakeup();
+      return `<section class="mt-3" aria-label="${makeup ? '小班单节补排时段' : '小班整班时段'}">
         <div class="mb-1.5 flex items-center justify-between gap-2 px-0.5">
-          <h2 class="text-[14px] font-bold text-slate-900">整班时段</h2>
-          <span class="text-[12px] font-medium text-slate-500">${esc(currentClass().code)} · 每周 1 小时</span>
+          <h2 class="text-[14px] font-bold text-slate-900">${makeup ? '补排时段' : '整班时段'}</h2>
+          <span class="text-[12px] font-medium text-slate-500">${esc(currentClass().code)} · ${makeup ? '单周 50 分钟' : '每周 1 小时'}</span>
         </div>
-        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70">
           <div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-slate-50">
             <div class="flex h-9 items-center justify-center text-[11px] font-semibold text-slate-500">时间</div>
             ${DAY_LABELS.map((day, index) => `<div class="flex h-9 flex-col items-center justify-center border-l border-slate-100">
@@ -869,49 +955,60 @@
             ${GROUP_TIMES.map((time) => `<div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-t border-slate-100 first:border-t-0">
               <div class="sticky left-0 z-20 flex h-[56px] items-center justify-center border-r border-slate-100 bg-white font-mono text-[11px] font-medium text-slate-600">${time}</div>
               ${DAY_LABELS.map((_, day) => {
-                const block = groupBlock(day, time);
+                const block = groupCell(day, time);
                 const selected = isSelected(day, time);
-                const viewing = !!detail && detail.day === day && detail.time === time;
-                const pickable = block.kind === 'full' || block.kind === 'partial';
+                const viewing = !makeup && !!detail && detail.day === day && detail.time === time;
+                const pickable = makeup ? block.kind === 'available' : (block.kind === 'full' || block.kind === 'partial');
                 let cls = 'border-slate-200 bg-slate-100 text-slate-500';
-                if (block.kind === 'full') cls = 'border-2 border-teal-400 bg-teal-50 text-teal-950';
-                if (block.kind === 'partial') cls = 'border border-amber-300 bg-amber-50 text-amber-900';
-                if (selected) cls = 'border-indigo-300 bg-indigo-50 text-indigo-700 ring-2 ring-inset ring-indigo-500';
+                if (makeup && block.kind === 'available') cls = 'border-2 border-teal-400 bg-teal-50 text-teal-950';
+                if (!makeup && block.kind === 'full') cls = 'border-2 border-teal-400 bg-teal-50 text-teal-950';
+                if (!makeup && block.kind === 'partial') cls = 'border border-amber-300 bg-amber-50 text-amber-900';
+                if (selected) cls = 'border-indigo-300 bg-slate-50/70 text-indigo-700 ring-2 ring-inset ring-indigo-500';
                 if (viewing && !selected) cls = `${cls} ring-2 ring-inset ring-amber-500`;
-                return `<button data-action="pick-group-slot" data-day="${day}" data-time="${time}" ${pickable ? '' : 'disabled'} aria-label="${DAY_LABELS[day]} ${time} ${block.kind === 'full' ? '16 周全通' : block.kind === 'partial' ? '15 周可排' : '不可用'}" class="m-px flex h-[54px] min-w-0 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md px-0.5 text-[11px] font-bold leading-tight transition active:scale-95 ${pickable ? '' : 'cursor-not-allowed'} ${cls}">
+                const aria = makeup
+                  ? (block.kind === 'available' ? '可排' : '不可用')
+                  : (block.kind === 'full' ? '16 周全通' : block.kind === 'partial' ? '15 周可排' : '不可用');
+                return `<button data-action="pick-group-slot" data-day="${day}" data-time="${time}" ${pickable ? '' : 'disabled'} aria-label="${DAY_LABELS[day]} ${time} ${aria}" class="m-px flex h-[54px] min-w-0 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md px-0.5 text-[11px] font-bold leading-tight transition active:scale-95 ${pickable ? '' : 'cursor-not-allowed'} ${cls}">
                   ${selected ? `<span class="rounded bg-indigo-600 px-1 py-0.5 text-[11px] leading-none text-white">已选</span>` : ''}
-                  ${!selected && block.kind === 'full' ? `<span class="rounded bg-teal-600 px-1 py-0.5 text-[11px] leading-none text-white">[G]</span>` : ''}
-                  ${!selected && block.kind === 'full' ? `<span class="text-[11px] leading-none">${block.label}</span>` : ''}
-                  ${selected ? `<span class="text-[11px] leading-none">16/16</span>` : ''}
-                  ${block.kind === 'partial' ? `<span class="text-[11px] leading-none">⚠️ ${block.label}</span><span class="text-[11px] leading-none">第 8 周</span>` : ''}
+                  ${!selected && makeup && block.kind === 'available' ? `<span class="text-[11px] leading-none">可排</span>` : ''}
+                  ${!makeup && !selected && block.kind === 'full' ? `<span class="rounded bg-teal-600 px-1 py-0.5 text-[11px] leading-none text-white">[G]</span>` : ''}
+                  ${!makeup && !selected && block.kind === 'full' ? `<span class="text-[11px] leading-none">${block.label}</span>` : ''}
+                  ${!makeup && selected ? `<span class="text-[11px] leading-none">16/16</span>` : ''}
+                  ${!makeup && block.kind === 'partial' ? `<span class="text-[11px] leading-none">⚠️ ${block.label}</span><span class="text-[11px] leading-none">第 8 周</span>` : ''}
                   ${block.kind === 'closed' ? `<span class="text-[11px] leading-none">休</span>` : ''}
                 </button>`;
               }).join('')}
             </div>`).join('')}
           </div>
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 bg-slate-50/60 px-2 py-1.5 text-[12px] font-medium text-slate-500">
-            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-teal-400"></span>16 周全通</span>
-            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-amber-300"></span>局部冲突</span>
-            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-slate-300"></span>不可用</span>
+            ${makeup
+              ? `<span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-teal-400"></span>可排</span>
+                 <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-indigo-300"></span>已选</span>
+                 <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-slate-300"></span>不可用</span>`
+              : `<span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-teal-400"></span>16 周全通</span>
+                 <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-amber-300"></span>局部冲突</span>
+                 <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-slate-300"></span>不可用</span>`}
           </div>
         </div>
-        ${detail ? `<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5">
+        ${!makeup && detail ? `<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5">
           <div class="flex items-center gap-1.5 text-[12px] font-bold text-amber-900">${icon('triangle-alert', 'h-3.5 w-3.5')}第 ${detail.week} 周冲突 · ${DAY_LABELS[detail.day]} ${detail.time}</div>
           <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-800">${esc(detail.reason)}，无法整学期排定。该时段未加入已选，可改选上方 16 周全通时段。</p>
         </div>` : ''}
-        ${renderCoherenceBar()}
+        ${makeup
+          ? `<div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5"><p class="text-[12px] font-medium leading-relaxed text-slate-600">单节补排仅校验所选单周时段，不执行 16 周跨周连贯度评分；确认后待补排待办自动核销。</p></div>`
+          : renderCoherenceBar()}
       </section>`;
     }
 
     function renderCoherenceBar() {
       const slots = orderedSlots();
-      return `<div class="mt-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
+      return `<div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
         <div class="flex items-center justify-between gap-2">
           <span class="text-[12px] font-bold text-slate-700">16 周连贯度预览</span>
           <span class="text-[12px] font-bold ${slots.length ? 'text-teal-700' : 'text-slate-500'}">${slots.length ? `${slots.length} 个时段 · 每段 16/16` : '等待选择时段'}</span>
         </div>
         ${!slots.length ? `<div class="mt-1.5 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-2 py-3 text-center text-[12px] font-medium text-slate-500">选择一个或多个时段后显示</div>` : `<div class="mt-1.5 space-y-1.5">
-          ${slots.map((slot) => `<div class="rounded-lg border border-teal-200 bg-teal-50/50 px-1.5 py-1">
+          ${slots.map((slot) => `<div class="rounded-lg border border-slate-200 bg-white px-1.5 py-1">
             <div class="flex items-center gap-1.5">
               <span class="w-[64px] shrink-0 truncate text-[12px] font-bold text-slate-800">${DAY_LABELS[slot.day]} ${slot.time}</span>
               <span class="shrink-0 text-[12px] font-semibold text-teal-700">16/16 周全通</span>
@@ -925,7 +1022,7 @@
     }
 
     function renderBlockedCard() {
-      return `<section class="mt-3 rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-sm">
+      return `<section class="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-5 text-center">
         <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">${icon('user-x', 'h-6 w-6')}</div>
         <h2 class="mt-3 text-[16px] font-bold text-slate-900">请先委任授课老师</h2>
         <p class="mx-auto mt-1.5 max-w-[280px] text-[14px] font-medium leading-relaxed text-slate-600">请先在班级管理中委任授课老师后再排课</p>
@@ -952,6 +1049,32 @@
       };
       const slots = orderedSlots();
       const count = slots.length;
+
+      if (state.mode === 'group_makeup') {
+        const cls = currentClass();
+        s.buttonLabel = count ? '确认补排 1 节（连续双格）' : '确认补排 1 节';
+        if (!cls.teacher) {
+          s.title = '请先在班级管理中委任授课老师';
+          s.subtitle = '完成委任后即可补排';
+          return s;
+        }
+        if (count !== 1) {
+          s.title = '请选择 1 个补排时段';
+          s.subtitle = '单节补排仅选单周一个连续双格';
+          return s;
+        }
+        s.title = '已选 1 个补排时段';
+        s.chips = slots;
+        s.summary = '扣减 1 节待补排课时 · 待办自动核销';
+        const cell = groupCell(slots[0].day, slots[0].time);
+        if (cell.kind !== 'available') {
+          s.error = '该时段不可补排';
+          return s;
+        }
+        s.subtitle = '单周选位 · 不执行 16 周连贯度评分';
+        s.disabled = !confirmReady();
+        return s;
+      }
 
       if (state.mode === 'batch_group') {
         const cls = currentClass();
@@ -1081,7 +1204,7 @@
           <div class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${s.subtitle}</div>
           ${s.error ? `<div class="mt-1 text-[12px] font-bold text-rose-700">${esc(s.error)}</div>` : ''}
           ${offline ? `<div class="mt-1 text-[12px] font-bold text-amber-700">当前为离线只读，暂不可提交</div>` : ''}
-          <button data-action="confirm-booking" ${disabled ? 'disabled' : ''} class="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl px-2 ${state.mode === 'batch_group' ? 'text-[12px]' : 'text-[14px]'} font-bold transition ${disabled ? 'cursor-not-allowed bg-slate-200 text-slate-500' : 'bg-indigo-600 text-white shadow-sm active:bg-indigo-700'}">
+          <button data-action="confirm-booking" ${disabled ? 'disabled' : ''} class="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl px-2 ${state.mode === 'batch_group' || state.mode === 'group_makeup' ? 'text-[12px]' : 'text-[14px]'} font-bold transition ${disabled ? 'cursor-not-allowed bg-slate-200 text-slate-500' : 'bg-indigo-600 text-white active:bg-indigo-700'}">
             ${icon(disabled ? 'lock' : 'check-check', 'h-4 w-4 shrink-0')}
             <span class="truncate">${s.buttonLabel}</span>
           </button>
@@ -1169,6 +1292,7 @@
         { icon: 'move-right', title: '冲突就近候补', text: '遇到外教休假或临时占用，系统会就近推荐可用时段，并临时保留 24 小时。' },
         { icon: 'refresh-cw', title: '续费预占平移', text: '换到新时段后，原预占时段会立即释放，不会同时占用两个时段，续费权益无缝继承。' },
         { icon: 'users', title: '小班整学期', text: '小班按全学期 16 周整班排定，所有周次都可排才会确认。' },
+        { icon: 'calendar-plus', title: '单节补排', text: '暂停待排退回 1 节散 TS 时，工作台自动切换为单节补排；只选单周连续双格，不执行 16 周连贯度评分，确认后待办自动核销。' },
         { icon: 'mouse-pointer-click', title: '临时约课边界', text: '日常 1~4 节临时约课，请在课表绿色空闲格直接预约；本工作台只处理 4 周固定位与 16 周小班整班排课。' }
       ];
       return `${sheetHeader('排课规则', '确认前请留意以下安排')}
@@ -1189,31 +1313,36 @@
     function renderSuccess() {
       const data = state.completed;
       const isGroup = data.isGroup;
+      const isMakeup = !!data.isMakeup;
       const fixedBillable = data.billable ?? data.count;
-      const creditsLine = isGroup
-        ? `共扣 16×${data.count} 节小班课时`
-        : `共扣 4×${fixedBillable} 节固定位课时`;
+      const creditsLine = isMakeup
+        ? '扣减 1 节待补排课时'
+        : isGroup
+          ? `共扣 16×${data.count} 节小班课时`
+          : `共扣 4×${fixedBillable} 节固定位课时`;
       return `<div class="absolute inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm">
         <div class="max-h-[92%] w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-2xl">
           <div class="mx-auto grid h-14 w-14 place-items-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600">${icon('check', 'h-7 w-7')}</div>
-          <h2 class="mt-3 text-[18px] font-bold text-slate-900">${isGroup ? '全学期 16 周已排定' : '未来 4 周已锁定'}</h2>
-          <p class="mt-1 text-[14px] font-semibold text-slate-700">${isGroup ? `已选 ${data.count} 个时段 · 共扣 ${16 * data.count} 节小班课时` : `已选 ${data.count} 个时段 · 共扣 ${4 * fixedBillable} 节固定位课时`}</p>
+          <h2 class="mt-3 text-[18px] font-bold text-slate-900">${isMakeup ? '单节补排已排定' : isGroup ? '全学期 16 周已排定' : '未来 4 周已锁定'}</h2>
+          <p class="mt-1 text-[14px] font-semibold text-slate-700">${isMakeup ? '已选 1 个时段 · 扣减 1 节待补排课时' : isGroup ? `已选 ${data.count} 个时段 · 共扣 ${16 * data.count} 节小班课时` : `已选 ${data.count} 个时段 · 共扣 ${4 * fixedBillable} 节固定位课时`}</p>
           <div class="mt-3 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left">
             ${data.slots.map((slot) => {
-              const convertedSlot = !isGroup && data.holdMode === 'converted' && data.hold && data.hold.day === slot.day && data.hold.time === slot.time;
+              const convertedSlot = !isGroup && !isMakeup && data.holdMode === 'converted' && data.hold && data.hold.day === slot.day && data.hold.time === slot.time;
+              const status = isMakeup ? '已补排' : isGroup ? '16/16 全通' : convertedSlot ? '预占转正' : '4 周已锁';
+              const statusCls = isMakeup || isGroup || !convertedSlot ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700';
               return `<div class="flex items-center justify-between gap-2 rounded-lg bg-white px-2 py-1.5">
-                <span class="min-w-0 truncate text-[14px] font-bold text-slate-900">${DAY_LABELS[slot.day]} ${slot.time} - ${isGroup ? endHour(slot.time) : endTime(slot.time)}</span>
-                <span class="shrink-0 rounded-md border px-1.5 py-0.5 text-[12px] font-bold ${convertedSlot ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}">${isGroup ? '16/16 全通' : convertedSlot ? '预占转正' : '4 周已锁'}</span>
+                <span class="min-w-0 truncate text-[14px] font-bold text-slate-900">${DAY_LABELS[slot.day]} ${slot.time} - ${(isGroup || isMakeup) ? endHour(slot.time) : endTime(slot.time)}</span>
+                <span class="shrink-0 rounded-md border px-1.5 py-0.5 text-[12px] font-bold ${statusCls}">${status}</span>
               </div>`;
             }).join('')}
           </div>
           <div class="mt-2 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
             <div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">${icon('check-circle-2', 'h-3.5 w-3.5 shrink-0 text-emerald-600')}${creditsLine}</div>
-            <div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">${icon('bell', 'h-3.5 w-3.5 shrink-0 text-indigo-600')}${isGroup ? `已通知班级家长与 ${currentClass().teacher ? TEACHERS[currentClass().teacher].short : '授课'} 老师` : `已通知家长与 ${currentTeacher().short} 老师`}</div>
-            ${!isGroup && data.holdMode === 'released' ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('undo-2', 'h-3.5 w-3.5 shrink-0 text-amber-600')}原预占位 [${DAY_LABELS[data.hold.day]} ${data.hold.time}] 已释放</div>` : ''}
-            ${!isGroup && data.holdMode === 'converted' ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('badge-check', 'h-3.5 w-3.5 shrink-0 text-amber-600')}原预占位 [${DAY_LABELS[data.hold.day]} ${data.hold.time}] 已转为正式固定位</div>` : ''}
-            ${!isGroup && data.converted > 0 ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('shield-check', 'h-3.5 w-3.5 shrink-0 text-amber-600')}预占转正不重复扣减</div>` : ''}
-            ${!isGroup && !data.holdMode ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-600">${icon('move-right', 'h-3.5 w-3.5 shrink-0 text-slate-500')}全部时段已在单一事务内原子锁定</div>` : ''}
+            <div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">${icon('bell', 'h-3.5 w-3.5 shrink-0 text-indigo-600')}${isMakeup ? '已通知绑定班长 · 待补排待办已核销 · 班级修改日志已记录' : isGroup ? `已通知班级家长与 ${currentClass().teacher ? TEACHERS[currentClass().teacher].short : '授课'} 老师` : `已通知家长与 ${currentTeacher().short} 老师`}</div>
+            ${!isGroup && !isMakeup && data.holdMode === 'released' ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('undo-2', 'h-3.5 w-3.5 shrink-0 text-amber-600')}原预占位 [${DAY_LABELS[data.hold.day]} ${data.hold.time}] 已释放</div>` : ''}
+            ${!isGroup && !isMakeup && data.holdMode === 'converted' ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('badge-check', 'h-3.5 w-3.5 shrink-0 text-amber-600')}原预占位 [${DAY_LABELS[data.hold.day]} ${data.hold.time}] 已转为正式固定位</div>` : ''}
+            ${!isGroup && !isMakeup && data.converted > 0 ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('shield-check', 'h-3.5 w-3.5 shrink-0 text-amber-600')}预占转正不重复扣减</div>` : ''}
+            ${!isGroup && !isMakeup && !data.holdMode ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-600">${icon('move-right', 'h-3.5 w-3.5 shrink-0 text-slate-500')}全部时段已在单一事务内原子锁定</div>` : ''}
           </div>
           <a href="${data.link}" class="mt-4 flex h-11 items-center justify-center rounded-xl bg-indigo-600 text-[14px] font-bold text-white transition hover:bg-indigo-700">返回课表</a>
         </div>
@@ -1257,7 +1386,15 @@
     }
 
     function pickGroupSlot(day, time) {
-      const block = groupBlock(day, time);
+      const block = groupCell(day, time);
+      if (isGroupMakeup()) {
+        if (block.kind !== 'available') return;
+        state.selectedSlots = isSelected(day, time) ? [] : [{ day, time }];
+        state.conflictDetail = null;
+        state.completed = null;
+        render(true);
+        return;
+      }
       if (block.kind !== 'full' && block.kind !== 'partial') return;
       if (block.kind === 'partial') {
         state.conflictDetail = { day, time, week: block.week, reason: block.reason };
@@ -1311,6 +1448,20 @@
       if (!slots.length) return;
       const first = slots[0];
       const isGroup = state.mode === 'batch_group';
+      if (state.mode === 'group_makeup') {
+        const link = `m3a_calendar_grid.html?role=${state.role}&booked=1&mode=makeup&classId=${state.classId}&slots=${encodeURIComponent(slotsParam(slots))}&day=${DAY_EN[first.day]}&time=${first.time}`;
+        state.completed = {
+          isMakeup: true,
+          isGroup: false,
+          slots,
+          count: 1,
+          credits: 1,
+          link
+        };
+        state.overlay = 'success';
+        render(true);
+        return;
+      }
       if (isGroup) {
         const link = `m3a_calendar_grid.html?role=${state.role}&booked=1&mode=group&slots=${encodeURIComponent(slotsParam(slots))}&day=${DAY_EN[first.day]}&time=${first.time}`;
         state.completed = {
@@ -1392,6 +1543,11 @@
             state.selectedSlots = [{ day: 5, time: '10:00' }, { day: 6, time: '09:00' }];
             state.scenario = 'group';
           }
+        } else if (value === 'group_makeup') {
+          state.classId = 'ket1p';
+          state.teacher = 'david';
+          state.selectedSlots = [];
+          state.scenario = 'group-makeup';
         } else {
           state.scenario = 'normal';
           state.selectedSlots = [];
@@ -1415,7 +1571,7 @@
      * ------------------------------------------------------------------ */
     function segment(group, options, activeValue) {
       return `<div class="inline-flex rounded-xl bg-slate-100 p-1">
-        ${options.map((option) => `<button data-control="${group}" data-value="${option.value}" class="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition ${activeValue === option.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">${option.label}</button>`).join('')}
+        ${options.map((option) => `<button data-control="${group}" data-value="${option.value}" class="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition ${activeValue === option.value ? 'bg-white text-slate-900' : 'text-slate-600 hover:text-slate-900'}">${option.label}</button>`).join('')}
       </div>`;
     }
 
@@ -1427,6 +1583,7 @@
         { value: 'conflict', label: '续费冲突降级' },
         { value: 'insufficient', label: '课时不足' },
         { value: 'group', label: '小班 16 周' },
+        { value: 'group-makeup', label: '小班单节补排' },
         { value: 'group-blocked', label: '小班未委任' },
         { value: 'parent', label: '家长视角' }
       ];
@@ -1437,7 +1594,7 @@
               <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">D</span>
               <div>
                 <div class="text-[14px] font-bold text-slate-900">M3D 排课工作台演示控制台</div>
-                <div class="text-[12px] font-medium text-slate-500">沉浸式排课 · 意向交集 · 多时段 4周原子锁定 · 16周小班双格</div>
+                <div class="text-[12px] font-medium text-slate-500">沉浸式排课 · 意向交集 · 多时段 4周原子锁定 · 16周小班双格 · 单节补排</div>
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -1446,7 +1603,7 @@
             </div>
             <div class="flex items-center gap-2">
               <span class="text-[12px] font-medium text-slate-500">模式</span>
-              ${segment('mode', [{ value: 'batch_fixed', label: '固定位' }, { value: 'batch_group', label: '小班' }], state.mode)}
+              ${segment('mode', [{ value: 'batch_fixed', label: '固定位' }, { value: 'batch_group', label: '小班' }, { value: 'group_makeup', label: '单节补排' }], state.mode)}
             </div>
             <div class="flex items-center gap-2">
               <span class="text-[12px] font-medium text-slate-500">设备</span>

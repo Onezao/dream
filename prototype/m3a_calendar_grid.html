@@ -34,13 +34,13 @@
     <span class="bg-purple-50 border-purple-300 text-purple-900 bg-purple-600"></span>
     <span class="bg-teal-50 border-2 border-teal-400 text-teal-950 bg-teal-600 text-teal-700 border-teal-200 bg-teal-100"></span>
     <span class="bg-rose-50 border-rose-300 text-rose-800 bg-rose-500 bg-rose-600 border-rose-200"></span>
-    <span class="bg-slate-50 border-slate-200 text-slate-500 bg-slate-100 border-slate-300 text-slate-600 text-slate-700 bg-slate-200 bg-slate-50/95"></span>
+    <span class="bg-slate-50 border-slate-200 text-slate-500 bg-slate-100 border-slate-300 text-slate-600 text-slate-700 bg-slate-200 bg-white/95"></span>
     <span class="bg-emerald-50 border-emerald-200 text-emerald-800 bg-emerald-500 bg-emerald-600 border-emerald-200"></span>
     <span class="bg-indigo-50 text-indigo-700 border-indigo-100 bg-indigo-600 text-indigo-800 bg-indigo-100 border-indigo-200 bg-indigo-50/60 bg-indigo-500"></span>
     <span class="ring-2 ring-indigo-500 ring-inset animate-pulse ring-emerald-400 ring-1 ring-slate-300 ring-white/10 ring-white/15 ring-white/20 ring-white/30"></span>
     <span class="bg-white/5 bg-white/10 bg-white/15 bg-white/20 text-white/70 bg-slate-900/40 bg-slate-900/90"></span>
     <span class="h-7 h-[22px] h-[26px] h-[54px] h-[56px] h-10 h-14 h-16 h-[18px] h-11 w-10 w-[18px]"></span>
-    <span class="text-[18px] text-[16px] text-[14px] text-[12px] text-[11px] font-mono tracking-tight"></span>
+    <span class="text-[18px] text-[16px] text-[14px] text-[12px] font-mono tracking-tight"></span>
     <span class="rounded-md rounded-lg rounded-xl rounded-2xl rounded-3xl opacity-60 opacity-70 accent-indigo-600"></span>
     <span class="z-30 z-40 z-50 z-[60] z-[100]"></span>
   </div>
@@ -105,7 +105,7 @@
       subbing: 'border-purple-300 bg-purple-50 text-purple-900',
       group: 'border-2 border-teal-400 bg-teal-50 text-teal-950',
       leave: 'border-rose-300 bg-rose-50 text-rose-800',
-      rest: 'border-slate-200 bg-slate-50 text-slate-500',
+      rest: 'border-slate-200 bg-slate-100 text-slate-600',
       available: 'border-emerald-200 bg-emerald-50 text-emerald-800'
     };
 
@@ -133,6 +133,8 @@
       { value: 'leave-exhausted', label: '配额用尽' },
       { value: 'reschedule-blocked', label: '已挪位锁定' },
       { value: 'group-emergency', label: '小班停电处置' },
+      { value: 'teacher-report', label: '教师请假报备' },
+      { value: 'admin-channel-b', label: '管理员通道 B' },
       { value: 'teacher', label: '教师 David' },
       { value: 'monitor', label: '班长 David' },
       { value: 'monitor-load', label: '多师抽屉' },
@@ -215,7 +217,10 @@
       bookDuration: 30,
       staffStudent: 'alice',
       subCandidate: 'elena',
-      attendance: ''
+      attendance: '',
+      reportDay: null,
+      reportSel: {},
+      reportTag: 'power'
     };
 
     function clampWeek(value) {
@@ -466,7 +471,7 @@
       const previous = document.getElementById('content');
       const previousTop = previous ? previous.scrollTop : 0;
       document.body.className = state.embed
-        ? 'h-screen overflow-hidden bg-slate-50 font-sans text-slate-800 antialiased'
+        ? 'h-screen overflow-hidden bg-white font-sans text-slate-800 antialiased'
         : 'min-h-screen bg-slate-100 font-sans text-slate-800 antialiased';
       document.getElementById('app').className = state.embed ? 'h-full' : '';
       document.getElementById('app').innerHTML = `${state.embed ? '' : renderConsole()}${renderFrame()}`;
@@ -478,7 +483,7 @@
     function renderFrame() {
       if (state.embed) {
         return `<main class="h-full w-full overflow-hidden">
-          <div id="frame" class="relative flex h-full w-full flex-col overflow-hidden bg-slate-50">
+          <div id="frame" class="relative flex h-full w-full flex-col overflow-hidden bg-white">
             ${!state.online ? renderOfflineStrip() : ''}
             ${renderContent()}
             ${renderDrawer()}
@@ -545,7 +550,7 @@
     }
 
     function renderContent() {
-      return `<div id="content" class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50">
+      return `<div id="content" class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white">
         ${state.role === 'parent' ? renderParentHeader() : renderStaffHeader()}
         <div class="px-3 pb-2 pt-1.5">
           ${state.reschedule ? renderRescheduleHint() : ''}
@@ -561,9 +566,9 @@
     function renderParentHeader() {
       const child = STUDENTS[state.child];
       const credits = state.credits[state.child];
-      return `<div class="sticky top-0 z-30 border-b border-slate-200 bg-slate-50/95 px-3 pb-1.5 pt-1.5 backdrop-blur">
+      return `<div class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-3 pb-1.5 pt-1.5 backdrop-blur">
         <div class="flex items-center gap-1.5">
-          <button data-action="open-children" class="flex h-9 min-w-0 flex-1 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 shadow-sm transition active:scale-[0.995]">
+          <button data-action="open-children" class="flex h-9 min-w-0 flex-1 items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 px-2 transition active:scale-[0.995]">
             <span class="shrink-0 text-[14px] leading-none">${child.emoji}</span>
             <span class="min-w-0 flex-1 truncate text-left">
               <span class="text-[14px] font-bold text-slate-900">${esc(child.nick)}</span>
@@ -603,11 +608,11 @@
         </span>
         ${switchable ? icon('chevron-down', 'h-3.5 w-3.5 shrink-0 text-slate-500') : ''}`;
 
-      return `<div class="sticky top-0 z-30 border-b border-slate-200 bg-slate-50/95 px-3 pb-1.5 pt-1.5 backdrop-blur">
+      return `<div class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-3 pb-1.5 pt-1.5 backdrop-blur">
         <div class="flex items-start gap-1.5">
           ${switchable
-            ? `<button data-action="open-teachers" class="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 text-left shadow-sm transition active:scale-[0.995]">${inner}</button>`
-            : `<div class="flex h-12 w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 shadow-sm">${inner}</div>`}
+            ? `<button data-action="open-teachers" class="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-2.5 text-left transition active:scale-[0.995]">${inner}</button>`
+            : `<div class="flex h-12 w-full items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-2.5">${inner}</div>`}
           ${switchable ? renderBatchEntry() : ''}
         </div>
         ${renderWeekNav()}
@@ -615,10 +620,9 @@
     }
 
     function renderBatchEntry() {
-      return `<div class="relative w-[88px] shrink-0">
-        <button data-action="toggle-batch" class="flex h-12 w-full flex-col items-center justify-center gap-0.5 rounded-xl border border-indigo-200 bg-white px-1 text-indigo-700 shadow-sm transition hover:bg-indigo-50">
-          <span class="flex items-center gap-0.5 text-[12px] font-bold leading-none">${icon('plus', 'h-3 w-3')}批量固定位</span>
-          <span class="flex items-center gap-0.5 text-[12px] font-medium leading-none">排课${icon('chevron-down', 'h-3 w-3')}</span>
+      return `<div class="relative shrink-0 self-center">
+        <button data-action="toggle-batch" class="flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">
+          批量排课${icon('chevron-down', 'h-3 w-3')}
         </button>
         ${state.batchOpen ? `<div id="batchMenu" class="absolute right-0 top-full z-40 mt-1 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
           <a href="m3d_scheduling_workbench.html?role=monitor&mode=batch_fixed&teacherId=tea_david&studentId=stu_alice" class="block rounded-lg px-2.5 py-2 transition hover:bg-slate-50">
@@ -628,6 +632,10 @@
           <a href="m3d_scheduling_workbench.html?role=monitor&mode=batch_group&teacherId=tea_david" class="mt-0.5 block rounded-lg px-2.5 py-2 transition hover:bg-slate-50">
             <span class="block text-[14px] font-bold text-slate-900">1vN 小班课整班排课</span>
             <span class="mt-0.5 block text-[12px] font-medium text-slate-600">连续 16 周 · 整班同一时段</span>
+          </a>
+          <a href="m3d_scheduling_workbench.html?role=monitor&mode=group_single&teacherId=tea_david" class="mt-0.5 block rounded-lg px-2.5 py-2 transition hover:bg-slate-50">
+            <span class="block text-[14px] font-bold text-slate-900">1vN 小班课单节补排</span>
+            <span class="mt-0.5 block text-[12px] font-medium text-slate-600">停课退期待排 TS 补排</span>
           </a>
         </div>` : ''}
       </div>`;
@@ -666,7 +674,7 @@
      * 7 列网格
      * ------------------------------------------------------------------ */
     function renderGridCard() {
-      return `<section id="gridCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-label="周课表">
+      return `<section id="gridCard" class="overflow-hidden rounded-xl border border-slate-200/80 bg-white" aria-label="周课表">
         <table class="w-full table-fixed border-collapse">
           <colgroup>
             <col class="w-10">
@@ -674,12 +682,12 @@
           </colgroup>
           <thead>
             <tr class="h-7 bg-slate-50">
-              <th class="w-10 p-0 text-center align-middle font-mono text-[11px] font-semibold text-slate-500">时间</th>
+              <th class="w-10 p-0 text-center align-middle font-mono text-[12px] font-semibold text-slate-500">时间</th>
               ${DAY_LABELS.map((label, day) => {
                 const date = addDays(weekStart(), day);
                 return `<th class="border-l border-slate-100 p-0 text-center align-middle">
                   <span class="block text-[12px] font-bold leading-none text-slate-700">${label}</span>
-                  <span class="mt-0.5 block font-mono text-[11px] font-medium leading-none text-slate-500">${fmtDot(date)}</span>
+                  <span class="mt-0.5 block font-mono text-[12px] font-medium leading-none text-slate-500">${fmtDot(date)}</span>
                 </th>`;
               }).join('')}
             </tr>
@@ -734,7 +742,7 @@
       }).join('');
       return `<tr class="h-7 border-t border-slate-100">
         <td class="p-0 align-middle">
-          <div class="flex h-7 items-center justify-center border-r border-slate-100 bg-white font-mono text-[11px] font-medium text-slate-600">${time}</div>
+          <div class="flex h-7 items-center justify-center border-r border-slate-100 bg-white font-mono text-[12px] font-medium text-slate-600">${time}</div>
         </td>
         ${cells}
       </tr>`;
@@ -840,10 +848,10 @@
         { label: '被代课', cls: 'border-blue-300 bg-blue-50' },
         { label: '小班课', cls: 'border-2 border-teal-400 bg-teal-50' },
         { label: '请假', cls: 'border-rose-300 bg-rose-50' },
-        { label: '休息', cls: 'border-slate-200 bg-slate-50' },
+        { label: '休息', cls: 'border-slate-200 bg-slate-100' },
         { label: '可约', cls: 'border-emerald-200 bg-emerald-50' }
       ];
-      return `<div id="legend" class="mt-0.5 rounded-xl border border-slate-200 bg-white px-2.5 py-0.5 shadow-sm">
+      return `<div id="legend" class="mt-0.5 rounded-xl border border-slate-200/80 bg-slate-50/70 px-2.5 py-0.5">
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
           ${items.map((item) => `<span class="flex items-center gap-1 text-[12px] font-medium text-slate-600">
             <span class="h-2.5 w-2.5 shrink-0 rounded-sm border ${item.cls}"></span>${item.label}
@@ -929,6 +937,9 @@
       else if (state.drawer === 'staff-lesson') content = renderStaffLessonSheet();
       else if (state.drawer === 'staff-free') content = renderBookingSheet();
       else if (state.drawer === 'staff-rest') content = renderRestSheet();
+      else if (state.drawer === 'teacher-free') content = renderTeacherFreeSheet();
+      else if (state.drawer === 'teacher-report') content = renderTeacherReportPanel();
+      else if (state.drawer === 'channel-b') content = renderChannelBPanel();
       else content = '';
 
       return `<div class="absolute inset-0 z-50">
@@ -1011,8 +1022,8 @@
       const child = STUDENTS[state.child];
       const credits = state.credits[state.child];
       return `${sheetHeader('课时资产', `${child.nick} · 自由课时与待上课程`)}
-        <div class="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 text-center">
-          <div class="text-[12px] font-semibold text-indigo-700">剩余自由课时</div>
+        <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-center">
+          <div class="text-[12px] font-semibold text-slate-600">剩余自由课时</div>
           <div class="mt-1 text-[18px] font-bold text-slate-900">${credits} <span class="text-[14px] font-semibold text-slate-700">课时</span></div>
         </div>
         <div class="mt-2 grid grid-cols-2 gap-2">
@@ -1025,10 +1036,10 @@
             <div class="mt-0.5 text-[16px] font-bold text-slate-900">2 节</div>
           </div>
         </div>
-        <div class="mt-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div class="mt-3 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
           <div class="text-[14px] font-bold text-slate-900">课时转让 / 赠送好友</div>
           <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">仅转让账户内未排课的自由 TS 课时；接收方核验、划转与审计全部由 M3C 承接，本页不扣减课时。</p>
-          <a id="assetTransferEntry" href="${m3cAssetUrl()}" class="mt-2.5 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white shadow-sm transition hover:bg-indigo-700">${icon('repeat-2', 'h-4 w-4')}课时转让</a>
+          <a id="assetTransferEntry" href="${m3cAssetUrl()}" class="mt-2.5 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">${icon('repeat-2', 'h-4 w-4')}课时转让</a>
         </div>`;
     }
 
@@ -1062,13 +1073,13 @@
         ${isGroup ? '' : renderParentActions(lesson)}`;
     }
 
-    function pairLeaveEligibility(pair) {
+    function pairLeaveEligibility(pair, studentKey = state.child) {
       const items = pair || [];
       if (!items.length) return { ok: false, reason: '请至少勾选 1 节' };
       if (items.some((item) => item.kind !== 'temp')) {
         return { ok: false, reason: '固定位为 4 周契约，不支持请假；请使用【同师挪位】或【转让此课】' };
       }
-      const check = leaveEligibility(items[0], items.length);
+      const check = leaveEligibility(items[0], items.length, studentKey);
       return { ok: check.ok, reason: check.reason };
     }
 
@@ -1080,35 +1091,39 @@
       return { ok: true, reason: '两节同师平移，免扣配额' };
     }
 
-    function renderPairBox(pair) {
-      const leave = pairLeaveEligibility(pair);
+    function renderPairBox(pair, staff = false) {
+      const studentKey = staff && pair[0] ? pair[0].student : state.child;
+      const leave = pairLeaveEligibility(pair, studentKey);
       const move = pairRescheduleEligibility(pair);
       const canMergeLeave = pair.length > 0 && pair.every((item) => item.kind === 'temp');
-      return `<div class="mb-2.5 rounded-xl border border-indigo-100 bg-indigo-50/60 p-2.5">
+      const prefix = staff ? '协助' : '';
+      return `<div class="mb-2.5 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
         <div class="flex items-center justify-between gap-2">
-          <span class="text-[14px] font-bold text-indigo-800">连续 2 节</span>
-          <span class="text-[12px] font-medium text-indigo-700">默认全选，可单节操作</span>
+          <span class="text-[14px] font-bold text-slate-900">连续 2 节</span>
+          <span class="text-[12px] font-medium text-slate-600">默认全选，可单节操作</span>
         </div>
         <div class="mt-2 space-y-1.5">
-          ${pair.map((item, index) => `<label class="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-indigo-100 bg-white px-2">
+          ${pair.map((item, index) => `<label class="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2">
             <input type="checkbox" data-pair="${item.time}" ${state.pairSel[item.time] !== false ? 'checked' : ''} class="h-4 w-4 shrink-0 accent-indigo-600">
             <span class="min-w-0 flex-1 truncate text-[12px] font-semibold text-slate-800">${dayLabel(item.day)} ${item.time} - ${endTime(item.time)} · ${teacherShort(item.teacher)} (第${index + 1}节)</span>
           </label>`).join('')}
         </div>
         <div class="mt-2 ${canMergeLeave ? 'grid grid-cols-2 gap-2' : ''}">
-          ${canMergeLeave ? `<button data-action="pair-leave" ${leave.ok ? '' : 'disabled'} class="flex h-10 items-center justify-center gap-1 rounded-lg text-[14px] font-bold transition ${leave.ok ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-400'}">${icon('calendar-x', 'h-4 w-4')}合并请假 (2节)</button>` : ''}
-          <button data-action="pair-reschedule" ${move.ok ? '' : 'disabled'} class="flex h-10 items-center justify-center gap-1 rounded-lg border text-[14px] font-semibold transition ${move.ok ? 'border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'} ${canMergeLeave ? '' : 'w-full'}">${icon('move-right', 'h-4 w-4')}合并调课 (2节)</button>
+          ${canMergeLeave ? `<button data-action="pair-leave" ${leave.ok ? '' : 'disabled'} class="flex h-10 items-center justify-center gap-1 rounded-lg text-[14px] font-bold transition ${leave.ok ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">${icon('calendar-x', 'h-4 w-4')}${prefix}合并请假 (2节)</button>` : ''}
+          <button data-action="pair-reschedule" ${move.ok ? '' : 'disabled'} class="flex h-10 items-center justify-center gap-1 rounded-lg border text-[14px] font-semibold transition ${move.ok ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500'} ${canMergeLeave ? '' : 'w-full'}">${icon('move-right', 'h-4 w-4')}${prefix}合并调课 (2节)</button>
         </div>
+        ${staff ? `<button data-action="confirm-exception-backfill" class="mt-2 flex h-10 w-full items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 text-[12px] font-bold text-rose-700 transition hover:bg-rose-100">${icon('triangle-alert', 'h-4 w-4')}确认异常未上课回退补生 (2节)</button>` : ''}
         ${canMergeLeave && !leave.ok ? `<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-rose-700">合并请假不可用：${esc(leave.reason)}</p>` : ''}
         ${!canMergeLeave ? `<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-600">固定位为 4 周契约，连续两节仅支持合并调课。</p>` : ''}
         ${!move.ok ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">合并调课不可用：${esc(move.reason)}</p>` : ''}
+        ${staff ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">异常回退仅适用于连续 2 节外教缺席旷课；提交后一次性补生 2 节待排期 TS。</p>` : ''}
       </div>`;
     }
 
     function renderLessonInfo(lesson) {
       const isGroup = lesson.kind === 'group';
       const cls = isGroup ? (CLASSES[lesson.classId] || CLASSES.ket1) : null;
-      return `<div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      return `<div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
         <div class="flex items-center justify-between gap-2">
           <span class="flex items-center gap-1">
             <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${TYPE_NAME[lesson.kind] || '课次'}</span>
@@ -1143,7 +1158,7 @@
 
     function renderClassroomCard(lesson) {
       const room = lesson.teacher === 'linda' ? 'B-105' : (lesson.teacher === 'nina' ? 'A-203' : 'A-302');
-      return `<div class="mt-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
+      return `<div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
         <div class="flex items-center justify-between gap-2">
           <div class="min-w-0">
             <div class="text-[12px] font-medium text-slate-600">ClassIn 教室</div>
@@ -1151,12 +1166,12 @@
           </div>
           <button data-action="copy-room" class="flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50">${icon('copy', 'h-3.5 w-3.5')}复制教室号</button>
         </div>
-        <button data-action="enter-classin" class="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-bold text-white shadow-sm transition hover:bg-indigo-700">${icon('external-link', 'h-4 w-4')}进入Classin</button>
+        <button data-action="enter-classin" class="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">${icon('external-link', 'h-4 w-4')}进入Classin</button>
       </div>`;
     }
 
     function renderCoursewareRow() {
-      return `<a href="m1e_courseware.html" class="mt-2 flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition hover:bg-slate-50">
+      return `<a href="m1e_courseware.html" class="mt-2 flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 transition hover:bg-slate-100">
         <span class="min-w-0">
           <span class="block text-[12px] font-medium text-slate-600">教材进度</span>
           <span class="mt-0.5 block truncate text-[14px] font-semibold text-slate-900">Oxford Discover 2 · Unit 3</span>
@@ -1168,12 +1183,12 @@
     function parentActionRow(action, iconName, title, desc, disabled, tone = '') {
       const danger = tone === 'danger';
       return `<button data-action="${action}" ${disabled ? 'disabled' : ''} class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${disabled ? 'cursor-not-allowed border-slate-200 bg-slate-50' : danger ? 'border-rose-200 bg-rose-50 hover:bg-rose-100' : 'border-slate-200 bg-white hover:bg-slate-50'}">
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${disabled ? 'bg-slate-100 text-slate-400' : danger ? 'bg-white text-rose-700' : 'bg-slate-100 text-slate-700'}">${icon(iconName, 'h-4 w-4')}</span>
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${disabled ? 'bg-slate-100 text-slate-500' : danger ? 'bg-white text-rose-700' : 'bg-slate-100 text-slate-700'}">${icon(iconName, 'h-4 w-4')}</span>
         <span class="min-w-0 flex-1">
-          <span class="block text-[14px] font-bold ${disabled ? 'text-slate-400' : danger ? 'text-rose-800' : 'text-slate-900'}">${esc(title)}</span>
+          <span class="block text-[14px] font-bold ${disabled ? 'text-slate-500' : danger ? 'text-rose-800' : 'text-slate-900'}">${esc(title)}</span>
           <span class="mt-0.5 block text-[12px] font-medium leading-snug ${disabled ? 'text-rose-600' : 'text-slate-600'}">${esc(desc)}</span>
         </span>
-        ${disabled ? icon('lock', 'h-4 w-4 shrink-0 text-slate-400') : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
+        ${disabled ? icon('lock', 'h-4 w-4 shrink-0 text-slate-500') : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
       </button>`;
     }
 
@@ -1181,12 +1196,12 @@
       const leave = leaveEligibility(lesson);
       const locked = !leave.ok;
       return `<button data-action="start-leave" class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${locked ? 'cursor-not-allowed border-slate-200 bg-slate-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${locked ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-700'}">${icon('calendar-x', 'h-4 w-4')}</span>
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${locked ? 'bg-slate-100 text-slate-500' : 'bg-slate-100 text-slate-700'}">${icon('calendar-x', 'h-4 w-4')}</span>
         <span class="min-w-0 flex-1">
-          <span class="block text-[14px] font-bold ${locked ? 'text-slate-400' : 'text-slate-900'}">请假登记</span>
+          <span class="block text-[14px] font-bold ${locked ? 'text-slate-500' : 'text-slate-900'}">请假登记</span>
           <span class="mt-0.5 block text-[12px] font-medium leading-snug ${locked ? 'text-rose-600' : 'text-slate-600'}">${esc(leave.reason)}</span>
         </span>
-        ${locked ? icon('lock', 'h-4 w-4 shrink-0 text-slate-400') : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
+        ${locked ? icon('lock', 'h-4 w-4 shrink-0 text-slate-500') : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
       </button>`;
     }
 
@@ -1214,7 +1229,7 @@
           <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700">${icon('message-square-text', 'h-4 w-4')}</span>
           <span class="min-w-0 flex-1">
             <span class="block text-[14px] font-bold text-slate-900">查看课前课后反馈</span>
-            <span class="mt-0.5 block text-[12px] font-medium leading-snug text-slate-600">外教评语与课后作业</span>
+            <span class="mt-0.5 block text-[12px] font-medium leading-snug text-slate-600">外教留言与课后作业</span>
           </span>
           ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
         </a>
@@ -1229,10 +1244,11 @@
       const cells = leaveCellsNow();
       const first = cells[0];
       if (!first) return '';
-      const quota = quotaFor();
+      const studentKey = state.role === 'parent' ? state.child : (first.student || state.child);
+      const quota = quotaFor(studentKey);
       const remain = Math.max(0, quota.limit - quota.used);
       const count = cells.length;
-      const eligibility = leaveEligibility(first, count);
+      const eligibility = leaveEligibility(first, count, studentKey);
       const isTemp = first.kind === 'temp';
       const move = rescheduleEligibility(first);
       const transfer = transferEligibility(first);
@@ -1249,7 +1265,7 @@
           </div>
           <p class="mt-1.5 text-[12px] font-semibold text-amber-900">当前档位：${hoursTierLabel()}</p>
         </div>
-        <div class="mt-2 rounded-xl border border-slate-200 bg-white p-3">
+        <div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
           <p class="text-[12px] font-semibold text-slate-800">请假范围：仅本次（临时课不跨周）</p>
           <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">固定位：4 周契约，不支持请假；仅可使用【同师挪位】或【转让此课】。</p>
           <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">临时课：≥24h 且配额充足可请假，扣 1 次配额，TS 退回待排期，课格恢复空闲可约；3~24h 不可请假；&lt;3h 全锁。</p>
@@ -1259,7 +1275,7 @@
               <p class="text-[12px] font-semibold leading-relaxed ${eligibility.ok ? 'text-slate-700' : 'text-rose-700'}">${esc(eligibility.reason)}</p>
               <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">临时课请假后 TS 回到待排期池，需另行选择时段重排。</p>
             </div>
-            <button data-action="confirm-leave" ${eligibility.ok ? '' : 'disabled'} class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl text-[16px] font-bold shadow-sm transition ${eligibility.ok ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-400'}">${icon(eligibility.ok ? 'check' : 'lock', 'h-4 w-4')}确认请假</button>`
+            <button data-action="confirm-leave" ${eligibility.ok ? '' : 'disabled'} class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl text-[16px] font-bold transition ${eligibility.ok ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">${icon(eligibility.ok ? 'check' : 'lock', 'h-4 w-4')}确认请假</button>`
           : `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3">
               <div class="flex items-center gap-1.5 text-[14px] font-bold text-rose-800">${icon('lock', 'h-4 w-4')}固定位不可请假</div>
               <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">固定位为 4 周契约，不支持请假，也不支持跨周批量请假；请使用【同师挪位】或【转让此课】调整。</p>
@@ -1300,7 +1316,7 @@
       const duration = state.bookDuration;
       const teacher = staff ? activeTeacher() : TEACHERS.david;
       return `${sheetHeader(staff ? '代学员约课' : '临时预约', slotLabel(slot.day, slot.time, duration === 60 ? 2 : 1))}
-        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
           <div class="flex items-center justify-between gap-2">
             <span class="text-[12px] font-medium text-slate-600">授课外教</span>
             <span class="text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
@@ -1323,12 +1339,12 @@
         </div>
         ${!sixty.ok ? `<p class="mt-1.5 text-[12px] font-medium text-slate-500">60 分钟不可选：${esc(sixty.reason)}</p>` : ''}
         ${state.role === 'parent' ? `<p class="mt-2 text-[12px] font-medium text-slate-600">确认后扣减 ${duration === 60 ? 2 : 1} 节课时，剩余 ${state.credits[state.child] - (duration === 60 ? 2 : 1)} 节</p>` : ''}
-        <button data-action="confirm-book" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white shadow-sm transition hover:bg-indigo-700">${icon('calendar-check', 'h-4 w-4')}确认预约</button>
+        <button data-action="confirm-book" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">${icon('calendar-check', 'h-4 w-4')}确认预约</button>
         ${canProxy ? `<button data-action="confirm-lock-slot" class="mt-2 flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50">${icon('lock', 'h-4 w-4')}锁定时段 / 设为不可约</button>` : ''}`;
     }
 
     function renderStaffStudentPick() {
-      return `<div class="mt-2 rounded-xl border border-slate-200 bg-white p-2.5">
+      return `<div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
         <div class="text-[12px] font-semibold text-slate-600">选择学员</div>
         <div class="mt-1.5 grid grid-cols-3 gap-1.5">
           ${['alice', 'bob', 'charlie'].map((key) => {
@@ -1347,11 +1363,14 @@
       if (state.panel === 'attendance') return renderAttendancePanel();
       if (state.panel === 'withdraw') return renderWithdrawPanel();
       if (state.panel === 'proxy') return renderProxyPanel();
+      if (state.panel === 'channel-b') return renderChannelBPanel();
       const lesson = state.lesson;
       if (!lesson) return '';
       const isGroup = lesson.kind === 'group';
       const student = STUDENTS[lesson.student];
+      const pair = !isGroup && state.role !== 'teacher' ? pairFor(lesson) : null;
       return `${sheetHeader(isGroup ? '小班教学管理' : '教学管理', slotLabel(lesson.day, lesson.time, isGroup ? 2 : 1))}
+        ${pair ? renderPairBox(pair, true) : ''}
         ${renderLessonInfo(lesson)}
         ${isGroup ? renderGroupStaffActions(lesson) : renderStaffActions(lesson)}
         ${!isGroup && state.role === 'teacher' ? `<button data-action="enter-classin" class="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[14px] font-bold text-white transition hover:bg-indigo-700">${icon('external-link', 'h-4 w-4')}进入Classin</button>` : ''}
@@ -1367,12 +1386,12 @@
 
     function actionRow(action, iconName, title, desc, tone, disabled = false) {
       return `<button data-action="${action}" ${disabled ? 'disabled' : ''} class="flex h-12 w-full items-center gap-2.5 rounded-xl border px-3 text-left transition ${disabled ? 'cursor-not-allowed border-slate-200 bg-slate-50' : tone === 'danger' ? 'border-rose-200 bg-rose-50 hover:bg-rose-100' : 'border-slate-200 bg-white hover:bg-slate-50'}">
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${disabled ? 'bg-slate-100 text-slate-400' : tone === 'danger' ? 'bg-white text-rose-700' : 'bg-slate-100 text-slate-700'}">${icon(iconName, 'h-4 w-4')}</span>
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${disabled ? 'bg-slate-100 text-slate-500' : tone === 'danger' ? 'bg-white text-rose-700' : 'bg-slate-100 text-slate-700'}">${icon(iconName, 'h-4 w-4')}</span>
         <span class="min-w-0 flex-1">
-          <span class="block truncate text-[14px] font-bold ${disabled ? 'text-slate-400' : tone === 'danger' ? 'text-rose-800' : 'text-slate-900'}">${title}</span>
+          <span class="block truncate text-[14px] font-bold ${disabled ? 'text-slate-500' : tone === 'danger' ? 'text-rose-800' : 'text-slate-900'}">${title}</span>
           <span class="mt-0.5 block truncate text-[12px] font-medium ${disabled ? 'text-rose-600' : tone === 'danger' ? 'text-rose-700' : 'text-slate-600'}">${desc}</span>
         </span>
-        ${disabled ? icon('lock', 'h-4 w-4 shrink-0 text-slate-400') : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
+        ${disabled ? icon('lock', 'h-4 w-4 shrink-0 text-slate-500') : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
       </button>`;
     }
 
@@ -1392,6 +1411,7 @@
       if (state.role === 'teacher') {
         return `<div class="mt-2.5 space-y-2">
           ${actionRow('start-attendance', 'clipboard-check', '考勤打卡', '正常出勤 / 学员旷课 / 外教旷课', '')}
+          ${actionRow('start-teacher-report', 'calendar-x', '申请请假 / 突发状况报备', '当天时段多选 · 1~12 节 · 不可抗力分类', '')}
         </div>`;
       }
       const transfer = transferEligibility(lesson);
@@ -1399,6 +1419,7 @@
         ${actionRow('start-sub', 'user-check', '代课委任', '选择 Elena / Linda / Nina 代课', '')}
         ${actionRow('start-attendance', 'clipboard-check', '考勤打卡', '记录本节出勤情况', '')}
         ${renderStaffExceptionEntry(lesson)}
+        ${state.role === 'admin' && lesson.kind === 'temp' && state.hours < 3 ? actionRow('start-channel-b', 'shield-alert', '通道 B：非常规特批急病请假', '突破时限与配额 · 必填 ≥10 字原因', 'danger') : ''}
         ${actionRow('start-proxy', 'user-cog', '代学员请假 / 调课', '按 M3B 校验配额、时限与同师窗口', '')}
         ${actionRow('start-withdraw', 'undo-2', '撤排 / 退回课时', '释放时段并退回 1 节课时', 'danger')}
         ${transfer.visible
@@ -1424,31 +1445,34 @@
       if (state.role === 'teacher') {
         return `<div class="mt-2.5 space-y-2">
           ${actionRow('start-attendance', 'clipboard-check', '考勤打卡', '记录整班出勤情况', '')}
+          ${actionRow('start-teacher-report', 'calendar-x', '申请请假 / 突发状况报备', '当天时段多选 · 1~12 节 · 不可抗力分类', '')}
         </div>`;
       }
       const candidates = groupSubCandidates();
-      const canSub = state.hours >= 0.5 && candidates.length > 0;
+      const canSub = state.hours >= 0.25 && candidates.length > 0;
       return `<div class="mt-2.5 space-y-2">
         ${actionRow('start-attendance', 'clipboard-check', '考勤打卡', '记录整班出勤情况', '')}
         <div class="rounded-xl border border-rose-200 bg-rose-50 p-3">
           <div class="flex items-center gap-1.5 text-[14px] font-bold text-rose-800">${icon('zap-off', 'h-4 w-4')}小班主理人应急停电处置包</div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">外教突发停电/断网不可抗力；处置需在距开课 ≥30 分钟完成，家长由主理人微信群闭环通知。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">外教突发停电/断网不可抗力；停电场景放宽至开课前 ≥15 分钟，家长由主理人微信群闭环通知。</p>
           <button data-action="start-sub" ${canSub ? '' : 'disabled'} class="mt-2 flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-left transition ${canSub ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-100 text-rose-700">${icon('user-check', 'h-4 w-4')}</span>
             <span class="min-w-0 flex-1">
               <span class="block text-[14px] font-bold text-rose-800">路线 A · 指派临时代课</span>
-              <span class="mt-0.5 block text-[12px] font-medium leading-snug text-rose-700">${canSub ? `${esc(candidates[0].name)} · 空闲 ${candidates[0].free} 节 · 资质匹配` : '距开课不足 30 分钟或暂无空闲资质外教'}</span>
+              <span class="mt-0.5 block text-[12px] font-medium leading-snug text-rose-700">${canSub ? `${esc(candidates[0].name)} · 空闲 ${candidates[0].free} 节 · 资质匹配` : '距开课不足 15 分钟或暂无连续双格空闲资质外教'}</span>
             </span>
             ${icon(canSub ? 'chevron-right' : 'lock', 'h-4 w-4 shrink-0 text-rose-600')}
           </button>
           <button data-action="confirm-group-outage" class="mt-2 flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-rose-300 bg-white px-3 py-2 text-left transition hover:bg-rose-100">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-100 text-rose-700">${icon('calendar-x', 'h-4 w-4')}</span>
             <span class="min-w-0 flex-1">
-              <span class="block text-[14px] font-bold text-rose-800">路线 B · 整班停课退期待排</span>
+              <span class="block text-[14px] font-bold text-rose-800">路线 B · 暂停待排</span>
               <span class="mt-0.5 block text-[12px] font-medium leading-snug text-rose-700">TS 退回班级待排期池，100% 豁免学生课时与请假配额</span>
             </span>
             ${icon('chevron-right', 'h-4 w-4 shrink-0 text-rose-600')}
           </button>
+          <p class="mt-2 text-[12px] font-medium leading-relaxed text-rose-700">外教原因暂停待排 → 原网格标红不可约；节假日/全班调休 → 原网格释放为绿色可再约。</p>
+          <a href="m3d_scheduling_workbench.html?role=monitor&mode=group_single&classId=${esc(lesson.classId || 'ket1')}" class="mt-2 flex h-9 w-full items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-800 transition hover:bg-slate-50">${icon('calendar-plus', 'h-4 w-4')}立即补排 ↗</a>
         </div>
       </div>`;
     }
@@ -1472,7 +1496,7 @@
             </button>`;
           }).join('')}
         </div>
-        <button data-action="confirm-sub" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white shadow-sm transition hover:bg-indigo-700">确认委任</button>
+        <button data-action="confirm-sub" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">确认委任</button>
         ${backRow()}`;
     }
 
@@ -1501,7 +1525,7 @@
           <div class="flex items-center gap-1.5 text-[14px] font-bold text-rose-800">${icon('triangle-alert', 'h-4 w-4')}撤回后时段会立即释放</div>
           <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">学员将退回 1 节课时，家长会收到课表变动通知。</p>
         </div>
-        <button data-action="confirm-withdraw" class="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-rose-600 text-[16px] font-bold text-white shadow-sm transition hover:bg-rose-700">确认撤排并退回课时</button>
+        <button data-action="confirm-withdraw" class="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-rose-600 text-[16px] font-bold text-white transition hover:bg-rose-700">确认撤排并退回课时</button>
         ${backRow()}`;
     }
 
@@ -1518,13 +1542,13 @@
         </div>
         <div class="mt-2 space-y-2">
           <button data-action="proxy-leave" ${leave.ok ? '' : 'disabled'} class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${leave.ok ? 'border-slate-200 bg-white hover:bg-slate-50' : 'cursor-not-allowed border-slate-200 bg-slate-50'}">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${leave.ok ? 'bg-slate-100 text-slate-700' : 'bg-slate-200 text-slate-400'}">${icon('calendar-x', 'h-4 w-4')}</span>
-            <span class="min-w-0 flex-1"><span class="block text-[14px] font-bold ${leave.ok ? 'text-slate-900' : 'text-slate-400'}">代学员请假</span><span class="mt-0.5 block text-[12px] font-medium leading-snug ${leave.ok ? 'text-slate-600' : 'text-rose-600'}">${esc(leave.reason)}</span></span>
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${leave.ok ? 'bg-slate-100 text-slate-700' : 'bg-slate-200 text-slate-500'}">${icon('calendar-x', 'h-4 w-4')}</span>
+            <span class="min-w-0 flex-1"><span class="block text-[14px] font-bold ${leave.ok ? 'text-slate-900' : 'text-slate-500'}">代学员请假</span><span class="mt-0.5 block text-[12px] font-medium leading-snug ${leave.ok ? 'text-slate-600' : 'text-rose-600'}">${esc(leave.reason)}</span></span>
             ${icon(leave.ok ? 'chevron-right' : 'lock', 'h-4 w-4 shrink-0 text-slate-500')}
           </button>
           <button data-action="proxy-reschedule" ${move.ok ? '' : 'disabled'} class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${move.ok ? 'border-slate-200 bg-white hover:bg-slate-50' : 'cursor-not-allowed border-slate-200 bg-slate-50'}">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${move.ok ? 'bg-slate-100 text-slate-700' : 'bg-slate-200 text-slate-400'}">${icon('move-right', 'h-4 w-4')}</span>
-            <span class="min-w-0 flex-1"><span class="block text-[14px] font-bold ${move.ok ? 'text-slate-900' : 'text-slate-400'}">代学员调课</span><span class="mt-0.5 block text-[12px] font-medium leading-snug ${move.ok ? 'text-slate-600' : 'text-rose-600'}">${esc(move.reason)}</span></span>
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${move.ok ? 'bg-slate-100 text-slate-700' : 'bg-slate-200 text-slate-500'}">${icon('move-right', 'h-4 w-4')}</span>
+            <span class="min-w-0 flex-1"><span class="block text-[14px] font-bold ${move.ok ? 'text-slate-900' : 'text-slate-500'}">代学员调课</span><span class="mt-0.5 block text-[12px] font-medium leading-snug ${move.ok ? 'text-slate-600' : 'text-rose-600'}">${esc(move.reason)}</span></span>
             ${icon(move.ok ? 'chevron-right' : 'lock', 'h-4 w-4 shrink-0 text-slate-500')}
           </button>
         </div>
@@ -1536,11 +1560,106 @@
       if (!slot) return '';
       const lead = state.role === 'teacher' ? '当前时段未对学生开放' : '该时段当前未开放预约';
       return `${sheetHeader('休息时段', slotLabel(slot.day, slot.time))}
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
           <div class="text-[14px] font-bold text-slate-800">${esc(lead)}</div>
           <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">加开后，该时段会显示为可约，并通知关注 ${esc(activeTeacher().short)} 老师的家长。</p>
         </div>
-        <button data-action="confirm-open-slot" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white shadow-sm transition hover:bg-indigo-700">${icon('sun', 'h-4 w-4')}加开时段</button>`;
+        <button data-action="confirm-open-slot" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">${icon('sun', 'h-4 w-4')}加开时段</button>
+        ${state.role === 'teacher' ? `<button data-action="start-teacher-report" class="mt-2 flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-rose-200 bg-white text-[14px] font-bold text-rose-700">${icon('calendar-x', 'h-4 w-4')}申请请假 / 维持不可约</button>` : ''}`;
+    }
+
+    function teacherDaySlots(day) {
+      const list = [];
+      GRID_TIMES.forEach((time) => {
+        if (isGroupContinuation(day, time)) return;
+        const slot = getSlot(day, time);
+        let status = '空闲';
+        if (slot.lesson) {
+          status = slot.lesson.kind === 'group' ? '排课 · 小班' : '排课';
+        } else if (slot.kind === 'rest') {
+          status = '休息';
+        } else if (slot.kind === 'leave') {
+          status = '请假';
+        }
+        const open = teacherOpen(state.teacher, day, time);
+        if (!slot.lesson && slot.kind !== 'leave' && !open) return;
+        list.push({ day, time, status, lesson: slot.lesson, kind: slot.kind });
+      });
+      return list;
+    }
+
+    function renderTeacherFreeSheet() {
+      const slot = state.target;
+      if (!slot) return '';
+      return `${sheetHeader('空闲时段', slotLabel(slot.day, slot.time))}
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+          <div class="text-[14px] font-bold text-slate-900">该时段当前开放可约</div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">代学员约课请联系负责班长操作。你可以申请请假或将此时段设为不可约。</p>
+        </div>
+        <button data-action="start-teacher-report" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl border border-rose-200 bg-white text-[14px] font-bold text-rose-700">${icon('calendar-x', 'h-4 w-4')}申请请假 / 设为不可约</button>
+        ${backRow()}`;
+    }
+
+    const REPORT_TAGS = [
+      { key: 'power', label: '家庭突发停电/断网' },
+      { key: 'illness', label: '突发急病就医' },
+      { key: 'device', label: '设备故障' },
+      { key: 'personal', label: '常规事假' }
+    ];
+
+    function scrollReportToSelected() {
+      window.setTimeout(() => {
+        const list = document.getElementById('reportSlotList');
+        if (!list) return;
+        const checked = list.querySelector('input[data-report-slot]:checked');
+        if (checked) checked.scrollIntoView({ block: 'center' });
+      }, 30);
+    }
+
+    function renderTeacherReportPanel() {
+      const day = state.reportDay != null ? state.reportDay : (state.lesson ? state.lesson.day : (state.target ? state.target.day : 0));
+      const options = teacherDaySlots(day);
+      const selected = options.filter((item) => state.reportSel[item.time]).length;
+      return `${sheetHeader('申请请假 / 突发状况报备', `${dayLabel(day)} · 当天时段多选`)}
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[14px] font-bold text-slate-900">选择时段</span>
+            <span class="text-[12px] font-semibold text-indigo-600">已选 ${selected} 节</span>
+          </div>
+          <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">默认勾选当前时段；支持 1~12 节，累计最长 6 小时。</p>
+          <div id="reportSlotList" class="mt-2 max-h-56 space-y-1.5 overflow-y-auto pr-1">
+            ${options.map((item) => `<label class="flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-2">
+              <input type="checkbox" data-report-slot="${item.time}" ${state.reportSel[item.time] ? 'checked' : ''} class="h-4 w-4 shrink-0 accent-indigo-600">
+              <span class="min-w-0 flex-1 truncate text-[12px] font-semibold text-slate-800">${item.time} - ${endTime(item.time)}</span>
+              <span class="shrink-0 rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">${item.status}</span>
+            </label>`).join('')}
+          </div>
+        </div>
+        <div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+          <div class="text-[14px] font-bold text-slate-900">不可抗力分类</div>
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            ${REPORT_TAGS.map((tag) => `<button data-action="report-tag" data-tag="${tag.key}" class="h-8 rounded-lg border px-2.5 text-[12px] font-bold transition ${state.reportTag === tag.key ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}">${tag.label}</button>`).join('')}
+          </div>
+        </div>
+        <button data-action="submit-teacher-report" ${selected ? '' : 'disabled'} class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl ${selected ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-500'} text-[16px] font-bold">${icon('calendar-x', 'h-4 w-4')}提交请假报备</button>
+        ${backRow()}`;
+    }
+
+    function renderChannelBPanel() {
+      const lesson = state.lesson;
+      if (!lesson) return '';
+      return `${sheetHeader('通道 B · 非常规特批急病请假', slotLabel(lesson.day, lesson.time))}
+        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3">
+          <div class="text-[14px] font-bold text-rose-800">仅管理员可用 · 突破时限与配额</div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">适用于开课前 &lt;3h 学员突发急病；提交后 TS 退回待排期并强制写入审计。</p>
+        </div>
+        <div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+          <label class="block text-[12px] font-semibold text-slate-700">特批原因（≥10 字）</label>
+          <textarea id="channelBReason" rows="3" maxlength="200" placeholder="请填写特批原因..." class="mt-1.5 w-full resize-none rounded-lg border border-slate-200 bg-white p-2 text-[14px] leading-relaxed text-slate-900 outline-none focus:border-indigo-500"></textarea>
+          <label class="mt-2 flex items-center gap-2 text-[12px] font-medium text-slate-700"><input id="channelBComp" type="checkbox" class="h-4 w-4 accent-indigo-600">给老师补偿课酬（默认不补）</label>
+        </div>
+        <button data-action="submit-channel-b" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-rose-600 text-[16px] font-bold text-white">${icon('shield-alert', 'h-4 w-4')}确认特批请假</button>
+        ${backRow()}`;
     }
 
     /* ------------------------------------------------------------------
@@ -1615,6 +1734,9 @@
       state.staffStudent = 'alice';
       state.subCandidate = 'elena';
       state.attendance = '';
+      state.reportDay = null;
+      state.reportSel = {};
+      state.reportTag = 'power';
 
       if (name === 'parent-sub') {
         state.lesson = findBaseLesson(3, '19:00');
@@ -1653,6 +1775,18 @@
         state.role = 'monitor';
         state.hours = 2;
         state.lesson = findBaseLesson(5, '10:00');
+        state.drawer = 'staff-lesson';
+      } else if (name === 'teacher-report') {
+        state.role = 'teacher';
+        state.lesson = findBaseLesson(1, '19:00');
+        state.reportDay = 1;
+        state.reportSel = { '19:00': true };
+        state.drawer = 'teacher-report';
+      } else if (name === 'admin-channel-b') {
+        state.role = 'admin';
+        state.teacher = 'david';
+        state.hours = 2;
+        state.lesson = findBaseLesson(1, '18:30');
         state.drawer = 'staff-lesson';
       } else if (name === 'teacher') {
         state.role = 'teacher';
@@ -1775,6 +1909,9 @@
         state.lesson = slot.lesson;
         state.drawer = 'staff-lesson';
         state.panel = null;
+        state.pairSel = {};
+        const pair = pairFor(slot.lesson);
+        if (pair) pair.forEach((item) => { state.pairSel[item.time] = true; });
         render(true);
         return;
       }
@@ -1784,7 +1921,10 @@
       }
       if (slot.kind === 'available') {
         if (state.role === 'teacher') {
-          showToast('空闲时段由班长代学员预约');
+          state.target = { day, time };
+          state.drawer = 'teacher-free';
+          state.panel = null;
+          render(true);
           return;
         }
         state.target = { day, time };
@@ -1876,12 +2016,13 @@
         showToast('请选择要请假的课次');
         return;
       }
-      const eligibility = leaveEligibility(cells[0], cells.length);
+      const studentKey = state.role === 'parent' ? state.child : (cells[0].student || state.child);
+      const eligibility = leaveEligibility(cells[0], cells.length, studentKey);
       if (!eligibility.ok) {
         showToast(eligibility.reason);
         return;
       }
-      const applied = applyLeaveCells(cells, state.child);
+      const applied = applyLeaveCells(cells, studentKey);
       state.drawer = null;
       state.panel = null;
       state.leaveCells = [];
@@ -2024,7 +2165,7 @@
       state.drawer = null;
       state.panel = null;
       render(true);
-      showToast('整班已停课，TS 退回班级待排期池，已豁免学生课时与配额');
+      showToast('已暂停待排，TS 退回班级待排期池，已豁免学生课时与配额');
     }
 
     function copyRoom() {
@@ -2093,7 +2234,7 @@
      * ------------------------------------------------------------------ */
     function segment(group, options, current) {
       return `<div class="flex items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-100 p-0.5">
-        ${options.map((option) => `<button data-control="${group}" data-value="${option.value}" class="h-7 rounded-md px-2 text-[12px] font-semibold transition ${String(option.value) === String(current) ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">${option.label}</button>`).join('')}
+        ${options.map((option) => `<button data-control="${group}" data-value="${option.value}" class="h-7 rounded-md px-2 text-[12px] font-semibold transition ${String(option.value) === String(current) ? 'bg-white text-slate-900' : 'text-slate-500 hover:text-slate-700'}">${option.label}</button>`).join('')}
       </div>`;
     }
 
@@ -2245,6 +2386,9 @@
           render(true);
           break;
         case 'back-panel':
+          if (['teacher-report', 'teacher-free', 'channel-b'].includes(state.drawer)) {
+            state.drawer = null;
+          }
           state.panel = null;
           render(true);
           break;
@@ -2334,6 +2478,66 @@
         case 'mark-attendance':
           markAttendance(value);
           break;
+        case 'start-teacher-report': {
+          const source = state.lesson || state.target;
+          state.reportDay = source ? source.day : 0;
+          state.reportSel = {};
+          if (source) state.reportSel[source.time] = true;
+          state.drawer = 'teacher-report';
+          state.panel = null;
+          render(true);
+          scrollReportToSelected();
+          break;
+        }
+        case 'report-tag':
+          state.reportTag = actionEl.dataset.tag || 'power';
+          render(true);
+          break;
+        case 'submit-teacher-report': {
+          const day = state.reportDay != null ? state.reportDay : (state.lesson ? state.lesson.day : 0);
+          const times = Object.keys(state.reportSel).filter((time) => state.reportSel[time]);
+          if (!times.length) {
+            showToast('请至少勾选 1 个时段');
+            break;
+          }
+          times.forEach((time) => {
+            const slot = getSlot(day, time);
+            if (slot.kind === 'available' || slot.kind === 'rest') {
+              overrides[slotKey(state.week, day, time)] = { forced: 'leave' };
+            }
+          });
+          const count = times.length;
+          state.drawer = null;
+          state.panel = null;
+          state.reportDay = null;
+          state.reportSel = {};
+          render(true);
+          showToast(`已提交请假报备 · ${count} 节（排课格将生成代课待办包）`);
+          break;
+        }
+        case 'start-channel-b':
+          state.panel = 'channel-b';
+          render(true);
+          break;
+        case 'submit-channel-b': {
+          const reasonEl = document.getElementById('channelBReason');
+          const reason = (reasonEl ? reasonEl.value : '').trim();
+          if (reason.length < 10) {
+            showToast('请填写不少于 10 字的特批原因');
+            break;
+          }
+          state.drawer = null;
+          state.panel = null;
+          render(true);
+          showToast('已提交特批请假，TS 退回待排期并写入审计');
+          break;
+        }
+        case 'confirm-exception-backfill':
+          state.drawer = null;
+          state.panel = null;
+          render(true);
+          showToast('已确认异常未上课，回退补生 2 节待排期 TS');
+          break;
         case 'start-withdraw':
           state.panel = 'withdraw';
           render(true);
@@ -2385,6 +2589,12 @@
       const el = event.target;
       if (el.matches('[data-pair]')) {
         state.pairSel[el.dataset.pair] = el.checked;
+        return;
+      }
+      if (el.matches('[data-report-slot]')) {
+        state.reportSel[el.dataset.reportSlot] = el.checked;
+        render(true);
+        scrollReportToSelected();
         return;
       }
     });

@@ -27,8 +27,8 @@
 
 ### 2.1 正在解决的核心痛点
 - **痛点 1：内部备忘泄露给家长引发客诉 (IDOR)**：若仅仅在前端通过 CSS 或参数过滤内部留言，一旦接口被越权爬取，将直接导致教学内部争议曝光给家长。
-- **痛点 2：误发与选错标签缺乏补救机制**：匆忙录入时容易发生错别字或选错公开/内部标签，需要受控的短时撤回窗口。
-- **痛点 3：无状态/Serverless 架构下的定时器陷阱**：严禁在 Node.js 中使用裸 `setTimeout` 维持 300 秒倒计时，必须依托数据库时间戳进行原子判定。
+- **痛点 2：误发与信息过时缺乏自主纠错机制**：录入时容易发生打字错别字、选错可见性或后续信息过时，需要支持发布者本人随时永久自主撤回。
+- **痛点 3：权限判定原子性**：撤回必须严格基于当前操作者与作者本人（`author_account_id == current_account_id`）做原子匹配，防止越权撤回他人留言。
 
 ### 2.2 为什么必须现在解决？
 留言板是师生课后反馈的第一阵地，且直接关联学员档案的隐私合规红线。
@@ -43,11 +43,11 @@
    - 路由按工作台划分：`/parent/*`、`/teacher/*`、`/monitor/*`、`/admin/*`；
    - 家长端发帖强制锁定为 `public_teacher_student`；
    - 家长端查询时，SQL **硬编码过滤 `WHERE visibility = 'public_teacher_student'`**，绝对不透传内部留言。
-3. **300 秒原子撤回服务**：
-   - 依托 SQL `created_at > NOW() - INTERVAL '300 seconds'` 进行原子更新，无裸定时器；
-   - 超时后接口坚决抛出 `403 MESSAGE_REVOKE_WINDOW_EXPIRED`。
+3. **发布者永久原子撤回服务**：
+   - 依托 SQL `WHERE id = $1 AND author_account_id = $2 AND is_revoked = false` 进行原子更新，彻底废除 300 秒时限约束；
+   - 仅原作者可撤回本人留言，非原作者操作接口坚决抛出 `403 FORBIDDEN`。
 4. **管理员审计软删除**：必须附带操作原因，完整记录被删除留言快照至 `audit_logs`。
-5. **前端线性时间倒序流**：游标分页、倒计时友好提示（如 `撤回 (240s)`）。
+5. **前端线性时间倒序流**：游标分页、发布者专属 `[撤回]` 按钮。
 
 ### ❌ 本期明确不做 (Out of Scope)
 - 图片/视频附件直传。
@@ -82,7 +82,7 @@ flowchart TD
 
 ### 4.2 核心业务时序图 (Mermaid Sequence)
 
-#### 时序 1：300 秒原子撤回时序流 (Serverless 合规，无裸定时器)
+#### 时序 1：发布者永久原子撤回时序流 (无时限限制)
 
 ```mermaid
 sequenceDiagram
@@ -95,13 +95,13 @@ sequenceDiagram
 
     Author->>C: POST /parent/messages/:messageId/revoke (或 /teacher/messages/:id/revoke)
     C->>S: revokeMessage(accountId, messageId)
-    S->>M: revokeWithinWindow(messageId, accountId, 300)
-    Note over M,DB: UPDATE dream.profile_messages<br/>SET is_revoked = true, revoked_at = NOW(), updated_at = NOW()<br/>WHERE id = $1 AND author_account_id = $2<br/>AND deleted_at IS NULL AND is_revoked = false<br/>AND created_at > NOW() - INTERVAL '300 seconds'
+    S->>M: revokeMessage(messageId, accountId)
+    Note over M,DB: UPDATE dream.profile_messages<br/>SET is_revoked = true, revoked_at = NOW(), updated_at = NOW()<br/>WHERE id = $1 AND author_account_id = $2<br/>AND deleted_at IS NULL AND is_revoked = false
     
     DB-->>M: 返回受影响行数 affectedRows
-    alt affectedRows == 0 (超时或已被撤回或非本人)
-        S-->>C: 抛出 403 MESSAGE_REVOKE_WINDOW_EXPIRED
-        C-->>Author: 403 撤回时限已过，留言已锁定
+    alt affectedRows == 0 (非本人留言或已被撤回/删除)
+        S-->>C: 抛出 403 FORBIDDEN
+        C-->>Author: 403 操作失败：非本人留言或留言已不存在
     else affectedRows == 1 (撤回成功)
         S-->>C: 返回成功
         C-->>Author: 200 OK ({ data: { id, isRevoked: true } })
@@ -116,11 +116,11 @@ sequenceDiagram
 
 | Endpoint | 方法 | 权限角色 | 描述 | 请求 Schema | 响应格式 |
 |---|---|---|---|---|---|
-| `/parent/student-profiles/:id/messages` | GET | `user` (家长) | 家长查询孩子留言（**SQL 物理隔离公开评语**） | `?cursor=&limit=` | `200 { data: MessageDto[], meta: { nextCursor } }` |
+| `/parent/student-profiles/:id/messages` | GET | `user` (家长) | 家长查询孩子留言（**SQL 物理隔离公开留言**） | `?cursor=&limit=` | `200 { data: MessageDto[], meta: { nextCursor } }` |
 | `/parent/student-profiles/:id/messages` | POST | `user` (家长) | 家长发帖（**服务端强制覆盖为公开**） | `ParentMessageSchema` | `201 { data: MessageDto }` |
-| `/parent/messages/:id/revoke` | POST | `user` (家长) | 家长撤回本人留言（300秒内） | - | `200 { data: { success: true } }` |
+| `/parent/messages/:id/revoke` | POST | `user` (家长) | 家长撤回本人留言（随时永久有效） | - | `200 { data: { success: true } }` |
 | `/teacher/student-profiles/:id/messages`| GET / POST | `teacher` (教师) | 教师读写留言（支持选择公开或内部） | `StaffMessageSchema` | `200 / 201` |
-| `/teacher/messages/:id/revoke` | POST | `teacher` (教师) | 教师撤回本人留言（300秒内） | - | `200` |
+| `/teacher/messages/:id/revoke` | POST | `teacher` (教师) | 教师撤回本人留言（随时永久有效） | - | `200` |
 | `/monitor/student-profiles/:id/messages`| GET / POST | `monitor` (班长) | 班长读写留言 | `StaffMessageSchema` | `200 / 201` |
 | `/admin/student-profiles/:id/messages`  | GET / POST | `admin` (管理员) | 管理员读写全量留言 | `StaffMessageSchema` | `200 / 201` |
 | `/admin/messages/:id` | DELETE | `admin` (管理员) | 管理员终极软删除留言（写审计日志） | `AdminDeleteMessageSchema`| `200 { data: { success: true } }` |
@@ -154,8 +154,7 @@ export interface MessageDto {
   visibility: 'public_teacher_student' | 'internal_teaching_only';
   content: string;
   isRevoked: boolean;
-  canRevoke: boolean; // 服务端根据 created_at <= 300s 动态推导给发布者
-  remainingRevokeSeconds: number; // 剩余秒数
+  canRevoke: boolean; // 服务端根据 authorAccountId == currentAccountId && !isRevoked 动态推导给发布者
   createdAt: string;
 }
 ```
@@ -218,7 +217,7 @@ ON dream.audit_logs (target_entity, target_id);
 
 - **组件拓扑**：
   - `ProfileMessageBoard.vue`：留言流组件，根据工作台角色自动渲染权限单选钮；
-  - `MessageRevokeButton.vue`：倒计时撤回按钮，前端 `setInterval` 仅用于界面倒计时提示，**撤回成功与否以数据库真实时间为准**。
+  - `MessageRevokeButton.vue`：发布者撤回按钮（仅本人留言显示），轻触二次确认后调用撤回 API。
 - **样式规范**：100% Tailwind CSS，**严禁手写 CSS / `<style>` 块**。
 - **端侧缓存分级**：
   - **L4 绝对零离线 (NetworkOnly)**：留言发布与撤回强制在线。断网时禁止输入并提示。
@@ -229,8 +228,8 @@ ON dream.audit_logs (target_entity, target_id);
 
 | 风险描述 | 影响级别 | 发生概率 | 规避与缓解策略 |
 |---|---|---|---|
-| **内部评语越权透传给家长 (IDOR)** | 极高 | 低 | 家长路由对应的 Mapper 查询方法中硬编码 `WHERE visibility = 'public_teacher_student'`，绝对不给前端传参过滤的机会。 |
-| **客户端篡改系统时间绕过 300 秒撤回** | 中 | 低 | 撤回时限完全以数据库 `NOW() - INTERVAL '300 seconds'` 为准，杜绝任何客户端时间伪造。 |
+| **内部留言越权透传给家长 (IDOR)** | 极高 | 低 | 家长路由对应的 Mapper 查询方法中硬编码 `WHERE visibility = 'public_teacher_student'`，绝对不给前端传参过滤的机会。 |
+| **越权撤回他人留言** | 高 | 低 | 服务端在 SQL 撤回更新语句中强行绑定 `WHERE id = $1 AND author_account_id = $2`，非本人操作受影响行数必为 0，坚决抛出 403。 |
 | **高频灌水垃圾留言攻击** | 中 | 低 | Fastify 路由级限流（单账号每分钟最多发布 10 条留言）；字符数上限 1000 强校验。 |
 
 ---
@@ -240,9 +239,9 @@ ON dream.audit_logs (target_entity, target_id);
 | 阶段 | 交付任务 | 关键产出物 | 预估工时 |
 |---|---|---|---|
 | **Phase 1: 留言与审计表迁移** | DDL 与 Mapper 层实现 | 迁移脚本；`ProfileMessageMapper.ts` 与 `AuditLogMapper.ts` | 0.5 天 |
-| **Phase 2: 领域服务与撤回闭环** | `ProfileMessageService` 业务编排 | 物理隔离过滤、300秒原子撤回、审计日志入库；Jest 单元测试 | 1 天 |
+| **Phase 2: 领域服务与撤回闭环** | `ProfileMessageService` 业务编排 | 物理隔离过滤、永久原子撤回、审计日志入库；Jest 单元测试 | 1 天 |
 | **Phase 3: 路由与工作台挂载** | Fastify 路由、Zod 强校验 | 4 大工作台对应控制器；E2E 接口测试 | 0.5 天 |
-| **Phase 4: 前端流式组件与联调** | 留言板与倒计时撤回按钮 | `ProfileMessageBoard.vue`、双语国际化文案 | 1 天 |
+| **Phase 4: 前端流式组件与联调** | 留言板与撤回按钮操作 | `ProfileMessageBoard.vue`、双语国际化文案 | 1 天 |
 
 ---
 
@@ -254,5 +253,5 @@ ON dream.audit_logs (target_entity, target_id);
 | **实体 ID 规约** | 严禁自增与 36 位 UUID，必须使用 12 位 Short UUID | 所有新表主键均显式声明 `VARCHAR(12)`，由 `generateShortUuid()` 生成 | **通过** |
 | **Schema 规范** | 单 Schema `dream.` 统一收敛，所有 SQL 带显式前缀 | 表定义在 `dream.` 下，SQL 显式拼接前缀 | **通过** |
 | **防越权 (IDOR)** | 家长端绝对物理阻断内部留言 | SQL 层强行过滤 `visibility = 'public_teacher_student'` | **通过** |
-| **Serverless 合规** | 严禁业务逻辑中使用裸定时器 | 依托 SQL 时间戳进行原子撤回，无 `setTimeout` | **通过** |
+| **Serverless 合规** | 严禁业务逻辑中使用裸定时器 | 依托 SQL 原子更新 `author_account_id` 鉴权撤回，无 `setTimeout` | **通过** |
 | **样式与前端** | 100% Tailwind CSS，L4 强制在线 | 原子类控制布局，无手写样式，发帖操作严格 NetworkOnly | **通过** |
