@@ -372,3 +372,61 @@
 | **M5A 周转账单** | 二级页 | **班长周转账单** / `Weekly Transfer` | 可选展示周期如 `2026年第46周归集单` | 🔔 铃铛 (未读红点) |
 | **M5B 教师周结单** | 二级页 | **教师课酬结算** / `Weekly Settlement`| 教师端可选带英文对照节数说明 | 🔔 铃铛 (未读红点) |
 | **M1D 简易留言板** | 二级页 | **家校留言板** / `Student Notes` | 可选展示学员名如 `Alice 的学习备忘` | 🔔 铃铛 (未读红点) |
+
+---
+
+## 8. 待定事项与架构演进 (TODO & UI Architecture Backlog)
+
+### 8.1 按钮与筛选控件全站统一规范 (Button Hierarchy & Filter Controls Standard)
+
+- **痛点与治理目标**：
+  - 目前各页面中筛选控件形态割裂（存在胶囊分段条、带框小按钮、深浅混杂、实心高饱和与浅底描边混用等多种样式），造成界面认知混乱；
+  - 必须收敛建立**“4 级按钮体系 + 1 套标准筛选分段器”**的统一工程规范。
+
+#### 1. 按钮分级规范 (Button Hierarchy 4-Tier Standard)
+| 按钮级别 | 适用场景 | 标准 Tailwind 类名 | 视觉表现与交互规范 |
+| :--- | :--- | :--- | :--- |
+| **主要按钮 (Primary CTA)** | 表单最终提交、确认收款、确认排课、购课结案 | `bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-11 px-5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-all` | 全屏/弹窗内唯一焦点主按钮，高饱和稳重紫蓝，严禁单屏出现多个主按钮并列抢夺视觉。 |
+| **次要按钮 (Secondary Action)** | 取消、返回、修改草稿、查看修改日志、重置筛选 | `border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 rounded-xl h-11 px-4 font-medium text-[14px] active:bg-slate-100 transition-colors` | 白底深灰字，与主按钮平权并列，严禁使用弱对比灰字。 |
+| **破坏性按钮 (Danger / Destructive)** | 提前结课解散、作废单据、清退课次、拒绝退款 | `border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl h-11 px-4 font-semibold text-[14px]` 或确认终态时的 `bg-rose-600 text-white` | 浅红警示底配深红字，点击强二次确认，防止误触。 |
+| **文字链动作 (Text Link Action)** | 卡片页脚跳转、穿透查看详情、唤起教室直达 | `text-indigo-600 hover:text-indigo-700 font-medium text-[13px] inline-flex items-center gap-1 hover:underline` | 紧凑轻量，带箭头指示（如 `查看详情 →`、`进入 ClassIn →`），严禁使用大色块实心按钮挤占卡片高度。 |
+
+#### 2. 状态筛选分段器全站统一标准 (Segmented Filter Pills Standard)
+- **容器与布局规范**：
+  - 位于列表顶栏下方，高度严格固定为 **`h-9` (36px)**；
+  - 采用水平横向滚动弹性容器：`flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5`；
+  - 严禁在列表顶部堆叠多行筛选器，单行自适应滑动。
+- **胶囊样式两态收敛**：
+  - **默认未选中态 (Inactive Pill)**：
+    `bg-slate-100 hover:bg-slate-200/80 text-slate-600 font-medium text-[12px] px-3 py-1.5 rounded-full border-0 transition-colors cursor-pointer shrink-0`
+    （中性浅灰底，高对比深灰字，彻底废除带边框的小方盒样式）；
+  - **激活选中态 (Active Pill)**：
+    `bg-slate-900 text-white font-semibold text-[12px] px-3.5 py-1.5 rounded-full shadow-xs shrink-0`
+    （采用稳重大气的深色纯净胶囊，或者品牌紫蓝 `bg-indigo-600 text-white`，全站统一，严禁同个应用内混用）；
+  - **下拉筛选微触发器 (Filter Dropdown Trigger)**：
+    若涉及复合条件（如筛选教师、月份）：
+    `border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1 shrink-0`
+    （带 10px 向下小箭头 `▾`，激活过滤时边框高亮为 `border-indigo-500 text-indigo-700 bg-indigo-50/50`）。
+
+---
+
+### 8.2 页面容器与承载形式决策矩阵：弹窗 (Modal) 与独立详情页 (Dedicated Page) 权能边界
+
+- **痛点与治理目标**：
+  - 目前某些重度单据详情（如购课单、退款单、转账单、周结单）在部分实现中被错误塞入了居中弹窗（Modal），造成移动端视口内“盒中盒双滚动条”、信息严重挤压变形、无法直链分享、刷新丢失上下文及误触遮罩导致表单关闭；
+  - 必须对全系统所有交互场景实施**“独立全屏页 (Page) vs 底部滑出抽屉 (Drawer) vs 居中轻量弹窗 (Modal)”的三分法物理隔离**。
+
+#### 1. 交互容器承载形式决策矩阵 (Modal vs Drawer vs Page Matrix)
+
+| 场景类型 | 必须采用的容器形态 | 适用业务场景清单 | 设计红线与技术约束 |
+| :--- | :---: | :--- | :--- |
+| **单据详情与重度台账 (Documents & Ledgers)** | **独立全屏页**<br>`Dedicated Page`<br>(拥有独立路由) | • **M2A 购课单详情与课次拆解页** (`/orders/:id`)<br>• **M2B 退款单审批与资产清算流** (`/refunds/:id`)<br>• **M5A 班长周转账单双视角核算详情** (`/transfers/:id`)<br>• **M5B 教师周结单节数与薪酬对账详情** (`/settlements/:id`)<br>• **M1C 班级运营、排期总览与修改日志页** (`/classes/:id`)<br>• **M3D 沉浸式专用批量排课工作台** (`/scheduling/workbench`) | **严禁使用居中弹窗！**<br>• 必须拥有专属 URL 路由，支持浏览器前进/后退与深度链接直达；<br>• 顶栏常驻 `< 返回` 按钮；<br>• 单页自然竖向纵深流动，杜绝视口内盒中盒双重滚动条。 |
+| **高频日历单步操作 (Cell Operations)** | **底部滑出抽屉**<br>`Bottom Sheet Drawer`<br>(自底向上滑出) | • M3A 日历单元格点击交互（进教室、调课、请假、代办转让）<br>• 日历空闲格轻量约课（30/60min）<br>• 外教 1~12 节批量请假报备抽屉<br>• 班长/外教切换多师负荷抽屉 | • 高度自适应（最大不超过屏幕高度的 85%）；<br>• 顶部常驻浅灰拖动把手条（Drag Handle）；<br>• 就地秒级闭环，点击背景遮罩或下滑平滑关闭，视口保持在原日历网格位置。 |
+| **轻量确认与短输入 (Lightweight Modals)** | **居中紧凑弹窗**<br>`Center Modal`<br>(小巧卡片浮层) | • **破坏性操作二次确认**（提前结课解散承诺确认、作废单据确认）<br>• **极短字段单步录入**（管理员通道 B 特批急病请假原因录入框）<br>• **ClassIn 教室二维码/教室号扫码弹窗**<br>• **单张打款凭证大图灯箱预览** (`Lightbox`) | **严格白名单制，禁止塞入长列表！**<br>• 最大宽度严格限制在 340px ~ 360px；<br>• 单弹窗内容高度严禁超过首屏 60%，禁止弹窗内部产生滚动条；<br>• 包含清晰的标题、简短后果说明与【取消】/【确定】双按钮。 |
+
+#### 2. 单据详情页标准化布局规范 (Dedicated Document Page Layout)
+针对移出弹窗、转为独立页面的核心单据（购课单、退款单、转账单、周结单），统一遵循三段式页面骨架：
+1. **顶栏 (Header)**：`< 返回` 链接 + 页面真实标题（如 `购课单详情 · ord_xxx`）+ 右侧当前状态胶囊（如 `[已支付]`）；
+2. **上半区 (Summary Card)**：采用中性卡呈现核心金额/积分大数字、经办人、关联教师/学生/班级及凭证缩略图；
+3. **下半区 (Detail Ledger)**：全宽度展示 1~N 节 TS 课次拆分清单、状态标签、上课时间及审计变更时间轴；
+4. **底部常驻动作栏 (Sticky Footer Bar)**：仅在需要经办动作时吸底呈现（如【确认收款】、【提交转账单】、【驳回】），无动作时留白。
