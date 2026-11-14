@@ -110,6 +110,7 @@
 
 | 领域 | 权威规范文档 | 核心关注点与管辖范围 |
 | :--- | :--- | :--- |
+| **术语基准** | **[全局统一术语表 (docs/GLOSSARY.md)](./docs/GLOSSARY.md)** | 全站唯一标准中文词汇、英文 UI (`vue-i18n`) 对照、底层 DB 只读映射与禁用词约束 |
 | **视觉与交互** | **[UI 视觉与设计系统 (DESIGN.md)](./DESIGN.md)** | 工作台物理隔离、7 色日历 Design Tokens（浅底+深字+语义边框，代课双视角）、单屏 7 列 Excel 冻结网格、100% Tailwind CSS、PWA 4 级缓存策略、全站中英双语 (`vue-i18n`) |
 | **架构与编码** | **[工程与编码规范 (docs/CODING_STANDARDS.md)](./docs/CODING_STANDARDS.md)** | Monorepo 边界与依赖红线、Controller-Service-Mapper 三层架构与 DI 规范、PostgreSQL 单 Schema `dream` 与 12 位短 ID、REST API 契约与两道防线 Zod 校验、ApiError 英文诊断 + ErrorCode 双语拦截、S3 预签名直传、云原生 stdout 遥测与 TaskRelay 异步任务生命周期、生产构建混淆与 Docker 零安装 |
 | **业务与财务** | **[核心业务规则与财务分账规约 (docs/BUSINESS_RULES.md)](./docs/BUSINESS_RULES.md)** | 资金持有人锁定、财课分离与转让、账号与档案解耦、五大核心单据体系、尾差吸收算法、12.5% 请假配额与 3h 阶梯时间熔断矩阵、小班自负盈亏公式与班长预留盈余、固定位到期提前 7 天续费预排与预占 HOLD、异常未上课回退补生、双周结单、`dream-worker` 后台批处理调度边界、三级通知矩阵与留言板双权限 |

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Dream · 学生课表</title>
+  <title>Dream · 学员课表</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -86,8 +86,7 @@
       { day: 3, time: '18:00', teacher: 'david', student: 'bob', kind: 'subbing' },
       { day: 3, time: '19:00', teacher: 'david', student: 'alice', kind: 'sub', actual: 'elena' },
       { day: 5, time: '10:00', teacher: 'david', student: 'alice', kind: 'group', classId: 'ket1', dur: 2 },
-      { day: 6, time: '09:30', teacher: 'david', student: 'alice', kind: 'fixed', transfer: true },
-      { day: 4, time: '19:00', teacher: 'david', student: 'alice', kind: 'fixed', rescheduleCount: 1 },
+      { day: 6, time: '09:30', teacher: 'david', student: 'alice', kind: 'fixed' },
       { day: 0, time: '19:30', teacher: 'linda', student: 'bob', kind: 'fixed' },
       { day: 2, time: '18:30', teacher: 'linda', student: 'charlie', kind: 'fixed' },
       { day: 4, time: '18:00', teacher: 'linda', student: 'alice', kind: 'temp' },
@@ -125,22 +124,20 @@
       { value: 'parent', label: '家长 Alice' },
       { value: 'parent-sub', label: '家长代课' },
       { value: 'parent-consecutive', label: '连续两节' },
-      { value: 'fixed-leave-disabled', label: '固定位请假禁用' },
       { value: 'parent-free', label: '空闲约课' },
-      { value: 'parent-asset', label: '课时转让入口' },
-      { value: 'parent-slot-transfer', label: '课次转让' },
-      { value: 'leave-blocked', label: '请假 3~24h 置灰' },
-      { value: 'leave-exhausted', label: '配额用尽' },
-      { value: 'reschedule-blocked', label: '已挪位锁定' },
-      { value: 'group-emergency', label: '小班停电处置' },
-      { value: 'teacher-report', label: '教师请假报备' },
-      { value: 'admin-channel-b', label: '管理员通道 B' },
-      { value: 'teacher', label: '教师 David' },
+      { value: 'parent-asset', label: '课次资产' },
+      { value: 'leave-gentle', label: '不足3h温和请假' },
+      { value: 'group-emergency', label: '小班应急代课' },
+      { value: 'teacher-report', label: '老师请假报备' },
+      { value: 'change-student', label: '更换上课学员' },
+      { value: 'reschedule-conflict', label: '挪位撞课过滤' },
+      { value: 'teacher', label: '老师 David' },
       { value: 'monitor', label: '班长 David' },
       { value: 'monitor-load', label: '多师抽屉' },
       { value: 'monitor-sub', label: '代课委任' },
       { value: 'monitor-open-slot', label: '加开时段' },
       { value: 'admin', label: '管理员' },
+      { value: 'asset-clearing', label: '课次清退入口' },
       { value: 'booked', label: '排课回写' }
     ];
 
@@ -213,9 +210,9 @@
       pairSel: {},
       leaveCells: [],
       hours: 32,
-      quota: { alice: { used: 0, limit: 2 }, bob: { used: 1, limit: 1 } },
       bookDuration: 30,
       staffStudent: 'alice',
+      changeStudent: 'bob',
       subCandidate: 'elena',
       attendance: '',
       reportDay: null,
@@ -263,78 +260,22 @@
     function roundNo(offset = 0) { return 46 + state.roundOffset * 4 + offset; }
 
     /* ------------------------------------------------------------------
-     * 时限、配额与入口资格（只做 M3A 入口态，规则来源 M3B / M3C）
+     * 入口资格（只做课表入口态，规则来源考勤与请假模块）
      * ------------------------------------------------------------------ */
-    function hoursTier() {
-      if (state.hours < 3) return 'lt3';
-      if (state.hours < 24) return 'mid';
-      return 'ok';
-    }
-
-    function hoursTierLabel() {
-      if (state.hours < 3) return '<3h · 全端锁定';
-      if (state.hours < 24) return '3~24h · 请假置灰';
-      return '≥24h · 正常受理';
-    }
-
-    function quotaFor(studentKey = state.child) {
-      if (!state.quota[studentKey]) state.quota[studentKey] = { used: 0, limit: 2 };
-      return state.quota[studentKey];
-    }
-
-    function leaveEligibility(lesson, count = 1, studentKey = state.child) {
+    function leaveEligibility(lesson) {
       if (!lesson || !['fixed', 'temp', 'sub'].includes(lesson.kind)) return { visible: false, ok: false, reason: '' };
-      if (lesson.kind !== 'temp') {
-        return { visible: true, ok: false, tier: hoursTier(), quota: false, remain: null, reason: '固定位为 4 周契约，不支持请假；请使用【同师挪位】或【转让此课】' };
+      if (state.hours < 3) {
+        return { visible: true, ok: true, gentle: true, reason: '距开课不足 3 小时，老师可能已进入备课状态，确认后仍可请假' };
       }
-      const tier = hoursTier();
-      const quota = quotaFor(studentKey);
-      const remain = Math.max(0, quota.limit - quota.used);
-      if (tier === 'lt3') {
-        return { visible: true, ok: false, tier, quota: false, reason: '开课前 3 小时内进入授课准备保障期，禁止请假，缺席正常结课扣除课时' };
-      }
-      if (tier === 'mid') {
-        return { visible: true, ok: false, tier, quota: false, reason: '距开课不足 24h 不支持退课请假，请使用【同师挪位】或【转让此课】' };
-      }
-      if (remain <= 0) {
-        return { visible: true, ok: false, tier, quota: true, remain, reason: '请假配额已用完，仅支持同师挪位' };
-      }
-      if (count > remain) {
-        return { visible: true, ok: false, tier, quota: true, remain, reason: `本次需 ${count} 次请假配额，当前仅剩 ${remain} 次` };
-      }
-      return { visible: true, ok: true, tier, quota: true, remain, reason: `扣减 ${count} 次配额，TS 退回待排期，课格恢复空闲可约` };
+      return { visible: true, ok: true, gentle: false, reason: '请假后退回待排期，课格恢复为空闲可约' };
     }
 
     function rescheduleEligibility(lesson) {
       if (!lesson || !['fixed', 'temp', 'sub'].includes(lesson.kind)) return { visible: false, ok: false, reason: '' };
       if (state.hours < 3) {
-        return { visible: true, ok: false, reason: '开课前 3 小时内进入授课准备保障期，禁止挪位' };
+        return { visible: true, ok: true, gentle: true, reason: '距开课不足 3 小时，确认后仍可挪位；目标为原任老师的空闲绿格' };
       }
-      if ((lesson.rescheduleCount || 0) >= 1) {
-        return { visible: true, ok: false, reason: '本节课已挪位过 1 次' };
-      }
-      return {
-        visible: true,
-        ok: true,
-        reason: lesson.kind === 'temp'
-          ? '同师平移 · 原课次前后 7 天内 · 免扣配额'
-          : '同师平移 · 本轮 4 周内 · 免扣配额'
-      };
-    }
-
-    function transferEligibility(lesson) {
-      if (!lesson || lesson.kind !== 'fixed') return { visible: false, ok: false, reason: '' };
-      if (lesson.transfer) {
-        return { visible: true, ok: false, reason: '受让课次不可二次转让' };
-      }
-      if (state.hours < 3) {
-        return { visible: true, ok: false, reason: '开课前 3 小时锁定，禁止转让' };
-      }
-      return { visible: true, ok: true, reason: '带参进入 M3C 转让页 · 校验与转账由 M3C 承接' };
-    }
-
-    function tsIdFor(lesson, studentKey = state.child) {
-      return `ts_${STUDENTS[studentKey].id.replace('stu_', '')}_w${state.week + 1}_d${lesson.day}_${lesson.time.replace(':', '')}`;
+      return { visible: true, ok: true, gentle: false, reason: '同师挪位 · 目标为原任老师的空闲绿格' };
     }
 
     function lessonIdFor(lesson, studentKey = state.child) {
@@ -344,14 +285,6 @@
     function m3bExceptionUrl(lesson) {
       const role = state.role === 'admin' ? 'admin' : 'monitor';
       return `m3b_attendance_substitution.html?role=${role}&studentId=${STUDENTS[lesson.student].id}&lessonId=${lessonIdFor(lesson, lesson.student)}&panel=exception&from=calendar`;
-    }
-
-    function m3cSlotUrl(lesson, role = 'amy', studentKey = state.child) {
-      return `m3c_course_transfer.html?role=${role}&mode=slot&tsId=${tsIdFor(lesson, studentKey)}&studentId=${STUDENTS[studentKey].id}&from=calendar&week=${state.week}&day=${lesson.day}&time=${lesson.time}`;
-    }
-
-    function m3cAssetUrl(studentKey = state.child) {
-      return `m3c_course_transfer.html?role=amy&mode=ts&studentId=${STUDENTS[studentKey].id}&from=calendar`;
     }
 
     /* ------------------------------------------------------------------
@@ -515,13 +448,13 @@
 
     function renderBanner() {
       const meta = roleMeta();
-      let title = '学生课表';
+      let title = '学员课表';
       let subtitle = '';
       if (state.role === 'teacher') {
         title = '我的课表';
         subtitle = `${activeTeacher().name} · 本周 ${activeTeacher().load}/24 节`;
       } else if (state.role === 'monitor' || state.role === 'admin') {
-        title = '教师课表';
+        title = '老师课表';
         subtitle = `${activeTeacher().name} · 本周 ${activeTeacher().load}/24 节`;
       } else {
         const child = STUDENTS[state.child];
@@ -577,7 +510,7 @@
             ${icon('chevron-down', 'h-3.5 w-3.5 shrink-0 text-slate-500')}
           </button>
           <button data-action="open-asset" class="flex h-9 max-w-[176px] shrink-0 items-center gap-1 rounded-xl border border-indigo-100 bg-indigo-50 px-2 text-[12px] font-bold text-indigo-700 transition active:scale-[0.995]">
-            <span class="min-w-0 truncate">${esc(child.nick)} · 剩余: ${credits} 课时</span>
+            <span class="min-w-0 truncate">${esc(child.nick)} · 剩余 ${credits} 节</span>
             ${icon('chevron-down', 'h-3.5 w-3.5 shrink-0')}
           </button>
         </div>
@@ -753,17 +686,17 @@
       if (kind === 'group') {
         if (lesson.outage) {
           return `<span class="flex h-full w-full flex-col items-center justify-center gap-0.5 overflow-hidden leading-none">
-            <span class="max-w-full truncate rounded-sm bg-rose-600 px-0.5 text-[11px] font-bold leading-none text-white">[停]</span>
-            <span class="max-w-full truncate text-[11px] font-bold leading-none">停电停课</span>
-            <span class="max-w-full truncate text-[11px] font-medium leading-none">待补排</span>
+            <span class="max-w-full truncate rounded-sm bg-rose-600 px-0.5 text-[12px] font-bold leading-none text-white">[停]</span>
+            <span class="max-w-full truncate text-[12px] font-bold leading-none">停电停课</span>
+            <span class="max-w-full truncate text-[12px] font-medium leading-none">待补排</span>
           </span>`;
         }
         const cls = CLASSES[lesson.classId] || CLASSES.ket1;
         const subline = lesson.actual ? `代 ${teacherShort(lesson.actual)}` : `${cls.enrolled}/${cls.capacity}人`;
         return `<span class="flex h-full w-full flex-col items-center justify-center gap-0.5 overflow-hidden leading-none">
-          <span class="max-w-full truncate rounded-sm bg-teal-600 px-0.5 text-[11px] font-bold leading-none text-white">[G]</span>
-          <span class="max-w-full truncate text-[11px] font-bold leading-none">${esc(cls.code)}</span>
-          <span class="max-w-full truncate text-[11px] font-medium leading-none">${esc(subline)}</span>
+          <span class="max-w-full truncate rounded-sm bg-teal-600 px-0.5 text-[12px] font-bold leading-none text-white">[G]</span>
+          <span class="max-w-full truncate text-[12px] font-bold leading-none">${esc(cls.code)}</span>
+          <span class="max-w-full truncate text-[12px] font-medium leading-none">${esc(subline)}</span>
         </span>`;
       }
       if (kind === 'sub') {
@@ -779,33 +712,50 @@
       }
       if (kind === 'fixed' || kind === 'temp') {
         const text = parent ? teacherShort(lesson.teacher) : studentShort(lesson.student);
-        if (lesson.transfer) {
-          return `<span class="relative flex h-full w-full items-center justify-center overflow-hidden">
-            <span class="max-w-full truncate pr-2 text-center text-[11px] font-bold leading-none">${esc(text)}</span>
-            <span class="absolute right-0 top-0 rounded-sm bg-amber-200/80 px-0.5 text-[11px] font-bold leading-none text-amber-900">转</span>
-          </span>`;
-        }
-        return `<span class="block w-full truncate text-center text-[11px] font-bold leading-none">${esc(text)}</span>`;
+        return `<span class="block w-full truncate text-center text-[12px] font-bold leading-none">${esc(text)}</span>`;
       }
-      if (kind === 'leave') return '<span class="block text-center text-[11px] font-bold leading-none">假</span>';
-      if (kind === 'available') return '<span class="block text-center text-[11px] font-bold leading-none">约</span>';
-      return '<span class="block text-center text-[11px] font-bold leading-none">休</span>';
+      if (kind === 'leave') return '<span class="block text-center text-[12px] font-bold leading-none">假</span>';
+      if (kind === 'available') return '<span class="block text-center text-[12px] font-bold leading-none">约</span>';
+      return '<span class="block text-center text-[12px] font-bold leading-none">休</span>';
     }
 
     function stackedCell(text, badge, badgeClass) {
       return `<span class="flex h-full w-full flex-col items-center justify-center gap-0.5 overflow-hidden leading-none">
-        <span class="max-w-full truncate rounded-sm ${badgeClass} px-0.5 py-px text-[11px] font-bold leading-none text-white">${esc(badge)}</span>
-        <span class="max-w-full truncate text-[11px] font-bold leading-none">${esc(text)}</span>
+        <span class="max-w-full truncate rounded-sm ${badgeClass} px-0.5 py-px text-[12px] font-bold leading-none text-white">${esc(badge)}</span>
+        <span class="max-w-full truncate text-[12px] font-bold leading-none">${esc(text)}</span>
       </span>`;
+    }
+
+    function isRescheduleSourceSlot(day, time) {
+      const source = state.reschedule;
+      return !!source
+        && state.roundOffset === source.round
+        && state.week === source.week
+        && source.day === day
+        && source.times.includes(time);
+    }
+
+    function studentConflictAt(day, time, studentKey) {
+      if (!studentKey || isRescheduleSourceSlot(day, time)) return false;
+      const sourceTeacher = state.reschedule ? state.reschedule.teacher : null;
+      const otherTeacher = (item) => !sourceTeacher || item.teacher !== sourceTeacher;
+      const clash = slotLessons(day, time).some((item) => item.student === studentKey
+        && item.kind !== 'leave'
+        && item.kind !== 'rest'
+        && otherTeacher(item));
+      if (clash) return true;
+      const prev = prevTime(time);
+      if (!prev) return false;
+      return slotLessons(day, prev).some((item) => item.student === studentKey
+        && item.kind === 'group'
+        && (item.dur || 2) > 1
+        && otherTeacher(item));
     }
 
     function rescheduleTargetInfo(day, time) {
       const source = state.reschedule;
       if (!source) return null;
-      const isSource = state.roundOffset === source.round
-        && state.week === source.week
-        && source.day === day
-        && source.times.includes(time);
+      const isSource = isRescheduleSourceSlot(day, time);
       let inWindow = state.roundOffset === source.round;
       if (inWindow && source.kind === 'temp') {
         const srcDate = dateFor(source.round, source.week, source.day);
@@ -813,7 +763,8 @@
         const diff = Math.round((Date.parse(`${targetDate}T00:00:00Z`) - Date.parse(`${srcDate}T00:00:00Z`)) / 86400000);
         inWindow = Math.abs(diff) <= 7;
       }
-      return { isSource, inWindow };
+      const conflict = !isSource && studentConflictAt(day, time, source.student);
+      return { isSource, inWindow, conflict };
     }
 
     function renderGridCell(day, time) {
@@ -824,18 +775,21 @@
       const flash = state.flash && state.flashKeys.includes(slot.key);
       const target = rescheduleTargetInfo(day, time);
       const isSource = !!target && target.isSource;
-      const validTarget = !!target && !isSource && target.inWindow && kind === 'available';
-      const blockedTarget = !!target && !isSource && (!target.inWindow || kind !== 'available');
+      const conflict = !!target && target.conflict && kind === 'available';
+      const validTarget = !!target && !isSource && target.inWindow && !target.conflict && kind === 'available';
+      const blockedTarget = !!target && !isSource && (!target.inWindow || kind !== 'available' || conflict);
       const tokenKind = kind === 'group' && lesson.outage ? 'leave' : kind;
       const cls = `${TOKEN[tokenKind] || TOKEN.rest} ${flash ? 'ring-2 ring-inset ring-indigo-500 animate-pulse' : ''} ${isSource ? 'border-dashed ring-2 ring-inset ring-indigo-400' : ''} ${validTarget ? 'ring-1 ring-emerald-400 animate-pulse' : ''} ${blockedTarget ? 'opacity-40' : ''}`;
-      const label = kind === 'group'
+      const baseLabel = kind === 'group'
         ? `${dayLabel(day)} ${time} ${CLASSES[lesson.classId] ? CLASSES[lesson.classId].code : 'KET1'}`
         : `${dayLabel(day)} ${time} ${TYPE_NAME[kind] || ''}${isSource ? ' 原时段' : ''}`;
+      const label = `${baseLabel}${conflict ? ' 学员该时段已有其他课程' : ''}`;
       const height = isGroup ? 'h-[54px]' : 'h-[26px]';
       return `<td ${isGroup ? 'rowspan="2"' : ''} class="p-px align-middle">
         <button data-action="cell" data-day="${day}" data-time="${time}" aria-label="${esc(label)}" class="relative flex ${height} w-full min-w-0 items-center justify-center overflow-hidden rounded-md border px-0.5 font-bold leading-none transition active:scale-95 ${cls}">
           ${cellContent(kind, lesson)}
-          ${isSource ? '<span class="absolute right-0 top-0 rounded-sm bg-indigo-600 px-0.5 text-[11px] font-bold leading-none text-white">原</span>' : ''}
+          ${isSource ? '<span class="absolute right-0 top-0 rounded-sm bg-indigo-600 px-0.5 text-[12px] font-bold leading-none text-white">原</span>' : ''}
+          ${conflict ? '<span class="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-rose-600 ring-1 ring-white"></span>' : ''}
         </button>
       </td>`;
     }
@@ -868,6 +822,7 @@
         <span class="min-w-0">
           <span class="block truncate text-[12px] font-bold text-emerald-800">同师挪位 · ${esc(teacherName(source.teacher))} · ${windowText}</span>
           <span class="mt-0.5 block truncate text-[12px] font-medium text-emerald-700">原课 ${dayLabel(source.day)} ${source.times[0]} 已标 [原]，请点击同师绿色空闲格</span>
+          <span class="mt-0.5 block truncate text-[12px] font-medium text-emerald-700">已自动排除学员与其他老师的时间冲突</span>
         </span>
         <button data-action="cancel-reschedule" class="shrink-0 rounded-lg border border-emerald-200 bg-white px-2 py-1 text-[12px] font-semibold text-emerald-800">取消</button>
       </div>`;
@@ -880,7 +835,7 @@
       if (state.role === 'parent') {
         return [
           { icon: 'home', label: '首页', href: 'm0_workspace_home.html?role=user' },
-          { icon: 'calendar-days', label: '学生课表', active: true },
+          { icon: 'calendar-days', label: '学员课表', active: true },
           { icon: 'plus-circle', label: '约课大厅', href: 'm1c_classes.html' },
           { icon: 'user', label: '我的', href: 'm0_workspace_home.html?role=user&view=me' }
         ];
@@ -939,7 +894,6 @@
       else if (state.drawer === 'staff-rest') content = renderRestSheet();
       else if (state.drawer === 'teacher-free') content = renderTeacherFreeSheet();
       else if (state.drawer === 'teacher-report') content = renderTeacherReportPanel();
-      else if (state.drawer === 'channel-b') content = renderChannelBPanel();
       else content = '';
 
       return `<div class="absolute inset-0 z-50">
@@ -966,7 +920,7 @@
     }
 
     function renderChildrenSheet() {
-      return `${sheetHeader('切换孩子', '课表以孩子为中心，聚合全周所有外教课程')}
+      return `${sheetHeader('切换孩子', '课表以孩子为中心，聚合全周所有老师课程')}
         <div class="space-y-2">
           ${['alice', 'bob'].map((key) => {
             const child = STUDENTS[key];
@@ -982,7 +936,7 @@
               </span>
               <span class="shrink-0 text-right">
                 <span class="block text-[16px] font-bold text-indigo-700">${state.credits[key]}</span>
-                <span class="block text-[12px] font-medium text-slate-600">剩余课时</span>
+                <span class="block text-[12px] font-medium text-slate-600">剩余课次</span>
               </span>
               ${active ? `<span class="shrink-0 text-indigo-600">${icon('check-circle-2', 'h-4 w-4')}</span>` : ''}
             </button>`;
@@ -991,8 +945,8 @@
     }
 
     function renderTeachersSheet() {
-      const subtitle = state.role === 'admin' ? '平台调度 · 3 位外教 · 负荷实时同步' : '本团队 3 位外教 · 负荷实时同步';
-      return `${sheetHeader('切换外教', subtitle)}
+      const subtitle = state.role === 'admin' ? '平台调度 · 3 位老师 · 负荷实时同步' : '本团队 3 位老师 · 负荷实时同步';
+      return `${sheetHeader('切换老师', subtitle)}
         <div class="space-y-2">
           ${['david', 'linda', 'nina'].map((key) => {
             const teacher = TEACHERS[key];
@@ -1020,11 +974,13 @@
 
     function renderAssetSheet() {
       const child = STUDENTS[state.child];
-      const credits = state.credits[state.child];
-      return `${sheetHeader('课时资产', `${child.nick} · 自由课时与待上课程`)}
+      const credits = state.credits[state.child] ?? child.credits;
+      const canClear = state.role === 'monitor' || state.role === 'admin';
+      const roleParam = state.role === 'admin' ? 'admin' : 'monitor';
+      return `${sheetHeader('课次资产', `${child.nick} · 待排期课次与待上课程`)}
         <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 text-center">
-          <div class="text-[12px] font-semibold text-slate-600">剩余自由课时</div>
-          <div class="mt-1 text-[18px] font-bold text-slate-900">${credits} <span class="text-[14px] font-semibold text-slate-700">课时</span></div>
+          <div class="text-[12px] font-semibold text-slate-600">剩余待排期课次</div>
+          <div class="mt-1 text-[18px] font-bold text-slate-900">${credits} <span class="text-[14px] font-semibold text-slate-700">节</span></div>
         </div>
         <div class="mt-2 grid grid-cols-2 gap-2">
           <div class="rounded-xl border border-slate-200 bg-white p-2.5">
@@ -1036,11 +992,17 @@
             <div class="mt-0.5 text-[16px] font-bold text-slate-900">2 节</div>
           </div>
         </div>
-        <div class="mt-3 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
-          <div class="text-[14px] font-bold text-slate-900">课时转让 / 赠送好友</div>
-          <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">仅转让账户内未排课的自由 TS 课时；接收方核验、划转与审计全部由 M3C 承接，本页不扣减课时。</p>
-          <a id="assetTransferEntry" href="${m3cAssetUrl()}" class="mt-2.5 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">${icon('repeat-2', 'h-4 w-4')}课时转让</a>
-        </div>`;
+        ${canClear
+          ? `<div class="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3">
+              <div class="text-[14px] font-bold text-rose-800">课次清退 / 扣减</div>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-rose-700">扣减剩余待排期课次并记录财务备注；线下退费由经办人与家长自行结清。</p>
+              <a id="assetClearingEntry" href="m2b_refund_orders.html?role=${roleParam}&student=${esc(child.id)}" class="mt-2.5 flex h-11 w-full items-center justify-center gap-1 rounded-xl border border-rose-200 bg-white text-[14px] font-bold text-rose-700 transition hover:bg-rose-100">${icon('receipt-text', 'h-4 w-4')}课次清退/扣减</a>
+            </div>`
+          : `<div class="mt-3 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+              <div class="text-[14px] font-bold text-slate-900">待排期课次</div>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">待排期课次可直接用于临时约课；如需调整已购课次，请联系负责班长处理。</p>
+            </div>`}
+        ${backRow()}`;
     }
 
     /* ------------------------------------------------------------------
@@ -1077,7 +1039,7 @@
       const items = pair || [];
       if (!items.length) return { ok: false, reason: '请至少勾选 1 节' };
       if (items.some((item) => item.kind !== 'temp')) {
-        return { ok: false, reason: '固定位为 4 周契约，不支持请假；请使用【同师挪位】或【转让此课】' };
+        return { ok: false, reason: '固定位为 4 周契约，连续两节仅支持合并挪位' };
       }
       const check = leaveEligibility(items[0], items.length, studentKey);
       return { ok: check.ok, reason: check.reason };
@@ -1086,9 +1048,8 @@
     function pairRescheduleEligibility(pair) {
       const items = pair || [];
       if (!items.length) return { ok: false, reason: '请至少勾选 1 节' };
-      if (state.hours < 3) return { ok: false, reason: '开课前 3 小时内进入授课准备保障期，禁止挪位' };
-      if (items.some((item) => (item.rescheduleCount || 0) >= 1)) return { ok: false, reason: '所选课次中存在已挪位过 1 节的课程' };
-      return { ok: true, reason: '两节同师平移，免扣配额' };
+      if (state.hours < 3) return { ok: true, gentle: true, reason: '距开课不足 3 小时，确认后仍可合并挪位' };
+      return { ok: true, reason: '两节同师挪位 · 目标为原任老师的空闲绿格' };
     }
 
     function renderPairBox(pair, staff = false) {
@@ -1110,13 +1071,13 @@
         </div>
         <div class="mt-2 ${canMergeLeave ? 'grid grid-cols-2 gap-2' : ''}">
           ${canMergeLeave ? `<button data-action="pair-leave" ${leave.ok ? '' : 'disabled'} class="flex h-10 items-center justify-center gap-1 rounded-lg text-[14px] font-bold transition ${leave.ok ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">${icon('calendar-x', 'h-4 w-4')}${prefix}合并请假 (2节)</button>` : ''}
-          <button data-action="pair-reschedule" ${move.ok ? '' : 'disabled'} class="flex h-10 items-center justify-center gap-1 rounded-lg border text-[14px] font-semibold transition ${move.ok ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500'} ${canMergeLeave ? '' : 'w-full'}">${icon('move-right', 'h-4 w-4')}${prefix}合并调课 (2节)</button>
+          <button data-action="pair-reschedule" ${move.ok ? '' : 'disabled'} class="flex h-10 items-center justify-center gap-1 rounded-lg border text-[14px] font-semibold transition ${move.ok ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500'} ${canMergeLeave ? '' : 'w-full'}">${icon('move-right', 'h-4 w-4')}${prefix}合并挪位 (2节)</button>
         </div>
         ${staff ? `<button data-action="confirm-exception-backfill" class="mt-2 flex h-10 w-full items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 text-[12px] font-bold text-rose-700 transition hover:bg-rose-100">${icon('triangle-alert', 'h-4 w-4')}确认异常未上课回退补生 (2节)</button>` : ''}
         ${canMergeLeave && !leave.ok ? `<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-rose-700">合并请假不可用：${esc(leave.reason)}</p>` : ''}
-        ${!canMergeLeave ? `<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-600">固定位为 4 周契约，连续两节仅支持合并调课。</p>` : ''}
-        ${!move.ok ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">合并调课不可用：${esc(move.reason)}</p>` : ''}
-        ${staff ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">异常回退仅适用于连续 2 节外教缺席旷课；提交后一次性补生 2 节待排期 TS。</p>` : ''}
+        ${!canMergeLeave ? `<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-600">固定位为 4 周契约，连续两节仅支持合并挪位。</p>` : ''}
+        ${!move.ok ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">合并挪位不可用：${esc(move.reason)}</p>` : ''}
+        ${staff ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">异常回退仅适用于连续 2 节老师缺席旷课；提交后一次性补生 2 节待排期 TS。</p>` : ''}
       </div>`;
     }
 
@@ -1127,8 +1088,6 @@
         <div class="flex items-center justify-between gap-2">
           <span class="flex items-center gap-1">
             <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${TYPE_NAME[lesson.kind] || '课次'}</span>
-            ${lesson.transfer ? `<span class="rounded bg-amber-200/80 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">[转] 受让课次</span>` : ''}
-            ${(lesson.rescheduleCount || 0) >= 1 ? `<span class="rounded bg-slate-200 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">已挪位 1 次</span>` : ''}
           </span>
           <span class="text-[12px] font-medium text-slate-600">第 ${state.week + 1} 周 · ${fmtDot(lessonDate(state.week, lesson.day))}</span>
         </div>
@@ -1139,20 +1098,20 @@
               <span class="text-slate-300">·</span>
               <span>${cls.enrolled}/${cls.capacity} 人</span>
               <span class="text-slate-300">·</span>
-              <span>授课外教 ${esc(teacherName(cls.teacher))}</span>
+              <span>授课老师 ${esc(teacherName(cls.teacher))}</span>
             </div>`
           : lesson.kind === 'sub'
             ? `<div class="mt-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-2">
                 <div class="flex items-center justify-between gap-2 text-[12px]">
-                  <span class="font-medium text-slate-600">原任外教</span>
+                  <span class="font-medium text-slate-600">原任老师</span>
                   <span class="font-bold text-slate-900">${esc(teacherName(lesson.teacher))}</span>
                 </div>
                 <div class="mt-1 flex items-center justify-between gap-2 text-[12px]">
-                  <span class="font-medium text-slate-600">代课外教</span>
+                  <span class="font-medium text-slate-600">代课老师</span>
                   <span class="font-bold text-slate-900">${esc(teacherName(lesson.actual))}</span>
                 </div>
               </div>`
-            : `<div class="mt-1 text-[12px] font-medium text-slate-600">任课外教 ${esc(teacherName(lesson.teacher))} · 30 分钟</div>`}
+            : `<div class="mt-1 text-[12px] font-medium text-slate-600">任课老师 ${esc(teacherName(lesson.teacher))} · 30 分钟</div>`}
       </div>`;
     }
 
@@ -1173,7 +1132,7 @@
     function renderCoursewareRow() {
       return `<a href="m1e_courseware.html" class="mt-2 flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 transition hover:bg-slate-100">
         <span class="min-w-0">
-          <span class="block text-[12px] font-medium text-slate-600">教材进度</span>
+          <span class="block text-[12px] font-medium text-slate-600">课件进度</span>
           <span class="mt-0.5 block truncate text-[14px] font-semibold text-slate-900">Oxford Discover 2 · Unit 3</span>
         </span>
         <span class="flex shrink-0 items-center gap-0.5 rounded-lg bg-indigo-50 px-2 py-1 text-[12px] font-bold text-indigo-700">查看课件${icon('chevron-right', 'h-3.5 w-3.5')}</span>
@@ -1194,29 +1153,14 @@
 
     function parentLeaveAction(lesson) {
       const leave = leaveEligibility(lesson);
-      const locked = !leave.ok;
-      return `<button data-action="start-leave" class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${locked ? 'cursor-not-allowed border-slate-200 bg-slate-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${locked ? 'bg-slate-100 text-slate-500' : 'bg-slate-100 text-slate-700'}">${icon('calendar-x', 'h-4 w-4')}</span>
+      return `<button data-action="start-leave" class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50">
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700">${icon('calendar-x', 'h-4 w-4')}</span>
         <span class="min-w-0 flex-1">
-          <span class="block text-[14px] font-bold ${locked ? 'text-slate-500' : 'text-slate-900'}">请假登记</span>
-          <span class="mt-0.5 block text-[12px] font-medium leading-snug ${locked ? 'text-rose-600' : 'text-slate-600'}">${esc(leave.reason)}</span>
-        </span>
-        ${locked ? icon('lock', 'h-4 w-4 shrink-0 text-slate-500') : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
-      </button>`;
-    }
-
-    function renderTransferEntry(lesson, role = 'amy', studentKey = state.child) {
-      const entry = transferEligibility(lesson);
-      if (!entry.visible) return '';
-      if (!entry.ok) return parentActionRow('noop', 'repeat-2', '转让此课', entry.reason, true);
-      return `<a id="slotTransferEntry" href="${m3cSlotUrl(lesson, role, studentKey)}" class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50">
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700">${icon('repeat-2', 'h-4 w-4')}</span>
-        <span class="min-w-0 flex-1">
-          <span class="block text-[14px] font-bold text-slate-900">转让此课</span>
-          <span class="mt-0.5 block text-[12px] font-medium leading-snug text-slate-600">${esc(entry.reason)}</span>
+          <span class="block text-[14px] font-bold text-slate-900">请假登记</span>
+          <span class="mt-0.5 block text-[12px] font-medium leading-snug text-slate-600">${esc(leave.reason)}</span>
         </span>
         ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
-      </a>`;
+      </button>`;
     }
 
     function renderParentActions(lesson) {
@@ -1224,12 +1168,11 @@
       return `<div class="mt-2.5 space-y-2">
         ${parentLeaveAction(lesson)}
         ${parentActionRow('start-reschedule', 'move-right', '同师挪位', move.reason, !move.ok)}
-        ${renderTransferEntry(lesson)}
         <a href="m1e_courseware.html" class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50">
           <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700">${icon('message-square-text', 'h-4 w-4')}</span>
           <span class="min-w-0 flex-1">
             <span class="block text-[14px] font-bold text-slate-900">查看课前课后反馈</span>
-            <span class="mt-0.5 block text-[12px] font-medium leading-snug text-slate-600">外教留言与课后作业</span>
+            <span class="mt-0.5 block text-[12px] font-medium leading-snug text-slate-600">老师留言与课后作业</span>
           </span>
           ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
         </a>
@@ -1244,47 +1187,21 @@
       const cells = leaveCellsNow();
       const first = cells[0];
       if (!first) return '';
-      const studentKey = state.role === 'parent' ? state.child : (first.student || state.child);
-      const quota = quotaFor(studentKey);
-      const remain = Math.max(0, quota.limit - quota.used);
       const count = cells.length;
-      const eligibility = leaveEligibility(first, count, studentKey);
-      const isTemp = first.kind === 'temp';
-      const move = rescheduleEligibility(first);
-      const transfer = transferEligibility(first);
+      const eligibility = leaveEligibility(first);
+      const gentle = !!eligibility.gentle;
       return `${sheetHeader('请假登记', `${slotLabel(first.day, first.time, count)} · 共 ${count} 节`)}
-        <div class="rounded-xl border border-amber-300 bg-amber-50 p-3">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-[14px] font-bold text-amber-900">已用 ${quota.used} / 上限 ${quota.limit} · 剩余 ${remain} 次</span>
-            <span class="rounded bg-white px-1.5 py-0.5 text-[12px] font-semibold text-amber-900">12.5% 配额</span>
-          </div>
-          <div class="mt-1.5 grid grid-cols-3 gap-1">
-            <span class="rounded bg-white px-1.5 py-1 text-center text-[12px] font-semibold text-amber-900">已用 ${quota.used}</span>
-            <span class="rounded bg-white px-1.5 py-1 text-center text-[12px] font-semibold text-amber-900">上限 ${quota.limit}</span>
-            <span class="rounded bg-white px-1.5 py-1 text-center text-[12px] font-semibold text-amber-900">剩余 ${remain}</span>
-          </div>
-          <p class="mt-1.5 text-[12px] font-semibold text-amber-900">当前档位：${hoursTierLabel()}</p>
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+          <div class="text-[14px] font-bold text-slate-900">请假即释放已排时段</div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">本节课退回待排期池，可重新选择时段；确认后课格恢复为空闲可约。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">${first.kind === 'fixed'
+            ? '固定位为 4 周契约，单节请假仍可用；连续两节仅支持合并挪位。'
+            : '临时课与代课课次均可直接请假退期待排。'}</p>
         </div>
-        <div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
-          <p class="text-[12px] font-semibold text-slate-800">请假范围：仅本次（临时课不跨周）</p>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">固定位：4 周契约，不支持请假；仅可使用【同师挪位】或【转让此课】。</p>
-          <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">临时课：≥24h 且配额充足可请假，扣 1 次配额，TS 退回待排期，课格恢复空闲可约；3~24h 不可请假；&lt;3h 全锁。</p>
+        <div class="mt-2 rounded-xl border px-3 py-2 ${gentle ? 'border-amber-300 bg-amber-50' : 'border-slate-200/80 bg-slate-50/70'}">
+          <p class="text-[12px] font-semibold leading-relaxed ${gentle ? 'text-amber-900' : 'text-slate-700'}">${esc(eligibility.reason)}</p>
         </div>
-        ${isTemp
-          ? `<div class="mt-2 rounded-xl border ${eligibility.ok ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50'} px-3 py-2">
-              <p class="text-[12px] font-semibold leading-relaxed ${eligibility.ok ? 'text-slate-700' : 'text-rose-700'}">${esc(eligibility.reason)}</p>
-              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">临时课请假后 TS 回到待排期池，需另行选择时段重排。</p>
-            </div>
-            <button data-action="confirm-leave" ${eligibility.ok ? '' : 'disabled'} class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl text-[16px] font-bold transition ${eligibility.ok ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">${icon(eligibility.ok ? 'check' : 'lock', 'h-4 w-4')}确认请假</button>`
-          : `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3">
-              <div class="flex items-center gap-1.5 text-[14px] font-bold text-rose-800">${icon('lock', 'h-4 w-4')}固定位不可请假</div>
-              <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">固定位为 4 周契约，不支持请假，也不支持跨周批量请假；请使用【同师挪位】或【转让此课】调整。</p>
-              <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-600">固定位异常（出勤/撤排/异常回退）由班长或管理员在【异常处理】中处置。</p>
-            </div>
-            <div class="mt-2 space-y-2">
-              ${parentActionRow('start-reschedule', 'move-right', '同师挪位', move.reason, !move.ok)}
-              ${transfer.visible ? renderTransferEntry(first) : ''}
-            </div>`}
+        <button data-action="confirm-leave" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">${icon('check', 'h-4 w-4')}确认请假</button>
         ${backRow()}`;
     }
 
@@ -1303,7 +1220,7 @@
       const next = nextTime(slot.time);
       if (!next || toMin(next) >= GRID_END) return { ok: false, reason: '后半小时超出可约时间' };
       if (getSlot(slot.day, next).kind !== 'available') return { ok: false, reason: '后半小时已被占用' };
-      if (state.role === 'parent' && state.credits[state.child] < 2) return { ok: false, reason: '剩余课时不足 2 节' };
+      if (state.role === 'parent' && state.credits[state.child] < 2) return { ok: false, reason: '剩余课次不足 2 节' };
       return { ok: true, reason: '' };
     }
 
@@ -1318,11 +1235,11 @@
       return `${sheetHeader(staff ? '代学员约课' : '临时预约', slotLabel(slot.day, slot.time, duration === 60 ? 2 : 1))}
         <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
           <div class="flex items-center justify-between gap-2">
-            <span class="text-[12px] font-medium text-slate-600">授课外教</span>
+            <span class="text-[12px] font-medium text-slate-600">授课老师</span>
             <span class="text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
           </div>
           <div class="mt-1 flex items-center justify-between gap-2">
-            <span class="text-[12px] font-medium text-slate-600">上课时间</span>
+            <span class="text-[12px] font-medium text-slate-600">上课安排</span>
             <span class="text-[14px] font-bold text-slate-900">${esc(slotLabel(slot.day, slot.time, duration === 60 ? 2 : 1))}</span>
           </div>
         </div>
@@ -1330,15 +1247,15 @@
         <div class="mt-3 grid grid-cols-2 gap-2">
           <button data-action="set-duration" data-value="30" class="rounded-xl border p-2.5 text-left transition ${duration === 30 ? 'border-indigo-300 bg-indigo-50 ring-1 ring-indigo-100' : 'border-slate-200 bg-white'}">
             <span class="block text-[14px] font-bold text-slate-900">30 分钟</span>
-            <span class="mt-0.5 block text-[12px] font-medium text-slate-600">1 节课时</span>
+            <span class="mt-0.5 block text-[12px] font-medium text-slate-600">1 节课</span>
           </button>
           <button data-action="set-duration" data-value="60" ${sixty.ok ? '' : 'disabled'} class="rounded-xl border p-2.5 text-left transition ${duration === 60 ? 'border-indigo-300 bg-indigo-50 ring-1 ring-indigo-100' : 'border-slate-200 bg-white'} ${sixty.ok ? '' : 'cursor-not-allowed opacity-60'}">
             <span class="block text-[14px] font-bold text-slate-900">60 分钟</span>
-            <span class="mt-0.5 block text-[12px] font-medium text-slate-600">连约 2 节课时</span>
+            <span class="mt-0.5 block text-[12px] font-medium text-slate-600">连约 2 节课</span>
           </button>
         </div>
         ${!sixty.ok ? `<p class="mt-1.5 text-[12px] font-medium text-slate-500">60 分钟不可选：${esc(sixty.reason)}</p>` : ''}
-        ${state.role === 'parent' ? `<p class="mt-2 text-[12px] font-medium text-slate-600">确认后扣减 ${duration === 60 ? 2 : 1} 节课时，剩余 ${state.credits[state.child] - (duration === 60 ? 2 : 1)} 节</p>` : ''}
+        ${state.role === 'parent' ? `<p class="mt-2 text-[12px] font-medium text-slate-600">确认后扣减 ${duration === 60 ? 2 : 1} 节课，剩余 ${state.credits[state.child] - (duration === 60 ? 2 : 1)} 节</p>` : ''}
         <button data-action="confirm-book" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">${icon('calendar-check', 'h-4 w-4')}确认预约</button>
         ${canProxy ? `<button data-action="confirm-lock-slot" class="mt-2 flex h-10 w-full items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50">${icon('lock', 'h-4 w-4')}锁定时段 / 设为不可约</button>` : ''}`;
     }
@@ -1356,14 +1273,14 @@
     }
 
     /* ------------------------------------------------------------------
-     * 教师 / 班长课次抽屉
+     * 老师 / 班长课次抽屉
      * ------------------------------------------------------------------ */
     function renderStaffLessonSheet() {
       if (state.panel === 'sub') return renderSubPanel();
       if (state.panel === 'attendance') return renderAttendancePanel();
       if (state.panel === 'withdraw') return renderWithdrawPanel();
       if (state.panel === 'proxy') return renderProxyPanel();
-      if (state.panel === 'channel-b') return renderChannelBPanel();
+      if (state.panel === 'change-student') return renderChangeStudentPanel();
       const lesson = state.lesson;
       if (!lesson) return '';
       const isGroup = lesson.kind === 'group';
@@ -1380,7 +1297,10 @@
             <span class="block truncate text-[14px] font-semibold text-slate-900">${esc(student.name)}</span>
             <span class="block text-[12px] font-medium text-slate-600">${student.age} 岁 · ${esc(student.label)}</span>
           </span>
-          <a href="m1a_student_profile.html" class="shrink-0 text-[12px] font-semibold text-indigo-600">学员档案</a>
+          <span class="flex shrink-0 items-center gap-2">
+            ${state.role === 'teacher' ? '' : `<button data-action="open-asset" class="text-[12px] font-semibold text-slate-700">课次资产</button>`}
+            <a href="m1a_student_profile.html" class="text-[12px] font-semibold text-indigo-600">学员档案</a>
+          </span>
         </div>`}`;
     }
 
@@ -1401,7 +1321,7 @@
         <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700">${icon('triangle-alert', 'h-4 w-4')}</span>
         <span class="min-w-0 flex-1">
           <span class="block truncate text-[14px] font-bold text-slate-900">异常处理</span>
-          <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">出勤/旷课/撤排/同师挪位 · 固定位无请假选项</span>
+          <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">出勤 / 旷课 / 撤排 / 异常回退</span>
         </span>
         ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
       </a>`;
@@ -1410,27 +1330,18 @@
     function renderStaffActions(lesson) {
       if (state.role === 'teacher') {
         return `<div class="mt-2.5 space-y-2">
-          ${actionRow('start-attendance', 'clipboard-check', '考勤打卡', '正常出勤 / 学员旷课 / 外教旷课', '')}
+          ${actionRow('start-attendance', 'clipboard-check', '考勤打卡', '正常出勤 / 学员旷课 / 老师旷课', '')}
           ${actionRow('start-teacher-report', 'calendar-x', '申请请假 / 突发状况报备', '当天时段多选 · 1~12 节 · 不可抗力分类', '')}
         </div>`;
       }
-      const transfer = transferEligibility(lesson);
+      const canChangeStudent = ['fixed', 'temp', 'sub'].includes(lesson.kind);
       return `<div class="mt-2.5 space-y-2">
         ${actionRow('start-sub', 'user-check', '代课委任', '选择 Elena / Linda / Nina 代课', '')}
         ${actionRow('start-attendance', 'clipboard-check', '考勤打卡', '记录本节出勤情况', '')}
+        ${canChangeStudent ? actionRow('start-change-student', 'arrow-left-right', '更换实际上课学员', '原购课单出资人与资金归属保持不变', '') : ''}
         ${renderStaffExceptionEntry(lesson)}
-        ${state.role === 'admin' && lesson.kind === 'temp' && state.hours < 3 ? actionRow('start-channel-b', 'shield-alert', '通道 B：非常规特批急病请假', '突破时限与配额 · 必填 ≥10 字原因', 'danger') : ''}
-        ${actionRow('start-proxy', 'user-cog', '代学员请假 / 调课', '按 M3B 校验配额、时限与同师窗口', '')}
-        ${actionRow('start-withdraw', 'undo-2', '撤排 / 退回课时', '释放时段并退回 1 节课时', 'danger')}
-        ${transfer.visible
-          ? (transfer.ok
-            ? `<a id="staffTransferEntry" href="${m3cSlotUrl(lesson, 'leo', lesson.student)}" class="flex h-12 w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 text-left transition hover:bg-slate-50">
-                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700">${icon('repeat-2', 'h-4 w-4')}</span>
-                <span class="min-w-0 flex-1"><span class="block truncate text-[14px] font-bold text-slate-900">代办转让</span><span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">带参进入 M3C（role=leo）</span></span>
-                ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
-              </a>`
-            : actionRow('noop', 'repeat-2', '代办转让', transfer.reason, '', true))
-          : ''}
+        ${actionRow('start-proxy', 'user-cog', '代学员请假 / 挪位', '请假退期待排 · 同师挪位 · 开课前不足 3 小时仅温和提示', '')}
+        ${actionRow('start-withdraw', 'undo-2', '撤排 / 退回课次', '释放时段并退回 1 节课', 'danger')}
       </div>`;
     }
 
@@ -1449,36 +1360,38 @@
         </div>`;
       }
       const candidates = groupSubCandidates();
-      const canSub = state.hours >= 0.25 && candidates.length > 0;
+      const canSub = candidates.length > 0;
+      const gentle = state.hours < 3;
       return `<div class="mt-2.5 space-y-2">
         ${actionRow('start-attendance', 'clipboard-check', '考勤打卡', '记录整班出勤情况', '')}
         <div class="rounded-xl border border-rose-200 bg-rose-50 p-3">
           <div class="flex items-center gap-1.5 text-[14px] font-bold text-rose-800">${icon('zap-off', 'h-4 w-4')}小班主理人应急停电处置包</div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">外教突发停电/断网不可抗力；停电场景放宽至开课前 ≥15 分钟，家长由主理人微信群闭环通知。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">老师突发请假/停电时，可指派连续双格空闲老师代课；开课前不足 3 小时仅温和提示，确认后仍可指派。</p>
           <button data-action="start-sub" ${canSub ? '' : 'disabled'} class="mt-2 flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-left transition ${canSub ? 'hover:bg-rose-100' : 'cursor-not-allowed opacity-60'}">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-100 text-rose-700">${icon('user-check', 'h-4 w-4')}</span>
             <span class="min-w-0 flex-1">
               <span class="block text-[14px] font-bold text-rose-800">路线 A · 指派临时代课</span>
-              <span class="mt-0.5 block text-[12px] font-medium leading-snug text-rose-700">${canSub ? `${esc(candidates[0].name)} · 空闲 ${candidates[0].free} 节 · 资质匹配` : '距开课不足 15 分钟或暂无连续双格空闲资质外教'}</span>
+              <span class="mt-0.5 block text-[12px] font-medium leading-snug text-rose-700">${canSub ? `${esc(candidates[0].name)} · 空闲 ${candidates[0].free} 节 · 资质匹配` : '暂无连续双格空闲资质老师'}</span>
             </span>
             ${icon(canSub ? 'chevron-right' : 'lock', 'h-4 w-4 shrink-0 text-rose-600')}
           </button>
+          ${gentle ? `<p class="mt-1.5 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-[12px] font-semibold leading-relaxed text-amber-900">距开课不足 3 小时，确认后仍可指派代课</p>` : ''}
           <button data-action="confirm-group-outage" class="mt-2 flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-rose-300 bg-white px-3 py-2 text-left transition hover:bg-rose-100">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-100 text-rose-700">${icon('calendar-x', 'h-4 w-4')}</span>
             <span class="min-w-0 flex-1">
               <span class="block text-[14px] font-bold text-rose-800">路线 B · 暂停待排</span>
-              <span class="mt-0.5 block text-[12px] font-medium leading-snug text-rose-700">TS 退回班级待排期池，100% 豁免学生课时与请假配额</span>
+              <span class="mt-0.5 block text-[12px] font-medium leading-snug text-rose-700">TS 退回班级待排期池，不扣减学员课次</span>
             </span>
             ${icon('chevron-right', 'h-4 w-4 shrink-0 text-rose-600')}
           </button>
-          <p class="mt-2 text-[12px] font-medium leading-relaxed text-rose-700">外教原因暂停待排 → 原网格标红不可约；节假日/全班调休 → 原网格释放为绿色可再约。</p>
+          <p class="mt-2 text-[12px] font-medium leading-relaxed text-rose-700">老师原因暂停待排 → 原网格标红不可约；节假日/全班调休 → 原网格释放为绿色可再约。</p>
           <a href="m3d_scheduling_workbench.html?role=monitor&mode=group_single&classId=${esc(lesson.classId || 'ket1')}" class="mt-2 flex h-9 w-full items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-800 transition hover:bg-slate-50">${icon('calendar-plus', 'h-4 w-4')}立即补排 ↗</a>
         </div>
       </div>`;
     }
 
     function renderSubPanel() {
-      return `${sheetHeader('代课委任', '选择本次代课的外教')}
+      return `${sheetHeader('代课委任', '选择本次代课的老师')}
         <div class="space-y-2">
           ${['elena', 'linda', 'nina'].map((key) => {
             const teacher = TEACHERS[key];
@@ -1504,7 +1417,7 @@
       const options = [
         { value: 'present', label: '正常出勤', desc: '本节按时完成', icon: 'check-circle-2' },
         { value: 'student-absent', label: '学员旷课', desc: '记录学员未到课', icon: 'user-x' },
-        { value: 'teacher-absent', label: '外教旷课', desc: '记录外教未到课', icon: 'triangle-alert' }
+        { value: 'teacher-absent', label: '老师旷课', desc: '记录老师未到课', icon: 'triangle-alert' }
       ];
       return `${sheetHeader('考勤打卡', slotLabel(state.lesson.day, state.lesson.time))}
         <div class="space-y-2">
@@ -1520,45 +1433,91 @@
     }
 
     function renderWithdrawPanel() {
-      return `${sheetHeader('撤排 / 退回课时', slotLabel(state.lesson.day, state.lesson.time))}
+      return `${sheetHeader('撤排 / 退回课次', slotLabel(state.lesson.day, state.lesson.time))}
         <div class="rounded-xl border border-rose-200 bg-rose-50 p-3">
           <div class="flex items-center gap-1.5 text-[14px] font-bold text-rose-800">${icon('triangle-alert', 'h-4 w-4')}撤回后时段会立即释放</div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">学员将退回 1 节课时，家长会收到课表变动通知。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">学员将退回 1 节课，家长会收到课表变动通知。</p>
         </div>
-        <button data-action="confirm-withdraw" class="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-rose-600 text-[16px] font-bold text-white transition hover:bg-rose-700">确认撤排并退回课时</button>
+        <button data-action="confirm-withdraw" class="mt-3 flex h-11 w-full items-center justify-center rounded-xl bg-rose-600 text-[16px] font-bold text-white transition hover:bg-rose-700">确认撤排并退回课次</button>
         ${backRow()}`;
     }
 
     function renderProxyPanel() {
       const lesson = state.lesson;
       if (!lesson) return '';
-      const leave = leaveEligibility(lesson, 1, lesson.student);
+      const leave = leaveEligibility(lesson);
       const move = rescheduleEligibility(lesson);
-      const quota = quotaFor(lesson.student);
-      return `${sheetHeader('代学员请假 / 调课', slotLabel(lesson.day, lesson.time))}
-        <div class="rounded-xl border border-amber-300 bg-amber-50 p-3">
-          <div class="text-[14px] font-bold text-amber-900">${esc(STUDENTS[lesson.student].nick)} · 已用 ${quota.used}/${quota.limit} · 剩余 ${Math.max(0, quota.limit - quota.used)} 次</div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-800">当前档位：${hoursTierLabel()}；班长代办按 M3B 常规规则校验，管理员仅可走非常规特批通道。</p>
+      const gentle = state.hours < 3;
+      return `${sheetHeader('代学员请假 / 挪位', slotLabel(lesson.day, lesson.time))}
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+          <div class="text-[14px] font-bold text-slate-900">${esc(STUDENTS[lesson.student].nick)} · 班长代办</div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">请假即释放已排时段，TS 退回待排期池；同师挪位不换老师，目标为原任老师的空闲绿格。均可直接发起，开课前不足 3 小时仅温和提示。</p>
         </div>
+        ${gentle
+          ? `<div class="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2">
+              <p class="text-[12px] font-semibold leading-relaxed text-amber-900">距开课不足 3 小时，老师可能已进入备课状态，确认后仍可代办。</p>
+            </div>`
+          : ''}
         <div class="mt-2 space-y-2">
-          <button data-action="proxy-leave" ${leave.ok ? '' : 'disabled'} class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${leave.ok ? 'border-slate-200 bg-white hover:bg-slate-50' : 'cursor-not-allowed border-slate-200 bg-slate-50'}">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${leave.ok ? 'bg-slate-100 text-slate-700' : 'bg-slate-200 text-slate-500'}">${icon('calendar-x', 'h-4 w-4')}</span>
-            <span class="min-w-0 flex-1"><span class="block text-[14px] font-bold ${leave.ok ? 'text-slate-900' : 'text-slate-500'}">代学员请假</span><span class="mt-0.5 block text-[12px] font-medium leading-snug ${leave.ok ? 'text-slate-600' : 'text-rose-600'}">${esc(leave.reason)}</span></span>
-            ${icon(leave.ok ? 'chevron-right' : 'lock', 'h-4 w-4 shrink-0 text-slate-500')}
+          <button data-action="proxy-leave" class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700">${icon('calendar-x', 'h-4 w-4')}</span>
+            <span class="min-w-0 flex-1"><span class="block text-[14px] font-bold text-slate-900">代学员请假</span><span class="mt-0.5 block text-[12px] font-medium leading-snug text-slate-600">${esc(leave.reason)}</span></span>
+            ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
           </button>
-          <button data-action="proxy-reschedule" ${move.ok ? '' : 'disabled'} class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${move.ok ? 'border-slate-200 bg-white hover:bg-slate-50' : 'cursor-not-allowed border-slate-200 bg-slate-50'}">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${move.ok ? 'bg-slate-100 text-slate-700' : 'bg-slate-200 text-slate-500'}">${icon('move-right', 'h-4 w-4')}</span>
-            <span class="min-w-0 flex-1"><span class="block text-[14px] font-bold ${move.ok ? 'text-slate-900' : 'text-slate-500'}">代学员调课</span><span class="mt-0.5 block text-[12px] font-medium leading-snug ${move.ok ? 'text-slate-600' : 'text-rose-600'}">${esc(move.reason)}</span></span>
-            ${icon(move.ok ? 'chevron-right' : 'lock', 'h-4 w-4 shrink-0 text-slate-500')}
+          <button data-action="proxy-reschedule" class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left transition hover:bg-slate-50">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700">${icon('move-right', 'h-4 w-4')}</span>
+            <span class="min-w-0 flex-1"><span class="block text-[14px] font-bold text-slate-900">代学员挪位</span><span class="mt-0.5 block text-[12px] font-medium leading-snug text-slate-600">${esc(move.reason)}</span></span>
+            ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
           </button>
         </div>
+        ${backRow()}`;
+    }
+
+    function changeStudentCandidates() {
+      const lesson = state.lesson;
+      return Object.keys(STUDENTS).filter((key) => !lesson || key !== lesson.student);
+    }
+
+    function renderChangeStudentPanel() {
+      const lesson = state.lesson;
+      if (!lesson) return '';
+      const current = STUDENTS[lesson.student] || STUDENTS.alice;
+      const candidates = changeStudentCandidates();
+      const picked = candidates.includes(state.changeStudent) ? state.changeStudent : candidates[0];
+      return `${sheetHeader('更换实际上课学员', slotLabel(lesson.day, lesson.time))}
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+          <div class="flex items-center gap-2">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-[16px]">${current.emoji}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-[14px] font-bold text-slate-900">当前：${esc(current.nick)}</span>
+              <span class="block truncate text-[12px] font-medium text-slate-600">${esc(current.name)} · ${current.age} 岁</span>
+            </span>
+          </div>
+          <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-600">仅变更实际排课学员档案，原购课单出资人与资金归属保持不变。</p>
+        </div>
+        <div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
+          <div class="text-[12px] font-semibold text-slate-600">选择另一位学员（无需同家庭）</div>
+          <div class="mt-1.5 space-y-1.5">
+            ${candidates.map((key) => {
+              const student = STUDENTS[key];
+              const on = picked === key;
+              return `<button data-action="select-change-student" data-key="${key}" class="flex h-11 w-full items-center gap-2 rounded-lg border px-2.5 text-left transition ${on ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+                <span class="shrink-0 text-[14px] leading-none">${student.emoji}</span>
+                <span class="min-w-0 flex-1 truncate text-[14px] font-bold ${on ? 'text-indigo-700' : 'text-slate-900'}">${esc(student.nick)}</span>
+                <span class="shrink-0 text-[12px] font-medium text-slate-600">${esc(student.name)}</span>
+                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white'}">${on ? icon('check', 'h-3 w-3') : ''}</span>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+        <button data-action="confirm-change-student" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">${icon('arrow-left-right', 'h-4 w-4')}确认更换</button>
         ${backRow()}`;
     }
 
     function renderRestSheet() {
       const slot = state.target;
       if (!slot) return '';
-      const lead = state.role === 'teacher' ? '当前时段未对学生开放' : '该时段当前未开放预约';
+      const lead = state.role === 'teacher' ? '当前时段未对学员开放' : '该时段当前未开放预约';
       return `${sheetHeader('休息时段', slotLabel(slot.day, slot.time))}
         <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
           <div class="text-[14px] font-bold text-slate-800">${esc(lead)}</div>
@@ -1645,29 +1604,28 @@
         ${backRow()}`;
     }
 
-    function renderChannelBPanel() {
-      const lesson = state.lesson;
-      if (!lesson) return '';
-      return `${sheetHeader('通道 B · 非常规特批急病请假', slotLabel(lesson.day, lesson.time))}
-        <div class="rounded-xl border border-rose-200 bg-rose-50 p-3">
-          <div class="text-[14px] font-bold text-rose-800">仅管理员可用 · 突破时限与配额</div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">适用于开课前 &lt;3h 学员突发急病；提交后 TS 退回待排期并强制写入审计。</p>
-        </div>
-        <div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
-          <label class="block text-[12px] font-semibold text-slate-700">特批原因（≥10 字）</label>
-          <textarea id="channelBReason" rows="3" maxlength="200" placeholder="请填写特批原因..." class="mt-1.5 w-full resize-none rounded-lg border border-slate-200 bg-white p-2 text-[14px] leading-relaxed text-slate-900 outline-none focus:border-indigo-500"></textarea>
-          <label class="mt-2 flex items-center gap-2 text-[12px] font-medium text-slate-700"><input id="channelBComp" type="checkbox" class="h-4 w-4 accent-indigo-600">给老师补偿课酬（默认不补）</label>
-        </div>
-        <button data-action="submit-channel-b" class="mt-3 flex h-11 w-full items-center justify-center gap-1 rounded-xl bg-rose-600 text-[16px] font-bold text-white">${icon('shield-alert', 'h-4 w-4')}确认特批请假</button>
-        ${backRow()}`;
-    }
-
     /* ------------------------------------------------------------------
      * 确认弹窗与提示
      * ------------------------------------------------------------------ */
     function renderModal() {
       if (!state.modal) return '';
       const modal = state.modal;
+      if (modal.type === 'leave-gentle') {
+        const cells = leaveCellsNow();
+        const first = cells[0];
+        const when = first ? slotLabel(first.day, first.time, cells.length) : '';
+        return `<div class="absolute inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm">
+          <div class="w-full max-w-[320px] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
+            <h2 class="text-[16px] font-bold text-slate-900">开课前不足 3 小时</h2>
+            <p class="mt-1 text-[14px] font-medium leading-relaxed text-slate-700">${esc(when)}</p>
+            <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">距开课不足 3 小时，老师可能已进入备课状态，请确认已与老师沟通。确认后本节课退回待排期池，课格恢复为空闲可约。</p>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <button data-action="cancel-modal" class="h-10 rounded-lg border border-slate-300 bg-white text-[14px] font-semibold text-slate-700">再想想</button>
+              <button data-action="confirm-leave-gentle" class="h-10 rounded-lg bg-indigo-600 text-[14px] font-bold text-white">确认请假</button>
+            </div>
+          </div>
+        </div>`;
+      }
       const source = state.reschedule;
       if (!source) return '';
       const targetText = slotLabel(modal.day, modal.time, modal.targets.length);
@@ -1676,11 +1634,11 @@
         <div class="w-full max-w-[320px] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
           <h2 class="text-[16px] font-bold text-slate-900">确认同师挪位</h2>
           <p class="mt-1 text-[14px] font-medium leading-relaxed text-slate-700">确定由 ${esc(sourceText)} 调至 ${esc(targetText)}？</p>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">原时段释放、目标格按原班型落盘，reschedule_count 更新为 1，免扣请假配额。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">原时段释放，目标格按原班型落盘。</p>
           ${source.sourceKind === 'sub' ? `<p class="mt-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1.5 text-[12px] font-semibold leading-relaxed text-blue-800">代课课次挪位后自动解除代课委任，目标格回到固定位，不再携带 actual 老师。</p>` : ''}
           <div class="mt-3 grid grid-cols-2 gap-2">
             <button data-action="cancel-modal" class="h-10 rounded-lg border border-slate-300 bg-white text-[14px] font-semibold text-slate-700">取消</button>
-            <button data-action="confirm-reschedule" class="h-10 rounded-lg bg-indigo-600 text-[14px] font-bold text-white">确认调课</button>
+            <button data-action="confirm-reschedule" class="h-10 rounded-lg bg-indigo-600 text-[14px] font-bold text-white">确认挪位</button>
           </div>
         </div>
       </div>`;
@@ -1729,9 +1687,9 @@
       state.pairSel = {};
       state.leaveCells = [];
       state.hours = 32;
-      state.quota = { alice: { used: 0, limit: 2 }, bob: { used: 1, limit: 1 } };
       state.bookDuration = 30;
       state.staffStudent = 'alice';
+      state.changeStudent = 'bob';
       state.subCandidate = 'elena';
       state.attendance = '';
       state.reportDay = null;
@@ -1750,27 +1708,12 @@
         state.drawer = 'parent-book';
       } else if (name === 'parent-asset') {
         state.drawer = 'asset';
-      } else if (name === 'parent-slot-transfer') {
-        state.lesson = findBaseLesson(1, '19:00');
-        state.drawer = 'parent-lesson';
-      } else if (name === 'fixed-leave-disabled') {
+      } else if (name === 'leave-gentle') {
+        state.hours = 2;
         state.lesson = findBaseLesson(0, '18:30');
-        state.drawer = 'parent-lesson';
-      } else if (name === 'leave-blocked') {
-        state.hours = 8;
-        state.lesson = findBaseLesson(4, '18:00');
         state.leaveCells = [state.lesson];
         state.drawer = 'parent-lesson';
         state.panel = 'leave';
-      } else if (name === 'leave-exhausted') {
-        state.child = 'bob';
-        state.lesson = findBaseLesson(1, '18:30', 'bob');
-        state.leaveCells = [state.lesson];
-        state.drawer = 'parent-lesson';
-        state.panel = 'leave';
-      } else if (name === 'reschedule-blocked') {
-        state.lesson = findBaseLesson(4, '19:00');
-        state.drawer = 'parent-lesson';
       } else if (name === 'group-emergency') {
         state.role = 'monitor';
         state.hours = 2;
@@ -1782,12 +1725,21 @@
         state.reportDay = 1;
         state.reportSel = { '19:00': true };
         state.drawer = 'teacher-report';
-      } else if (name === 'admin-channel-b') {
-        state.role = 'admin';
-        state.teacher = 'david';
-        state.hours = 2;
-        state.lesson = findBaseLesson(1, '18:30');
+      } else if (name === 'change-student') {
+        state.role = 'monitor';
+        state.lesson = findBaseLesson(1, '19:00');
+        state.changeStudent = 'bob';
         state.drawer = 'staff-lesson';
+      } else if (name === 'reschedule-conflict') {
+        state.role = 'monitor';
+        state.teacher = 'david';
+        state.lesson = findBaseLesson(1, '19:00');
+        state.pairSel = { '19:00': true, '19:30': true };
+        state.drawer = 'staff-lesson';
+      } else if (name === 'asset-clearing') {
+        state.role = 'monitor';
+        state.child = 'alice';
+        state.drawer = 'asset';
       } else if (name === 'teacher') {
         state.role = 'teacher';
       } else if (name === 'monitor') {
@@ -1869,10 +1821,19 @@
         }
         const slot = getSlot(day, time);
         if (slot.kind !== 'available') {
-          showToast('请选择原授课教师的绿色空闲时段');
+          showToast('请选择原授课老师的绿色空闲时段');
+          return;
+        }
+        if (info.conflict) {
+          showToast('学员该时段已有其他课程，请选择其他空闲时段');
           return;
         }
         const targets = state.reschedule.times.map((_, index) => fmtMinutes(toMin(time) + index * 30));
+        const conflictTarget = targets.some((target) => studentConflictAt(day, target, state.reschedule.student));
+        if (conflictTarget) {
+          showToast('学员该时段已有其他课程，请选择其他空闲时段');
+          return;
+        }
         const allFree = targets.every((target) => toMin(target) < GRID_END && getSlot(day, target).kind === 'available');
         if (!allFree) {
           showToast('该时段无法容纳连续课程，请选择其他空闲时段');
@@ -1982,8 +1943,7 @@
           time,
           teacher: source.teacher,
           student: source.student,
-          kind: targetKind,
-          rescheduleCount: 1
+          kind: targetKind
         };
       });
       source.times.forEach((time) => {
@@ -1995,39 +1955,43 @@
       render(true);
       showToast(removedSub
         ? '挪位成功，已解除代课委任，目标格回到固定位'
-        : '挪位成功，原格释放、目标格已落盘（reschedule_count=1）');
+        : '挪位成功，原格释放、目标格已落盘');
     }
 
-    function applyLeaveCells(cells, studentKey) {
+    function releaseLeaveCells(cells) {
       let applied = 0;
       cells.forEach((cell) => {
-        if (cell.kind !== 'temp') return;
+        if (!['fixed', 'temp', 'sub'].includes(cell.kind)) return;
         overrides[slotKey(state.week, cell.day, cell.time)] = { forced: 'available' };
         applied += 1;
       });
-      if (applied > 0) quotaFor(studentKey).used += applied;
       return applied;
     }
 
-    function confirmLeave() {
+    function confirmLeave(gentleConfirmed = false) {
       if (!requireOnline()) return;
       const cells = leaveCellsNow();
       if (!cells.length) {
         showToast('请选择要请假的课次');
         return;
       }
-      const studentKey = state.role === 'parent' ? state.child : (cells[0].student || state.child);
-      const eligibility = leaveEligibility(cells[0], cells.length, studentKey);
+      const eligibility = leaveEligibility(cells[0]);
       if (!eligibility.ok) {
         showToast(eligibility.reason);
         return;
       }
-      const applied = applyLeaveCells(cells, studentKey);
+      if (eligibility.gentle && !gentleConfirmed) {
+        state.modal = { type: 'leave-gentle' };
+        render(true);
+        return;
+      }
+      const applied = releaseLeaveCells(cells);
+      state.modal = null;
       state.drawer = null;
       state.panel = null;
       state.leaveCells = [];
       render(true);
-      showToast(`已请假 ${applied} 节，扣减 ${applied} 次配额，TS 已退回待排期，课格恢复空闲可约`);
+      showToast(`已请假 ${applied} 节，TS 已退回待排期，课格恢复空闲可约`);
     }
 
     function confirmBooking() {
@@ -2045,7 +2009,7 @@
       const teacher = staff ? state.teacher : 'david';
       const cost = duration === 60 ? 2 : 1;
       if (!staff && state.credits[state.child] < cost) {
-        showToast('剩余课时不足，暂不可预约');
+        showToast('剩余课次不足，暂不可预约');
         return;
       }
       overrides[`${state.week}|${slot.day}|${slot.time}`] = {
@@ -2071,7 +2035,7 @@
       render(true);
       showToast(staff
         ? `已为 ${STUDENTS[student].short} 预约 ${duration} 分钟课程`
-        : `已预约 ${duration} 分钟课程，扣减 ${cost} 节课时`);
+        : `已预约 ${duration} 分钟课程，扣减 ${cost} 节课`);
     }
 
     function confirmOpenSlot() {
@@ -2114,7 +2078,7 @@
 
     function markAttendance(value) {
       if (!requireOnline()) return;
-      const labels = { present: '正常出勤', 'student-absent': '学员旷课', 'teacher-absent': '外教旷课' };
+      const labels = { present: '正常出勤', 'student-absent': '学员旷课', 'teacher-absent': '老师旷课' };
       state.attendance = value;
       state.drawer = null;
       state.panel = null;
@@ -2130,23 +2094,37 @@
       state.drawer = null;
       state.panel = null;
       render(true);
-      showToast('已撤排，已退回 1 节课时');
+      showToast('已撤排，已退回 1 节课');
     }
 
     function proxyLeave() {
       if (!requireOnline()) return;
       const lesson = state.lesson;
       if (!lesson) return;
-      const check = leaveEligibility(lesson, 1, lesson.student);
+      const check = leaveEligibility(lesson);
       if (!check.ok) {
         showToast(check.reason);
         return;
       }
-      const applied = applyLeaveCells([lesson], lesson.student);
+      const applied = releaseLeaveCells([lesson]);
       state.drawer = null;
       state.panel = null;
       render(true);
-      showToast(`已代 ${STUDENTS[lesson.student].nick} 请假，扣减 ${applied} 次配额，TS 已退回待排期`);
+      showToast(`已代 ${STUDENTS[lesson.student].nick} 请假，TS 已退回待排期`);
+    }
+
+    function confirmChangeStudent() {
+      if (!requireOnline()) return;
+      const lesson = state.lesson;
+      if (!lesson) return;
+      const candidates = changeStudentCandidates();
+      const next = candidates.includes(state.changeStudent) ? state.changeStudent : candidates[0];
+      if (!next) return;
+      overrides[slotKey(state.week, lesson.day, lesson.time)] = Object.assign({}, lesson, { student: next });
+      state.drawer = null;
+      state.panel = null;
+      render(true);
+      showToast(`已将实际上课学员更换为 ${STUDENTS[next].nick}，原购课单资金归属不变`);
     }
 
     function confirmGroupOutage() {
@@ -2165,7 +2143,7 @@
       state.drawer = null;
       state.panel = null;
       render(true);
-      showToast('已暂停待排，TS 退回班级待排期池，已豁免学生课时与配额');
+      showToast('已暂停待排，TS 退回班级待排期池，不扣减学员课次');
     }
 
     function copyRoom() {
@@ -2245,14 +2223,14 @@
             <div class="mr-1 flex items-center gap-2">
               <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-900 text-[14px] font-bold text-white">D</span>
               <div class="min-w-0">
-                <h1 class="truncate text-[14px] font-bold text-slate-900">M3A 7色课表演示控制台</h1>
-                <p class="hidden text-[12px] font-medium text-slate-500 sm:block">7色周历 · 动作抽屉 · M3B 时限配额 · M3C 转让入口</p>
+                <h1 class="truncate text-[14px] font-bold text-slate-900">7 色课表演示控制台</h1>
+                <p class="hidden text-[12px] font-medium text-slate-500 sm:block">7 色周历 · 动作抽屉 · 请假/挪位温和提示 · 更换上课学员</p>
               </div>
             </div>
             <span class="mx-1 hidden h-6 w-px bg-slate-200 sm:block"></span>
             ${segment('role', [
               { value: 'parent', label: '家长' },
-              { value: 'teacher', label: '教师' },
+              { value: 'teacher', label: '老师' },
               { value: 'monitor', label: '班长' },
               { value: 'admin', label: '管理员' }
             ], state.role)}
@@ -2263,9 +2241,9 @@
               { value: 3, label: '第4周' }
             ], state.week)}
             ${segment('hours', [
-              { value: 32, label: '≥24h(32)' },
-              { value: 8, label: '3~24h(8)' },
-              { value: 2, label: '<3h(2)' }
+              { value: 32, label: '≥3h(32)' },
+              { value: 8, label: '8h(8)' },
+              { value: 2, label: '不足3h(2)' }
             ], state.hours)}
             ${segment('device', [
               { value: 'mobile', label: '手机' },
@@ -2283,7 +2261,7 @@
           <div class="mt-2 flex flex-wrap items-center gap-1.5">
             ${SCENARIOS.map((item) => `<button data-scenario="${item.value}" class="h-7 rounded-lg border px-2.5 text-[12px] font-semibold transition ${state.scenario === item.value ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}">${item.label}</button>`).join('')}
             <span class="ml-auto flex items-center gap-1 text-[12px] font-medium text-slate-500">
-              ${icon('info', 'h-3.5 w-3.5')}配额 Alice ${state.quota.alice.used}/${state.quota.alice.limit} · Bob ${state.quota.bob.used}/${state.quota.bob.limit}
+              ${icon('info', 'h-3.5 w-3.5')}请假与挪位均可直接发起，开课前不足 3 小时仅温和提示
             </span>
           </div>
         </div>
@@ -2331,6 +2309,7 @@
           render(true);
           break;
         case 'open-asset':
+          if (state.role !== 'parent' && state.lesson) state.child = state.lesson.student;
           state.drawer = 'asset';
           state.panel = null;
           render(true);
@@ -2386,7 +2365,7 @@
           render(true);
           break;
         case 'back-panel':
-          if (['teacher-report', 'teacher-free', 'channel-b'].includes(state.drawer)) {
+          if (['teacher-report', 'teacher-free'].includes(state.drawer)) {
             state.drawer = null;
           }
           state.panel = null;
@@ -2424,6 +2403,9 @@
           break;
         case 'confirm-leave':
           confirmLeave();
+          break;
+        case 'confirm-leave-gentle':
+          confirmLeave(true);
           break;
         case 'confirm-book':
           confirmBooking();
@@ -2515,23 +2497,20 @@
           showToast(`已提交请假报备 · ${count} 节（排课格将生成代课待办包）`);
           break;
         }
-        case 'start-channel-b':
-          state.panel = 'channel-b';
+        case 'start-change-student': {
+          const candidates = changeStudentCandidates();
+          if (candidates.length) state.changeStudent = candidates[0];
+          state.panel = 'change-student';
           render(true);
-          break;
-        case 'submit-channel-b': {
-          const reasonEl = document.getElementById('channelBReason');
-          const reason = (reasonEl ? reasonEl.value : '').trim();
-          if (reason.length < 10) {
-            showToast('请填写不少于 10 字的特批原因');
-            break;
-          }
-          state.drawer = null;
-          state.panel = null;
-          render(true);
-          showToast('已提交特批请假，TS 退回待排期并写入审计');
           break;
         }
+        case 'select-change-student':
+          state.changeStudent = STUDENTS[key] ? key : state.changeStudent;
+          render(true);
+          break;
+        case 'confirm-change-student':
+          confirmChangeStudent();
+          break;
         case 'confirm-exception-backfill':
           state.drawer = null;
           state.panel = null;

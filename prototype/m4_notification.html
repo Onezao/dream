@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
-<!-- Dream 消息通知中心交互页面。纯前端 Mock，不连接后端。遵循 DESIGN.md 与 docs/prd/m4_notification.md -->
+<!-- Dream 消息中心交互页面。纯前端演示数据，不连接后端。遵循 DESIGN.md 与消息中心需求文档 -->
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -26,20 +26,22 @@
 </head>
 <body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
 
-  <!-- 控制台（不属于产品界面） -->
+  <!-- 演示控制台（不属于产品界面） -->
   <header id="console" class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-[12px]">
       <div class="flex items-center gap-2">
-        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-300">M4</span>
-        <span class="text-[14px] font-bold text-slate-900">消息通知中心</span>
-        <span class="hidden text-[12px] font-medium text-slate-500 lg:inline">纯单一列表页 · 中英双语 · 就地手风琴展开</span>
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-amber-300">
+          <i data-lucide="bell" class="h-3.5 w-3.5"></i>
+        </span>
+        <span class="text-[14px] font-bold text-slate-900">消息提醒</span>
+        <span class="hidden text-[12px] font-medium text-slate-500 lg:inline">关键邮件 · 单页就地展开 · 极简小红点</span>
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="font-medium text-slate-500">身份</span>
+        <span class="font-medium text-slate-500">角色</span>
         <div class="inline-flex rounded-xl bg-slate-100 p-1">
           <button data-group="role" data-value="amy" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">家长 Amy</button>
-          <button data-group="role" data-value="david" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">教师 David</button>
+          <button data-group="role" data-value="david" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">老师 David</button>
           <button data-group="role" data-value="leo" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">班长 Leo</button>
           <button data-group="role" data-value="sarah" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">管理员 Sarah</button>
         </div>
@@ -62,24 +64,19 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-1.5">
-        <button id="btnScanWorker" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-600 hover:bg-slate-50">后台补发</button>
-        <button id="btnInternalNote" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-rose-700 hover:bg-rose-50">教学备忘</button>
-        <button id="btnToggle99" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-600 hover:bg-slate-50">99+</button>
+        <button id="btnToggle99" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-600 hover:bg-slate-50">强制 99+</button>
         <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
       </div>
 
-      <a href="../docs/prd/m4_notification.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
-        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>PRD 文档
-      </a>
+      </div>
     </div>
   </header>
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
       <div id="banner" class="shrink-0"></div>
-      <div id="offlineBanner" class="hidden"></div>
-      <div id="content" class="min-h-0 flex-1 overflow-y-auto"></div>
-      <nav id="bottomnav" class="shrink-0"></nav>
+      <div id="offlineBanner" class="hidden shrink-0"></div>
+      <div id="content" class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"></div>
       <div id="confirmRoot"></div>
       <div id="toast" class="pointer-events-none absolute bottom-20 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
     </div>
@@ -87,22 +84,20 @@
 
   <!-- Tailwind CDN 动态类安全垫 -->
   <div class="hidden">
-    <span class="bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700 from-slate-800 via-emerald-900 to-slate-700 from-slate-900 via-fuchsia-950 to-slate-800 from-slate-900 via-violet-950 to-slate-800"></span>
-    <span class="bg-amber-50/80 border-amber-200 bg-amber-100 text-amber-800 text-amber-700 text-amber-950 text-amber-900/85 bg-amber-600 hover:bg-amber-700 border-amber-300 bg-amber-50/50"></span>
-    <span class="bg-indigo-50/80 border-indigo-200 bg-indigo-100 text-indigo-800 text-indigo-700 text-indigo-950 text-indigo-900/85 bg-indigo-600 hover:bg-indigo-700 border-indigo-300 bg-white"></span>
-    <span class="bg-emerald-50/80 border-emerald-200 bg-emerald-100 text-emerald-800 text-emerald-700 text-emerald-950 text-emerald-900/85 bg-emerald-600 hover:bg-emerald-700 border-emerald-300 bg-white"></span>
-    <span class="bg-rose-50/80 border-rose-200 bg-rose-100 text-rose-800 text-rose-700 text-rose-950 text-rose-900/85 bg-rose-600 hover:bg-rose-700 border-rose-300 bg-rose-50"></span>
-    <span class="bg-slate-50 border-slate-200 bg-slate-100 text-slate-700 text-slate-600 text-slate-500 bg-slate-400 bg-slate-600 bg-slate-900 hover:bg-slate-800 border-slate-300 bg-slate-50/70"></span>
-    <span class="bg-white/60 bg-white/70 bg-white/20 bg-white/15 bg-white/10 ring-white/30 ring-white/20 ring-white/15 bg-slate-900/40 bg-slate-900/60 bg-slate-900/90 backdrop-blur-[1px] text-slate-300 text-amber-300"></span>
-    <span class="h-[812px] w-[390px] h-[860px] w-[768px] h-16 h-11 h-9 h-8 h-2 w-2 max-w-[640px] max-w-[720px] min-w-[560px] min-w-[520px] px-0.5 pr-1 first:pl-1.5 last:pr-1.5"></span>
-    <span class="text-[18px] text-[16px] text-[14px] text-[12px] grid-cols-1 grid-cols-2 grid-cols-3 grid-cols-4 bg-transparent bg-slate-50/95 active:scale-[0.995] border-dashed border-slate-300"></span>
-    <span class="border-indigo-600 bg-indigo-600 text-white border-slate-200 bg-white text-slate-600 hover:bg-slate-50 bg-slate-900 text-white hover:bg-slate-800"></span>
-    <span class="border-emerald-200 bg-emerald-50 text-emerald-700 border-amber-200 bg-amber-50 text-amber-800 border-rose-200 bg-rose-50 text-rose-700 border-slate-200 bg-slate-100 text-slate-600"></span>
+    <span class="from-slate-800 via-blue-900 to-slate-700 from-slate-800 via-emerald-900 to-slate-700 from-slate-900 via-fuchsia-950 to-slate-800 from-slate-900 via-violet-950 to-slate-800"></span>
+    <span class="grid grid-cols-2 col-span-2 grid-rows-[0fr] grid-rows-[1fr] rotate-180 bg-blue-500 bg-transparent"></span>
+    <span class="bg-white/15 ring-white/20 text-white/70 bg-white/20 bg-white/10 text-amber-300 bg-slate-900 text-slate-900"></span>
+    <span class="border-slate-200 bg-slate-50/70 border-slate-200/80 bg-slate-100 text-slate-700 text-slate-900 text-slate-700 text-slate-600 text-slate-500"></span>
+    <span class="bg-rose-500 text-rose-500 bg-rose-50 border-rose-200 text-rose-700 bg-amber-50 border-amber-200 text-amber-800"></span>
+    <span class="bg-indigo-600 hover:bg-indigo-700 text-white text-indigo-600 hover:text-indigo-700 border-slate-300 bg-white hover:bg-slate-50"></span>
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] h-14 h-9 h-8 h-2 w-2 max-w-[720px] max-w-[320px] px-3.5 py-3.5"></span>
+    <span class="text-[18px] text-[16px] text-[14px] text-[13px] text-[12px] leading-relaxed whitespace-pre-line"></span>
+    <span class="transition-[grid-template-rows] duration-300 ease-out transition-transform active:scale-[0.995]"></span>
   </div>
 
   <script>
     /* ------------------------------------------------------------------
-     * 角色、导航与语义色
+     * 角色、语义色与跳转目的地
      * ------------------------------------------------------------------ */
     const PATTERNS = {
       parent: `<svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><path d="M-20 64 C50 30 110 82 190 48 S300 18 410 44" stroke="white" stroke-opacity=".10" stroke-width="18" stroke-linecap="round"/><circle cx="320" cy="20" r="34" fill="white" fill-opacity=".05"/></svg>`,
@@ -112,377 +107,236 @@
     };
 
     const ROLE_META = {
-      amy: { label: '家长 Amy', short: '家长', brand: '家长端', initial: 'A', banner: 'from-slate-800 via-blue-900 to-slate-700', pattern: PATTERNS.parent },
-      david: { label: '教师 David', short: '教师', brand: '教师端', initial: 'D', banner: 'from-slate-800 via-emerald-900 to-slate-700', pattern: PATTERNS.teacher },
-      leo: { label: '班长 Leo', short: '班长', brand: '班长端', initial: 'L', banner: 'from-slate-900 via-fuchsia-950 to-slate-800', pattern: PATTERNS.monitor },
-      sarah: { label: '管理员 Sarah', short: '管理员', brand: '管理端', initial: 'S', banner: 'from-slate-900 via-violet-950 to-slate-800', pattern: PATTERNS.admin }
+      amy: { label: '家长 Amy', short: '家长', banner: 'from-slate-800 via-blue-900 to-slate-700', pattern: PATTERNS.parent },
+      david: { label: '老师 David', short: '老师', banner: 'from-slate-800 via-emerald-900 to-slate-700', pattern: PATTERNS.teacher },
+      leo: { label: '班长 Leo', short: '班长', banner: 'from-slate-900 via-fuchsia-950 to-slate-800', pattern: PATTERNS.monitor },
+      sarah: { label: '管理员 Sarah', short: '管理员', banner: 'from-slate-900 via-violet-950 to-slate-800', pattern: PATTERNS.admin }
     };
 
-    const TONES = {
-      rose: {
-        card: 'rounded-2xl border border-rose-200 bg-rose-50', chip: 'bg-rose-100 text-rose-700',
-        icon: 'bg-white text-rose-700', action: 'bg-indigo-600 text-white hover:bg-indigo-700',
-        title: 'text-slate-900', body: 'text-slate-700', sub: 'text-slate-600', dot: 'bg-rose-500'
-      },
-      amber: {
-        card: 'rounded-2xl border border-amber-300 bg-amber-50/50', chip: 'bg-amber-100 text-amber-900',
-        icon: 'bg-white text-amber-700', action: 'bg-indigo-600 text-white hover:bg-indigo-700',
-        title: 'text-slate-900', body: 'text-slate-700', sub: 'text-slate-600', dot: 'bg-amber-500'
-      },
-      emerald: {
-        card: 'rounded-2xl border border-slate-200/80 bg-slate-50/70', chip: 'bg-slate-100 text-slate-700',
-        icon: 'bg-white text-emerald-700', action: 'bg-indigo-600 text-white hover:bg-indigo-700',
-        title: 'text-slate-900', body: 'text-slate-700', sub: 'text-slate-600', dot: 'bg-emerald-500'
-      },
-      indigo: {
-        card: 'rounded-2xl border border-slate-200/80 bg-slate-50/70', chip: 'bg-slate-100 text-slate-700',
-        icon: 'bg-white text-indigo-700', action: 'bg-indigo-600 text-white hover:bg-indigo-700',
-        title: 'text-slate-900', body: 'text-slate-700', sub: 'text-slate-600', dot: 'bg-indigo-500'
-      },
-      slate: {
-        card: 'rounded-2xl border border-slate-200/80 bg-slate-50/70', chip: 'bg-slate-100 text-slate-700',
-        icon: 'bg-white text-slate-600', action: 'bg-indigo-600 text-white hover:bg-indigo-700',
-        title: 'text-slate-900', body: 'text-slate-700', sub: 'text-slate-600', dot: 'bg-slate-500'
-      }
+    const JUMP_META = {
+      schedule: { zh: '课表', en: 'Schedule' },
+      order: { zh: '购课单', en: 'Course Orders' },
+      transfer: { zh: '转账单', en: 'Transfer' },
+      dispatch: { zh: '应急调度', en: 'Dispatch' },
+      profile: { zh: '档案', en: 'Profile' }
     };
 
-    const CATEGORY_META = {
-      schedule: { icon: '📅', zh: '课表与代课', shortZh: '课表', en: 'Schedule' },
-      billing: { icon: '💳', zh: '账单与资产', shortZh: '账单', en: 'Billing' }
-    };
-
-    const DELIVERY_META = {
-      sent: { label: '投递成功', cls: 'border-slate-200 bg-white text-emerald-700', icon: 'mail-check' },
-      retrying: { label: '邮件重发中', cls: 'border-amber-200 bg-amber-50 text-amber-800', icon: 'refresh-cw' },
-      failed: { label: '投递失败', cls: 'border-rose-200 bg-rose-50 text-rose-700', icon: 'mail-x' },
-      inapp: { label: '应用内已送达', cls: 'border-slate-200 bg-white text-slate-600', icon: 'inbox' }
-    };
-
-    const RELAY_LABEL = { sent: '成功', retrying: '重发中', failed: '失败' };
-    const RELAY_CLS = {
-      sent: 'border-slate-200 bg-white text-emerald-700',
-      retrying: 'border-amber-200 bg-amber-50 text-amber-800',
-      failed: 'border-rose-200 bg-rose-50 text-rose-700'
-    };
-
-    const HOME_TIPS = {
-      amy: {
-        icon: 'languages', tone: 'indigo',
-        title: '双语消息',
-        short: '课程与账单通知均提供中英双语。',
-        text: '课程变动、代课与账单提醒都可以在消息中心就地展开查看。'
-      },
-      david: {
-        icon: 'shield-check', tone: 'slate',
-        title: '教学备忘',
-        short: '教学备忘仅在教师与班长工作台展示。',
-        text: '家长端不会收到教学备忘的任何通知。'
-      },
-      leo: {
-        icon: 'send', tone: 'indigo',
-        title: '批量排课合并',
-        short: '4 周固定位连排会合并为 1 条通知。',
-        text: '减少重复提醒，家长与教师都能一次看清完整安排。'
-      }
+    const TAGS_EN = {
+      '排课通知': 'Schedule',
+      '课程变动': 'Schedule Change',
+      '代课通知': 'Substitute'
     };
 
     /* ------------------------------------------------------------------
-     * 4 周固定位排期表
-     * ------------------------------------------------------------------ */
-    const SLOT_ROWS = [
-      { weekZh: '第 1 周', weekEn: 'Week 1', dateZh: '2026-11-17', dateEn: 'Nov 17, 2026', dayZh: '周二', dayEn: 'Tue', time: '19:00-19:25', teacher: 'David Miller', student: 'AliceZ12', room: '982-123-456' },
-      { weekZh: '第 2 周', weekEn: 'Week 2', dateZh: '2026-11-24', dateEn: 'Nov 24, 2026', dayZh: '周二', dayEn: 'Tue', time: '19:00-19:25', teacher: 'David Miller', student: 'AliceZ12', room: '982-123-456' },
-      { weekZh: '第 3 周', weekEn: 'Week 3', dateZh: '2026-12-01', dateEn: 'Dec 01, 2026', dayZh: '周二', dayEn: 'Tue', time: '19:00-19:25', teacher: 'David Miller', student: 'AliceZ12', room: '982-123-456' },
-      { weekZh: '第 4 周', weekEn: 'Week 4', dateZh: '2026-12-08', dateEn: 'Dec 08, 2026', dayZh: '周二', dayEn: 'Tue', time: '19:00-19:25', teacher: 'David Miller', student: 'AliceZ12', room: '982-123-456' }
-    ];
-
-    function batchTable(variant) {
-      const base = SLOT_ROWS.map((r) => ({
-        weekZh: r.weekZh,
-        weekEn: r.weekEn,
-        dateZh: r.dateZh.slice(5),
-        dateEn: r.dateEn.replace(', 2026', ''),
-        time: r.time,
-        student: r.student,
-        teacher: r.teacher.split(' ')[0],
-        room: r.room
-      }));
-      if (variant === 'teacher' || variant === 'staff' || variant === 'admin') {
-        return {
-          headersZh: ['周次', '日期', '时段', '上课学员', '教室'],
-          headersEn: ['Week', 'Date', 'Time', 'Student', 'Room'],
-          rows: base.map((r) => ({ zh: [r.weekZh, r.dateZh, r.time, r.student, r.room], en: [r.weekEn, r.dateEn, r.time, r.student, r.room] }))
-        };
-      }
-      return {
-        headersZh: ['周次', '日期', '时段', '授课教师', '教室'],
-        headersEn: ['Week', 'Date', 'Time', 'Teacher', 'Room'],
-        rows: base.map((r) => ({ zh: [r.weekZh, r.dateZh, r.time, r.teacher, r.room], en: [r.weekEn, r.dateEn, r.time, r.teacher, r.room] }))
-      };
-    }
-
-    /* ------------------------------------------------------------------
-     * 消息数据（Mock）
+     * 消息演示数据
+     * 仅保留最近 90 天；每条消息带业务标签、标题、相对时间、正文与目的地。
      * ------------------------------------------------------------------ */
     const NOTICES = {
       amy: [
         {
-          id: 'amy-substitute', category: 'schedule', tone: 'rose', read: false, minutesAgo: 10,
-          titleZh: '代课提醒', titleEn: 'Substitute Teacher Assigned',
-          bodyZh: '学员 AliceZ12 今天的少儿英语课因教师请假，已由 Sarah 老师代课，时间保持 19:00-19:25 不变。ClassIn 教室 982-101。',
-          bodyEn: 'AliceZ12\'s English lesson today is taught by Teacher Sarah because the regular teacher is on leave. Time remains 19:00-19:25. ClassIn room 982-101.',
-          action: { type: 'classroom', labelZh: '进入教室' }
+          id: 'amy-substitute', tag: '课程变动', unread: true, minutesAgo: 2, jump: 'dispatch',
+          title: '老师临时请假，已安排代课老师',
+          body: '学员 AliceZ12 今晚 19:00-19:25 的课次由 David 老师临时请假，已安排 Sarah 老师代课。时段与 ClassIn 教室 982-101 保持不变。'
         },
         {
-          id: 'amy-batch', category: 'schedule', tone: 'slate', read: false, minutesAgo: 60,
-          titleZh: '固定位排课确认（共 4 节）', titleEn: 'Fixed Slot Schedule Confirmed (4 Lessons)',
-          bodyZh: '学员 AliceZ12 的下轮 4 周固定位课程已全部锁定，每周二 19:00 上课，首节课于 11-17 开始，授课教师 David Miller。',
-          bodyEn: 'The next 4-week fixed slot for AliceZ12 is confirmed. Lessons are every Tuesday at 19:00, starting Nov 17, with Teacher David Miller.',
-          long: true, table: batchTable('parent'),
-          action: { type: 'schedule', labelZh: '查看课表' }
+          id: 'amy-renew-48h', tag: '续费提醒', unread: true, minutesAgo: 8, jump: 'order',
+          title: '续费单将在开课前 48 小时到期',
+          body: '这是第二次提醒：学员 AliceZ12 的续费单将在 48 小时内到期。固定位预占 HOLD 将保留至 11 月 23 日 19:00，请及时完成付款以保住原时段。'
         },
         {
-          id: 'amy-refund', category: 'billing', tone: 'rose', read: false, minutesAgo: 22,
-          titleZh: '退款已生成', titleEn: 'Refund Order Created',
-          bodyZh: '退款单 RFD-20261105 已生成，关联 11-14 周六 16:00 固定位，退款金额 240 积分，预计 3 个工作日内退回原支付账户。',
-          bodyEn: 'Refund order RFD-20261105 has been created for the fixed slot on Nov 14 at 16:00. The refund of 240 credits will return to the original payment account within 3 business days.',
-          action: { type: 'billing', labelZh: '查看账单' }
+          id: 'amy-renew-7d', tag: '续费提醒', unread: true, minutesAgo: 25, jump: 'order',
+          title: '固定位续费单已生成',
+          body: '学员 AliceZ12 的 1v1 固定位将在 7 天后到期，系统已自动生成续费单。下轮课表：每周二 19:00-19:25，共 4 节，首节 11 月 24 日。请在到期前完成付款，逾期将释放该固定位。'
         },
         {
-          id: 'amy-renew', category: 'billing', tone: 'amber', read: false, minutesAgo: 35,
-          titleZh: '固定位续费待确认', titleEn: 'Fixed Slot Renewal Pending',
-          bodyZh: '下轮 4 周固定位续费单已生成，请在今日 18:00 前确认，逾期将释放日历排期。',
-          bodyEn: 'The renewal order for the next 4-week fixed slot is ready. Please confirm before 18:00 today, or the schedule will be released.',
-          action: { type: 'renew', labelZh: '去续费' }
+          id: 'amy-reschedule', tag: '课程变动', unread: false, minutesAgo: 150, jump: 'schedule',
+          title: '同师挪位成功',
+          body: '学员 AliceZ12 周四 17:00 的课次已由 David 老师挪至周四 18:00，授课老师不变。新时间已同步到课表。'
         },
         {
-          id: 'amy-payment', category: 'billing', tone: 'slate', read: true, minutesAgo: 180,
-          titleZh: '购课单收款确认', titleEn: 'Payment Confirmed',
-          bodyZh: '购课单 ORD-20261102 已确认收款 1,000 积分，已生成 5 节待排期临时课资产，可随时自主约课。',
-          bodyEn: 'Order ORD-20261102 is paid with 1,000 credits. Five temporary lesson credits are ready, and you can book lessons at any time.',
-          action: { type: 'book', labelZh: '去约课' }
+          id: 'amy-paid', tag: '账单到账', unread: false, minutesAgo: 300, jump: 'order',
+          title: '购课单确认收款',
+          body: '购课单 ORD-20261102 已确认收款 1,000 积分，已生成 5 节待排课次，可前往购课单查看明细。'
         },
         {
-          id: 'amy-reply', category: 'schedule', tone: 'slate', read: true, minutesAgo: 240,
-          titleZh: '公开留言回复', titleEn: 'New Public Reply',
-          bodyZh: 'David 老师在 AliceZ12 的师生公开留言板回复了本周学习反馈。',
-          bodyEn: 'Teacher David replied to this week\'s learning feedback on AliceZ12\'s public message board.',
-          action: { type: 'memo', labelZh: '查看留言' }
+          id: 'amy-h01', tag: '课程变动', unread: false, minutesAgo: 1500, jump: 'schedule',
+          title: '课次已结课', body: '学员 AliceZ12 11 月 10 日 19:00 的课次已正常结课，课后反馈已同步。'
         },
         {
-          id: 'amy-schedule', category: 'schedule', tone: 'slate', read: true, minutesAgo: 1440,
-          titleZh: '本周课表已生成', titleEn: 'Weekly Schedule Ready',
-          bodyZh: '本周课表已生成，可在学生课表查看完整安排与 ClassIn 教室信息。',
-          bodyEn: 'This week\'s schedule is ready. Open Student Schedule to view all lessons and ClassIn room details.',
-          action: { type: 'schedule', labelZh: '查看课表' }
+          id: 'amy-h02', tag: '排课通知', unread: false, minutesAgo: 1800, jump: 'schedule',
+          title: '本周课表已更新', body: '本周课表已更新，可在课表查看完整安排与 ClassIn 教室信息。'
+        },
+        {
+          id: 'amy-h03', tag: '课程变动', unread: false, minutesAgo: 2400, jump: 'schedule',
+          title: '请假已受理', body: '学员 AliceZ12 11 月 8 日 19:00 的请假已受理，课次已退回权益池。'
+        },
+        {
+          id: 'amy-h04', tag: '续费提醒', unread: false, minutesAgo: 3000, jump: 'order',
+          title: '固定位续费已确认', body: '上一轮固定位续费已确认，4 节课次已加入学员资产。'
+        },
+        {
+          id: 'amy-h05', tag: '账单到账', unread: false, minutesAgo: 3600, jump: 'order',
+          title: '购课单收款确认', body: '购课单 ORD-20261026 已确认收款 800 积分，课次资产已生成。'
+        },
+        {
+          id: 'amy-h06', tag: '课程变动', unread: false, minutesAgo: 4320, jump: 'schedule',
+          title: '课次已退回权益池', body: '因老师临时请假，11 月 3 日 19:00 的课次已退回权益池，可重新约课。'
+        },
+        {
+          id: 'amy-h07', tag: '课程变动', unread: false, minutesAgo: 5000, jump: 'schedule',
+          title: '同师挪位成功', body: '学员 AliceZ12 的课次已由周二 19:00 挪至周二 20:00，授课老师不变。'
+        },
+        {
+          id: 'amy-h08', tag: '代课通知', unread: false, minutesAgo: 6000, jump: 'dispatch',
+          title: '代课安排已完成', body: '11 月 1 日 19:00 的代课安排已完成，Sarah 老师已确认接手该课次。'
+        },
+        {
+          id: 'amy-h09', tag: '续费提醒', unread: false, minutesAgo: 7200, jump: 'order',
+          title: '固定位预占已生效', body: '续费单待付款期间，原固定位已进入预占 HOLD 状态，有效期为 72 小时。'
+        },
+        {
+          id: 'amy-h10', tag: '排课通知', unread: false, minutesAgo: 8640, jump: 'schedule',
+          title: '课表已同步', body: '本周课表已同步至家长端，包含 2 节固定位与 1 节临时课。'
+        },
+        {
+          id: 'amy-h11', tag: '课次清退', unread: false, minutesAgo: 10000, jump: 'order',
+          title: '课次清退记录已更新', body: '经办人已完成 2 节待排课次的清退并记录财务备注，可在购课记录中查看。'
+        },
+        {
+          id: 'amy-h12', tag: '课程变动', unread: false, minutesAgo: 12000, jump: 'schedule',
+          title: '临时课已预约成功', body: '学员 AliceZ12 的 1 节临时课已预约成功，时间为 10 月 20 日 19:00。'
+        },
+        {
+          id: 'amy-h13', tag: '课程变动', unread: false, minutesAgo: 16000, jump: 'schedule',
+          title: '请假已受理', body: '学员 AliceZ12 10 月 16 日 19:00 的请假已受理，课次已退回权益池。'
+        },
+        {
+          id: 'amy-h14', tag: '排课通知', unread: false, minutesAgo: 22000, jump: 'schedule',
+          title: '固定位排课已确认', body: '下轮 4 周固定位已排定，每周二 19:00 上课，授课老师 David。'
+        },
+        {
+          id: 'amy-h15', tag: '账单到账', unread: false, minutesAgo: 30000, jump: 'order',
+          title: '购课单确认收款', body: '购课单 ORD-20260928 已确认收款 1,200 积分，课次资产已生成。'
+        },
+        {
+          id: 'amy-h16', tag: '课程变动', unread: false, minutesAgo: 50000, jump: 'schedule',
+          title: '课次已结课', body: '学员 AliceZ12 9 月 25 日 19:00 的课次已正常结课，课后反馈已同步。'
+        },
+        {
+          id: 'amy-h17', tag: '排课通知', unread: false, minutesAgo: 70000, jump: 'schedule',
+          title: '本周课表已更新', body: '本周课表已更新，可在课表查看完整安排。'
         }
       ],
       david: [
         {
-          id: 'david-change', category: 'schedule', tone: 'rose', read: false, minutesAgo: 4,
-          titleZh: '学员变更通知', titleEn: 'Student Change Notice',
-          bodyZh: '11-14 周六 16:00 固定位的上课学员已由 AliceZ12 变更为 TomZ11，请提前查看受让学员留言板备课。',
-          bodyEn: 'The student for the fixed slot on Sat Nov 14 at 16:00 has changed from AliceZ12 to TomZ11. Please review the new student\'s board before class.',
-          action: { type: 'schedule', labelZh: '查看课表' }
+          id: 'david-schedule', tag: '排课通知', unread: true, minutesAgo: 5, jump: 'schedule',
+          title: 'New schedule assigned', titleZh: '新排课已确认', bilingual: true,
+          body: 'A 4-lesson fixed slot has been scheduled for AliceZ12 every Tuesday at 19:00, starting Nov 17. Please review the lesson plan before the first class.',
+          bodyZh: '学员 AliceZ12 的 4 节固定位已排定，每周二 19:00 开始，首节 11 月 17 日。请在第一节课前查看课件。'
         },
         {
-          id: 'david-substitute', category: 'schedule', tone: 'rose', read: false, minutesAgo: 12,
-          titleZh: '代课安排', titleEn: 'Substitute Assignment',
-          bodyZh: '您 11-10 周二 19:00 的课程已由 Linda 老师代上，课酬计入代课教师。请提前完成学生交接。',
-          bodyEn: 'Your lesson on Tue Nov 10 at 19:00 will be taught by Teacher Linda. The lesson fee goes to the substitute teacher. Please complete the student handover in advance.',
-          action: { type: 'schedule', labelZh: '查看课表' }
+          id: 'david-reschedule', tag: '课程变动', unread: true, minutesAgo: 35, jump: 'schedule',
+          title: 'Lesson leave & reschedule', titleZh: '课次请假退回与同师挪位', bilingual: true,
+          body: 'The lesson on Thu Nov 19 at 17:00 has been returned to the credit pool after the student leave request. The make-up lesson is moved to Thu Nov 19 at 18:00 with the same teacher.',
+          bodyZh: '学员请假后，11 月 19 日周四 17:00 的课次已退回权益池；补课已同师挪位至 11 月 19 日周四 18:00，授课老师不变。'
         },
         {
-          id: 'david-note', category: 'schedule', tone: 'slate', read: false, minutesAgo: 18,
-          titleZh: '教学备忘', titleEn: 'Teaching Note',
-          bodyZh: 'AliceZ12 近期注意力易分散，建议课堂前 5 分钟做口部热身。',
-          bodyEn: 'AliceZ12 has recently shown a shorter attention span. A 5-minute warm-up before class is recommended.',
-          action: { type: 'memo', labelZh: '查看留言' }
+          id: 'david-substitute', tag: '代课通知', unread: true, minutesAgo: 60, jump: 'dispatch',
+          title: 'Substitute assigned', titleZh: '临时代课指派', bilingual: true,
+          body: 'You have been assigned as the substitute teacher for AliceZ12 on Fri Nov 20 at 18:00-18:25. Lesson fee will be counted in your weekly pay. ClassIn room 982-101.',
+          bodyZh: '你已被指派为 AliceZ12 11 月 20 日周五 18:00-18:25 的代课老师，课酬将计入本周课酬单。ClassIn 教室 982-101。'
         },
         {
-          id: 'david-feedback', category: 'schedule', tone: 'amber', read: false, minutesAgo: 40,
-          titleZh: '课后反馈待补录', titleEn: 'Lesson Feedback Pending',
-          bodyZh: '11-07 周五 19:00 的课程课后反馈尚未提交，请在 24 小时内补录。',
-          bodyEn: 'The lesson feedback for Fri Nov 07 at 19:00 has not been submitted. Please complete it within 24 hours.',
-          action: { type: 'feedback', labelZh: '去填写' }
-        },
-        {
-          id: 'david-pay', category: 'billing', tone: 'slate', read: false, minutesAgo: 60,
-          titleZh: '周课酬节数单已生成', titleEn: 'Weekly Lesson Statement Ready',
-          bodyZh: '本周课酬节数单已生成，共 12 节课，可在教师工作台查看。',
-          bodyEn: 'Your weekly lesson statement is ready. You have 12 lessons this week. Open the teacher workspace to review.',
-          action: { type: 'billing', labelZh: '查看课酬' }
-        },
-        {
-          id: 'david-batch', category: 'schedule', tone: 'slate', read: false, minutesAgo: 90,
-          titleZh: '固定位 4 周连排', titleEn: '4-Week Fixed Slots Scheduled',
-          bodyZh: 'Amy 名下的 4 周固定位已完成连排，每周二 19:00 上课，首节课于 11-17 开始。',
-          bodyEn: 'The 4-week fixed slots under Amy are scheduled. Lessons are every Tuesday at 19:00, starting Nov 17.',
-          long: true, table: batchTable('teacher'),
-          action: { type: 'schedule', labelZh: '查看课表' }
-        },
-        {
-          id: 'david-reply', category: 'schedule', tone: 'slate', read: true, minutesAgo: 300,
-          titleZh: '公开留言回复', titleEn: 'New Public Reply',
-          bodyZh: 'Amy 家长在 AliceZ12 的师生公开留言板回复了您的学习反馈。',
-          bodyEn: 'Parent Amy replied to your learning feedback on AliceZ12\'s public message board.',
-          action: { type: 'memo', labelZh: '查看留言' }
-        },
-        {
-          id: 'david-payment', category: 'billing', tone: 'slate', read: true, minutesAgo: 1440,
-          titleZh: '购课单收款确认', titleEn: 'Payment Confirmed',
-          bodyZh: 'Amy 家长已为 AliceZ12 完成固定位续费，1,000 积分已到账，课次资产已生成。',
-          bodyEn: 'Parent Amy has renewed AliceZ12\'s fixed slot. 1,000 credits have been received and lesson credits are ready.',
-          action: { type: 'billing', labelZh: '查看账单' }
+          id: 'david-cancelled', tag: '代课通知', unread: false, minutesAgo: 130, jump: 'schedule',
+          title: 'Substitute cancelled', titleZh: '代课撤销', bilingual: true,
+          body: 'The substitute assignment for Sat Nov 21 at 10:00 has been cancelled. No action is needed.',
+          bodyZh: '11 月 21 日周六 10:00 的代课指派已撤销，无需处理。'
         }
       ],
       leo: [
         {
-          id: 'leo-cancel', category: 'schedule', tone: 'rose', read: false, minutesAgo: 6,
-          titleZh: '小班课暂停待排', titleEn: 'Class Paused',
-          bodyZh: '11-12 周四 17:00 的 1v4 小班课因教师请假暂停待排，已向 5 位家长发送双语通知。',
-          bodyEn: 'The 1v4 small class on Thu Nov 12 at 17:00 has been paused because the teacher is on leave. Bilingual notices have been sent to all 5 parents.',
-          action: { type: 'schedule', labelZh: '查看课表' }
+          id: 'leo-transfer', tag: '转账催办', unread: true, minutesAgo: 30, jump: 'transfer',
+          title: '本周周转账单待确认',
+          body: '2026 年第 46 周周转账单已于周一 08:00 生成，请在周一 18:00 前核对结课明细并完成打款、上传打款凭证。'
         },
         {
-          id: 'leo-note', category: 'schedule', tone: 'slate', read: false, minutesAgo: 15,
-          titleZh: '教学备忘', titleEn: 'Teaching Note',
-          bodyZh: 'AliceZ12 近期注意力易分散，建议课堂前 5 分钟做口部热身。',
-          bodyEn: 'AliceZ12 has recently shown a shorter attention span. A 5-minute warm-up before class is recommended.',
-          action: { type: 'memo', labelZh: '查看留言' }
+          id: 'leo-dispatch', tag: '应急调度', unread: true, minutesAgo: 45, jump: 'dispatch',
+          title: '老师发起请假，待安排应急调度',
+          body: 'David 老师提交了 11 月 20 日 18:00 的请假申请，涉及 3 节 1v1 课次。请前往应急调度看板安排代课老师。'
         },
         {
-          id: 'leo-refund', category: 'billing', tone: 'rose', read: false, minutesAgo: 20,
-          titleZh: '退款单已生成', titleEn: 'Refund Order Created',
-          bodyZh: '退款单 RFD-20261105 已生成，关联 11-14 周六 16:00 固定位，等待财务确认。',
-          bodyEn: 'Refund order RFD-20261105 has been created for the fixed slot on Sat Nov 14 at 16:00 and is pending finance review.',
-          action: { type: 'billing', labelZh: '查看账单' }
-        },
-        {
-          id: 'leo-substitute', category: 'schedule', tone: 'amber', read: false, minutesAgo: 30,
-          titleZh: '代课老师待确认', titleEn: 'Substitute Confirmation Pending',
-          bodyZh: '11-14 周六 16:00 的代课安排尚未收到 Linda 老师确认，请及时跟进。',
-          bodyEn: 'The substitute arrangement for Sat Nov 14 at 16:00 has not been confirmed by Teacher Linda yet. Please follow up.',
-          action: { type: 'schedule', labelZh: '查看课表' }
-        },
-        {
-          id: 'leo-batch', category: 'schedule', tone: 'slate', read: false, minutesAgo: 45,
-          titleZh: '固定位 4 周连排完成', titleEn: '4-Week Fixed Slots Scheduled',
-          bodyZh: 'Amy 名下的 4 周固定位已完成连排，每周二 19:00 上课，首节课于 11-17 开始。',
-          bodyEn: 'The 4-week fixed slots under Amy are scheduled. Lessons are every Tuesday at 19:00, starting Nov 17.',
-          long: true, table: batchTable('admin'),
-          action: { type: 'schedule', labelZh: '查看课表' }
-        },
-        {
-          id: 'leo-payment', category: 'billing', tone: 'slate', read: true, minutesAgo: 120,
-          titleZh: '购课单收款确认', titleEn: 'Payment Confirmed',
-          bodyZh: 'Amy 家长已完成购课单 ORD-20261102 收款，1,000 积分已到账，课次资产已生成。',
-          bodyEn: 'Parent Amy has paid order ORD-20261102. 1,000 credits have been received and lesson credits are ready.',
-          action: { type: 'billing', labelZh: '查看账单' }
-        },
-        {
-          id: 'leo-reply', category: 'schedule', tone: 'slate', read: true, minutesAgo: 360,
-          titleZh: '公开留言回复', titleEn: 'New Public Reply',
-          bodyZh: 'Amy 家长在公开留言板回复了 David 老师的学习反馈。',
-          bodyEn: 'Parent Amy replied to Teacher David\'s learning feedback on the public message board.',
-          action: { type: 'memo', labelZh: '查看留言' }
+          id: 'leo-group', tag: '小班暂停', unread: true, minutesAgo: 120, jump: 'dispatch',
+          title: '小班暂停待排',
+          body: 'KET1 小班 11 月 21 日 10:00 的课次因老师请假暂停待排。仅通知主理人与授课老师，不向家长发送；请尽快确认补课安排。'
         }
       ],
       sarah: [
         {
-          id: 'sarah-sent', category: 'schedule', tone: 'slate', read: false, minutesAgo: 3,
-          titleZh: '邮件投递成功', titleEn: 'Email Delivered',
-          bodyZh: '11-10 代课通知已成功送达 5 位家长与 2 位教师邮箱。',
-          bodyEn: 'The substitute notice for Nov 10 has been delivered to 5 parents and 2 teachers.',
-          delivery: { status: 'sent', note: '全部收件人均已成功接收。' },
-          action: { type: 'none' }
+          id: 'sarah-transfer', tag: '账单审核', unread: true, minutesAgo: 20, jump: 'transfer',
+          title: '周转账单待审核',
+          body: '班长 Leo 提交了 2026 年第 46 周周转账单，待核对打款凭证与结课明细。该提醒仅在管理端展示，不向家长发送。'
         },
         {
-          id: 'sarah-retry', category: 'billing', tone: 'amber', read: false, minutesAgo: 25,
-          titleZh: '邮件重发中', titleEn: 'Email Retry In Progress',
-          bodyZh: '代课通知邮件的首次投递未成功，系统正在自动重发（第 1 次），预计 5 分钟内完成。',
-          bodyEn: 'The first delivery of the substitute notice email failed. The system is retrying automatically (attempt 1) and expects to finish within 5 minutes.',
-          delivery: { status: 'retrying', note: '网络波动，系统将在约 5 分钟后再次尝试。' },
-          action: { type: 'none' }
+          id: 'sarah-writeoff', tag: '课次清退', unread: true, minutesAgo: 65, jump: 'order',
+          title: '课次清退待确认',
+          body: '2 节待排课次的清退记录待核对，请确认财务备注与资产清零情况。该提醒仅在管理端展示，不向家长发送。'
         },
         {
-          id: 'sarah-email', category: 'billing', tone: 'amber', read: false, minutesAgo: 35,
-          titleZh: '家长邮箱待更新', titleEn: 'Parent Email Pending',
-          bodyZh: '家长 Amy 的备用邮箱尚未验证，可能影响提醒邮件送达。',
-          bodyEn: 'Parent Amy\'s backup email has not been verified and may affect email delivery.',
-          delivery: { status: 'inapp', note: '应用内提醒已送达，邮件通道待邮箱验证后恢复。' },
-          action: { type: 'todo', labelZh: '去处理' }
-        },
-        {
-          id: 'sarah-batch', category: 'schedule', tone: 'slate', read: false, minutesAgo: 45,
-          titleZh: '固定位 4 周连排完成', titleEn: '4-Week Fixed Slots Scheduled',
-          bodyZh: 'Amy 名下的 4 周固定位已完成连排，合并通知已发送给家长与授课教师。',
-          bodyEn: 'The 4-week fixed slots under Amy are scheduled. A consolidated notice has been sent to the parent and teacher.',
-          long: true, table: batchTable('admin'),
-          delivery: { status: 'sent', note: '家长与教师的邮件均已送达。' },
-          action: { type: 'schedule', labelZh: '查看课表' }
-        },
-        {
-          id: 'sarah-failed', category: 'billing', tone: 'rose', read: false, minutesAgo: 50,
-          titleZh: '邮件投递失败', titleEn: 'Email Delivery Failed',
-          bodyZh: '退款单邮件连续重发 3 次仍未成功，已转人工跟进；课程与退款主流程不受影响。',
-          bodyEn: 'The refund email still failed after 3 retries and has been passed to manual follow-up. Lessons and refunds are not affected.',
-          delivery: { status: 'failed', note: '最近一次尝试 10:20，建议核对家长邮箱或稍后手动重发。' },
-          action: { type: 'retry', labelZh: '重新发送' }
-        },
-        {
-          id: 'sarah-payment', category: 'billing', tone: 'slate', read: true, minutesAgo: 60,
-          titleZh: '购课单收款确认', titleEn: 'Payment Confirmed',
-          bodyZh: '固定位续费购课单 ORD-20261102 已收款 1,000 积分，课次资产已生成。',
-          bodyEn: 'Fixed slot renewal order ORD-20261102 is paid with 1,000 credits. Lesson credits are ready.',
-          delivery: { status: 'sent', note: '收款确认邮件已送达家长邮箱。' },
-          action: { type: 'billing', labelZh: '查看账单' }
-        },
-        {
-          id: 'sarah-pay2', category: 'billing', tone: 'slate', read: true, minutesAgo: 1440,
-          titleZh: '周结单邮件已发送', titleEn: 'Weekly Statement Email Sent',
-          bodyZh: '本周教师课酬结算单已发送给 8 位教师，投递状态正常。',
-          bodyEn: 'This week\'s teacher settlement statements have been sent to 8 teachers. Delivery status is normal.',
-          delivery: { status: 'sent', note: '8 封邮件全部送达。' },
-          action: { type: 'none' }
+          id: 'sarah-fallback', tag: '异常结课', unread: true, minutesAgo: 180, jump: 'schedule',
+          title: '异常结课回退待确认',
+          body: '课次 TS-20261117-1900 出现异常结课记录，待确认是否回退为待上课并退回对应权益。该提醒仅在管理端展示，不向家长发送。'
         }
       ]
     };
 
-    const RELAY_TASKS = [
-      { id: 'RT-1001', notice: '代课通知邮件 · Amy', status: 'sent', attempt: 1, next: '-', note: '已送达' },
-      { id: 'RT-1002', notice: '代课通知邮件 · David', status: 'retrying', attempt: 1, next: '约 5 分钟后', note: '网络波动，自动重发中' },
-      { id: 'RT-1003', notice: '退款单邮件 · Leo', status: 'failed', attempt: 3, next: '-', note: '连续 3 次未成功，待人工处理' }
-    ];
+    const PAGE_SIZE = 20;
 
     /* ------------------------------------------------------------------
      * 状态与工具
      * ------------------------------------------------------------------ */
     function initialState() {
       return {
-        role: 'amy', device: 'mobile', online: 'on',
-        statusFilter: 'all', categoryFilter: 'all',
-        expandedIds: [], stickyReadIds: [],
-        force99: false, confirmRead: false,
-        workerLog: '10:35 检查完成，已补发 1 条提醒。',
-        blockedParentRoutes: 3,
-        notices: JSON.parse(JSON.stringify(NOTICES)),
-        relayTasks: JSON.parse(JSON.stringify(RELAY_TASKS))
+        role: 'amy',
+        device: 'mobile',
+        online: 'on',
+        filter: 'all',
+        page: 1,
+        expandedIds: [],
+        force99: false,
+        confirmRead: false,
+        notices: JSON.parse(JSON.stringify(NOTICES))
       };
     }
 
     let state = initialState();
     const $ = (id) => document.getElementById(id);
-    const clone = (v) => JSON.parse(JSON.stringify(v));
-    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const esc = (value) => String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
     const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
     const ico = () => { if (window.lucide) window.lucide.createIcons(); };
+    const isEnglish = () => state.role === 'david';
+    const listOf = (role = state.role) => state.notices[role] || [];
+    const unreadCount = (role = state.role) => listOf(role).filter((item) => item.unread).length;
 
-    function roleMeta() { return ROLE_META[state.role]; }
-    function noticeList(role = state.role) { return state.notices[role] || []; }
-    function sortedNotices(role = state.role) { return noticeList(role).slice().sort((a, b) => a.minutesAgo - b.minutesAgo); }
-    function unreadCount(role = state.role, category = 'all') {
-      return noticeList(role).filter((n) => !n.read && (category === 'all' || n.category === category)).length;
+    function sortedList() {
+      return listOf().slice().sort((a, b) => a.minutesAgo - b.minutesAgo);
+    }
+
+    function matchedList() {
+      const all = sortedList();
+      if (state.filter !== 'unread') return all;
+      return all.filter((item) => item.unread || state.expandedIds.includes(item.id));
+    }
+
+    function visibleList() {
+      return matchedList().slice(0, state.page * PAGE_SIZE);
+    }
+
+    function findNotice(id) {
+      return listOf().find((item) => item.id === id) || null;
     }
 
     function badgeText() {
@@ -492,28 +346,14 @@
       return count > 99 ? '99+' : String(count);
     }
 
-    function findNotice(id) {
-      const own = noticeList().find((n) => n.id === id);
-      if (own) return own;
-      for (const role of Object.keys(state.notices)) {
-        const found = noticeList(role).find((n) => n.id === id);
-        if (found) return found;
-      }
-      return null;
-    }
-
-    function filteredNotices() {
-      let list = sortedNotices();
-      if (state.statusFilter === 'unread') list = list.filter((n) => !n.read || state.stickyReadIds.includes(n.id));
-      if (state.categoryFilter !== 'all') list = list.filter((n) => n.category === state.categoryFilter);
-      return list;
-    }
-
-    function pendingReminderCount() {
-      return state.relayTasks.filter((t) => t.status !== 'sent').length;
-    }
-
     function relative(minutes) {
+      if (isEnglish()) {
+        if (minutes < 1) return 'just now';
+        if (minutes < 60) return `${minutes} min ago`;
+        if (minutes < 1440) return `${Math.floor(minutes / 60)} hr ago`;
+        if (minutes < 2880) return 'Yesterday';
+        return `${Math.floor(minutes / 1440)} days ago`;
+      }
       if (minutes < 1) return '刚刚';
       if (minutes < 60) return `${minutes} 分钟前`;
       if (minutes < 1440) return `${Math.floor(minutes / 60)} 小时前`;
@@ -521,26 +361,13 @@
       return `${Math.floor(minutes / 1440)} 天前`;
     }
 
-    function isLongNotice(n) { return n.long === true; }
-    function summaryZh(n, size = 90) {
-      const arr = Array.from(String(n.bodyZh || ''));
-      return arr.slice(0, size).join('') + (arr.length > size ? '…' : '');
-    }
-    function summaryEn(n, size = 130) {
-      const text = String(n.bodyEn || '').replace(/\s+/g, ' ').trim();
-      if (text.length <= size) return text;
-      const cut = text.slice(0, size);
-      return `${cut.slice(0, cut.lastIndexOf(' ')).trimEnd()}…`;
-    }
-    function toneKey(n) { return TONES[n.tone] ? n.tone : 'slate'; }
-
-    function categoryChip(n) {
-      const cat = CATEGORY_META[n.category] || CATEGORY_META.schedule;
-      return `<span class="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${cat.icon} ${esc(cat.shortZh)}</span>`;
+    function tagLabel(tag) {
+      return isEnglish() ? (TAGS_EN[tag] || tag) : tag;
     }
 
-    function pinIfNeeded(n) {
-      if (state.statusFilter === 'unread' && !state.stickyReadIds.includes(n.id)) state.stickyReadIds.push(n.id);
+    function jumpLabel(jump) {
+      const meta = JUMP_META[jump] || JUMP_META.schedule;
+      return meta.zh;
     }
 
     function toast(message) {
@@ -554,178 +381,158 @@
     function syncConsole() {
       document.querySelectorAll('.ctl').forEach((btn) => {
         const active = state[btn.dataset.group] === btn.dataset.value;
-        btn.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900' : 'text-slate-500 hover:text-slate-800'}`;
+        btn.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`;
       });
+      const toggle = $('btnToggle99');
+      toggle.className = `rounded-lg border px-2.5 py-1.5 font-semibold transition ${state.force99 ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`;
     }
 
     /* ------------------------------------------------------------------
      * URL 参数（便于直接演示指定状态）
      * ------------------------------------------------------------------ */
     const params = new URLSearchParams(location.search);
-    if (params.get('role') && ROLE_META[params.get('role')]) {
-      state.role = params.get('role');
-    }
+    if (params.get('role') && ROLE_META[params.get('role')]) state.role = params.get('role');
     if (params.get('device') === 'tablet') state.device = 'tablet';
     if (params.get('online') === 'off') state.online = 'off';
-    if (params.get('filter') === 'unread') state.statusFilter = 'unread';
-    {
-      const cat = params.get('category');
-      if (cat && CATEGORY_META[cat]) state.categoryFilter = cat;
-    }
-    if (params.get('allread') === '1') noticeList().forEach((n) => { n.read = true; });
+    if (params.get('filter') === 'unread') state.filter = 'unread';
+    if (params.get('force99') === '1') state.force99 = true;
+    if (params.get('allread') === '1') listOf().forEach((item) => { item.unread = false; });
     if (params.get('expand')) {
       params.get('expand').split(',').forEach((id) => {
-        const n = findNotice(id);
-        if (n) {
-          if (!state.expandedIds.includes(id)) state.expandedIds.push(id);
-          if (state.online === 'on') n.read = true;
-        }
+        const item = findNotice(id);
+        if (!item) return;
+        if (!state.expandedIds.includes(id)) state.expandedIds.push(id);
+        if (state.online === 'on') item.unread = false;
       });
     }
-    if (params.get('confirm') === '1') state.confirmRead = true;
 
     /* ------------------------------------------------------------------
-     * 顶部 Banner（单一列表页）
+     * 顶栏：返回 + 消息中心 + 铃铛 + 全部标为已读
      * ------------------------------------------------------------------ */
     function renderBanner() {
-      const r = roleMeta();
+      const role = ROLE_META[state.role];
       const badge = badgeText();
-      const disabled = state.online === 'off' || unreadCount() === 0;
-      return `<header class="relative flex h-16 shrink-0 items-center justify-between gap-3 overflow-hidden bg-gradient-to-br ${r.banner} px-4 text-white">
-        ${r.pattern}
-        <div class="relative min-w-0">
-          <h1 class="truncate text-[18px] font-bold tracking-tight">消息中心</h1>
-          <p class="truncate text-[12px] font-medium text-white/70">Notification Center</p>
-        </div>
-        <div class="relative flex shrink-0 items-center gap-2">
-          <div class="relative grid h-8 w-8 place-items-center rounded-full bg-white/15 ring-1 ring-white/20" aria-label="未读消息">
-            ${icon('bell', 'h-4 w-4')}
-            ${badge ? `<span class="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold leading-none text-white ring-2 ring-white/70">${badge}</span>` : ''}
+      const allDone = unreadCount() === 0;
+      const disabled = state.online === 'off' || allDone;
+      const title = '消息中心';
+      const markLabel = '全部标为已读';
+      return `<header class="relative h-14 shrink-0 overflow-hidden bg-gradient-to-br ${role.banner} px-3 text-white">
+        ${role.pattern}
+        <div class="relative flex h-14 items-center gap-1.5">
+          <button data-action="back" aria-label="返回" class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20 active:scale-[0.98]">
+            ${icon('chevron-left', 'h-5 w-5')}
+          </button>
+          <div class="min-w-0 flex-1">
+            <h1 class="truncate text-[18px] font-bold leading-tight tracking-tight">${title}</h1>
           </div>
-          <button data-action="open-confirm" ${disabled ? 'disabled' : ''} class="rounded-lg border border-white/30 bg-white/10 px-2.5 py-1.5 text-[12px] font-bold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:border-white/15 disabled:bg-transparent disabled:text-white/40">全部标为已读</button>
+          <div class="flex shrink-0 items-center gap-1.5">
+            <div class="relative grid h-8 w-8 place-items-center rounded-full bg-white/15 ring-1 ring-white/20" aria-label="未读">
+              ${icon('bell', 'h-4 w-4')}
+              <span data-badge class="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[12px] font-bold leading-none text-white ring-2 ring-white/70 ${badge ? '' : 'hidden'}">${badge}</span>
+            </div>
+            <button data-action="mark-all" ${disabled ? 'disabled' : ''} title="${state.online === 'off' ? '离线状态不可同步已读' : (allDone ? '当前没有未读消息' : '')}" class="rounded-lg border border-white/30 bg-white/10 px-2 py-1.5 text-[12px] font-bold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:border-white/15 disabled:bg-transparent disabled:text-white/50">${markLabel}</button>
+          </div>
         </div>
       </header>`;
     }
 
     /* ------------------------------------------------------------------
-     * 消息单列表页（就地展开）
+     * 筛选：仅「全部」与「未读 (N)」
      * ------------------------------------------------------------------ */
-    function filterChip(active) {
-      return active ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50';
-    }
-
-    function filterButton(action, value, label, active, title = '') {
-      return `<button data-action="${action}" data-value="${value}" ${title ? `title="${esc(title)}"` : ''} class="h-8 rounded-full border px-3 text-[12px] font-bold transition ${filterChip(active)}">${label}</button>`;
-    }
-
     function renderFilters() {
-      const unread = unreadCount(state.role, state.categoryFilter);
-      return `<div class="sticky top-0 z-20 -mx-4 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur">
-        <div class="flex flex-wrap items-center gap-1.5">
-          ${filterButton('filter-status', 'all', '全部', state.statusFilter === 'all')}
-          ${filterButton('filter-status', 'unread', `仅看未读 (${unread})`, state.statusFilter === 'unread')}
+      const unread = unreadCount();
+      const pill = (value, label) => {
+        const active = state.filter === value;
+        return `<button data-action="filter" data-value="${value}" class="h-8 shrink-0 rounded-full px-3.5 text-[12px] transition ${active ? 'bg-slate-900 font-semibold text-white shadow-sm' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}</button>`;
+      };
+      return `<div class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur">
+        <div class="flex items-center gap-1.5 overflow-x-auto">
+          ${pill('all', '全部')}
+          ${pill('unread', `未读 (${unread})`)}
         </div>
-        <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-          ${filterButton('filter-category', 'all', '全部类型', state.categoryFilter === 'all')}
-          ${filterButton('filter-category', 'schedule', '📅 课表与代课', state.categoryFilter === 'schedule', '排课、请假、代课、暂停待排')}
-          ${filterButton('filter-category', 'billing', '💳 账单与资产', state.categoryFilter === 'billing')}
-        </div>
       </div>`;
     }
 
-    function renderTableZh(table) {
-      return `<div class="mt-2 overflow-x-auto rounded-xl border border-slate-200">
-        <table class="w-full border-collapse text-left text-[12px]">
-          <thead><tr class="border-b border-slate-200 bg-slate-50">${table.headersZh.map((h, i) => `<th class="whitespace-nowrap px-0.5 py-2 first:pl-1.5 last:pr-1.5 font-bold text-slate-600 ${i === table.headersZh.length - 2 ? 'pr-1' : ''}">${esc(h)}</th>`).join('')}</tr></thead>
-          <tbody class="divide-y divide-slate-100">${table.rows.map((row) => `<tr class="hover:bg-slate-50/60">${row.zh.map((cell, i) => `<td class="whitespace-nowrap px-0.5 py-2 first:pl-1.5 last:pr-1.5 text-slate-700 ${i === row.zh.length - 2 ? 'pr-1' : ''}">${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
-        </table>
-      </div>`;
-    }
-
-    function renderTableEn(table) {
-      return `<div class="mt-2 overflow-x-auto rounded-xl border border-slate-200">
-        <table class="w-full border-collapse text-left text-[12px]">
-          <thead><tr class="border-b border-slate-200 bg-slate-50">${table.headersEn.map((h, i) => `<th class="whitespace-nowrap px-0.5 py-2 first:pl-1.5 last:pr-1.5 font-bold text-slate-600 ${i === table.headersEn.length - 2 ? 'pr-1' : ''}">${esc(h)}</th>`).join('')}</tr></thead>
-          <tbody class="divide-y divide-slate-100">${table.rows.map((row) => `<tr class="hover:bg-slate-50/60">${row.en.map((cell, i) => `<td class="whitespace-nowrap px-0.5 py-2 first:pl-1.5 last:pr-1.5 text-slate-700 ${i === row.en.length - 2 ? 'pr-1' : ''}">${esc(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
-        </table>
-      </div>`;
-    }
-
-    function cardBody(n, tone, expanded, long) {
-      const T = TONES[tone];
-      if (long && !expanded) {
-        return `<p class="mt-1.5 text-[14px] leading-relaxed ${T.body}">${esc(summaryZh(n, 90))}</p>
-          <p class="mt-1 text-[12px] leading-relaxed ${T.sub}">${esc(summaryEn(n, 130))}</p>`;
-      }
-      return `<div class="mt-1.5 space-y-1.5">
-        <p class="whitespace-pre-line text-[14px] leading-relaxed ${T.body}">${esc(n.bodyZh)}</p>
-        ${n.table ? renderTableZh(n.table) : ''}
-        ${long ? `<div class="my-2 flex items-center gap-2"><span class="h-px flex-1 bg-slate-200"></span><span class="whitespace-nowrap text-[12px] font-bold text-slate-600">English Version</span><span class="h-px flex-1 bg-slate-200"></span></div>` : ''}
-        <p class="whitespace-pre-line text-[12px] leading-relaxed ${T.sub}">${esc(n.bodyEn)}</p>
-        ${n.table ? renderTableEn(n.table) : ''}
-      </div>`;
-    }
-
-    function deliveryBlock(n) {
-      if (state.role !== 'sarah' || !n.delivery) return '';
-      const d = DELIVERY_META[n.delivery.status] || DELIVERY_META.inapp;
-      return `<div class="mt-2 rounded-lg border px-2.5 py-2 ${d.cls}">
-        <div class="flex items-center gap-1.5 text-[12px] font-bold">${icon(d.icon, 'h-3.5 w-3.5')}${d.label}</div>
-        <p class="mt-0.5 text-[12px] leading-relaxed opacity-90">${esc(n.delivery.note)}</p>
-      </div>`;
-    }
-
-    function actionButton(n, tone) {
-      if (!n.action || n.action.type === 'none') return '';
-      const disabled = state.online === 'off';
-      return `<button data-action="run-action" data-id="${n.id}" ${disabled ? 'disabled' : ''} class="shrink-0 rounded-lg px-2.5 py-1.5 text-[12px] font-bold disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 ${disabled ? '' : TONES[tone].action}">${esc(n.action.labelZh)}</button>`;
-    }
-
-    function renderCard(n) {
-      const tone = toneKey(n);
-      const T = TONES[tone];
-      const unread = !n.read;
-      const long = isLongNotice(n);
-      const expanded = state.expandedIds.includes(n.id);
-      const hasAction = n.action && n.action.type !== 'none';
-      const cardAction = long ? 'toggle-expand' : 'mark-read';
-      const span = state.device === 'tablet' && expanded && long ? 'col-span-2' : '';
-      return `<article data-action="${cardAction}" data-id="${n.id}" class="cursor-pointer rounded-2xl p-3.5 transition active:scale-[0.995] ${span} ${T.card}">
+    /* ------------------------------------------------------------------
+     * 消息卡：点击原地手风琴展开，展开即已读
+     * ------------------------------------------------------------------ */
+    function renderCard(item) {
+      const expanded = state.expandedIds.includes(item.id);
+      const unread = item.unread;
+      const statusText = unread
+        ? (state.online === 'off' ? '离线状态不可同步已读' : '未读')
+        : '已读';
+      const statusCls = unread && state.online === 'off' ? 'text-amber-800' : 'text-slate-600';
+      const englishBody = item.body && item.bilingual ? item.body : '';
+      const chineseBody = item.bodyZh || item.body;
+      const languageLabel = '中文';
+      return `<article data-action="toggle" data-id="${item.id}" aria-expanded="${expanded}" class="cursor-pointer rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 transition active:scale-[0.995] ${state.device === 'tablet' && expanded ? 'col-span-2' : ''}">
         <div class="flex items-start gap-2.5">
-          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${unread ? 'bg-rose-500' : 'bg-transparent'}"></span>
+          <span data-dot class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${unread ? 'bg-blue-500' : 'bg-transparent'}"></span>
           <div class="min-w-0 flex-1">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <h3 class="text-[16px] font-bold leading-snug ${T.title}">${esc(n.titleZh)}</h3>
-                <p class="mt-0.5 text-[12px] leading-tight ${T.sub}">${esc(n.titleEn)}</p>
-              </div>
-              <span class="shrink-0 text-[12px] font-medium ${T.sub}">${relative(n.minutesAgo)}</span>
+            <div class="flex items-center justify-between gap-2">
+              <span class="inline-flex min-w-0 items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">[${esc(tagLabel(item.tag))}]</span>
+              <span class="flex shrink-0 items-center gap-1 text-[12px] font-medium text-slate-600">
+                ${relative(item.minutesAgo)}
+                <i data-lucide="chevron-down" class="h-3.5 w-3.5 text-slate-600 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}"></i>
+              </span>
             </div>
-            <div class="mt-1 flex flex-wrap items-center gap-2 text-[12px] font-medium ${T.sub}">${categoryChip(n)}</div>
-            ${cardBody(n, tone, expanded, long)}
-            ${deliveryBlock(n)}
-            <div class="mt-2.5 flex items-end justify-between gap-2 border-t border-slate-200/70 pt-2">
-              <div class="flex min-w-0 flex-wrap items-center gap-2">
-                ${long
-                  ? `<button data-action="toggle-expand" data-id="${n.id}" class="text-[12px] font-bold ${T.title}">${expanded ? '收起明细 ▴' : '展开明细 ▾'}</button><span class="text-[12px] font-medium ${T.sub}">${unread ? '展开即已读' : '已读'}</span>`
-                  : `<span class="text-[12px] font-medium ${T.sub}">${unread ? '点击卡片标为已读' : '已读'}</span>`}
+            <h3 class="mt-1 text-[16px] font-bold leading-snug text-slate-900">${esc(item.title)}</h3>
+            ${item.titleZh ? `<p class="mt-0.5 text-[12px] font-medium leading-tight text-slate-600">${esc(item.titleZh)}</p>` : ''}
+            <div data-body="${item.id}" class="grid ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'} transition-[grid-template-rows] duration-300 ease-out">
+              <div class="min-h-0 overflow-hidden">
+                <div class="mt-2 border-t border-slate-200/70 pt-2">
+                  <p class="whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-700">${esc(englishBody || chineseBody)}</p>
+                  ${englishBody ? `<div class="my-2 flex items-center gap-2"><span class="h-px flex-1 bg-slate-200"></span><span class="whitespace-nowrap text-[12px] font-bold text-slate-600">${languageLabel}</span><span class="h-px flex-1 bg-slate-200"></span></div>
+                  <p class="whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-700">${esc(chineseBody)}</p>` : ''}
+                  <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                    <span class="min-w-0 text-[12px] font-medium ${statusCls}">${statusText}</span>
+                    <div class="flex shrink-0 items-center gap-2">
+                      ${unread && state.online === 'off'
+                        ? `<button disabled title="离线状态不可同步已读" class="cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-[12px] font-semibold text-slate-500">标为已读</button>`
+                        : ''}
+                      <button data-action="goto" data-id="${item.id}" class="text-[13px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">前往查看 →</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              ${hasAction ? actionButton(n, tone) : ''}
             </div>
           </div>
         </div>
       </article>`;
     }
 
-    function emptyState() {
+    function renderEmpty() {
       return `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-12 text-center">
-        <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-50 text-slate-300">${icon('inbox', 'h-6 w-6')}</div>
-        <p class="mt-3 text-[14px] font-bold text-slate-700">暂无符合条件的消息</p>
-        <p class="mt-0.5 text-[12px] text-slate-500">No matching notifications</p>
-        <button data-action="reset-filters" class="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 hover:bg-slate-50">重置筛选</button>
+        <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-slate-600">${icon('inbox', 'h-6 w-6')}</div>
+        <p class="mt-3 text-[14px] font-bold text-slate-700">这里暂无未读消息</p>
+        <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">最近 90 天的关键邮件提醒会显示在消息中心。</p>
+        <button data-action="show-all" class="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-800 transition hover:bg-slate-50">查看全部</button>
       </div>`;
     }
 
+    function renderList() {
+      const visible = visibleList();
+      const matched = matchedList();
+      const remaining = matched.length - visible.length;
+      const tablet = state.device === 'tablet';
+      const retention = '仅保留最近 90 天';
+      return `<div class="mx-auto w-full max-w-[720px] px-4 pb-8">
+        ${renderFilters()}
+        <div class="mt-3 ${tablet ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">
+          ${visible.length ? visible.map(renderCard).join('') : renderEmpty()}
+        </div>
+        <footer class="pt-5 text-center">
+          ${remaining > 0 ? `<button data-action="load-more" class="mb-2 w-full rounded-xl border border-slate-300 bg-white py-2.5 text-[12px] font-bold text-slate-800 transition hover:bg-slate-50">加载更多 (还有 ${remaining} 条)</button>` : ''}
+          <p class="text-[12px] font-medium text-slate-600">共 ${matched.length} 条</p>
+          <p class="mt-0.5 text-[12px] font-medium text-slate-600">${retention}</p>
+        </footer>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 全部标为已读确认
+     * ------------------------------------------------------------------ */
     function renderConfirm() {
       const root = $('confirmRoot');
       if (!state.confirmRead) { root.innerHTML = ''; return; }
@@ -733,49 +540,30 @@
       root.innerHTML = `<div data-action="close-confirm" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
         <div data-action="noop" class="w-full max-w-[320px] rounded-2xl bg-white p-4 shadow-2xl">
           <h2 class="text-[16px] font-bold text-slate-900">全部标为已读？</h2>
-          <p class="mt-0.5 text-[12px] font-medium text-slate-500">Mark all notifications as read?</p>
-          <p class="mt-2 text-[14px] leading-relaxed text-slate-700">将把全部 ${unread} 条未读消息标为已读，顶部红点会同步清零。</p>
+          <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-700">将把 ${unread} 条未读消息标为已读，铃铛红点会同步隐藏。</p>
           <div class="mt-4 grid grid-cols-2 gap-2">
-            <button data-action="close-confirm" class="h-11 rounded-lg border border-slate-300 bg-white text-[14px] font-bold text-slate-800 hover:bg-slate-50">取消</button>
-            <button data-action="mark-all-read" class="h-11 rounded-lg bg-indigo-600 text-[14px] font-bold text-white hover:bg-indigo-700">确认全部已读</button>
+            <button data-action="close-confirm" class="h-11 rounded-xl border border-slate-300 bg-white text-[14px] font-bold text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button data-action="confirm-all" class="h-11 rounded-xl bg-indigo-600 text-[14px] font-bold text-white transition hover:bg-indigo-700">确认全部已读</button>
           </div>
         </div>
       </div>`;
     }
 
-    function renderNotificationList() {
-      const list = filteredNotices();
-      const tablet = state.device === 'tablet';
-      return `<div class="mx-auto w-full max-w-[640px] px-4 pb-10">
-        <div class="pt-3 text-[12px] font-medium text-slate-600">共 ${list.length} 条消息 · ${list.filter((n) => !n.read).length} 条未读</div>
-        ${renderFilters()}
-        <div class="mt-3 ${tablet ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">
-          ${list.length ? list.map(renderCard).join('') : emptyState()}
-        </div>
-        ${list.length ? `<footer class="pb-2 pt-5 text-center text-[12px] font-medium text-slate-500">没有更多消息了</footer>` : ''}
-      </div>`;
-    }
-
     /* ------------------------------------------------------------------
-     * 总渲染（纯单一列表页）
+     * 总渲染
      * ------------------------------------------------------------------ */
-    function renderContent() {
-      return renderNotificationList();
-    }
-
-    function renderAll() {
+    function renderAll(options = {}) {
       const frame = $('frame');
       frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-[768px]' : 'h-[812px] w-[390px]'}`;
-      const contentEl = $('content');
-      const top = contentEl.scrollTop;
       $('banner').innerHTML = renderBanner();
       $('offlineBanner').className = state.online === 'off' ? 'flex shrink-0 items-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[12px] font-semibold text-amber-900' : 'hidden';
-      $('offlineBanner').innerHTML = state.online === 'off' ? `${icon('wifi-off', 'h-4 w-4 shrink-0 text-amber-600')} 离线只读：可查看缓存消息；标为已读与邮件重发需联网` : '';
-      contentEl.innerHTML = renderContent();
-      $('bottomnav').innerHTML = '';
+      $('offlineBanner').innerHTML = state.online === 'off' ? `${icon('wifi-off', 'h-4 w-4 shrink-0 text-amber-600')} 离线状态不可同步已读 · 可查看与展开` : '';
+      const content = $('content');
+      const top = options.resetScroll ? 0 : content.scrollTop;
+      content.innerHTML = renderList();
       renderConfirm();
       syncConsole();
-      contentEl.scrollTop = top;
+      content.scrollTop = top;
       ico();
     }
 
@@ -785,94 +573,67 @@
     function setRole(role) {
       if (!ROLE_META[role]) return;
       state.role = role;
-      state.statusFilter = 'all';
-      state.categoryFilter = 'all';
+      state.filter = 'all';
+      state.page = 1;
       state.expandedIds = [];
-      state.stickyReadIds = [];
-      state.confirmRead = false;
       state.force99 = false;
-      renderAll();
-      $('content').scrollTop = 0;
-      toast(`已切换到${ROLE_META[role].label} · 消息中心`);
-    }
-
-    function setListStatus(value) {
-      state.statusFilter = value;
-      state.stickyReadIds = [];
-      renderAll();
-      $('content').scrollTop = 0;
-    }
-
-    function setListCategory(value) {
-      state.categoryFilter = value;
-      state.stickyReadIds = [];
-      renderAll();
-      $('content').scrollTop = 0;
-    }
-
-    function resetListFilters() {
-      state.statusFilter = 'all';
-      state.categoryFilter = 'all';
-      state.stickyReadIds = [];
-      renderAll();
-      $('content').scrollTop = 0;
-    }
-
-    function markRead(id) {
-      if (state.online === 'off') return toast('离线只读：标为已读需联网');
-      const notice = findNotice(id);
-      if (!notice || notice.read) return;
-      pinIfNeeded(notice);
-      notice.read = true;
-      renderAll();
-      toast('已标为已读');
+      state.confirmRead = false;
+      renderAll({ resetScroll: true });
+      toast(`已切换到${ROLE_META[role].label}`);
     }
 
     function toggleExpand(id) {
-      const notice = findNotice(id);
-      if (!notice) return;
-      const wasExpanded = state.expandedIds.includes(id);
-      const wasUnread = !notice.read;
-      if (!wasExpanded && state.online === 'on' && wasUnread) {
-        pinIfNeeded(notice);
-        notice.read = true;
+      const item = findNotice(id);
+      if (!item) return;
+      const opening = !state.expandedIds.includes(id);
+      if (!opening) {
+        const body = document.querySelector(`[data-body="${id}"]`);
+        if (body) {
+          body.classList.remove('grid-rows-[1fr]');
+          body.classList.add('grid-rows-[0fr]');
+        }
+        state.expandedIds = state.expandedIds.filter((value) => value !== id);
+        setTimeout(() => renderAll(), 220);
+        return;
       }
-      if (wasExpanded) state.expandedIds = state.expandedIds.filter((x) => x !== id);
-      else state.expandedIds.push(id);
+
+      state.expandedIds.push(id);
+      const wasUnread = item.unread;
+      if (wasUnread && state.online === 'on') item.unread = false;
       renderAll();
-      if (state.online === 'off') toast('离线只读：可展开查看，已读状态需联网同步');
-      else if (!wasExpanded && wasUnread) toast('已标为已读');
+      const body = document.querySelector(`[data-body="${id}"]`);
+      if (body) {
+        body.classList.remove('grid-rows-[1fr]');
+        body.classList.add('grid-rows-[0fr]');
+        void body.offsetHeight;
+        body.classList.remove('grid-rows-[0fr]');
+        body.classList.add('grid-rows-[1fr]');
+      }
+      if (wasUnread) {
+        toast(state.online === 'off' ? '离线状态不可同步已读' : '已标为已读');
+      }
     }
 
-    function runAction(id) {
-      if (state.online === 'off') return toast('离线只读：消息操作需联网');
-      const notice = findNotice(id);
-      if (!notice) return;
-      if (!notice.read) {
-        pinIfNeeded(notice);
-        notice.read = true;
+    function goTo(id) {
+      const item = findNotice(id);
+      if (!item) return;
+      if (item.unread && state.online === 'on') {
+        item.unread = false;
+        renderAll();
       }
-      if (notice.action && notice.action.type === 'retry' && notice.delivery) {
-        notice.delivery.status = 'retrying';
-        notice.delivery.note = '已重新发送，等待投递结果。';
-      }
-      const messages = {
-        classroom: '已进入 ClassIn 教室',
-        schedule: '已打开学生课表',
-        book: '已打开约课大厅',
-        billing: '已打开购课与账单',
-        renew: '已打开续费单',
-        memo: '已打开留言板',
-        feedback: '已打开课后反馈',
-        retry: '邮件已重新发送，正在投递',
-        todo: '已打开待处理事项'
-      };
-      renderAll();
-      toast(messages[notice.action ? notice.action.type : ''] || '已处理');
+      const target = jumpLabel(item.jump);
+      toast(`正在前往${target}…`);
+    }
+
+    function setFilter(value) {
+      if (value !== 'all' && value !== 'unread') return;
+      state.filter = value;
+      state.page = 1;
+      renderAll({ resetScroll: true });
     }
 
     function openConfirmAll() {
-      if (state.online === 'off') return toast('离线只读：暂时无法批量标为已读');
+      if (state.online === 'off') return toast('离线状态不可同步已读');
       if (unreadCount() === 0) return toast('当前没有未读消息');
       state.confirmRead = true;
       renderAll();
@@ -884,93 +645,24 @@
     }
 
     function markAllRead() {
-      if (state.online === 'off') return toast('离线只读：暂时无法同步已读状态');
-      noticeList().forEach((n) => { n.read = true; });
+      if (state.online === 'off') {
+        state.confirmRead = false;
+        renderAll();
+        return toast('离线状态不可同步已读');
+      }
+      listOf().forEach((item) => { item.unread = false; });
       state.confirmRead = false;
+      state.force99 = false;
       state.expandedIds = [];
-      state.stickyReadIds = [];
+      state.page = 1;
       renderAll();
-      $('content').scrollTop = 0;
       toast('全部消息已标为已读');
     }
 
-    function simulateWorkerScan() {
-      if (state.online === 'off') return toast('离线模式：暂时无法补发提醒');
-      const hits = [];
-      Object.keys(state.notices).forEach((role) => {
-        noticeList(role).forEach((n) => {
-          if (n.delivery && n.delivery.status === 'retrying') {
-            n.delivery.status = 'sent';
-            n.delivery.note = '检查命中，已补发并送达。';
-            hits.push(n.titleZh);
-          }
-        });
-      });
-      state.relayTasks.forEach((t) => {
-        if (t.status === 'retrying') {
-          t.status = 'sent';
-          t.attempt = Math.min(3, t.attempt + 1);
-          t.next = '-';
-          t.note = '检查命中，已送达';
-        }
-      });
-      state.workerLog = hits.length ? `10:35 检查完成，已补发 ${hits.length} 条提醒。` : '10:35 检查完成，当前没有待补发提醒。';
+    function loadMore() {
+      state.page += 1;
       renderAll();
-      toast(hits.length ? `已补发 ${hits.length} 条提醒` : '本次检查没有待补发提醒');
-    }
-
-    function simulateInternalNote() {
-      if (state.online === 'off') return toast('离线模式：暂时无法新增教学备忘');
-      const id = Date.now();
-      ['david', 'leo', 'sarah'].forEach((role) => {
-        if (!state.notices[role]) return;
-        state.notices[role].unshift({
-          id: `${role}-note-${id}`,
-          category: 'schedule', tone: 'slate', read: false, minutesAgo: 0,
-          titleZh: '教学备忘', titleEn: 'Teaching Note',
-          bodyZh: 'AliceZ12 近期注意力易分散，建议课堂前 5 分钟做口部热身。',
-          bodyEn: 'AliceZ12 has recently shown a shorter attention span. A 5-minute warm-up before class is recommended.',
-          action: { type: 'memo', labelZh: '查看留言' }
-        });
-      });
-      state.blockedParentRoutes += 1;
-      renderAll();
-      toast('已发送给教师与班长，家长端不会收到提醒');
-    }
-
-    function simulateNetworkRecover() {
-      const task = state.relayTasks.find((t) => t.status === 'retrying');
-      if (!task) return toast('当前没有重发中的邮件');
-      task.status = 'sent';
-      task.attempt = Math.min(3, task.attempt + 1);
-      task.next = '-';
-      task.note = '网络恢复，已送达';
-      Object.keys(state.notices).forEach((role) => noticeList(role).forEach((n) => {
-        if (n.delivery && n.delivery.status === 'retrying') {
-          n.delivery.status = 'sent';
-          n.delivery.note = '网络恢复，已送达。';
-        }
-      }));
-      renderAll();
-      toast('网络恢复，邮件已送达');
-    }
-
-    function retryPermanent() {
-      if (state.online === 'off') return toast('离线模式：暂时无法重新发送');
-      const task = state.relayTasks.find((t) => t.status === 'failed');
-      if (!task) return toast('当前没有失败的邮件');
-      task.status = 'retrying';
-      task.attempt = 1;
-      task.next = '约 5 分钟后';
-      task.note = '已重新发送，等待结果';
-      Object.keys(state.notices).forEach((role) => noticeList(role).forEach((n) => {
-        if (n.delivery && n.delivery.status === 'failed') {
-          n.delivery.status = 'retrying';
-          n.delivery.note = '已重新发送，等待投递结果。';
-        }
-      }));
-      renderAll();
-      toast('失败邮件已重新发送');
+      toast('已加载更多消息');
     }
 
     function toggleForce99() {
@@ -981,8 +673,7 @@
 
     function resetDemo() {
       state = initialState();
-      renderAll();
-      $('content').scrollTop = 0;
+      renderAll({ resetScroll: true });
       toast('演示数据已重置');
     }
 
@@ -993,19 +684,21 @@
       btn.addEventListener('click', () => {
         const group = btn.dataset.group;
         const value = btn.dataset.value;
-        if (group === 'role') setRole(value);
-        if (group === 'device') { state.device = value; renderAll(); }
+        if (group === 'role') return setRole(value);
+        if (group === 'device') {
+          state.device = value;
+          renderAll();
+          return;
+        }
         if (group === 'online') {
           state.online = value;
           if (value === 'off') state.confirmRead = false;
           renderAll();
-          toast(value === 'off' ? '离线只读：标为已读与邮件重发需联网' : '网络已恢复，消息服务在线');
+          toast(value === 'off' ? '离线状态不可同步已读' : '网络已恢复，消息服务在线');
         }
       });
     });
 
-    $('btnScanWorker').addEventListener('click', simulateWorkerScan);
-    $('btnInternalNote').addEventListener('click', simulateInternalNote);
     $('btnToggle99').addEventListener('click', toggleForce99);
     $('btnResetDemo').addEventListener('click', resetDemo);
 
@@ -1014,39 +707,36 @@
       if (!el) return;
       const action = el.dataset.action;
       const id = el.dataset.id;
-      if (action === 'filter-status') return setListStatus(el.dataset.value);
-      if (action === 'filter-category') return setListCategory(el.dataset.value);
-      if (action === 'reset-filters') return resetListFilters();
-      if (action === 'mark-read') return markRead(id);
-      if (action === 'toggle-expand') return toggleExpand(id);
-      if (action === 'run-action') return runAction(id);
-      if (action === 'open-confirm') return openConfirmAll();
+      if (action === 'back') return toast('已返回上一页');
+      if (action === 'filter') return setFilter(el.dataset.value);
+      if (action === 'show-all') return setFilter('all');
+      if (action === 'toggle') return toggleExpand(id);
+      if (action === 'goto') return goTo(id);
+      if (action === 'mark-all') return openConfirmAll();
       if (action === 'close-confirm') return closeConfirmAll();
       if (action === 'noop') return;
-      if (action === 'mark-all-read') return markAllRead();
-      if (action === 'scan-worker') return simulateWorkerScan();
-      if (action === 'internal-note') return simulateInternalNote();
-      if (action === 'simulate-recover') return simulateNetworkRecover();
-      if (action === 'requeue') return retryPermanent();
-      if (action === 'toggle-99') return toggleForce99();
+      if (action === 'confirm-all') return markAllRead();
+      if (action === 'load-more') return loadMore();
     });
 
-    function scrollToExpandedCard() {
-      const firstId = params.get('expand').split(',')[0];
+    function focusExpanded() {
+      const firstId = state.expandedIds[0];
+      if (!firstId) return;
       const card = document.querySelector(`#content [data-id="${firstId}"]`);
       if (!card) return;
       const content = $('content');
-      const sticky = content.querySelector('.sticky');
-      const offset = (sticky ? sticky.offsetHeight : 0) + 12;
-      const cardTop = card.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop;
-      content.scrollTop = Math.max(0, cardTop - offset);
+      const bar = content.querySelector('.sticky');
+      const offset = (bar ? bar.offsetHeight : 0) + 8;
+      const top = card.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop;
+      content.scrollTop = Math.max(0, top - offset);
     }
 
     renderAll();
-    if (params.get('expand')) {
-      scrollToExpandedCard();
-      requestAnimationFrame(() => requestAnimationFrame(scrollToExpandedCard));
-      setTimeout(scrollToExpandedCard, 700);
+    ico();
+    if (state.expandedIds.length) {
+      focusExpanded();
+      requestAnimationFrame(() => requestAnimationFrame(focusExpanded));
+      setTimeout(focusExpanded, 400);
     }
   </script>
 </body>

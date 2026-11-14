@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
-<!-- 即抛型原型：M5A 结课跑批、异常回退与转账单归集。纯前端 Mock，不连接后端，不触碰生产代码。遵循 DESIGN.md 与 docs/prd/m5a_transfer_collection.md -->
+<!-- 即抛型原型：结课跑批、异常回退与转账单归集。纯前端 Mock，不连接后端，不触碰生产代码。遵循 DESIGN.md 与 docs/prd/m5a_transfer_collection.md -->
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -29,7 +29,7 @@
   <header id="console" class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 text-[12px]">
       <div class="flex items-center gap-2">
-        <span class="grid h-6 w-8 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-300">M5A</span>
+        <span class="grid h-6 w-8 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-300">款</span>
         <span class="text-[14px] font-bold text-slate-900">转账单归集</span>
         <span class="hidden text-[12px] font-medium text-slate-600 lg:inline">自动结课 · 异常回退 · 单向归集 · 双视角对账</span>
       </div>
@@ -67,7 +67,7 @@
       <button data-action="reset" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
 
       <a href="../docs/prd/m5a_transfer_collection.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
-        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>M5A PRD
+        <i data-lucide="file-text" class="h-3.5 w-3.5"></i>PRD 规范
       </a>
     </div>
   </header>
@@ -107,7 +107,7 @@
       note: 'LEO-20261110'
     };
 
-    /* 课次明细：student 为实际学员，parent 为出资家长；funderStudent 用于跨家长转让归属原出资学生 */
+    /* 课次明细：student 为实际上课学员，parent 为出资家长；funderStudent 用于更换实际上课学员后归属原出资学员 */
     const LN = (student, parent, teacher, teacherLevel, kind, date, weekday, time, points, extra = {}) =>
       ({ student, parent, teacher, teacherLevel, kind, date, weekday, time, points, ...extra });
 
@@ -115,7 +115,7 @@
       { id: 'ts_alice0001', date: '11-09', weekday: '周日', time: '16:00-16:25', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', kind: '1v1', points: 220, status: 'FINISHED_PENDING_SETTLEMENT' },
       { id: 'ts_charl0001', date: '11-09', weekday: '周日', time: '17:00-17:50', student: 'CharlieZ08', parent: 'Amy', teacher: 'Lily Chen', kind: '小班课', points: 160, status: 'FINISHED_PENDING_SETTLEMENT' },
       { id: 'ts_bob000001', date: '11-03', weekday: '周一', time: '18:00-18:25', student: 'BobZ10', parent: 'Ben', teacher: 'Lily Chen', kind: '1v1', points: 180, status: 'COLLECTED' },
-      { id: 'ts_tom000001', date: '11-04', weekday: '周二', time: '19:00-19:25', student: 'TomZ11', parent: 'Helen', teacher: 'David Miller', kind: '1v1', points: 220, status: 'TRANSFER_LOCKED', transfer: true },
+      { id: 'ts_tom000001', date: '11-04', weekday: '周二', time: '19:00-19:25', student: 'TomZ11', parent: 'Helen', teacher: 'David Miller', kind: '1v1', points: 220, status: 'TRANSFER_LOCKED' },
       { id: 'ts_daisy0001', date: '11-04', weekday: '周二', time: '20:00-20:50', student: 'DaisyL09', parent: 'Ivy', teacher: 'Kevin Zhou', kind: '小班课', points: 150, status: 'FINISHED_PENDING_SETTLEMENT' },
       { id: 'ts_ethan0001', date: '11-05', weekday: '周三', time: '18:30-18:55', student: 'EthanW12', parent: 'Nina', teacher: 'David Miller', kind: '1v1', points: 200, status: 'FINISHED_PENDING_SETTLEMENT' }
     ];
@@ -123,25 +123,25 @@
     const INIT_ORDERS = [
       {
         id: 'tro_leo00001', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W45', period: '11.02 - 11.08',
-        status: 'DRAFT', penalty: [{ id: 'RFD-20261105-002', student: 'AliceZ12', completedAt: '11-06 14:20', points: 20 }, { id: 'RFD-20261107-001', student: 'BobZ10', completedAt: '11-08 10:05', points: 12 }], time: '11-09 03:30', generatedAt: '11-09 03:30', voucher: false,
+        status: 'DRAFT', time: '11-09 03:30', generatedAt: '11-09 03:30', voucher: false,
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '11-02', '周一', '18:00-18:25', 220),
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '11-04', '周三', '18:00-18:25', 220),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '11-02', '周一', '18:00-18:25', 220),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '11-04', '周三', '18:00-18:25', 220),
           LN('AliceZ12', 'Amy', 'Lily Chen', 'L3 中教', '1v1', '11-06', '周五', '19:00-19:25', 220),
           LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '11-02', '周一', '19:00-19:25', 180),
           LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '11-04', '周三', '19:00-19:25', 180),
           LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '11-07', '周六', '10:00-10:25', 180),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '11-03', '周二', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '11-05', '周四', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '11-07', '周六', '14:00-14:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '11-03', '周二', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '11-05', '周四', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '11-07', '周六', '14:00-14:50', 160),
           LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '11-03', '周二', '20:00-20:50', 150),
           LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '11-05', '周四', '20:00-20:50', 150),
-          LN('EthanW12', 'Nina', 'David Miller', 'L4 母语外教', '1v1', '11-03', '周二', '18:30-18:55', 200),
+          LN('EthanW12', 'Nina', 'David Miller', 'L4 母语老师', '1v1', '11-03', '周二', '18:30-18:55', 200),
           LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '11-06', '周五', '18:30-18:55', 200),
           LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '11-08', '周日', '10:00-10:25', 220),
           LN('WendyY07', 'Nina', 'Lily Chen', 'L3 中教', '小班课', '11-08', '周日', '11:00-11:50', 140),
-          LN('BobZ10', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '11-04', '周三', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller', transferNote: '原出资人 Amy · 实际学员 Bob' }),
-          LN('BobZ10', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '11-06', '周五', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller', transferNote: '原出资人 Amy · 实际学员 Bob' })
+          LN('BobZ10', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '11-04', '周三', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller' }),
+          LN('BobZ10', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '11-06', '周五', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller' })
         ],
         groupClasses: [
           { name: 'KET 冲刺班', max: 6, count: 3, unit: 160, salary: 96, toolFee: 36, other: 28 },
@@ -151,19 +151,19 @@
       },
       {
         id: 'tro_leo00002', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W44', period: '10.26 - 11.01',
-        status: 'PENDING_CONFIRMATION', penalty: [{ id: 'RFD-20261028-003', student: 'CharlieZ08', completedAt: '10-30 15:10', points: 10 }], time: '11-02 09:42', generatedAt: '11-02 03:30', voucher: true,
+        status: 'PENDING_CONFIRMATION', time: '11-02 09:42', generatedAt: '11-02 03:30', voucher: true,
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-26', '周一', '18:00-18:25', 300),
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-28', '周三', '18:00-18:25', 300),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-26', '周一', '18:00-18:25', 300),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-28', '周三', '18:00-18:25', 300),
           LN('AliceZ12', 'Amy', 'Lily Chen', 'L3 中教', '1v1', '10-30', '周五', '18:00-18:25', 300),
           LN('AliceZ12', 'Amy', 'Lily Chen', 'L3 中教', '1v1', '11-01', '周日', '10:00-10:25', 270),
           LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-26', '周一', '19:00-19:25', 260),
           LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-28', '周三', '19:00-19:25', 260),
           LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-31', '周六', '10:00-10:25', 260),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-27', '周二', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-29', '周四', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-31', '周六', '14:00-14:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '11-01', '周日', '14:00-14:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-27', '周二', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-29', '周四', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-31', '周六', '14:00-14:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '11-01', '周日', '14:00-14:50', 160),
           LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-27', '周二', '20:00-20:50', 150),
           LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-29', '周四', '20:00-20:50', 150),
           LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '10-28', '周三', '18:30-18:55', 240),
@@ -180,16 +180,16 @@
       },
       {
         id: 'tro_leo00003', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W43', period: '10.19 - 10.25',
-        status: 'COMPLETED', penalty: [], time: '10-26 09:20', generatedAt: '10-26 03:30', voucher: true,
+        status: 'COMPLETED', time: '10-26 09:20', generatedAt: '10-26 03:30', voucher: true,
         confirmTime: '10-27 10:30', confirmBy: 'Sarah',
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-19', '周一', '18:00-18:25', 260),
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-21', '周三', '18:00-18:25', 260),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-19', '周一', '18:00-18:25', 260),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-21', '周三', '18:00-18:25', 260),
           LN('AliceZ12', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '10-24', '周六', '10:00-10:25', 260),
           LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-19', '周一', '19:00-19:25', 240),
           LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-22', '周四', '19:00-19:25', 240),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-20', '周二', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-23', '周五', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-20', '周二', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-23', '周五', '17:00-17:50', 160),
           LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-21', '周三', '20:00-20:50', 150),
           LN('EthanW12', 'Nina', 'Lily Chen', 'L3 中教', '1v1', '10-20', '周二', '18:30-18:55', 250),
           LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '10-23', '周五', '18:30-18:55', 250),
@@ -202,18 +202,18 @@
       },
       {
         id: 'tro_leo00004', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W42', period: '10.12 - 10.18',
-        status: 'CANCELLED', penalty: [], time: '10-19 09:15', generatedAt: '10-19 03:30', voucher: true,
+        status: 'CANCELLED', time: '10-19 09:15', generatedAt: '10-19 03:30', voucher: true,
         reject: '到账 1,570 元，与单据差 200 元 · 存疑课次 TR-20261019 中 10-14 18:30 课次金额不符',
         rejectTime: '10-20 11:05',
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语外教', '1v1', '10-12', '周一', '18:00-18:25', 240),
+          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-12', '周一', '18:00-18:25', 240),
           LN('AliceZ12', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '10-15', '周四', '18:00-18:25', 240),
           LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-12', '周一', '19:00-19:25', 240),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-13', '周二', '20:00-20:50', 150),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语外教', '小班课', '10-16', '周五', '20:00-20:50', 150),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-13', '周二', '20:00-20:50', 150),
+          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-16', '周五', '20:00-20:50', 150),
           LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-14', '周三', '17:00-17:50', 160),
           LN('WendyY07', 'Nina', 'Lily Chen', 'L3 中教', '小班课', '10-17', '周六', '16:00-16:50', 140),
-          LN('EthanW12', 'Nina', 'David Miller', 'L4 母语外教', '1v1', '10-14', '周三', '18:30-18:55', 240),
+          LN('EthanW12', 'Nina', 'David Miller', 'L4 母语老师', '1v1', '10-14', '周三', '18:30-18:55', 240),
           LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '10-18', '周日', '11:00-11:25', 240, { subFor: 'David Miller' })
         ],
         groupClasses: [
@@ -224,7 +224,7 @@
       }
     ];
 
-    /* 汇总一律由明细重算，保证 count / gross / penalty / transfer 严格自洽 */
+    /* 汇总一律由明细重算，保证 count / gross / transfer 严格自洽 */
     function sumBy(rows, pick) {
       return rows.reduce((total, row) => total + pick(row), 0);
     }
@@ -232,9 +232,7 @@
     function finalizeOrder(order) {
       order.count = order.lines.length;
       order.gross = sumBy(order.lines, (l) => l.points);
-      order.penaltyList = order.penalty || [];
-      order.penalty = sumBy(order.penaltyList, (p) => p.points);
-      order.transfer = order.gross + order.penalty;
+      order.transfer = order.gross;
       return order;
     }
 
@@ -243,7 +241,6 @@
     const DRAFT_ORDER = INIT_ORDERS[0];
     const TOTALS = {
       gross: DRAFT_ORDER.gross,
-      penalty: DRAFT_ORDER.penalty,
       transfer: DRAFT_ORDER.transfer,
       count: DRAFT_ORDER.count
     };
@@ -251,7 +248,7 @@
     const TIMELINE = [
       { time: '02:00', label: '自动结课', sub: '17 节', done: true },
       { time: '03:30', label: '生成草稿', sub: '待上交', current: true },
-      { time: '08:00', label: '催办提醒', sub: '站内信 + 邮件', done: false },
+      { time: '08:00', label: '催办提醒', sub: '消息 + 邮件', done: false },
       { time: '周二', label: '平台审核', sub: '11-11', done: false },
       { time: '周三', label: '兜底发薪', sub: '11-12', done: false }
     ];
@@ -305,20 +302,20 @@
     const NAVS = {
       leo: [
         { id: 'home', icon: 'home', label: '首页', desc: '班长工作台待办与今日课务总览。', href: 'm0_workspace_home.html?role=monitor', cta: '前往首页' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看所辖学员与自家孩子的周课表。', href: 'm3a_calendar_grid.html', cta: '前往学生课表' },
-        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '课程转让、排班调整与退款调度统一入口。', href: 'm0_workspace_home.html?role=monitor&view=ops', cta: '前往教务中心' },
+        { id: 'schedule', icon: 'calendar-days', label: '学员课表', desc: '查看所辖学员与自家孩子的周课表。', href: 'm3a_calendar_grid.html', cta: '前往学员课表' },
+        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '排课调整与课次清退调度统一入口。', href: 'm0_workspace_home.html?role=monitor&view=ops', cta: '前往教务中心' },
         { id: 'me', icon: 'user', label: '我的', desc: '班长周转账与资金归集。', board: true }
       ],
       sarah: [
         { id: 'home', icon: 'home', label: '首页', desc: '平台结算进度与运营大盘。', href: 'm0_workspace_home.html?role=admin', cta: '前往首页' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '全局课表透视与资源占用总览。', href: 'm3a_calendar_grid.html', cta: '前往学生课表' },
-        { id: 'ops', icon: 'layout-grid', label: '教务调度', desc: '全域教师、班级与课次资源调度。', href: 'm0_workspace_home.html?role=admin&view=ops', cta: '前往教务中心' },
+        { id: 'schedule', icon: 'calendar-days', label: '学员课表', desc: '全局课表透视与资源占用总览。', href: 'm3a_calendar_grid.html', cta: '前往学员课表' },
+        { id: 'ops', icon: 'layout-grid', label: '教务调度', desc: '全域老师、小班与课次资源调度。', href: 'm0_workspace_home.html?role=admin&view=ops', cta: '前往教务中心' },
         { id: 'settings', icon: 'settings', label: '管理与设置', desc: '财务中心 · 资金归集审核。', board: true, cta: '前往管理与设置' }
       ],
       tom: [
         { id: 'home', icon: 'home', label: '首页', desc: '班长工作台待办与离职交接进度。', href: 'm0_workspace_home.html?role=monitor', cta: '前往首页' },
-        { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看所辖学员与自家孩子的周课表。', href: 'm3a_calendar_grid.html', cta: '前往学生课表' },
-        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '离职前的排班调整与调度记录。', href: 'm0_workspace_home.html?role=monitor&view=ops', cta: '前往教务中心' },
+        { id: 'schedule', icon: 'calendar-days', label: '学员课表', desc: '查看所辖学员与自家孩子的周课表。', href: 'm3a_calendar_grid.html', cta: '前往学员课表' },
+        { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '离职前的排课调整与调度记录。', href: 'm0_workspace_home.html?role=monitor&view=ops', cta: '前往教务中心' },
         { id: 'me', icon: 'user', label: '我的', desc: '离职托管资产交割。', board: true }
       ]
     };
@@ -731,7 +728,7 @@
           </div>
           <div class="shrink-0 text-right text-[12px] font-medium leading-relaxed text-slate-600">
             <div>打包 <b class="font-mono font-bold text-slate-700">${o.count}</b> 节</div>
-            <div>${o.penalty ? `含退款违约金 <b class="font-mono font-bold text-slate-700">+${fmt(o.penalty)}</b>` : '录入即上交'}</div>
+            <div>录入即上交</div>
           </div>
         </div>
         ${o.status === 'CANCELLED' && o.reject ? `<div class="mt-2 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-rose-800">${esc(o.reject)}</div>` : ''}
@@ -784,7 +781,6 @@
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-1.5">
               <span class="truncate text-[16px] font-bold text-slate-900">${esc(t.date)} ${esc(t.weekday)} ${esc(t.time)}</span>
-              ${t.transfer ? `<span class="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">转让</span>` : ''}
             </div>
             <div class="mt-1 text-[14px] font-medium text-slate-600">${esc(t.student)} · ${esc(t.teacher)}</div>
             <div class="text-[12px] font-medium text-slate-600">${esc(t.kind)} · ${t.points} 积分</div>
@@ -819,7 +815,7 @@
         </div>
         <div class="flex gap-1.5 overflow-x-auto pb-0.5">${filters}</div>
         ${list.length ? (state.device === 'tablet' ? auditTable(list) : auditCards(list)) : emptyState('该状态下暂无转账单')}
-        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">周二核验到账后确认收款；周三平台先行垫付教师课酬，未到账资金计入班长应收欠款。</div>
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">周二核验到账后确认收款；周三平台先行垫付老师课酬，未到账资金计入班长应收欠款。</div>
       </div>`;
     }
 
@@ -828,7 +824,7 @@
         <table class="w-full min-w-[640px] border-collapse text-left">
           <thead class="border-b border-slate-200 bg-white">
             <tr class="text-[12px] font-bold text-slate-600">
-              <th class="px-3 py-2.5">单号 / 类型</th><th class="px-3 py-2.5">班长</th><th class="px-3 py-2.5 text-right">打包课节数</th>
+              <th class="px-3 py-2.5">单号 / 类型</th><th class="px-3 py-2.5">班长</th><th class="px-3 py-2.5 text-right">打包课次数</th>
               <th class="px-3 py-2.5 text-right">实转金额</th><th class="px-3 py-2.5">凭证</th><th class="px-3 py-2.5">提交</th><th class="px-3 py-2.5 text-right">状态</th>
             </tr>
           </thead>
@@ -850,7 +846,7 @@
           <div class="mt-0.5 text-[12px] font-medium text-slate-600">${typeLabel(o.type)} · 查看详情</div>
         </td>
         <td class="px-3 py-2.5"><div class="flex items-center gap-1.5"><span class="grid h-5 w-5 place-items-center rounded bg-slate-100 text-[12px] font-bold text-slate-600">${o.monitor[0]}</span><span class="font-bold text-slate-900">${o.monitor}</span></div></td>
-        <td class="px-3 py-2.5 text-right"><div class="font-mono text-[12px] font-semibold text-slate-600">${o.count} 节</div><div class="text-[12px] font-medium text-slate-600">${o.penalty ? `含违约金 ${fmt(o.penalty)}` : '录入即上交'}</div></td>
+        <td class="px-3 py-2.5 text-right"><div class="font-mono text-[12px] font-semibold text-slate-600">${o.count} 节</div><div class="text-[12px] font-medium text-slate-600">录入即上交</div></td>
         <td class="px-3 py-2.5 text-right font-mono font-bold text-slate-900">${fmt(o.transfer)}</td>
         <td class="px-3 py-2.5"><button data-action="voucher" data-id="${o.id}" class="block h-8 w-6 overflow-hidden rounded border border-slate-200 bg-white">${miniReceipt()}</button></td>
         <td class="px-3 py-2.5 text-[12px] font-medium text-slate-600">${esc(o.time)}</td>
@@ -883,7 +879,7 @@
           </div>
           <div class="mt-2 flex items-end justify-between">
             <div><div class="text-[12px] font-medium text-slate-600">实转 · ${o.count} 节</div><div class="mt-0.5 font-mono text-[18px] font-bold text-slate-900">${fmt(o.transfer)}</div></div>
-            <div class="text-right text-[12px] font-medium text-slate-600"><div>打包 <b class="font-mono text-slate-700">${o.count}</b> 节</div><div>${o.penalty ? `含违约金 ${fmt(o.penalty)}` : '录入即上交'}</div></div>
+            <div class="text-right text-[12px] font-medium text-slate-600"><div>打包 <b class="font-mono text-slate-700">${o.count}</b> 节</div><div>录入即上交</div></div>
           </div>
           <div class="mt-2 flex items-center justify-between text-[12px] font-medium text-slate-600">
             <span class="truncate">${esc(o.id)} · ${esc(o.period)}</span>
@@ -1067,33 +1063,32 @@
           <header class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
             <div class="min-w-0">
               <h2 class="text-[16px] font-bold text-slate-900">发起周度资金上交</h2>
-              <p class="mt-0.5 text-[12px] font-medium text-slate-600">${TOTALS.count} 节 · 实转 ${fmt(TOTALS.transfer)} 积分 · 含退款违约金 ${fmt(TOTALS.penalty)}</p>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-600">${TOTALS.count} 节 · 实转 ${fmt(TOTALS.transfer)} 积分</p>
             </div>
             <button data-action="close-drawer" class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100">${icon('x', 'h-4 w-4')}</button>
           </header>
           <div data-drawer-scroll class="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
             <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">单向归集平台 · 严禁班长之间横向转账。提交后关联课次进入转账锁定。</div>
             <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
-              <div class="flex items-center justify-between"><span class="text-[12px] font-semibold text-slate-500">收款账户</span><span class="text-[12px] font-semibold text-slate-600">1 积分 = 1 元</span></div>
+              <div class="flex items-center justify-between"><span class="text-[12px] font-semibold text-slate-500">收款账号</span><span class="text-[12px] font-semibold text-slate-600">1 积分 = 1 元</span></div>
               <div class="mt-1.5 text-[14px] font-semibold text-slate-900">${PLATFORM.bank}</div>
               <div class="font-mono text-[12px] tracking-wide text-slate-700">${PLATFORM.account}</div>
               <div class="text-[12px] text-slate-500">${PLATFORM.name}</div>
               <div class="mt-1.5 inline-block rounded bg-indigo-50 px-2 py-1 text-[12px] font-semibold text-indigo-700">转账备注 ${PLATFORM.note}</div>
             </section>
             <div class="flex rounded-xl bg-slate-200/70 p-1">
-              <button data-action="tab" data-tab="student" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.tab === 'student' ? 'bg-white text-indigo-700' : 'text-slate-500'}">按学生</button>
-              <button data-action="tab" data-tab="teacher" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.tab === 'teacher' ? 'bg-white text-indigo-700' : 'text-slate-500'}">按教师</button>
+              <button data-action="tab" data-tab="student" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.tab === 'student' ? 'bg-white text-indigo-700' : 'text-slate-500'}">按学员</button>
+              <button data-action="tab" data-tab="teacher" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.tab === 'teacher' ? 'bg-white text-indigo-700' : 'text-slate-500'}">按老师</button>
             </div>
             ${groupBlock}
             <div class="flex items-center justify-between pt-1"><h3 class="text-[16px] font-bold text-slate-900">小班课核算</h3><span class="text-[12px] font-semibold text-slate-600">录入多少即上交多少</span></div>
             <div class="space-y-2">${DRAFT_ORDER.groupClasses.map(smallBlock).join('')}</div>
-            ${penaltySection(DRAFT_ORDER)}
             <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
               <div class="grid grid-cols-2 divide-x divide-slate-200 text-center">
                 <div class="px-1"><div class="text-[12px] font-semibold text-slate-600">打包课次数</div><div class="mt-0.5 font-mono text-[16px] font-bold text-slate-900">${TOTALS.count} <span class="text-[12px] font-medium">节</span></div></div>
                 <div class="px-1"><div class="text-[12px] font-semibold text-indigo-700">实转金额</div><div class="mt-0.5 font-mono text-[16px] font-bold text-indigo-700">${fmt(TOTALS.transfer)}</div></div>
               </div>
-              <div class="mt-2 text-center font-mono text-[12px] font-medium text-slate-600">1v1 ${fmt(split.one)} + 小班 ${fmt(split.group)} + 退款违约金 ${fmt(split.penalty)} = <b class="text-indigo-700">${fmt(TOTALS.transfer)}</b></div>
+              <div class="mt-2 text-center font-mono text-[12px] font-medium text-slate-600">1v1 ${fmt(split.one)} + 小班 ${fmt(split.group)} = <b class="text-indigo-700">${fmt(TOTALS.transfer)}</b></div>
             </div>
           </div>
           <footer class="shrink-0 space-y-2 border-t border-slate-200 bg-white p-3">
@@ -1104,7 +1099,7 @@
       </div>`;
     }
 
-    /* 明细聚合：学生视角按出资归属，教师视角按授课人，双视角共用同一份 lines */
+    /* 明细聚合：学员视角按出资归属，老师视角按授课人，双视角共用同一份 lines */
     function studentGroupsOf(order) {
       const map = new Map();
       (order.lines || []).forEach((l) => {
@@ -1120,7 +1115,7 @@
           total: sumBy(g.lines, (l) => l.points),
           unit: prices.length === 1 ? prices[0] : null,
           kind: kinds.length === 1 ? kinds[0] : '混合课型',
-          transfer: g.lines.some((l) => l.transferNote)
+          changedStudent: g.lines.some((l) => l.funderStudent)
         };
       });
     }
@@ -1142,26 +1137,7 @@
       const lines = order.lines || [];
       const one = sumBy(lines.filter((l) => l.kind === '1v1'), (l) => l.points);
       const group = sumBy(lines.filter((l) => l.kind === '小班课'), (l) => l.points);
-      const penalty = order.penalty || 0;
-      return { one, group, penalty, total: one + group + penalty };
-    }
-
-    function penaltySection(order) {
-      const list = order.penaltyList || [];
-      if (!list.length) return '';
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="text-[14px] font-bold text-slate-900">退款违约金归集明细</h3>
-          <span class="shrink-0 text-[12px] font-bold text-indigo-700">+${fmt(order.penalty)} 积分</span>
-        </div>
-        <div class="mt-2 space-y-1.5">
-          ${list.map((p) => `<div class="flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-2 text-[12px]">
-            <div class="min-w-0"><div class="truncate font-semibold text-slate-800">${esc(p.id)} · ${esc(p.student)}</div><div class="text-slate-600">退款完成 ${esc(p.completedAt)}</div></div>
-            <span class="shrink-0 font-mono font-bold text-slate-900">+${fmt(p.points)}</span>
-          </div>`).join('')}
-        </div>
-        <p class="mt-2 text-[12px] font-medium text-slate-600">经办退款单扣除的违约金，下周一周转单自动归集上交，班长不得私留。</p>
-      </section>`;
+      return { one, group, total: one + group };
     }
 
     function smallSummary(order) {
@@ -1178,9 +1154,9 @@
             <div class="flex flex-wrap items-center gap-1.5">
               <span class="text-[14px] font-semibold text-slate-900">${esc(s.name)}</span>
               <span class="rounded bg-slate-100 px-1 py-0.5 text-[12px] font-bold text-slate-700">${esc(s.kind)}</span>
-              ${s.transfer ? `<span class="rounded border border-amber-200 bg-amber-50 px-1 py-0.5 text-[12px] font-bold text-amber-800">含跨家长转让</span>` : ''}
+              ${s.changedStudent ? `<span class="rounded border border-amber-200 bg-amber-50 px-1 py-0.5 text-[12px] font-bold text-amber-800">更换实际上课学员</span>` : ''}
             </div>
-            <div class="mt-0.5 text-[12px] text-slate-600">出资家长 ${esc(s.parent)} · ${s.count} 节${s.transfer ? ' · 含跨家长转让' : ''}</div>
+            <div class="mt-0.5 text-[12px] text-slate-600">出资家长 ${esc(s.parent)} · ${s.count} 节${s.changedStudent ? ' · 费用归属原出资学员' : ''}</div>
           </div>
           <div class="shrink-0 text-right"><div class="font-mono text-[14px] font-bold text-slate-900">${fmt(s.total)}</div><div class="text-[12px] text-slate-600">积分</div></div>
         </div>`).join('')}
@@ -1204,13 +1180,13 @@
       const otherUnit = s.other ?? (s.unit - s.salary - s.toolFee);
       const other = otherUnit * s.count;
       const badge = s.terminated
-        ? `<span title="该班级已于 ${s.terminatedAt || '11-05'} 提前解散，本周完课 ${s.count} 节已结算，未来未上课次已作废释放" class="shrink-0 rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">已提前解散</span>`
+        ? `<span title="该小班已于 ${s.terminatedAt || '11-05'} 提前解散，本周结课 ${s.count} 节已结算，未来未上课次已作废释放" class="shrink-0 rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">已提前解散</span>`
         : '';
       return `<div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
         <div class="flex items-center justify-between gap-2"><span class="flex min-w-0 items-center gap-1.5"><span class="truncate text-[14px] font-semibold text-slate-900">${esc(s.name)}</span>${badge}</span><span class="shrink-0 text-[12px] text-slate-600">Max ${s.max} · ${s.count} 节</span></div>
         <div class="mt-1.5 grid grid-cols-2 gap-1 text-[12px]">
           <div><span class="text-slate-600">单节待上交</span><div class="font-semibold text-slate-800">${s.unit}</div></div>
-          <div><span class="text-slate-600">教师课酬</span><div class="font-semibold text-slate-800">${s.salary}</div></div>
+          <div><span class="text-slate-600">老师课酬</span><div class="font-semibold text-slate-800">${s.salary}</div></div>
           <div><span class="text-slate-600">工具费 Max×6</span><div class="font-semibold text-slate-800">${s.toolFee}</div></div>
           <div><span class="text-slate-600">其他结余</span><div class="font-semibold ${otherUnit < 0 ? 'text-rose-700' : 'text-slate-800'}">${otherUnit}</div></div>
         </div>
@@ -1268,9 +1244,9 @@
         </div>
         <div class="space-y-3 p-4">
           <div class="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[14px]">
-            <div class="flex justify-between"><span class="text-slate-600">上课时间</span><span class="font-semibold text-slate-800">${esc(t.date)} ${esc(t.weekday)} ${esc(t.time)}</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">课次时间</span><span class="font-semibold text-slate-800">${esc(t.date)} ${esc(t.weekday)} ${esc(t.time)}</span></div>
             <div class="flex justify-between"><span class="text-slate-600">授课老师</span><span class="font-semibold text-slate-800">${esc(t.teacher)}</span></div>
-            <div class="flex justify-between"><span class="text-slate-600">学生</span><span class="font-semibold text-slate-800">${esc(t.student)}</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">学员</span><span class="font-semibold text-slate-800">${esc(t.student)}</span></div>
             <div class="flex justify-between"><span class="text-slate-600">单节实付</span><span class="font-semibold text-slate-800">${t.points} 积分</span></div>
           </div>
           <div class="flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3">
@@ -1279,7 +1255,7 @@
           </div>
           <div>
             <label for="rollReason" class="mb-1 block text-[14px] font-semibold text-slate-700">未上课原因及补课说明 <span class="text-rose-500">*</span></label>
-            <textarea id="rollReason" rows="3" maxlength="200" class="h-24 w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500" placeholder="如：外教网络中断，已与家长约定周六补课">${esc(state.rollReason)}</textarea>
+            <textarea id="rollReason" rows="3" maxlength="200" class="h-24 w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500" placeholder="如：老师网络中断，已与家长约定周六补课">${esc(state.rollReason)}</textarea>
             <div class="mt-1 flex justify-between text-[12px] text-slate-600"><span>必填 1-200 字</span><span id="rollCount">${state.rollReason.length}/200</span></div>
           </div>
         </div>
@@ -1365,7 +1341,7 @@
     function orderTimeline(o) {
       const rows = [{ text: '系统自动结课并生成转账草稿', time: o.generatedAt || o.time, done: true }];
       if (o.status === 'DRAFT') {
-        rows.push({ text: '周一 08:00 推送催办站内信与邮件', time: '', done: true });
+        rows.push({ text: '周一 08:00 推送催办消息与邮件', time: '', done: true });
         rows.push({ text: '待班长线下打款、上传凭证并提交', time: '', current: true });
       } else if (o.status === 'PENDING_CONFIRMATION') {
         rows.push({ text: '班长上传凭证并提交转账单', time: o.time, done: true });
@@ -1396,7 +1372,7 @@
           <span>${esc(l.kind)}</span><span>·</span><span>${esc(l.teacher)}</span>
           ${l.subFor ? `<span class="font-semibold text-purple-700">· 🟣 代 ${esc(l.subFor)} 授课</span>` : ''}
         </div>
-        ${l.transferNote ? `<div class="mt-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-1 text-[12px] font-semibold text-amber-800">${esc(l.transferNote)}</div>` : ''}
+        ${l.funderStudent ? `<div class="mt-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-1 text-[12px] font-semibold text-amber-800">更换实际上课学员 · 费用归属 ${esc(l.funderStudent)}</div>` : ''}
       </div>`;
     }
 
@@ -1409,9 +1385,9 @@
                 <div class="flex flex-wrap items-center gap-1.5">
                   <span class="text-[14px] font-bold text-slate-900">${esc(g.name)}</span>
                   <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${esc(g.kind)}</span>
-                  ${g.transfer ? `<span class="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">含跨家长转让</span>` : ''}
+                  ${g.changedStudent ? `<span class="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">更换实际上课学员</span>` : ''}
                 </div>
-                <div class="mt-0.5 text-[12px] text-slate-600">出资家长 ${esc(g.parent)} · ${g.count} 节${g.transfer ? ' · 转让课次归原出资人' : ''}</div>
+                <div class="mt-0.5 text-[12px] text-slate-600">出资家长 ${esc(g.parent)} · ${g.count} 节${g.changedStudent ? ' · 费用归属原出资学员' : ''}</div>
               </div>
               <div class="shrink-0 text-right">
                 <div class="font-mono text-[16px] font-bold text-slate-900">${fmt(g.total)}</div>
@@ -1461,7 +1437,7 @@
       const otherUnit = g.other ?? (g.unit - g.salary - g.toolFee);
       const other = otherUnit * g.count;
       const badge = g.terminated
-        ? `<span title="该班级已于 ${g.terminatedAt || '11-05'} 提前解散，本周完课 ${g.count} 节已结算，未来未上课次已作废释放" class="shrink-0 rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">已提前解散</span>`
+        ? `<span title="该小班已于 ${g.terminatedAt || '11-05'} 提前解散，本周结课 ${g.count} 节已结算，未来未上课次已作废释放" class="shrink-0 rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">已提前解散</span>`
         : '';
       return `<div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
         <div class="flex items-center justify-between gap-2">
@@ -1470,7 +1446,7 @@
         </div>
         <div class="mt-2 grid grid-cols-2 gap-x-2 gap-y-1.5 text-[12px]">
           <div><div class="text-slate-600">单节待上交</div><div class="font-mono font-semibold text-slate-800">${g.unit}</div></div>
-          <div><div class="text-slate-600">教师课酬</div><div class="font-mono font-semibold text-slate-800">${g.salary}</div></div>
+          <div><div class="text-slate-600">老师课酬</div><div class="font-mono font-semibold text-slate-800">${g.salary}</div></div>
           <div><div class="text-slate-600">工具费 Max×6</div><div class="font-mono font-semibold text-slate-800">${g.toolFee}</div></div>
           <div><div class="text-slate-600">其他结余</div><div class="font-mono font-semibold ${otherUnit < 0 ? 'text-rose-700' : 'text-slate-800'}">${otherUnit}</div></div>
         </div>
@@ -1487,7 +1463,7 @@
       return `
         <div class="flex items-center justify-between px-1 pt-1">
           <h3 class="text-[16px] font-bold text-slate-900">小班课核算</h3>
-          <span class="text-[12px] font-medium text-slate-600">${s.rows.length} 个班级 · 录入即上交</span>
+          <span class="text-[12px] font-medium text-slate-600">${s.rows.length} 个小班 · 录入即上交</span>
         </div>
         <div class="space-y-2">${s.rows.map(groupClassCard).join('')}</div>
         <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5">
@@ -1593,10 +1569,9 @@
               <div class="border-l border-slate-200 p-2.5">
                 <div class="text-[12px] font-semibold text-indigo-700">实转金额</div>
                 <div class="mt-1 font-mono text-[18px] font-bold leading-none text-indigo-700">${fmt(o.transfer)}</div>
-                <div class="mt-1 text-[12px] font-medium text-indigo-700">1v1 ${fmt(splitTotals(o).one)} + 小班 ${fmt(splitTotals(o).group)} + 违约金 ${fmt(o.penalty)}</div>
+                <div class="mt-1 text-[12px] font-medium text-indigo-700">1v1 ${fmt(splitTotals(o).one)} + 小班 ${fmt(splitTotals(o).group)}</div>
               </div>
             </div>
-            ${penaltySection(o)}
 
             <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
               <div class="flex items-center justify-between gap-2">
@@ -1621,8 +1596,8 @@
               <span class="text-[12px] font-medium text-slate-600">${o.count} 节 · 双视角核对</span>
             </div>
             <div class="flex rounded-xl bg-slate-200/70 p-1">
-              <button data-action="detail-tab" data-tab="student" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.detailTab === 'student' ? 'bg-white text-indigo-700' : 'text-slate-500'}">按学生分组</button>
-              <button data-action="detail-tab" data-tab="teacher" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.detailTab === 'teacher' ? 'bg-white text-indigo-700' : 'text-slate-500'}">按教师分组</button>
+              <button data-action="detail-tab" data-tab="student" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.detailTab === 'student' ? 'bg-white text-indigo-700' : 'text-slate-500'}">按学员分组</button>
+              <button data-action="detail-tab" data-tab="teacher" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.detailTab === 'teacher' ? 'bg-white text-indigo-700' : 'text-slate-500'}">按老师分组</button>
             </div>
             ${state.detailTab === 'teacher' ? teacherDetailGroups(o) : studentDetailGroups(o)}
 
@@ -1790,7 +1765,7 @@
       state.orders = state.orders.filter((o) => o.type !== 'RESIGNATION_HANDOVER');
       state.orders.unshift({
         id: 'tro_tom00001', type: 'RESIGNATION_HANDOVER', monitor: 'Tom', count: 20,
-        gross: 4400, penalty: 0, transfer: 4400,
+        gross: 4400, transfer: 4400,
         status: 'PENDING_CONFIRMATION', time: '11-10 10:15', voucher: true, period: '离职移交'
       });
       state.handover = 'pending';
