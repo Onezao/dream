@@ -327,9 +327,84 @@
           mkLevel('lvl_sci00001', 'Level 1', '#0f766e', '#0ea5e9', 1),
           mkLevel('lvl_sci00002', 'Level 2', '#0ea5e9', '#14b8a6', 1)
         ],
-        active: false, boundCount: 0, createdAt: '2026-01-18'
+        active: false, pendingReview: true, boundCount: 0, createdAt: '2026-09-18'
       }
     ];
+
+    /* 平台课件库字典与资产层审计（仅管理员可见 · 只读） */
+    const LIBRARY_AUDIT = [
+      {
+        id: 'aud_00000001', cwId: 'cw_wonders01', cwNameCn: 'Wonders 精读', cwNameEn: 'Wonders',
+        action: 'EDIT_META', at: '2026-11-08 10:25', by: 'Sarah',
+        summary: '课程类型新增「生活口语」 · 英文简介更新',
+        diff: [
+          { field: '课程类型', before: '少儿英语', after: '少儿英语、生活口语' },
+          { field: '英文简介', before: 'Wonders is a leveled close-reading program focused on thematic reading.', after: 'Wonders is a leveled close-reading program focused on thematic reading, vocabulary and writing.' }
+        ]
+      },
+      {
+        id: 'aud_00000002', cwId: 'cw_ort000001', cwNameCn: '牛津阅读树', cwNameEn: 'Oxford Reading Tree',
+        action: 'LEVEL_CHANGE', at: '2026-11-06 09:05', by: 'Sarah',
+        summary: 'Stage 3 级别配图 2 → 3 张',
+        diff: [
+          { field: 'Stage 3 · 级别配图', before: '2 张', after: '3 张' }
+        ]
+      },
+      {
+        id: 'aud_00000003', cwId: 'cw_raz000001', cwNameCn: 'Raz-Kids 分级阅读', cwNameEn: 'Raz-Kids',
+        action: 'TOGGLE_ACTIVE', at: '2026-11-05 18:20', by: 'Sarah',
+        summary: '停用 → 启用 · 已开放至在学课件备选池',
+        diff: [
+          { field: '启用状态', before: '停用', after: '启用' }
+        ]
+      },
+      {
+        id: 'aud_00000004', cwId: 'cw_reach0001', cwNameCn: 'Reach Higher', cwNameEn: 'Reach Higher',
+        action: 'EDIT_META', at: '2026-11-04 16:48', by: 'Sarah',
+        summary: '中文名更新',
+        diff: [
+          { field: '中文名', before: 'Reach', after: 'Reach Higher' }
+        ]
+      },
+      {
+        id: 'aud_00000005', cwId: 'cw_ket000001', cwNameCn: 'KET 备考', cwNameEn: 'KET Compact',
+        action: 'TOGGLE_ACTIVE', at: '2026-11-04 11:48', by: 'Sarah',
+        summary: '启用 → 停用 · 已绑定档案只读保留',
+        diff: [
+          { field: '启用状态', before: '启用', after: '停用（软停用）' }
+        ]
+      },
+      {
+        id: 'aud_00000007', cwId: 'cw_phonics01', cwNameCn: '牛津自然拼读', cwNameEn: 'Oxford Phonics World',
+        action: 'EDIT_META', at: '2026-09-26 10:37', by: 'Sarah',
+        summary: '中文简介更新 · 封面配图更换',
+        diff: [
+          { field: '中文简介', before: '牛津自然拼读体系，建立字母音基础。', after: '牛津自然拼读体系，从字母音到常见字母组合，建立拼读与拼写基础。' },
+          { field: '封面配图', before: '已配置（旧封面）', after: '已更换' }
+        ]
+      },
+      {
+        id: 'aud_00000008', cwId: 'cw_science01', cwNameCn: '国家地理科学', cwNameEn: 'National Geographic Science',
+        action: 'CREATE', at: '2026-09-18 14:02', by: 'Sarah',
+        summary: '新建课件 · 强制默认停用',
+        diff: [
+          { field: '启用状态', before: '—', after: '停用（新建默认）' },
+          { field: '课程类型', before: '—', after: '少儿英语' },
+          { field: '级别', before: '—', after: 'Level 1 / Level 2' },
+          { field: '封面配图', before: '—', after: '已配置' }
+        ]
+      }
+    ];
+
+    const AUDIT_ACTIONS = {
+      CREATE: { label: '新建课件', cls: 'border-indigo-200 bg-indigo-50 text-indigo-700', icon: 'plus' },
+      EDIT_META: { label: '编辑元数据', cls: 'border-amber-200 bg-amber-50 text-amber-800', icon: 'pen-line' },
+      LEVEL_CHANGE: { label: '级别调整', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700', icon: 'layers' },
+      TOGGLE_ACTIVE: { label: '启停切换', cls: 'border-slate-200 bg-slate-100 text-slate-700', icon: 'power' }
+    };
+
+    const AUDIT_PREVIEW = 5;
+    const AUDIT_NOW = '2026-11-10 14:32';
 
     const STUDENTS = [
       {
@@ -383,11 +458,14 @@
       device: 'mobile',
       online: 'on',
       courseware: JSON.parse(JSON.stringify(LIBRARY)),
+      coursewareAudit: JSON.parse(JSON.stringify(LIBRARY_AUDIT)),
       students: JSON.parse(JSON.stringify(STUDENTS)),
       activeStudentId: 'stu_alice001',
       libQuery: '',
       libType: 'all',
       libStatus: 'all',
+      auditCwId: 'all',
+      auditShowAll: false,
       form: emptyForm(),
       draft: null,
       draftStudentId: null,
@@ -490,6 +568,147 @@
     }
 
     /* ------------------------------------------------------------------
+     * 平台课件库审计（仅管理员 · 只读）
+     * ------------------------------------------------------------------ */
+    function shortText(v, n = 28) {
+      const s = String(v || '').trim();
+      if (!s) return '—';
+      return s.length > n ? `${s.slice(0, n)}…` : s;
+    }
+
+    function metaAuditDiff(before, after) {
+      const d = [];
+      if (before.nameCn !== after.nameCn) d.push({ field: '中文名', before: before.nameCn, after: after.nameCn });
+      if (before.nameEn !== after.nameEn) d.push({ field: '英文名', before: before.nameEn, after: after.nameEn });
+      if (before.courseTypes.join('、') !== after.courseTypes.join('、')) {
+        d.push({ field: '课程类型', before: before.courseTypes.join('、') || '—', after: after.courseTypes.join('、') || '—' });
+      }
+      if ((before.descCn || '') !== (after.descCn || '')) {
+        d.push({ field: '中文简介', before: shortText(before.descCn), after: shortText(after.descCn) });
+      }
+      if ((before.descEn || '') !== (after.descEn || '')) {
+        d.push({ field: '英文简介', before: shortText(before.descEn), after: shortText(after.descEn) });
+      }
+      if ((before.cover || '') !== (after.cover || '')) {
+        d.push({ field: '封面配图', before: before.cover ? '已配置' : '未配置', after: after.cover ? '已更新' : '已移除' });
+      }
+      return d;
+    }
+
+    function levelAuditDiff(beforeLevels, afterLevels) {
+      const d = [];
+      const beforeMap = new Map((beforeLevels || []).map((l) => [l.id, l]));
+      const afterMap = new Map((afterLevels || []).map((l) => [l.id, l]));
+      (afterLevels || []).forEach((l) => {
+        if (!beforeMap.has(l.id)) d.push({ field: '新增级别', before: '—', after: `${l.name || '未命名'}（${l.images.length} 张样课）` });
+      });
+      (beforeLevels || []).forEach((l) => {
+        if (!afterMap.has(l.id)) d.push({ field: '移除级别', before: `${l.name || '未命名'}（${l.images.length} 张样课）`, after: '—' });
+      });
+      (afterLevels || []).forEach((l) => {
+        const b = beforeMap.get(l.id);
+        if (!b) return;
+        if (b.name !== l.name) d.push({ field: '级别名称', before: b.name || '未命名', after: l.name || '未命名' });
+        if (b.images.length !== l.images.length) {
+          d.push({ field: `${l.name || '未命名级别'} · 级别配图`, before: `${b.images.length} 张`, after: `${l.images.length} 张` });
+        }
+      });
+      if (!d.length) {
+        const beforeOrder = (beforeLevels || []).map((l) => l.name).filter(Boolean).join(' / ');
+        const afterOrder = (afterLevels || []).map((l) => l.name).filter(Boolean).join(' / ');
+        if (beforeOrder !== afterOrder) d.push({ field: '级别顺序', before: beforeOrder || '—', after: afterOrder || '—' });
+      }
+      return d;
+    }
+
+    function pushAudit(records) {
+      const stamped = records.map((r) => ({
+        id: newId('aud'),
+        at: AUDIT_NOW,
+        by: operatorName(),
+        ...r
+      }));
+      state.coursewareAudit.unshift(...stamped);
+    }
+
+    function libraryAuditRecords() {
+      return state.coursewareAudit.filter((r) => state.auditCwId === 'all' || r.cwId === state.auditCwId);
+    }
+
+    function openAudit(cwId) {
+      if (state.role !== 'admin') return showToast('仅管理员可查看课件库变更日志');
+      state.auditCwId = cwId || 'all';
+      state.auditShowAll = false;
+      state.page = 'audit';
+      state.navTab = 'settings';
+      state.overlay = null;
+      renderAll();
+    }
+
+    function renderAudit() {
+      const all = state.coursewareAudit;
+      const list = libraryAuditRecords();
+      const shown = state.auditShowAll ? list : list.slice(0, AUDIT_PREVIEW);
+      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10" data-audit-scope="library" data-readonly="true">
+        ${pageHeader('变更日志', '平台课件库 · 字典与资产层审计', `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`)}
+        <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">仅管理员可见 · 记录新建课件、元数据编辑、级别调整与启停切换；不含学员在学课件的绑定与升阶记录。</div>
+        <div class="grid grid-cols-3 gap-2">
+          ${miniStat('审计记录', all.length, 'indigo')}
+          ${miniStat('涉及课件', new Set(all.map((r) => r.cwId)).size, 'slate')}
+          ${miniStat('最近记录', all[0] ? all[0].at.slice(5, 10) : '—', 'slate')}
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500">${icon('filter', 'h-4 w-4')}</span>
+          <select id="auditCw" class="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-[14px] font-semibold text-slate-700 outline-none focus:border-indigo-500">
+            <option value="all" ${state.auditCwId === 'all' ? 'selected' : ''}>全部课件 · ${all.length} 条记录</option>
+            ${state.courseware.map((c) => `<option value="${c.id}" ${state.auditCwId === c.id ? 'selected' : ''}>${esc(c.nameCn)} · ${esc(c.nameEn)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="space-y-2">
+          ${shown.length ? shown.map(auditCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center">
+            <div class="text-[14px] font-bold text-slate-700">暂无变更记录</div>
+            <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">该课件尚未产生新建、元数据编辑、级别调整或启停切换记录。</p>
+          </div>`}
+        </div>
+        ${list.length > AUDIT_PREVIEW ? `<button data-action="toggle-audit-all" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">${state.auditShowAll ? '收起记录' : `展开最近记录（共 ${list.length} 条）`}</button>` : ''}
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">日志为只读审计记录，按操作时间倒序展示；每条记录保留操作人、时间与变更前后快照，不可编辑或删除。</div>
+      </div>`;
+    }
+
+    function auditCard(r) {
+      const meta = AUDIT_ACTIONS[r.action] || AUDIT_ACTIONS.EDIT_META;
+      return `<article class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${meta.cls}">${icon(meta.icon, 'h-3 w-3')}${meta.label}</span>
+          <span class="min-w-0 truncate text-[14px] font-bold text-slate-900">${esc(r.cwNameCn)}</span>
+          <span class="min-w-0 truncate text-[12px] font-medium text-slate-500">${esc(r.cwNameEn)}</span>
+        </div>
+        <p class="mt-1 text-[14px] font-medium leading-relaxed text-slate-800">${esc(r.summary)}</p>
+        <p class="mt-0.5 text-[12px] font-medium text-slate-600"><span class="font-mono">${esc(r.at)}</span> · 操作人 ${esc(r.by)}</p>
+        <details class="group mt-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+          <summary class="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+            <span class="text-[12px] font-bold text-slate-700">变更前后快照</span>
+            <span class="flex items-center gap-1 text-[12px] font-semibold text-indigo-600">
+              <span class="group-open:hidden">展开</span>
+              <span class="hidden group-open:inline">收起</span>
+              ${icon('chevron-down', 'h-3.5 w-3.5 transition group-open:rotate-180')}
+            </span>
+          </summary>
+          <div class="mt-1.5 space-y-1.5">
+            ${r.diff.map((d) => `<div class="rounded-lg bg-slate-50 px-2 py-1.5">
+              <div class="text-[12px] font-bold text-slate-600">${esc(d.field)}</div>
+              <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] leading-relaxed">
+                <span class="rounded bg-slate-200/70 px-1.5 py-0.5 font-medium text-slate-600 line-through decoration-slate-300">${esc(d.before)}</span>
+                <span class="font-bold text-slate-500">→</span>
+                <span class="rounded bg-indigo-50 px-1.5 py-0.5 font-semibold text-indigo-800">${esc(d.after)}</span>
+              </div>
+            </div>`).join('')}
+          </div>
+        </details>
+      </article>`;
+    }
+
+    /* ------------------------------------------------------------------
      * 控制台
      * ------------------------------------------------------------------ */
     function viewAllowed(v) {
@@ -500,7 +719,7 @@
     }
 
     function currentViewKey() {
-      if (state.page === 'editor' || state.page === 'library') return 'library';
+      if (state.page === 'editor' || state.page === 'library' || state.page === 'audit') return 'library';
       if (state.page === 'student') return 'student';
       if (state.page === 'child') return 'child';
       if (state.page === 'prep') return 'prep';
@@ -587,11 +806,14 @@
       state.device = 'mobile';
       state.online = 'on';
       state.courseware = clone(LIBRARY);
+      state.coursewareAudit = clone(LIBRARY_AUDIT);
       state.students = clone(STUDENTS);
       state.activeStudentId = 'stu_alice001';
       state.libQuery = '';
       state.libType = 'all';
       state.libStatus = 'all';
+      state.auditCwId = 'all';
+      state.auditShowAll = false;
       state.form = emptyForm();
       state.draft = null;
       state.draftStudentId = null;
@@ -630,6 +852,7 @@
 
     function bannerTitle() {
       if (state.page === 'editor') return state.form.mode === 'edit' ? '编辑课件' : '新建课件';
+      if (state.page === 'audit') return '课件库变更日志';
       if (PAGE_TITLES[state.page]) return PAGE_TITLES[state.page];
       const tab = (NAVS[state.role] || []).find((n) => n.id === state.navTab);
       return tab ? tab.label : '课件库';
@@ -638,10 +861,11 @@
     function renderBanner() {
       const b = BANNERS[state.role];
       const isEditor = state.page === 'editor';
+      const isAudit = state.page === 'audit';
       return `<header class="relative flex h-16 shrink-0 items-center justify-between gap-2 overflow-hidden bg-gradient-to-br ${b.gradient} px-3 text-white">
         ${b.pattern}
         <div class="relative flex min-w-0 items-center gap-2">
-          ${isEditor ? `<button data-action="cancel-editor" class="-ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/90 transition hover:bg-white/15" aria-label="返回课件库">${icon('chevron-left', 'h-5 w-5')}</button>` : ''}
+          ${isEditor || isAudit ? `<button data-action="${isAudit ? 'cancel-audit' : 'cancel-editor'}" class="-ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/90 transition hover:bg-white/15" aria-label="${isAudit ? '返回课件库' : '返回课件库'}">${icon('chevron-left', 'h-5 w-5')}</button>` : ''}
           <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/20 text-[12px] font-bold ring-1 ring-white/30">${b.initial}</span>
           <h1 class="truncate text-[18px] font-bold tracking-tight">${esc(bannerTitle())}</h1>
         </div>
@@ -669,6 +893,7 @@
     function renderContent() {
       if (state.page === 'placeholder') return renderPlaceholder();
       if (state.page === 'editor') return renderEditor();
+      if (state.page === 'audit') return state.role === 'admin' ? renderAudit() : renderLibrary();
       if (state.page === 'library' && state.role === 'admin') return renderLibrary();
       if (state.page === 'student') return renderStudentConfig();
       if (state.page === 'child') return renderParentChild();
@@ -745,7 +970,10 @@
       const canWrite = state.online === 'on';
 
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-        ${pageHeader('课件库', '全平台课件资产 · 中英文信息与分级样课', `<button data-action="create-courseware" ${canWrite ? '' : 'disabled'} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 新建课件</button>`)}
+        ${pageHeader('课件库', '平台课件资产 · 分级样课', `<div class="flex shrink-0 items-center gap-1.5">
+          <button data-action="open-audit" data-admin-only="true" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">变更日志</button>
+          <button data-action="create-courseware" ${canWrite ? '' : 'disabled'} class="h-8 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 新建课件</button>
+        </div>`)}
         <div class="grid grid-cols-3 gap-2">
           ${miniStat('课件总数', all.length, 'indigo')}
           ${miniStat('启用中', active.length, 'emerald')}
@@ -807,6 +1035,7 @@
           </div>
           <div class="flex shrink-0 items-center gap-1.5">
             <button data-action="preview-cw" data-id="${cw.id}" data-level="${cw.levels[0] ? cw.levels[0].id : ''}" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">样课</button>
+            <button data-action="open-audit" data-admin-only="true" data-cw="${cw.id}" class="h-8 rounded-lg border border-slate-300 bg-white px-2 text-[12px] font-bold text-slate-800 hover:bg-slate-50">日志</button>
             <button data-action="edit-cw" data-id="${cw.id}" ${canWrite ? '' : 'disabled'} class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50 disabled:opacity-40">编辑</button>
           </div>
         </div>
@@ -1025,19 +1254,49 @@
       if (f.mode === 'edit') {
         const cw = findCw(f.id);
         if (!cw) return;
+        const before = {
+          nameCn: cw.nameCn, nameEn: cw.nameEn, courseTypes: [...cw.courseTypes],
+          descCn: cw.descCn, descEn: cw.descEn, cover: cw.cover,
+          levels: clone(cw.levels || []), active: cw.active
+        };
         Object.assign(cw, {
           nameCn: f.nameCn.trim(), nameEn: f.nameEn.trim(),
           courseTypes: [...f.courseTypes], descCn: f.descCn, descEn: f.descEn,
           cover: f.cover, levels: clone(f.levels), active: f.active
         });
         if (cw.active) cw.pendingReview = false;
+
+        const records = [];
+        const metaDiff = metaAuditDiff(before, cw);
+        if (metaDiff.length) {
+          records.push({
+            cwId: cw.id, cwNameCn: cw.nameCn, cwNameEn: cw.nameEn, action: 'EDIT_META',
+            summary: `更新 ${metaDiff.map((d) => d.field).join('、')}`, diff: metaDiff
+          });
+        }
+        const levelDiff = levelAuditDiff(before.levels, cw.levels);
+        if (levelDiff.length) {
+          records.push({
+            cwId: cw.id, cwNameCn: cw.nameCn, cwNameEn: cw.nameEn, action: 'LEVEL_CHANGE',
+            summary: `级别配置调整 · ${levelDiff.length} 项`, diff: levelDiff
+          });
+        }
+        if (before.active !== cw.active) {
+          records.push({
+            cwId: cw.id, cwNameCn: cw.nameCn, cwNameEn: cw.nameEn, action: 'TOGGLE_ACTIVE',
+            summary: `${before.active ? '启用' : '停用'} → ${cw.active ? '启用' : '停用'}`,
+            diff: [{ field: '启用状态', before: before.active ? '启用' : '停用', after: cw.active ? '启用' : '停用' }]
+          });
+        }
+        pushAudit(records);
+
         state.page = 'library';
         state.navTab = 'settings';
         renderAll();
         showToast(cw.active ? '课件已保存 · 当前为启用状态' : '课件已保存 · 当前为停用状态');
         return;
       }
-      state.courseware.unshift({
+      const created = {
         id: newId('cw'),
         nameCn: f.nameCn.trim(), nameEn: f.nameEn.trim(),
         courseTypes: [...f.courseTypes], descCn: f.descCn, descEn: f.descEn,
@@ -1046,7 +1305,18 @@
         active: false,
         pendingReview: true,
         boundCount: 0, createdAt: TODAY
-      });
+      };
+      state.courseware.unshift(created);
+      pushAudit([{
+        cwId: created.id, cwNameCn: created.nameCn, cwNameEn: created.nameEn, action: 'CREATE',
+        summary: '新建课件 · 强制默认停用',
+        diff: [
+          { field: '启用状态', before: '—', after: '停用（新建默认）' },
+          { field: '课程类型', before: '—', after: created.courseTypes.join('、') },
+          { field: '级别', before: '—', after: created.levels.length ? created.levels.map((l) => l.name || '未命名').join(' / ') : '未配置级别' },
+          { field: '封面配图', before: '—', after: created.cover ? '已配置' : '未配置' }
+        ]
+      }]);
       state.page = 'library';
       state.navTab = 'settings';
       renderAll();
@@ -1126,10 +1396,13 @@
 
     function auditDetails(s) {
       if (!s.audit || !s.audit.length) return '';
-      return `<details class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3">
-        <summary class="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
-          <span class="text-[14px] font-bold text-slate-800">历史升阶与变更日志</span>
-          <span class="text-[12px] font-medium text-slate-500">${s.audit.length} 条</span>
+      return `<details class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3" data-audit-scope="student" data-readonly="true">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
+          <span class="min-w-0">
+            <span class="block text-[14px] font-bold text-slate-800">历史升阶与变更日志</span>
+            <span class="block text-[12px] font-medium text-slate-500">学员在学课件 · 绑定层记录</span>
+          </span>
+          <span class="shrink-0 text-[12px] font-medium text-slate-500">${s.audit.length} 条</span>
         </summary>
         <div class="mt-2 space-y-2">
           ${s.audit.slice(0, 5).map((a) => `<div class="flex items-start gap-2">
@@ -1483,6 +1756,15 @@
       if (action === 'nav') return navTo(el.dataset.tab);
       if (action === 'toast') return showToast(el.dataset.message || '');
       if (action === 'back-main') return setView(state.role === 'admin' ? 'library' : state.role === 'monitor' ? 'student' : state.role === 'parent' ? 'child' : 'prep');
+      if (action === 'open-audit') return openAudit(el.dataset.cw || 'all');
+      if (action === 'toggle-audit-all') { state.auditShowAll = !state.auditShowAll; return renderContentOnly(); }
+      if (action === 'cancel-audit') {
+        state.page = 'library';
+        state.navTab = 'settings';
+        state.auditCwId = 'all';
+        state.auditShowAll = false;
+        return renderAll();
+      }
       if (action === 'switch-student') return setStudent(el.dataset.id);
       if (action === 'create-courseware') return openEditor('create');
       if (action === 'edit-cw') return openEditor('edit', el.dataset.id);
@@ -1491,8 +1773,14 @@
         if (state.online === 'off') return showToast('离线模式下不可启停课件');
         const cw = findCw(el.dataset.id);
         if (!cw) return;
+        const beforeActive = cw.active;
         cw.active = !cw.active;
         if (cw.active) cw.pendingReview = false;
+        pushAudit([{
+          cwId: cw.id, cwNameCn: cw.nameCn, cwNameEn: cw.nameEn, action: 'TOGGLE_ACTIVE',
+          summary: `${beforeActive ? '启用' : '停用'} → ${cw.active ? '启用' : '停用'}${cw.active ? ' · 已开放至在学课件备选池' : ' · 已绑定档案只读保留'}`,
+          diff: [{ field: '启用状态', before: beforeActive ? '启用' : '停用', after: cw.active ? '启用' : '停用' }]
+        }]);
         renderContentOnly();
         showToast(cw.active ? '课件已启用 · 已开放至在学课件备选池' : '课件已停用 · 已绑定档案继续展示【已停用】');
         return;
@@ -1687,6 +1975,7 @@
     document.getElementById('frame').addEventListener('change', (e) => {
       const id = e.target.id;
       if (id === 'libType') { state.libType = e.target.value; return renderAll(); }
+      if (id === 'auditCw') { state.auditCwId = e.target.value; state.auditShowAll = false; return renderContentOnly(); }
       if (id === 'fCoverInput') return handleCoverFile(e.target.files && e.target.files[0]);
       if (id && id.startsWith('fLevelImg-')) return handleLevelImages(Number(id.split('-')[1]), e.target.files);
       if (id && id.startsWith('cfgLevel-')) {

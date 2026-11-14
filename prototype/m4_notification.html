@@ -34,7 +34,7 @@
           <i data-lucide="bell" class="h-3.5 w-3.5"></i>
         </span>
         <span class="text-[14px] font-bold text-slate-900">消息提醒</span>
-        <span class="hidden text-[12px] font-medium text-slate-500 lg:inline">关键邮件 · 单页就地展开 · 极简小红点</span>
+        <span class="hidden text-[12px] font-medium text-slate-500 lg:inline">关键邮件 · 单页就地展开 · 紧急 / 提醒 / 常规</span>
       </div>
 
       <div class="flex items-center gap-2">
@@ -91,6 +91,7 @@
     <span class="bg-rose-500 text-rose-500 bg-rose-50 border-rose-200 text-rose-700 bg-amber-50 border-amber-200 text-amber-800"></span>
     <span class="bg-indigo-600 hover:bg-indigo-700 text-white text-indigo-600 hover:text-indigo-700 border-slate-300 bg-white hover:bg-slate-50"></span>
     <span class="h-[812px] w-[390px] h-[860px] w-[768px] h-14 h-9 h-8 h-2 w-2 max-w-[720px] max-w-[320px] px-3.5 py-3.5"></span>
+    <span class="border-l-4 border-l-rose-600 border-rose-200 bg-rose-50/80 border-amber-300 bg-amber-50/50 bg-amber-100 text-amber-900 h-[7px] w-[7px] bg-rose-600 bg-amber-500 bg-indigo-600 bg-slate-500 bg-blue-500"></span>
     <span class="text-[18px] text-[16px] text-[14px] text-[13px] text-[12px] leading-relaxed whitespace-pre-line"></span>
     <span class="transition-[grid-template-rows] duration-300 ease-out transition-transform active:scale-[0.995]"></span>
   </div>
@@ -129,162 +130,209 @@
 
     /* ------------------------------------------------------------------
      * 消息演示数据
-     * 仅保留最近 90 天；每条消息带业务标签、标题、相对时间、正文与目的地。
+     * 仅保留最近 90 天；每条消息带 severity 分级、业务标签、摘要与正文。
+     * severity: urgent 紧急 / reminder 提醒 / normal 常规
+     * 正文使用可信静态 HTML 段落：中文 bodyZhHtml，英文 bodyHtml。
      * ------------------------------------------------------------------ */
     const NOTICES = {
       amy: [
         {
-          id: 'amy-substitute', tag: '课程变动', unread: true, minutesAgo: 2, jump: 'dispatch',
+          id: 'amy-substitute', tag: '课程变动', severity: 'urgent', unread: true, minutesAgo: 2, jump: 'dispatch',
           title: '老师临时请假，已安排代课老师',
-          body: '学员 AliceZ12 今晚 19:00-19:25 的课次由 David 老师临时请假，已安排 Sarah 老师代课。时段与 ClassIn 教室 982-101 保持不变。'
+          summary: '今晚 19:00 · AliceZ12 · Sarah 代课',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> 今晚 <strong class="font-bold text-slate-900">19:00-19:25</strong> 的课次由 <strong class="font-bold text-slate-900">David</strong> 老师临时请假，已安排 <strong class="font-bold text-slate-900">Sarah</strong> 老师代课。时段与 ClassIn 教室 <strong class="font-bold text-slate-900">982-101</strong> 保持不变。'
         },
         {
-          id: 'amy-renew-48h', tag: '续费提醒', unread: true, minutesAgo: 8, jump: 'order',
+          id: 'amy-renew-24h', tag: '续费提醒', severity: 'urgent', unread: true, minutesAgo: 4, jump: 'order',
+          title: '续费单将在 24 小时内释放固定位',
+          summary: 'AliceZ12 · 明日 19:00 前完成付款',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> 的固定位续费单将在 <strong class="font-bold text-slate-900">24 小时</strong>内到期。若未完成付款，固定位预占 HOLD 将于 <strong class="font-bold text-slate-900">明日 19:00</strong> 自动释放，请尽快处理。'
+        },
+        {
+          id: 'amy-renew-48h', tag: '续费提醒', severity: 'reminder', unread: true, minutesAgo: 8, jump: 'order',
           title: '续费单将在开课前 48 小时到期',
-          body: '这是第二次提醒：学员 AliceZ12 的续费单将在 48 小时内到期。固定位预占 HOLD 将保留至 11 月 23 日 19:00，请及时完成付款以保住原时段。'
+          summary: 'AliceZ12 · 11 月 23 日 19:00 到期',
+          bodyZhHtml: '这是第二次提醒：学员 <strong class="font-bold text-slate-900">AliceZ12</strong> 的续费单将在 <strong class="font-bold text-slate-900">48 小时</strong>内到期。固定位预占 HOLD 将保留至 <strong class="font-bold text-slate-900">11 月 23 日 19:00</strong>，请及时完成付款以保住原时段。'
         },
         {
-          id: 'amy-renew-7d', tag: '续费提醒', unread: true, minutesAgo: 25, jump: 'order',
+          id: 'amy-renew-7d', tag: '续费提醒', severity: 'reminder', unread: true, minutesAgo: 25, jump: 'order',
           title: '固定位续费单已生成',
-          body: '学员 AliceZ12 的 1v1 固定位将在 7 天后到期，系统已自动生成续费单。下轮课表：每周二 19:00-19:25，共 4 节，首节 11 月 24 日。请在到期前完成付款，逾期将释放该固定位。'
+          summary: 'AliceZ12 · 每周二 19:00 · 共 4 节',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> 的 1v1 固定位将在 <strong class="font-bold text-slate-900">7 天</strong>后到期，系统已自动生成续费单。下轮课表：<strong class="font-bold text-slate-900">每周二 19:00-19:25</strong>，共 <strong class="font-bold text-slate-900">4 节</strong>，首节 <strong class="font-bold text-slate-900">11 月 24 日</strong>。请在到期前完成付款，逾期将释放该固定位。'
         },
         {
-          id: 'amy-reschedule', tag: '课程变动', unread: false, minutesAgo: 150, jump: 'schedule',
+          id: 'amy-reschedule', tag: '课程变动', severity: 'normal', unread: true, minutesAgo: 150, jump: 'schedule',
           title: '同师挪位成功',
-          body: '学员 AliceZ12 周四 17:00 的课次已由 David 老师挪至周四 18:00，授课老师不变。新时间已同步到课表。'
+          summary: '周四 18:00 · AliceZ12 · David',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> 周四 <strong class="font-bold text-slate-900">17:00</strong> 的课次已由 <strong class="font-bold text-slate-900">David</strong> 老师挪至周四 <strong class="font-bold text-slate-900">18:00</strong>，授课老师不变。新时间已同步到课表。'
         },
         {
-          id: 'amy-paid', tag: '账单到账', unread: false, minutesAgo: 300, jump: 'order',
+          id: 'amy-paid', tag: '账单到账', severity: 'normal', unread: false, minutesAgo: 300, jump: 'order',
           title: '购课单确认收款',
-          body: '购课单 ORD-20261102 已确认收款 1,000 积分，已生成 5 节待排课次，可前往购课单查看明细。'
+          summary: 'ORD-20261102 · 1,000 积分 · 5 节',
+          bodyZhHtml: '购课单 <strong class="font-bold text-slate-900">ORD-20261102</strong> 已确认收款 <strong class="font-bold text-slate-900">1,000 积分</strong>，已生成 <strong class="font-bold text-slate-900">5 节</strong>待排课次，可前往购课单查看明细。'
         },
         {
-          id: 'amy-h01', tag: '课程变动', unread: false, minutesAgo: 1500, jump: 'schedule',
-          title: '课次已结课', body: '学员 AliceZ12 11 月 10 日 19:00 的课次已正常结课，课后反馈已同步。'
+          id: 'amy-h01', tag: '课程变动', severity: 'normal', unread: false, minutesAgo: 1500, jump: 'schedule',
+          title: '课次已结课', summary: 'AliceZ12 · 11 月 10 日 19:00',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> <strong class="font-bold text-slate-900">11 月 10 日 19:00</strong> 的课次已正常结课，课后反馈已同步。'
         },
         {
-          id: 'amy-h02', tag: '排课通知', unread: false, minutesAgo: 1800, jump: 'schedule',
-          title: '本周课表已更新', body: '本周课表已更新，可在课表查看完整安排与 ClassIn 教室信息。'
+          id: 'amy-h02', tag: '排课通知', severity: 'normal', unread: false, minutesAgo: 1800, jump: 'schedule',
+          title: '本周课表已更新', summary: '本周 · 固定位 2 节 · 临时课 1 节',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">本周</strong>课表已更新，可在课表查看完整安排与 <strong class="font-bold text-slate-900">ClassIn</strong> 教室信息。'
         },
         {
-          id: 'amy-h03', tag: '课程变动', unread: false, minutesAgo: 2400, jump: 'schedule',
-          title: '请假已受理', body: '学员 AliceZ12 11 月 8 日 19:00 的请假已受理，课次已退回权益池。'
+          id: 'amy-h03', tag: '课程变动', severity: 'normal', unread: false, minutesAgo: 2400, jump: 'schedule',
+          title: '请假已受理', summary: '11 月 8 日 19:00 · AliceZ12',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> <strong class="font-bold text-slate-900">11 月 8 日 19:00</strong> 的请假已受理，课次已退回权益池。'
         },
         {
-          id: 'amy-h04', tag: '续费提醒', unread: false, minutesAgo: 3000, jump: 'order',
-          title: '固定位续费已确认', body: '上一轮固定位续费已确认，4 节课次已加入学员资产。'
+          id: 'amy-h04', tag: '续费提醒', severity: 'normal', unread: false, minutesAgo: 3000, jump: 'order',
+          title: '固定位续费已确认', summary: 'AliceZ12 · 4 节课次已加入',
+          bodyZhHtml: '上一轮固定位续费已确认，<strong class="font-bold text-slate-900">4 节</strong>课次已加入学员资产。'
         },
         {
-          id: 'amy-h05', tag: '账单到账', unread: false, minutesAgo: 3600, jump: 'order',
-          title: '购课单收款确认', body: '购课单 ORD-20261026 已确认收款 800 积分，课次资产已生成。'
+          id: 'amy-h05', tag: '账单到账', severity: 'normal', unread: false, minutesAgo: 3600, jump: 'order',
+          title: '购课单收款确认', summary: 'ORD-20261026 · 800 积分',
+          bodyZhHtml: '购课单 <strong class="font-bold text-slate-900">ORD-20261026</strong> 已确认收款 <strong class="font-bold text-slate-900">800 积分</strong>，课次资产已生成。'
         },
         {
-          id: 'amy-h06', tag: '课程变动', unread: false, minutesAgo: 4320, jump: 'schedule',
-          title: '课次已退回权益池', body: '因老师临时请假，11 月 3 日 19:00 的课次已退回权益池，可重新约课。'
+          id: 'amy-h06', tag: '课程变动', severity: 'normal', unread: false, minutesAgo: 4320, jump: 'schedule',
+          title: '课次已退回权益池', summary: '11 月 3 日 19:00 · AliceZ12',
+          bodyZhHtml: '因老师临时请假，<strong class="font-bold text-slate-900">11 月 3 日 19:00</strong> 的课次已退回权益池，可重新约课。'
         },
         {
-          id: 'amy-h07', tag: '课程变动', unread: false, minutesAgo: 5000, jump: 'schedule',
-          title: '同师挪位成功', body: '学员 AliceZ12 的课次已由周二 19:00 挪至周二 20:00，授课老师不变。'
+          id: 'amy-h07', tag: '课程变动', severity: 'normal', unread: false, minutesAgo: 5000, jump: 'schedule',
+          title: '同师挪位成功', summary: '周二 20:00 · AliceZ12 · David',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> 的课次已由周二 <strong class="font-bold text-slate-900">19:00</strong> 挪至周二 <strong class="font-bold text-slate-900">20:00</strong>，授课老师不变。'
         },
         {
-          id: 'amy-h08', tag: '代课通知', unread: false, minutesAgo: 6000, jump: 'dispatch',
-          title: '代课安排已完成', body: '11 月 1 日 19:00 的代课安排已完成，Sarah 老师已确认接手该课次。'
+          id: 'amy-h08', tag: '代课通知', severity: 'normal', unread: false, minutesAgo: 6000, jump: 'dispatch',
+          title: '代课安排已完成', summary: '11 月 1 日 19:00 · Sarah 代课',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">11 月 1 日 19:00</strong> 的代课安排已完成，<strong class="font-bold text-slate-900">Sarah</strong> 老师已确认接手该课次。'
         },
         {
-          id: 'amy-h09', tag: '续费提醒', unread: false, minutesAgo: 7200, jump: 'order',
-          title: '固定位预占已生效', body: '续费单待付款期间，原固定位已进入预占 HOLD 状态，有效期为 72 小时。'
+          id: 'amy-h09', tag: '续费提醒', severity: 'reminder', unread: false, minutesAgo: 7200, jump: 'order',
+          title: '固定位预占已生效', summary: '72 小时预占 · AliceZ12',
+          bodyZhHtml: '续费单待付款期间，原固定位已进入预占 HOLD 状态，有效期为 <strong class="font-bold text-slate-900">72 小时</strong>。'
         },
         {
-          id: 'amy-h10', tag: '排课通知', unread: false, minutesAgo: 8640, jump: 'schedule',
-          title: '课表已同步', body: '本周课表已同步至家长端，包含 2 节固定位与 1 节临时课。'
+          id: 'amy-h10', tag: '排课通知', severity: 'normal', unread: false, minutesAgo: 8640, jump: 'schedule',
+          title: '课表已同步', summary: '本周 · AliceZ12 · David',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">本周</strong>课表已同步至家长端，包含 <strong class="font-bold text-slate-900">2 节</strong>固定位与 <strong class="font-bold text-slate-900">1 节</strong>临时课。'
         },
         {
-          id: 'amy-h11', tag: '课次清退', unread: false, minutesAgo: 10000, jump: 'order',
-          title: '课次清退记录已更新', body: '经办人已完成 2 节待排课次的清退并记录财务备注，可在购课记录中查看。'
+          id: 'amy-h11', tag: '课次清退', severity: 'normal', unread: false, minutesAgo: 10000, jump: 'order',
+          title: '课次清退记录已更新', summary: '2 节待排课次 · 财务备注',
+          bodyZhHtml: '经办人已完成 <strong class="font-bold text-slate-900">2 节</strong>待排课次的清退并记录财务备注，可在购课记录中查看。'
         },
         {
-          id: 'amy-h12', tag: '课程变动', unread: false, minutesAgo: 12000, jump: 'schedule',
-          title: '临时课已预约成功', body: '学员 AliceZ12 的 1 节临时课已预约成功，时间为 10 月 20 日 19:00。'
+          id: 'amy-h12', tag: '课程变动', severity: 'normal', unread: false, minutesAgo: 12000, jump: 'schedule',
+          title: '临时课已预约成功', summary: '10 月 20 日 19:00 · AliceZ12',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> 的 <strong class="font-bold text-slate-900">1 节</strong>临时课已预约成功，时间为 <strong class="font-bold text-slate-900">10 月 20 日 19:00</strong>。'
         },
         {
-          id: 'amy-h13', tag: '课程变动', unread: false, minutesAgo: 16000, jump: 'schedule',
-          title: '请假已受理', body: '学员 AliceZ12 10 月 16 日 19:00 的请假已受理，课次已退回权益池。'
+          id: 'amy-h13', tag: '课程变动', severity: 'normal', unread: false, minutesAgo: 16000, jump: 'schedule',
+          title: '请假已受理', summary: '10 月 16 日 19:00 · AliceZ12',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> <strong class="font-bold text-slate-900">10 月 16 日 19:00</strong> 的请假已受理，课次已退回权益池。'
         },
         {
-          id: 'amy-h14', tag: '排课通知', unread: false, minutesAgo: 22000, jump: 'schedule',
-          title: '固定位排课已确认', body: '下轮 4 周固定位已排定，每周二 19:00 上课，授课老师 David。'
+          id: 'amy-h14', tag: '排课通知', severity: 'normal', unread: false, minutesAgo: 22000, jump: 'schedule',
+          title: '固定位排课已确认', summary: '每周二 19:00 · David · 4 周',
+          bodyZhHtml: '下轮 <strong class="font-bold text-slate-900">4 周</strong>固定位已排定，<strong class="font-bold text-slate-900">每周二 19:00</strong> 上课，授课老师 <strong class="font-bold text-slate-900">David</strong>。'
         },
         {
-          id: 'amy-h15', tag: '账单到账', unread: false, minutesAgo: 30000, jump: 'order',
-          title: '购课单确认收款', body: '购课单 ORD-20260928 已确认收款 1,200 积分，课次资产已生成。'
+          id: 'amy-h15', tag: '账单到账', severity: 'normal', unread: false, minutesAgo: 30000, jump: 'order',
+          title: '购课单确认收款', summary: 'ORD-20260928 · 1,200 积分',
+          bodyZhHtml: '购课单 <strong class="font-bold text-slate-900">ORD-20260928</strong> 已确认收款 <strong class="font-bold text-slate-900">1,200 积分</strong>，课次资产已生成。'
         },
         {
-          id: 'amy-h16', tag: '课程变动', unread: false, minutesAgo: 50000, jump: 'schedule',
-          title: '课次已结课', body: '学员 AliceZ12 9 月 25 日 19:00 的课次已正常结课，课后反馈已同步。'
+          id: 'amy-h16', tag: '课程变动', severity: 'normal', unread: false, minutesAgo: 50000, jump: 'schedule',
+          title: '课次已结课', summary: '9 月 25 日 19:00 · AliceZ12',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> <strong class="font-bold text-slate-900">9 月 25 日 19:00</strong> 的课次已正常结课，课后反馈已同步。'
         },
         {
-          id: 'amy-h17', tag: '排课通知', unread: false, minutesAgo: 70000, jump: 'schedule',
-          title: '本周课表已更新', body: '本周课表已更新，可在课表查看完整安排。'
+          id: 'amy-h17', tag: '排课通知', severity: 'normal', unread: false, minutesAgo: 70000, jump: 'schedule',
+          title: '本周课表已更新', summary: '本周 · AliceZ12 · David',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">本周</strong>课表已更新，可在课表查看完整安排。'
         }
       ],
       david: [
         {
-          id: 'david-schedule', tag: '排课通知', unread: true, minutesAgo: 5, jump: 'schedule',
+          id: 'david-substitute-change', tag: '代课通知', severity: 'urgent', unread: true, minutesAgo: 1, jump: 'dispatch',
+          title: 'Substitute change within 3 hours', titleZh: '3 小时内代课变更', bilingual: true,
+          summary: 'Today 18:00 · AliceZ12 · Emma (updated)',
+          bodyHtml: 'The substitute teacher for <strong class="font-bold text-slate-900">AliceZ12</strong> at <strong class="font-bold text-slate-900">18:00</strong> today has changed from <strong class="font-bold text-slate-900">Sarah</strong> to <strong class="font-bold text-slate-900">Emma</strong>. The lesson time and ClassIn room <strong class="font-bold text-slate-900">982-101</strong> remain unchanged.',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">AliceZ12</strong> 今日 <strong class="font-bold text-slate-900">18:00</strong> 的代课老师由 <strong class="font-bold text-slate-900">Sarah</strong> 变更为 <strong class="font-bold text-slate-900">Emma</strong>，课次时间与 ClassIn 教室 <strong class="font-bold text-slate-900">982-101</strong> 保持不变。'
+        },
+        {
+          id: 'david-schedule', tag: '排课通知', severity: 'normal', unread: true, minutesAgo: 5, jump: 'schedule',
           title: 'New schedule assigned', titleZh: '新排课已确认', bilingual: true,
-          body: 'A 4-lesson fixed slot has been scheduled for AliceZ12 every Tuesday at 19:00, starting Nov 17. Please review the lesson plan before the first class.',
-          bodyZh: '学员 AliceZ12 的 4 节固定位已排定，每周二 19:00 开始，首节 11 月 17 日。请在第一节课前查看课件。'
+          summary: 'Tue 19:00 · AliceZ12 · 4 lessons',
+          bodyHtml: 'A <strong class="font-bold text-slate-900">4-lesson</strong> fixed slot has been scheduled for <strong class="font-bold text-slate-900">AliceZ12</strong> every <strong class="font-bold text-slate-900">Tuesday at 19:00</strong>, starting <strong class="font-bold text-slate-900">Nov 17</strong>. Please review the lesson plan before the first class.',
+          bodyZhHtml: '学员 <strong class="font-bold text-slate-900">AliceZ12</strong> 的 <strong class="font-bold text-slate-900">4 节</strong>固定位已排定，<strong class="font-bold text-slate-900">每周二 19:00</strong> 开始，首节 <strong class="font-bold text-slate-900">11 月 17 日</strong>。请在第一节课前查看课件。'
         },
         {
-          id: 'david-reschedule', tag: '课程变动', unread: true, minutesAgo: 35, jump: 'schedule',
+          id: 'david-reschedule', tag: '课程变动', severity: 'normal', unread: true, minutesAgo: 35, jump: 'schedule',
           title: 'Lesson leave & reschedule', titleZh: '课次请假退回与同师挪位', bilingual: true,
-          body: 'The lesson on Thu Nov 19 at 17:00 has been returned to the credit pool after the student leave request. The make-up lesson is moved to Thu Nov 19 at 18:00 with the same teacher.',
-          bodyZh: '学员请假后，11 月 19 日周四 17:00 的课次已退回权益池；补课已同师挪位至 11 月 19 日周四 18:00，授课老师不变。'
+          summary: 'Thu 18:00 · AliceZ12 · same teacher',
+          bodyHtml: 'The lesson on <strong class="font-bold text-slate-900">Thu Nov 19 at 17:00</strong> has been returned to the credit pool after the student leave request. The make-up lesson is moved to <strong class="font-bold text-slate-900">Thu Nov 19 at 18:00</strong> with the same teacher.',
+          bodyZhHtml: '学员请假后，<strong class="font-bold text-slate-900">11 月 19 日周四 17:00</strong> 的课次已退回权益池；补课已同师挪位至 <strong class="font-bold text-slate-900">11 月 19 日周四 18:00</strong>，授课老师不变。'
         },
         {
-          id: 'david-substitute', tag: '代课通知', unread: true, minutesAgo: 60, jump: 'dispatch',
+          id: 'david-substitute', tag: '代课通知', severity: 'normal', unread: true, minutesAgo: 60, jump: 'dispatch',
           title: 'Substitute assigned', titleZh: '临时代课指派', bilingual: true,
-          body: 'You have been assigned as the substitute teacher for AliceZ12 on Fri Nov 20 at 18:00-18:25. Lesson fee will be counted in your weekly pay. ClassIn room 982-101.',
-          bodyZh: '你已被指派为 AliceZ12 11 月 20 日周五 18:00-18:25 的代课老师，课酬将计入本周课酬单。ClassIn 教室 982-101。'
+          summary: 'Fri 18:00 · AliceZ12 · room 982-101',
+          bodyHtml: 'You have been assigned as the substitute teacher for <strong class="font-bold text-slate-900">AliceZ12</strong> on <strong class="font-bold text-slate-900">Fri Nov 20 at 18:00-18:25</strong>. Lesson fee will be counted in your weekly pay. ClassIn room <strong class="font-bold text-slate-900">982-101</strong>.',
+          bodyZhHtml: '你已被指派为 <strong class="font-bold text-slate-900">AliceZ12</strong> <strong class="font-bold text-slate-900">11 月 20 日周五 18:00-18:25</strong> 的代课老师，课酬将计入本周课酬单。ClassIn 教室 <strong class="font-bold text-slate-900">982-101</strong>。'
         },
         {
-          id: 'david-cancelled', tag: '代课通知', unread: false, minutesAgo: 130, jump: 'schedule',
+          id: 'david-cancelled', tag: '代课通知', severity: 'normal', unread: false, minutesAgo: 130, jump: 'schedule',
           title: 'Substitute cancelled', titleZh: '代课撤销', bilingual: true,
-          body: 'The substitute assignment for Sat Nov 21 at 10:00 has been cancelled. No action is needed.',
-          bodyZh: '11 月 21 日周六 10:00 的代课指派已撤销，无需处理。'
+          summary: 'Sat 10:00 · AliceZ12 · no action',
+          bodyHtml: 'The substitute assignment for <strong class="font-bold text-slate-900">Sat Nov 21 at 10:00</strong> has been cancelled. No action is needed.',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">11 月 21 日周六 10:00</strong> 的代课指派已撤销，无需处理。'
         }
       ],
       leo: [
         {
-          id: 'leo-transfer', tag: '转账催办', unread: true, minutesAgo: 30, jump: 'transfer',
+          id: 'leo-transfer', tag: '转账催办', severity: 'reminder', unread: true, minutesAgo: 30, jump: 'transfer',
           title: '本周周转账单待确认',
-          body: '2026 年第 46 周周转账单已于周一 08:00 生成，请在周一 18:00 前核对结课明细并完成打款、上传打款凭证。'
+          summary: '2026 年第 46 周 · 周一 18:00 前',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">2026 年第 46 周</strong>周转账单已于周一 <strong class="font-bold text-slate-900">08:00</strong> 生成，请在 <strong class="font-bold text-slate-900">周一 18:00</strong> 前核对结课明细并完成打款、上传打款凭证。'
         },
         {
-          id: 'leo-dispatch', tag: '应急调度', unread: true, minutesAgo: 45, jump: 'dispatch',
+          id: 'leo-dispatch', tag: '应急调度', severity: 'urgent', unread: true, minutesAgo: 45, jump: 'dispatch',
           title: '老师发起请假，待安排应急调度',
-          body: 'David 老师提交了 11 月 20 日 18:00 的请假申请，涉及 3 节 1v1 课次。请前往应急调度看板安排代课老师。'
+          summary: '11 月 20 日 18:00 · David · 3 节 1v1',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">David</strong> 老师提交了 <strong class="font-bold text-slate-900">11 月 20 日 18:00</strong> 的请假申请，涉及 <strong class="font-bold text-slate-900">3 节</strong> 1v1 课次。请前往应急调度看板安排代课老师。'
         },
         {
-          id: 'leo-group', tag: '小班暂停', unread: true, minutesAgo: 120, jump: 'dispatch',
+          id: 'leo-group', tag: '小班暂停', severity: 'normal', unread: true, minutesAgo: 120, jump: 'dispatch',
           title: '小班暂停待排',
-          body: 'KET1 小班 11 月 21 日 10:00 的课次因老师请假暂停待排。仅通知主理人与授课老师，不向家长发送；请尽快确认补课安排。'
+          summary: 'KET1 · 11 月 21 日 10:00 · 待补课',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">KET1</strong> 小班 <strong class="font-bold text-slate-900">11 月 21 日 10:00</strong> 的课次因老师请假暂停待排。仅通知主理人与授课老师，不向家长发送；请尽快确认补课安排。'
         }
       ],
       sarah: [
         {
-          id: 'sarah-transfer', tag: '账单审核', unread: true, minutesAgo: 20, jump: 'transfer',
+          id: 'sarah-transfer', tag: '账单审核', severity: 'reminder', unread: true, minutesAgo: 20, jump: 'transfer',
           title: '周转账单待审核',
-          body: '班长 Leo 提交了 2026 年第 46 周周转账单，待核对打款凭证与结课明细。该提醒仅在管理端展示，不向家长发送。'
+          summary: '班长 Leo · 2026 年第 46 周',
+          bodyZhHtml: '班长 <strong class="font-bold text-slate-900">Leo</strong> 提交了 <strong class="font-bold text-slate-900">2026 年第 46 周</strong>周转账单，待核对打款凭证与结课明细。该提醒仅在管理端展示，不向家长发送。'
         },
         {
-          id: 'sarah-writeoff', tag: '课次清退', unread: true, minutesAgo: 65, jump: 'order',
+          id: 'sarah-writeoff', tag: '课次清退', severity: 'normal', unread: true, minutesAgo: 65, jump: 'order',
           title: '课次清退待确认',
-          body: '2 节待排课次的清退记录待核对，请确认财务备注与资产清零情况。该提醒仅在管理端展示，不向家长发送。'
+          summary: '2 节待排课次 · 财务备注',
+          bodyZhHtml: '<strong class="font-bold text-slate-900">2 节</strong>待排课次的清退记录待核对，请确认财务备注与资产清零情况。该提醒仅在管理端展示，不向家长发送。'
         },
         {
-          id: 'sarah-fallback', tag: '异常结课', unread: true, minutesAgo: 180, jump: 'schedule',
+          id: 'sarah-fallback', tag: '异常结课', severity: 'urgent', unread: true, minutesAgo: 180, jump: 'schedule',
           title: '异常结课回退待确认',
-          body: '课次 TS-20261117-1900 出现异常结课记录，待确认是否回退为待上课并退回对应权益。该提醒仅在管理端展示，不向家长发送。'
+          summary: 'TS-20261117-1900 · 异常结课',
+          bodyZhHtml: '课次 <strong class="font-bold text-slate-900">TS-20261117-1900</strong> 出现异常结课记录，待确认是否回退为待上课并退回对应权益。该提醒仅在管理端展示，不向家长发送。'
         }
       ]
     };
@@ -443,10 +491,10 @@
       const unread = unreadCount();
       const pill = (value, label) => {
         const active = state.filter === value;
-        return `<button data-action="filter" data-value="${value}" class="h-8 shrink-0 rounded-full px-3.5 text-[12px] transition ${active ? 'bg-slate-900 font-semibold text-white shadow-sm' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}</button>`;
+        return `<button data-action="filter" data-value="${value}" class="shrink-0 rounded-full py-1.5 text-[12px] transition-colors ${active ? 'bg-slate-900 px-3.5 font-semibold text-white' : 'border-0 bg-slate-100 px-3 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}</button>`;
       };
       return `<div class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur">
-        <div class="flex items-center gap-1.5 overflow-x-auto">
+        <div class="flex h-9 items-center gap-1.5 overflow-x-auto py-0.5">
           ${pill('all', '全部')}
           ${pill('unread', `未读 (${unread})`)}
         </div>
@@ -456,42 +504,89 @@
     /* ------------------------------------------------------------------
      * 消息卡：点击原地手风琴展开，展开即已读
      * ------------------------------------------------------------------ */
+    function cardSurface(item, unread) {
+      if (unread && item.severity === 'urgent') return 'border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80';
+      if (unread && item.severity === 'reminder') return 'border-amber-300 bg-amber-50/50';
+      return 'border-slate-200/80 bg-slate-50/70';
+    }
+
+    function semanticDot(item, unread) {
+      if (item.severity === 'urgent') return 'bg-rose-600';
+      if (item.severity === 'reminder') return 'bg-amber-500';
+      return unread ? 'bg-indigo-600' : 'bg-slate-500';
+    }
+
+    function cardSummary(item) {
+      if (item.summary) return item.summary;
+      const text = (item.bodyZhHtml || item.bodyHtml || '').replace(/<[^>]+>/g, '');
+      const first = text.split(/[。.！!？?]/)[0];
+      return first.length > 48 ? `${first.slice(0, 48)}…` : first;
+    }
+
+    function bodyParagraph(html) {
+      return html ? `<p class="mt-2 whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-700">${html}</p>` : '';
+    }
+
+    function bodyDivider(label) {
+      return `<div class="my-2 flex items-center gap-2"><span class="h-px flex-1 bg-slate-200"></span><span class="whitespace-nowrap text-[12px] font-bold text-slate-600">${label}</span><span class="h-px flex-1 bg-slate-200"></span></div>`;
+    }
+
+    function actionLabel(item) {
+      if (item.tag === '续费提醒' && item.jump === 'order') return isEnglish() ? 'Renew now' : '去续费';
+      if (item.jump === 'schedule') return isEnglish() ? 'View schedule' : '查看课表';
+      if (item.jump === 'dispatch' || item.jump === 'transfer') return isEnglish() ? 'Handle now' : '立即处理';
+      return isEnglish() ? 'View details' : '前往查看';
+    }
+
     function renderCard(item) {
       const expanded = state.expandedIds.includes(item.id);
       const unread = item.unread;
+      const offline = state.online === 'off';
+      const offlineHint = isEnglish() ? 'Offline · read sync unavailable' : '离线状态不可同步已读';
       const statusText = unread
-        ? (state.online === 'off' ? '离线状态不可同步已读' : '未读')
-        : '已读';
-      const statusCls = unread && state.online === 'off' ? 'text-amber-800' : 'text-slate-600';
-      const englishBody = item.body && item.bilingual ? item.body : '';
-      const chineseBody = item.bodyZh || item.body;
-      const languageLabel = '中文';
-      return `<article data-action="toggle" data-id="${item.id}" aria-expanded="${expanded}" class="cursor-pointer rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 transition active:scale-[0.995] ${state.device === 'tablet' && expanded ? 'col-span-2' : ''}">
+        ? (offline ? offlineHint : (isEnglish() ? 'Unread' : '未读'))
+        : (isEnglish() ? 'Read' : '已读');
+      const statusCls = unread && offline ? 'text-amber-800' : 'text-slate-600';
+      const englishBody = item.bodyHtml || '';
+      const chineseBody = item.bodyZhHtml || '';
+      const primaryBody = isEnglish() ? englishBody : chineseBody;
+      const secondaryBody = isEnglish() ? chineseBody : englishBody;
+      const bodyContent = `${bodyParagraph(primaryBody)}${primaryBody && secondaryBody ? bodyDivider(isEnglish() ? '中文' : 'EN') : ''}${bodyParagraph(secondaryBody)}`;
+      const reminderChip = unread && item.severity === 'reminder'
+        ? `<span class="shrink-0 rounded-full border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold leading-none text-amber-900">${isEnglish() ? 'To do' : '待处理'}</span>`
+        : '';
+      return `<article data-action="toggle" data-id="${item.id}" aria-expanded="${expanded}" class="box-border w-full cursor-pointer rounded-2xl border p-3.5 transition active:scale-[0.995] ${cardSurface(item, unread)} ${state.device === 'tablet' && expanded ? 'col-span-2' : ''}">
         <div class="flex items-start gap-2.5">
-          <span data-dot class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${unread ? 'bg-blue-500' : 'bg-transparent'}"></span>
+          <span data-dot class="mt-1.5 h-[7px] w-[7px] shrink-0 rounded-full ${semanticDot(item, unread)}"></span>
           <div class="min-w-0 flex-1">
             <div class="flex items-center justify-between gap-2">
               <span class="inline-flex min-w-0 items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">[${esc(tagLabel(item.tag))}]</span>
-              <span class="flex shrink-0 items-center gap-1 text-[12px] font-medium text-slate-600">
+              <span class="flex shrink-0 items-center gap-1.5 text-[12px] font-medium text-slate-600">
+                ${reminderChip}
                 ${relative(item.minutesAgo)}
+                ${unread ? '<span data-unread-dot aria-label="未读" class="h-2 w-2 shrink-0 rounded-full bg-blue-500"></span>' : ''}
                 <i data-lucide="chevron-down" class="h-3.5 w-3.5 text-slate-600 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}"></i>
               </span>
             </div>
-            <h3 class="mt-1 text-[16px] font-bold leading-snug text-slate-900">${esc(item.title)}</h3>
-            ${item.titleZh ? `<p class="mt-0.5 text-[12px] font-medium leading-tight text-slate-600">${esc(item.titleZh)}</p>` : ''}
+            <h3 class="mt-1 truncate text-[16px] font-bold leading-snug text-slate-900">${esc(item.title)}</h3>
+            ${item.titleZh ? `<p class="mt-0.5 truncate text-[12px] font-medium leading-tight text-slate-600">${esc(item.titleZh)}</p>` : ''}
+            ${expanded ? '' : `<p class="mt-1 truncate text-[12px] font-medium text-slate-600">${esc(cardSummary(item))}</p>`}
             <div data-body="${item.id}" class="grid ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'} transition-[grid-template-rows] duration-300 ease-out">
               <div class="min-h-0 overflow-hidden">
                 <div class="mt-2 border-t border-slate-200/70 pt-2">
-                  <p class="whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-700">${esc(englishBody || chineseBody)}</p>
-                  ${englishBody ? `<div class="my-2 flex items-center gap-2"><span class="h-px flex-1 bg-slate-200"></span><span class="whitespace-nowrap text-[12px] font-bold text-slate-600">${languageLabel}</span><span class="h-px flex-1 bg-slate-200"></span></div>
-                  <p class="whitespace-pre-line text-[14px] font-medium leading-relaxed text-slate-700">${esc(chineseBody)}</p>` : ''}
+                  ${bodyContent}
                   <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2">
-                    <span class="min-w-0 text-[12px] font-medium ${statusCls}">${statusText}</span>
-                    <div class="flex shrink-0 items-center gap-2">
-                      ${unread && state.online === 'off'
-                        ? `<button disabled title="离线状态不可同步已读" class="cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-[12px] font-semibold text-slate-500">标为已读</button>`
+                    <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                      <span class="shrink-0 text-[12px] font-medium ${statusCls}">${statusText}</span>
+                      ${expanded && !unread
+                        ? `<button data-action="mark-unread" data-id="${item.id}" class="shrink-0 text-[13px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">[ ${isEnglish() ? 'Mark as unread' : '标为未读'} ]</button>`
                         : ''}
-                      <button data-action="goto" data-id="${item.id}" class="text-[13px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">前往查看 →</button>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                      ${unread && offline
+                        ? `<button disabled title="${offlineHint}" class="cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-[12px] font-semibold text-slate-500">${isEnglish() ? 'Mark read' : '标为已读'}</button>`
+                        : ''}
+                      <button data-action="goto" data-id="${item.id}" class="text-[13px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">${actionLabel(item)} →</button>
                     </div>
                   </div>
                 </div>
@@ -503,7 +598,7 @@
     }
 
     function renderEmpty() {
-      return `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-12 text-center">
+      return `<div class="box-border w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-12 text-center">
         <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-slate-600">${icon('inbox', 'h-6 w-6')}</div>
         <p class="mt-3 text-[14px] font-bold text-slate-700">这里暂无未读消息</p>
         <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">最近 90 天的关键邮件提醒会显示在消息中心。</p>
@@ -538,7 +633,7 @@
       if (!state.confirmRead) { root.innerHTML = ''; return; }
       const unread = unreadCount();
       root.innerHTML = `<div data-action="close-confirm" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/45 p-4">
-        <div data-action="noop" class="w-full max-w-[320px] rounded-2xl bg-white p-4 shadow-2xl">
+        <div data-action="noop" class="box-border w-full max-w-[320px] rounded-2xl bg-white p-4 shadow-2xl">
           <h2 class="text-[16px] font-bold text-slate-900">全部标为已读？</h2>
           <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-700">将把 ${unread} 条未读消息标为已读，铃铛红点会同步隐藏。</p>
           <div class="mt-4 grid grid-cols-2 gap-2">
@@ -623,6 +718,15 @@
       }
       const target = jumpLabel(item.jump);
       toast(`正在前往${target}…`);
+    }
+
+    function markUnread(id) {
+      const item = findNotice(id);
+      if (!item) return;
+      item.unread = true;
+      state.expandedIds = state.expandedIds.filter((value) => value !== id);
+      renderAll();
+      toast(isEnglish() ? 'Marked as unread' : '已标为未读');
     }
 
     function setFilter(value) {
@@ -711,6 +815,7 @@
       if (action === 'filter') return setFilter(el.dataset.value);
       if (action === 'show-all') return setFilter('all');
       if (action === 'toggle') return toggleExpand(id);
+      if (action === 'mark-unread') { event.stopPropagation(); return markUnread(id); }
       if (action === 'goto') return goTo(id);
       if (action === 'mark-all') return openConfirmAll();
       if (action === 'close-confirm') return closeConfirmAll();

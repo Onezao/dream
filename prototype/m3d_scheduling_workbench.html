@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Dream · 批量排课工作台</title>
+  <title>Dream · 老师空闲大盘</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -26,19 +26,17 @@
   <!-- Tailwind CDN 动态类安全垫 -->
   <div class="hidden">
     <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-w-[720px] max-w-[340px] max-h-[78%] max-h-[85%]"></span>
-    <span class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] grid-cols-2 grid-cols-3 grid-cols-4"></span>
-    <span class="from-slate-900 via-fuchsia-950 to-slate-800 from-slate-900 via-violet-950 to-slate-800 from-slate-800 via-blue-900 to-slate-700 bg-gradient-to-br"></span>
-    <span class="bg-emerald-50 border-emerald-200 text-emerald-700 bg-emerald-50/80 bg-emerald-500 bg-emerald-600 text-emerald-800 text-emerald-950 bg-emerald-100"></span>
-    <span class="bg-amber-50 border-amber-300 text-amber-900 bg-amber-50/70 border-amber-400 border-dashed text-amber-800 bg-amber-100 bg-amber-500 bg-amber-600"></span>
-    <span class="bg-rose-50 border-rose-200 text-rose-700 bg-rose-50/80 text-rose-800 bg-rose-500 bg-rose-600 bg-rose-100"></span>
-    <span class="bg-teal-50 border-teal-200 text-teal-700 bg-teal-50/70 border-2 border-teal-400 text-teal-950 bg-teal-100 text-teal-800"></span>
-    <span class="bg-indigo-50 text-indigo-700 border-indigo-200 ring-indigo-500 bg-indigo-600 text-indigo-800 bg-indigo-100"></span>
-    <span class="bg-slate-50 bg-slate-50/80 bg-slate-50/60 bg-slate-100 border-slate-200 border-slate-300 text-slate-500 text-slate-600 text-slate-700 bg-slate-200 bg-slate-900"></span>
-    <span class="bg-slate-900/40 bg-slate-900/90 text-white/70 ring-white/10 ring-white/15 bg-white/10 bg-white/15 bg-white/20"></span>
-    <span class="h-7 h-[26px] h-11 h-12 h-14 h-16 h-[56px] h-[54px] w-9 w-10 w-11 w-12 h-2 h-9"></span>
-    <span class="text-[18px] text-[16px] text-[14px] text-[12px] font-mono text-[15px]"></span>
-    <span class="opacity-60 opacity-70 ring-2 ring-inset rounded-xl rounded-2xl rounded-3xl rounded-md shadow-sm active:scale-[0.98]"></span>
-    <span class="overflow-x-auto no-scrollbar whitespace-nowrap"></span>
+    <span class="grid grid-cols-7 gap-[3px] grid-cols-2 grid-cols-3"></span>
+    <span class="h-3.5 w-3.5 h-[13px] w-[13px] h-2.5 w-2.5 h-2 h-1.5 w-4 h-[17px] w-9 rounded-[3px] rounded-[2px] rounded-[1px] gap-px"></span>
+    <span class="bg-emerald-500 bg-emerald-50 text-emerald-700 ring-emerald-200 text-emerald-800 bg-emerald-100"></span>
+    <span class="bg-slate-200 bg-slate-100 bg-slate-50/70 bg-slate-50/80 text-slate-500 text-slate-600 text-slate-700 bg-slate-900"></span>
+    <span class="bg-indigo-50 text-indigo-700 border-indigo-200 ring-indigo-200 bg-indigo-600 text-indigo-800 bg-indigo-100"></span>
+    <span class="bg-amber-50 text-amber-900 border-amber-300 bg-amber-100"></span>
+    <span class="from-slate-900 via-fuchsia-950 to-slate-800 from-slate-900 via-violet-950 to-slate-800 bg-gradient-to-br"></span>
+    <span class="bg-slate-900/40 bg-white/10 bg-white/15 ring-white/15 text-white/70"></span>
+    <span class="h-8 h-9 h-11 w-8 w-9 w-11 h-16 text-[18px] text-[16px] text-[14px] text-[12px]"></span>
+    <span class="overflow-x-auto no-scrollbar [scrollbar-width:none] rounded-xl rounded-2xl rounded-3xl rounded-lg"></span>
+    <span class="opacity-60 opacity-70 ring-2 ring-inset shadow-2xl active:scale-[0.98]"></span>
   </div>
 
   <script>
@@ -46,17 +44,33 @@
     'use strict';
 
     /* ------------------------------------------------------------------
-     * 演示数据 · 术语遵循 GLOSSARY v1.0
+     * 演示数据 · 两步式排课第一步：老师空闲大盘
      * ------------------------------------------------------------------ */
     const DAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    const DAY_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const TODAY_LABEL = '演示日 11-10 周二';
-    const DEMO_YEAR = 2026;
-    const DEMO_MONTH = 10;
-    const DEMO_DAY = 10;
-    const DEMO_WEEKDAY = 1;
+    const DAY_SHORT = ['一', '二', '三', '四', '五', '六', '日'];
+    const LEVEL_ORDER = { Junior: 0, Standard: 1, Senior: 2 };
+    const CAPACITY = 28;
+    const LOAD_LIMIT = 20;
+    const CURRENT_MONITOR = 'leo';
 
-    const COURSE_TYPES = { english: '英语', math: '数学' };
+    const PERIODS = {
+      early: { key: 'early', label: '早 06-11', start: 6, end: 11, rows: 10 },
+      mid: { key: 'mid', label: '中 10-15', start: 10, end: 15, rows: 10 },
+      afternoon: { key: 'afternoon', label: '下 14-19', start: 14, end: 19, rows: 10 },
+      evening: { key: 'evening', label: '晚 18-24', start: 18, end: 24, rows: 12 }
+    };
+
+    const WEEK_META = [
+      { value: 0, label: '本周', range: '11.09 - 11.15' },
+      { value: 1, label: '下周', range: '11.16 - 11.22' }
+    ];
+
+    const LEVEL_FILTERS = [
+      { value: 'all', label: '全部' },
+      { value: 'Standard', label: 'Standard' },
+      { value: 'Senior', label: 'Senior' },
+      { value: 'Junior', label: 'Junior' }
+    ];
 
     const STUDENTS = {
       alice: {
@@ -64,444 +78,291 @@
         id: 'stu_alice',
         name: 'AliceZ12',
         nickname: 'Alice',
-        age: 12,
         level: 'Senior',
-        emoji: '👧',
         credits: 8,
-        tempCredits: 6,
-        preference: '🌙 平时晚间 18:30-20:30',
-        windowLabel: '18:00 - 21:00',
-        times: ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30'],
-        intentStart: 18 * 60 + 30,
-        intentEnd: 20 * 60 + 30,
-        hold: { day: 0, time: '19:00' }
+        emoji: '👧'
       },
       bob: {
         key: 'bob',
         id: 'stu_bob',
         name: 'BobZ10',
         nickname: 'Bob',
-        age: 10,
         level: 'Standard',
-        emoji: '👦',
         credits: 4,
-        tempCredits: 4,
-        preference: '☀️ 周末上午 09:00-11:30',
-        windowLabel: '09:00 - 12:00',
-        times: ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30'],
-        intentStart: 9 * 60,
-        intentEnd: 11 * 60 + 30,
-        hold: null
-      },
-      charlie: {
-        key: 'charlie',
-        id: 'stu_charlie',
-        name: 'CharlieL08',
-        nickname: 'Charlie',
-        age: 8,
-        level: 'Standard',
-        emoji: '🧒',
-        credits: 2,
-        tempCredits: 2,
-        preference: '🌙 平时晚间 18:30-20:30',
-        windowLabel: '18:00 - 21:00',
-        times: ['18:00', '18:30', '19:00', '19:30', '20:00', '20:30'],
-        intentStart: 18 * 60 + 30,
-        intentEnd: 20 * 60 + 30,
-        hold: null
-      }
-    };
-
-    /* 全平台在职老师：owner 为归属，qualified 为课程资质，regulars 为熟客 */
-    const TEACHERS = {
-      david: {
-        key: 'david',
-        id: 'tea_david',
-        name: 'David Miller',
-        short: 'David',
-        initial: 'D',
-        level: 'Senior',
-        load: 18,
-        owner: 'mine',
-        qualified: ['english'],
-        regulars: ['alice', 'charlie'],
-        freeRate: 62,
-        active: true
-      },
-      linda: {
-        key: 'linda',
-        id: 'tea_linda',
-        name: 'Linda Wu',
-        short: 'Linda',
-        initial: 'L',
-        level: 'Standard',
-        load: 14,
-        owner: 'amy',
-        qualified: ['english', 'math'],
-        regulars: ['bob'],
-        freeRate: 48,
-        active: true
-      },
-      mia: {
-        key: 'mia',
-        id: 'tea_mia',
-        name: 'Mia Chen',
-        short: 'Mia',
-        initial: 'M',
-        level: 'Senior',
-        load: 11,
-        owner: 'platform',
-        qualified: ['english'],
-        regulars: ['alice', 'bob'],
-        freeRate: 71,
-        active: true
-      },
-      ethan: {
-        key: 'ethan',
-        id: 'tea_ethan',
-        name: 'Ethan Brooks',
-        short: 'Ethan',
-        initial: 'E',
-        level: 'Standard',
-        load: 16,
-        owner: 'mine',
-        qualified: ['english', 'math'],
-        regulars: ['charlie'],
-        freeRate: 55,
-        active: true
-      },
-      sofia: {
-        key: 'sofia',
-        id: 'tea_sofia',
-        name: 'Sofia Reyes',
-        short: 'Sofia',
-        initial: 'S',
-        level: 'Senior',
-        load: 20,
-        owner: 'amy',
-        qualified: ['english'],
-        regulars: ['bob', 'charlie'],
-        freeRate: 39,
-        active: true
-      },
-      noah: {
-        key: 'noah',
-        id: 'tea_noah',
-        name: 'Noah Kim',
-        short: 'Noah',
-        initial: 'N',
-        level: 'Standard',
-        load: 9,
-        owner: 'platform',
-        qualified: ['math'],
-        regulars: [],
-        freeRate: 28,
-        active: true
+        emoji: '👦'
       }
     };
 
     const CLASSES = {
       ket1: {
         key: 'ket1',
-        name: 'KET 冲刺精讲小班',
+        id: 'ket1',
+        name: 'KET 冲刺小班',
         code: 'KET1',
-        enrolled: 3,
-        capacity: 4,
-        owner: 'Leo',
+        level: 'Standard',
+        credits: 32,
         teacher: 'david',
-        weeks: 16,
-        credits: 32
+        enrolled: 3,
+        capacity: 4
       },
       mov2: {
         key: 'mov2',
+        id: 'mov2',
         name: 'Movers 进阶班',
         code: 'MOV2',
-        enrolled: 3,
-        capacity: 4,
-        owner: 'Leo',
+        level: 'Junior',
+        credits: 16,
         teacher: null,
-        weeks: 16,
-        credits: 16
-      },
-      ket1p: {
-        key: 'ket1p',
-        name: 'KET 冲刺精讲小班',
-        code: 'KET1',
         enrolled: 3,
-        capacity: 4,
-        owner: 'Leo',
-        teacher: 'david',
-        weeks: 16,
-        credits: 1,
-        pendingMakeup: 1
+        capacity: 4
       }
     };
 
-    const RECOMMENDATIONS = {
-      'david-alice': [{ day: 2, time: '19:00' }, { day: 3, time: '19:30' }],
-      'david-bob': [{ day: 5, time: '09:00' }, { day: 6, time: '09:30' }],
-      'david-charlie': [{ day: 2, time: '19:00' }, { day: 4, time: '19:30' }],
-      'linda-alice': [{ day: 0, time: '18:30' }, { day: 2, time: '19:00' }],
-      'linda-bob': [{ day: 5, time: '10:00' }, { day: 6, time: '09:00' }],
-      'linda-charlie': [{ day: 1, time: '19:30' }, { day: 3, time: '19:00' }]
-    };
+    function makeTeacher(key, name, level, load, regulars, opts = {}) {
+      const seed = key.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) + (opts.seed || 0);
+      return {
+        key,
+        id: `tea_${key}`,
+        name,
+        short: name.split(' ')[0],
+        initial: name.charAt(0),
+        level,
+        load,
+        loadNext: typeof opts.loadNext === 'number'
+          ? opts.loadNext
+          : Math.max(6, Math.min(26, load + ((seed % 7) - 3))),
+        capacity: CAPACITY,
+        regulars,
+        seed,
+        start: typeof opts.start === 'number' ? opts.start : 9,
+        end: typeof opts.end === 'number' ? opts.end : 21,
+        offDays: opts.offDays || [],
+        weekendOff: !!opts.weekendOff,
+        zeroPeriods: opts.zeroPeriods || [],
+        owner: opts.owner || 'other'
+      };
+    }
 
-    const DEFAULT_RECOMMENDATIONS = {
-      alice: [{ day: 2, time: '19:00' }, { day: 3, time: '19:30' }],
-      bob: [{ day: 5, time: '09:00' }, { day: 6, time: '09:30' }],
-      charlie: [{ day: 2, time: '19:00' }, { day: 4, time: '19:30' }]
-    };
-
-    const BUSY = {
-      david: {
-        0: { '18:30': 'Alic', '19:30': 'Bria' },
-        1: { '18:00': 'Alic', '20:00': 'Sam' },
-        2: { '18:00': 'Char', '20:30': 'BobZ' },
-        3: { '18:00': 'Alic' },
-        4: { '18:30': 'BobZ', '20:30': 'Alic' },
-        5: { '10:00': 'KET', '11:00': 'Alic' },
-        6: { '10:30': 'Bria' }
-      },
-      linda: {
-        0: { '19:30': 'Alic', '20:30': 'Sam' },
-        1: { '18:30': 'BobZ', '20:00': 'Alic' },
-        2: { '18:00': 'Char', '19:30': 'Bria' },
-        3: { '18:30': 'Alic' },
-        4: { '20:00': 'BobZ' },
-        5: { '10:30': 'KET' },
-        6: { '10:00': 'Char', '11:30': 'Alic' }
-      },
-      mia: {
-        0: { '19:00': 'Alic' },
-        2: { '10:00': 'KET' },
-        4: { '18:30': 'BobZ' },
-        5: { '09:00': 'KET' },
-        6: { '14:00': 'Sam' }
-      },
-      ethan: {
-        0: { '18:00': 'Char' },
-        2: { '19:30': 'Alic' },
-        4: { '19:00': 'BobZ' },
-        6: { '09:00': 'Char' }
-      },
-      sofia: {
-        1: { '18:00': 'BobZ' },
-        2: { '18:00': 'Char' },
-        4: { '19:00': 'Alic' },
-        5: { '10:30': 'KET' },
-        6: { '11:00': 'Alic' }
-      },
-      noah: {
-        0: { '19:30': 'Sam' },
-        3: { '18:00': 'BobZ' }
-      }
-    };
-
-    const CLOSED = {
-      david: new Set(['0|20:30', '6|20:00']),
-      linda: new Set(['0|18:00', '2|20:30']),
-      mia: new Set(['0|18:00']),
-      ethan: new Set(['3|20:30']),
-      sofia: new Set(['6|20:00']),
-      noah: new Set(['2|20:00'])
-    };
-
-    const LEAVE = {
-      david: new Set(['3|20:30']),
-      linda: new Set(['5|20:00']),
-      mia: new Set(['6|20:30']),
-      ethan: new Set(['2|20:00']),
-      sofia: new Set(['1|20:30']),
-      noah: new Set(['5|20:00'])
-    };
-
-    /* 未来 4 周内的确定性冲突（week 0 为本周，3 为第 4 周） */
-    const WEEK_CONFLICTS = {
-      david: [{ day: 1, time: '19:00', week: 2, reason: '老师休假' }],
-      ethan: [{ day: 3, time: '19:30', week: 1, reason: '老师请假' }],
-      linda: [],
-      mia: [],
-      sofia: [],
-      noah: []
-    };
-
-    const WEEK_PREVIEW = [
-      { no: '第 1 周', date: '11.16' },
-      { no: '第 2 周', date: '11.23' },
-      { no: '第 3 周', date: '11.30' },
-      { no: '第 4 周', date: '12.07' }
+    /* 29 位在职老师：Standard / Senior / Junior，熟客与空闲矩阵各不相同 */
+    const TEACHERS = [
+      makeTeacher('david', 'David Miller', 'Standard', 18, ['alice', 'bob'], { start: 9, end: 21, seed: 3, owner: 'leo' }),
+      makeTeacher('linda', 'Linda Wu', 'Standard', 14, ['alice'], { start: 8, end: 20, seed: 5, owner: 'leo' }),
+      makeTeacher('ethan', 'Ethan Brooks', 'Standard', 16, ['bob'], { start: 9, end: 22, seed: 7 }),
+      makeTeacher('noah', 'Noah Kim', 'Standard', 9, [], { start: 7, end: 19, seed: 11, owner: 'leo' }),
+      makeTeacher('grace', 'Grace Park', 'Standard', 12, ['alice', 'bob'], { start: 8, end: 20, seed: 13 }),
+      makeTeacher('henry', 'Henry Ford', 'Standard', 20, ['alice'], { start: 10, end: 22, seed: 17 }),
+      makeTeacher('ivy', 'Ivy Chen', 'Standard', 15, ['bob'], { start: 9, end: 21, seed: 19 }),
+      makeTeacher('jack', 'Jack Turner', 'Standard', 22, [], { start: 11, end: 23, seed: 23, offDays: [0] }),
+      makeTeacher('kevin', 'Kevin Shaw', 'Standard', 10, [], { start: 8, end: 18, seed: 29 }),
+      makeTeacher('lucy', 'Lucy Hale', 'Standard', 17, ['bob'], { start: 9, end: 21, seed: 31 }),
+      makeTeacher('mason', 'Mason Reed', 'Standard', 24, [], { start: 10, end: 22, seed: 37, weekendOff: true }),
+      makeTeacher('nina', 'Nina Patel', 'Standard', 13, ['alice'], { start: 9, end: 20, seed: 41, owner: 'leo' }),
+      makeTeacher('oscar', 'Oscar Wilde', 'Standard', 19, [], { start: 10, end: 23, seed: 43 }),
+      makeTeacher('peter', 'Peter Pan', 'Standard', 11, [], { start: 7, end: 19, seed: 47 }),
+      makeTeacher('quinn', 'Quinn Harper', 'Standard', 21, [], { start: 9, end: 22, seed: 53 }),
+      makeTeacher('rachel', 'Rachel Green', 'Standard', 16, ['bob'], { start: 8, end: 20, seed: 59 }),
+      makeTeacher('sam', 'Sam Wilson', 'Standard', 8, [], { start: 9, end: 18, seed: 61, owner: 'leo' }),
+      makeTeacher('tina', 'Tina Fey', 'Standard', 23, [], { start: 11, end: 23, seed: 67, offDays: [6] }),
+      makeTeacher('victor', 'Victor Hugo', 'Standard', 12, [], { start: 9, end: 21, seed: 71 }),
+      makeTeacher('wendy', 'Wendy Brown', 'Standard', 18, ['alice'], { start: 10, end: 22, seed: 73 }),
+      makeTeacher('xavier', 'Xavier Lee', 'Standard', 15, [], { start: 8, end: 20, seed: 79 }),
+      makeTeacher('zoe', 'Zoe Turner', 'Standard', 20, [], { start: 9, end: 21, seed: 83, zeroPeriods: ['mid'] }),
+      makeTeacher('mia', 'Mia Chen', 'Senior', 11, ['alice', 'bob'], { start: 9, end: 21, seed: 89 }),
+      makeTeacher('sofia', 'Sofia Reyes', 'Senior', 20, ['bob'], { start: 10, end: 22, seed: 97, zeroPeriods: ['mid'] }),
+      makeTeacher('olivia', 'Olivia Stone', 'Senior', 14, ['alice'], { start: 8, end: 20, seed: 101 }),
+      makeTeacher('lucas', 'Lucas Gray', 'Senior', 17, [], { start: 9, end: 22, seed: 103 }),
+      makeTeacher('emma', 'Emma Stone', 'Junior', 10, ['bob'], { start: 8, end: 19, seed: 107 }),
+      makeTeacher('leo', 'Leo Martin', 'Junior', 13, [], { start: 9, end: 20, seed: 109 }),
+      makeTeacher('ruby', 'Ruby Rose', 'Junior', 16, ['alice'], { start: 10, end: 21, seed: 113, offDays: [4] })
     ];
-
-    const GRID_DATES = ['11.16', '11.17', '11.18', '11.19', '11.20', '11.21', '11.22'];
-    const GROUP_TIMES = ['09:00', '10:00', '11:00'];
-    const TEMP_STARTS = ['09:00', '09:30', '10:00', '10:30', '11:00', '13:00', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30'];
 
     /* ------------------------------------------------------------------
      * 状态与地址参数
      * ------------------------------------------------------------------ */
     const state = {
       role: 'monitor',
-      mode: 'batch_fixed',
       device: 'mobile',
       online: true,
-      scenario: 'normal',
+      embed: false,
+      view: 'board',
+      contextType: 'none',
       student: 'alice',
-      teacher: 'david',
-      classId: 'ket1',
-      selectedSlots: [],
+      classKey: 'ket1',
+      level: 'Standard',
+      period: 'mid',
+      week: 0,
+      shown: 5,
       overlay: null,
-      candidateAck: false,
-      conflictDetail: null,
-      completed: null,
+      focusTeacher: null,
       toast: '',
-      smartCourse: 'english',
-      temp: { offset: 4, start: '10:00', duration: 60, course: 'english' },
-      tempPick: null
+      scenario: ''
     };
 
     const params = new URLSearchParams(window.location.search);
-    const EMBED = params.get('embed') === '1';
-    const roleParam = params.get('role');
-    const modeParam = params.get('mode');
-    const studentParam = params.get('studentId');
-    const teacherParam = params.get('teacherId');
-    const scenarioParam = params.get('scenario');
-    const deviceParam = params.get('device');
-    const SCENARIOS = ['normal', 'hold-shift', 'hold-convert', 'conflict', 'insufficient', 'group', 'group-blocked', 'group-makeup', 'smart-fixed', 'smart-temp', 'teacher-all', 'parent'];
+    state.embed = params.get('embed') === '1';
+    state.view = params.get('view') || 'board';
+    state.device = params.get('device') === 'tablet' ? 'tablet' : 'mobile';
+    if (['monitor', 'admin'].includes(params.get('role'))) state.role = params.get('role');
+    if (params.get('online') === '0' || params.get('network') === 'off') state.online = false;
 
-    if (['monitor', 'admin', 'parent'].includes(roleParam)) state.role = roleParam;
-    if (modeParam === 'group_makeup' || modeParam === 'makeup') state.mode = 'group_makeup';
-    else if (modeParam === 'batch_group' || modeParam === 'batch_fixed') state.mode = modeParam;
-    if (deviceParam === 'tablet') state.device = 'tablet';
-    if (SCENARIOS.includes(scenarioParam)) state.scenario = scenarioParam;
-
-    function defaultTemp() {
-      state.temp = { offset: 4, start: '10:00', duration: 60, course: 'english' };
-      state.tempPick = null;
-    }
-
-    function applyScenarioPreset(name, resetRole) {
-      state.scenario = name || 'normal';
+    function applyScenario(name) {
+      state.scenario = name || '';
       state.overlay = null;
-      state.completed = null;
-      state.candidateAck = false;
-      state.conflictDetail = null;
       state.toast = '';
-      state.smartCourse = 'english';
-      defaultTemp();
+      state.focusTeacher = null;
+      state.shown = 5;
 
-      if (name === 'hold-shift') {
-        state.mode = 'batch_fixed';
+      if (name === 'student-alice') {
+        state.contextType = 'student';
         state.student = 'alice';
-        state.teacher = 'david';
-        state.selectedSlots = [{ day: 1, time: '19:30' }, { day: 3, time: '19:30' }];
-      } else if (name === 'hold-convert') {
-        state.mode = 'batch_fixed';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'student-bob') {
+        state.contextType = 'student';
+        state.student = 'bob';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'class-ket') {
+        state.contextType = 'class';
+        state.classKey = 'ket1';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'class-unassigned') {
+        state.contextType = 'class';
+        state.classKey = 'mov2';
+        state.level = 'Junior';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'empty') {
+        state.contextType = 'none';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'level-all') {
+        state.contextType = 'student';
         state.student = 'alice';
-        state.teacher = 'david';
-        state.selectedSlots = [{ day: 0, time: '19:00' }, { day: 1, time: '19:30' }];
-      } else if (name === 'conflict') {
-        state.mode = 'batch_fixed';
+        state.level = 'all';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'level-standard') {
+        state.contextType = 'student';
         state.student = 'alice';
-        state.teacher = 'david';
-        state.selectedSlots = [{ day: 1, time: '19:00' }, { day: 3, time: '19:30' }];
-      } else if (name === 'insufficient') {
-        state.mode = 'batch_fixed';
-        state.student = 'charlie';
-        state.teacher = 'david';
-        state.selectedSlots = [{ day: 2, time: '19:00' }];
-      } else if (name === 'group') {
-        state.mode = 'batch_group';
-        state.classId = 'ket1';
-        state.teacher = 'david';
-        state.selectedSlots = [{ day: 5, time: '10:00' }, { day: 6, time: '09:00' }];
-      } else if (name === 'group-blocked') {
-        state.mode = 'batch_group';
-        state.classId = 'mov2';
-        state.teacher = null;
-        state.selectedSlots = [];
-      } else if (name === 'group-makeup') {
-        state.mode = 'group_makeup';
-        state.classId = 'ket1p';
-        state.teacher = 'david';
-        state.selectedSlots = [];
-      } else if (name === 'smart-fixed') {
-        state.mode = 'batch_fixed';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'level-senior') {
+        state.contextType = 'student';
         state.student = 'alice';
-        state.teacher = 'david';
-        state.selectedSlots = [{ day: 1, time: '19:00' }, { day: 3, time: '19:30' }];
-        state.overlay = 'smart-fixed';
-      } else if (name === 'smart-temp') {
-        state.mode = 'batch_fixed';
+        state.level = 'Senior';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'level-junior') {
+        state.contextType = 'student';
         state.student = 'alice';
-        state.teacher = 'david';
-        state.selectedSlots = [];
-        state.overlay = 'temp-smart';
-      } else if (name === 'teacher-all') {
-        state.mode = 'batch_fixed';
+        state.level = 'Junior';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'period-early') {
+        state.contextType = 'student';
         state.student = 'alice';
-        state.teacher = 'david';
-        state.selectedSlots = [];
-        state.overlay = 'teachers';
+        state.level = 'Standard';
+        state.period = 'early';
+        state.week = 0;
+      } else if (name === 'period-mid') {
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 0;
+      } else if (name === 'period-afternoon') {
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.level = 'Standard';
+        state.period = 'afternoon';
+        state.week = 0;
+      } else if (name === 'period-evening') {
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.level = 'Standard';
+        state.period = 'evening';
+        state.week = 0;
+      } else if (name === 'week-next') {
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 1;
+      } else if (name === 'load-more') {
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 0;
+        state.shown = 10;
+      } else if (name === 'focus-david') {
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 0;
+        state.focusTeacher = 'david';
       } else {
-        state.mode = 'batch_fixed';
-        state.student = 'alice';
-        state.teacher = 'david';
-        state.selectedSlots = [];
+        state.contextType = 'none';
+        state.level = 'Standard';
+        state.period = 'mid';
+        state.week = 0;
       }
-
-      if (resetRole) state.role = name === 'parent' ? 'parent' : 'monitor';
     }
 
-    applyScenarioPreset(state.scenario, false);
+    if (params.get('scenario')) applyScenario(params.get('scenario'));
 
-    if (state.scenario === 'smart-fixed' || state.scenario === 'smart-temp' || state.scenario === 'teacher-all') {
-      state.overlay = state.scenario === 'smart-fixed' ? 'smart-fixed' : state.scenario === 'smart-temp' ? 'temp-smart' : 'teachers';
-    }
+    const levelParam = params.get('level');
+    if (['all', 'Standard', 'Senior', 'Junior'].includes(levelParam)) state.level = levelParam;
+    const periodParam = params.get('period');
+    if (periodParam && PERIODS[periodParam]) state.period = periodParam;
+    const weekParam = params.get('week');
+    if (weekParam === '0' || weekParam === '1') state.week = Number(weekParam);
+    const shownParam = Number(params.get('shown'));
+    if (!Number.isNaN(shownParam) && shownParam > 0) state.shown = Math.min(LOAD_LIMIT, Math.max(5, shownParam));
 
-    if (modeParam === 'group_makeup' || modeParam === 'makeup') {
-      state.mode = 'group_makeup';
-      state.classId = 'ket1p';
-      state.teacher = 'david';
-      state.selectedSlots = [];
-      state.overlay = null;
+    const studentIdMap = { stu_alice: 'alice', stu_bob: 'bob' };
+    const classIdMap = { ket1: 'ket1', mov2: 'mov2' };
+    if (studentIdMap[params.get('studentId')]) {
+      state.contextType = 'student';
+      state.student = studentIdMap[params.get('studentId')];
     }
+    if (classIdMap[params.get('classId')]) {
+      state.contextType = 'class';
+      state.classKey = classIdMap[params.get('classId')];
+    }
+    const teacherParam = params.get('teacherId') || params.get('teacher');
+    if (teacherParam) {
+      const found = TEACHERS.find((teacher) => teacher.id === teacherParam || teacher.key === teacherParam);
+      if (found) state.focusTeacher = found.key;
+    }
+    if (params.get('view') === 'board') state.view = 'board';
 
-    if (modeParam === 'batch_group' && state.scenario !== 'group' && state.scenario !== 'group-blocked') {
-      state.mode = 'batch_group';
-      state.classId = 'ket1';
-      state.selectedSlots = [{ day: 5, time: '10:00' }, { day: 6, time: '09:00' }];
-      state.teacher = state.teacher || 'david';
-      state.overlay = null;
-    }
-
-    const studentIdMap = { stu_alice: 'alice', stu_bob: 'bob', stu_charlie: 'charlie' };
-    const teacherIdMap = { tea_david: 'david', tea_linda: 'linda', tea_mia: 'mia', tea_ethan: 'ethan', tea_sofia: 'sofia', tea_noah: 'noah' };
-    const classIdMap = { ket1: 'ket1', ket1p: 'ket1p', mov2: 'mov2' };
-    if (studentIdMap[studentParam]) state.student = studentIdMap[studentParam];
-    if (teacherIdMap[teacherParam] && state.scenario !== 'group-blocked') {
-      state.teacher = teacherIdMap[teacherParam];
-    }
-    if (classIdMap[params.get('classId')]) state.classId = classIdMap[params.get('classId')];
-    if (state.mode === 'group_makeup') {
-      state.classId = 'ket1p';
-      state.teacher = 'david';
-      state.selectedSlots = [];
-    }
-    if (state.mode === 'batch_group' && currentClass().credits < 16) {
-      state.mode = 'group_makeup';
-      state.classId = 'ket1p';
-      state.teacher = 'david';
-      state.selectedSlots = [];
-    }
-    if (state.scenario === 'insufficient') {
-      state.student = 'charlie';
-      state.selectedSlots = [{ day: 2, time: '19:00' }];
+    function contextStudent() {
+      return state.contextType === 'student' ? STUDENTS[state.student] : null;
     }
 
-    if (state.role === 'parent') {
-      state.completed = null;
-      state.overlay = null;
+    function contextClass() {
+      return state.contextType === 'class' ? CLASSES[state.classKey] : null;
+    }
+
+    function currentPeriod() {
+      return PERIODS[state.period] || PERIODS.mid;
+    }
+
+    function weekLoad(teacher) {
+      return state.week === 0 ? teacher.load : teacher.loadNext;
+    }
+
+    function weekMeta() {
+      return WEEK_META.find((item) => item.value === state.week) || WEEK_META[0];
     }
 
     /* ------------------------------------------------------------------
@@ -515,366 +376,154 @@
 
     const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
 
-    function pad2(value) { return String(value).padStart(2, '0'); }
-
-    function toMinutes(time) {
-      const bits = time.split(':').map(Number);
-      return bits[0] * 60 + bits[1];
+    function pad2(value) {
+      return String(value).padStart(2, '0');
     }
 
-    function addMinutesToTime(time, mins) {
-      const total = toMinutes(time) + mins;
+    function rowTime(period, row) {
+      const total = period.start * 60 + row * 30;
       return `${pad2(Math.floor(total / 60))}:${pad2(total % 60)}`;
     }
 
-    function endTime(time) { return addMinutesToTime(time, 30); }
-    function endHour(time) { return addMinutesToTime(time, 60); }
-
-    function currentStudent() { return STUDENTS[state.student]; }
-    function currentTeacher() { return state.teacher ? TEACHERS[state.teacher] : null; }
-    function currentClass() { return CLASSES[state.classId]; }
-    function recKey() { return `${state.teacher || 'none'}-${state.student}`; }
-    function isParent() { return state.role === 'parent'; }
-    function isAdmin() { return state.role === 'admin'; }
-    function ownerLabel(teacher) {
-      if (teacher.owner === 'mine') return '我负责';
-      if (teacher.owner === 'amy') return 'Amy 班';
-      return '平台直管';
-    }
-    function teacherScopeLabel() {
-      if (isAdmin()) return '全平台在职 · 管理员统筹';
-      return '全平台在职 · 班长可全域约课';
-    }
-
-    function demoDateInfo(offset) {
-      const date = new Date(DEMO_YEAR, DEMO_MONTH, DEMO_DAY);
-      date.setDate(date.getDate() + offset);
-      return {
-        offset,
-        mm: pad2(date.getMonth() + 1),
-        dd: pad2(date.getDate()),
-        label: `${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`,
-        weekday: (DEMO_WEEKDAY + offset) % 7,
-        week: Math.floor((DEMO_WEEKDAY + offset) / 7)
-      };
-    }
-
-    function isSelected(day, time) {
-      return state.selectedSlots.some((slot) => slot.day === day && slot.time === time);
-    }
-    function removeSlot(day, time) {
-      state.selectedSlots = state.selectedSlots.filter((slot) => !(slot.day === day && slot.time === time));
-      syncCandidateAck();
-    }
-    function orderedSlots() {
-      return [...state.selectedSlots].sort((a, b) => a.day - b.day || toMinutes(a.time) - toMinutes(b.time));
-    }
-    function slotsLabel(slots = orderedSlots()) {
-      return slots.map((slot) => `${DAY_LABELS[slot.day]} ${slot.time}`).join('、');
-    }
-    function slotsParam(slots = orderedSlots()) {
-      return slots.map((slot) => `${DAY_EN[slot.day]}:${slot.time}`).join(',');
-    }
-
-    function hasCandidateSelected() {
-      return state.scenario === 'conflict' && isSelected(1, '19:30');
-    }
-    function syncCandidateAck() {
-      if (!hasCandidateSelected()) state.candidateAck = false;
-    }
-
-    function fixedCreditUnit() { return 4; }
-    function groupCreditUnit() { return 16; }
-    function isGroupMakeup() { return state.mode === 'group_makeup'; }
-    function maxFixedSlots() { return Math.floor(currentStudent().credits / fixedCreditUnit()); }
-    function maxGroupSlots() { return isGroupMakeup() ? 1 : Math.floor(currentClass().credits / groupCreditUnit()); }
-
-    function isHoldSlot(slot) {
-      if (!slot || state.mode === 'batch_group') return false;
-      const hold = activeHold();
-      return !!hold && hold.day === slot.day && hold.time === slot.time;
-    }
-    function billableSlots() {
-      return state.selectedSlots.filter((slot) => !isHoldSlot(slot));
-    }
-    function billableCount() {
-      return billableSlots().length;
-    }
-    function convertedCount() {
-      return state.mode === 'batch_group' ? 0 : state.selectedSlots.length - billableCount();
-    }
-
-    function activeHold() {
-      if (state.student === 'alice' && state.scenario !== 'conflict') {
-        return { day: 0, time: '19:00' };
+    function roleMeta() {
+      if (state.role === 'admin') {
+        return { banner: 'from-slate-900 via-violet-950 to-slate-800', initial: 'S', label: '管理员' };
       }
-      return null;
-    }
-
-    function conflictCandidate() {
-      return state.scenario === 'conflict' ? { day: 1, time: '19:30' } : null;
-    }
-
-    function isIntent(time, student = currentStudent()) {
-      const mins = toMinutes(time);
-      return mins >= student.intentStart && mins < student.intentEnd;
+      return { banner: 'from-slate-900 via-fuchsia-950 to-slate-800', initial: 'L', label: '班长' };
     }
 
     /* ------------------------------------------------------------------
-     * 4 周可用性与智能筛师数据计算
+     * 空闲矩阵计算：确定性 Mock，保证除零空闲老师外至少 1 格可排
      * ------------------------------------------------------------------ */
-    function teacherFreeAt(teacherKey, weekday, time, week) {
-      const teacher = TEACHERS[teacherKey];
-      if (!teacher || !teacher.active) return false;
-      if (week === 0) {
-        if (BUSY[teacherKey] && BUSY[teacherKey][weekday] && BUSY[teacherKey][weekday][time]) return false;
-        if (LEAVE[teacherKey] && LEAVE[teacherKey].has(`${weekday}|${time}`)) return false;
+    function hash01(seed) {
+      const x = Math.sin(seed * 12.9898) * 43758.5453;
+      return x - Math.floor(x);
+    }
+
+    function firstWorkDay(teacher) {
+      for (let day = 0; day < 7; day += 1) {
+        if (teacher.offDays.includes(day)) continue;
+        if (teacher.weekendOff && day >= 5) continue;
+        return day;
       }
-      if (CLOSED[teacherKey] && CLOSED[teacherKey].has(`${weekday}|${time}`)) return false;
-      if (week > 0) {
-        const conflicts = WEEK_CONFLICTS[teacherKey] || [];
-        if (conflicts.some((entry) => entry.week === week && entry.day === weekday && entry.time === time)) return false;
-      }
-      return true;
+      return 0;
     }
 
-    function teacherWeekConflicts(teacherKey, day, time) {
-      const weeks = [];
-      for (let week = 0; week < 4; week += 1) {
-        if (!teacherFreeAt(teacherKey, day, time, week)) weeks.push(week);
-      }
-      return weeks;
+    function forcedFreeCell(teacher) {
+      const period = currentPeriod();
+      const row = Math.min(period.rows - 1, 3);
+      const slot = period.start * 2 + row;
+      if (slot < teacher.start * 2 || slot >= teacher.end * 2) return null;
+      return { day: firstWorkDay(teacher), row };
     }
 
-    function weekConflictReason(teacherKey, day, time, week) {
-      if (week === 0) {
-        if (BUSY[teacherKey] && BUSY[teacherKey][day] && BUSY[teacherKey][day][time]) return '已排课程';
-        if (CLOSED[teacherKey] && CLOSED[teacherKey].has(`${day}|${time}`)) return '老师休息';
-        if (LEAVE[teacherKey] && LEAVE[teacherKey].has(`${day}|${time}`)) return '老师请假';
-      }
-      if (CLOSED[teacherKey] && CLOSED[teacherKey].has(`${day}|${time}`)) return '老师休息';
-      const conflict = (WEEK_CONFLICTS[teacherKey] || []).find((entry) => entry.week === week && entry.day === day && entry.time === time);
-      return conflict ? conflict.reason : '时段冲突';
+    function isTeacherFree(teacher, week, day, row) {
+      const period = currentPeriod();
+      const slot = period.start * 2 + row;
+      if (teacher.zeroPeriods.includes(state.period)) return false;
+      if (slot < teacher.start * 2 || slot >= teacher.end * 2) return false;
+      if (teacher.offDays.includes(day)) return false;
+      if (teacher.weekendOff && day >= 5) return false;
+      const forced = forcedFreeCell(teacher);
+      if (forced && forced.day === day && forced.row === row) return true;
+      const loadRate = (week === 0 ? teacher.load : teacher.loadNext) / teacher.capacity;
+      const busyThreshold = 0.34 + loadRate * 0.62;
+      const value = hash01(teacher.seed * 7.13 + week * 31.7 + day * 11.3 + slot * 3.1);
+      return value > busyThreshold;
     }
 
-    function slotWeekConflicts(slot) {
-      return teacherWeekConflicts(state.teacher, slot.day, slot.time);
-    }
-
-    function weekConflictSlots() {
-      return orderedSlots().filter((slot) => slotWeekConflicts(slot).length > 0);
-    }
-
-    function sortSmartTeachers(list) {
-      const student = currentStudent();
-      return list.sort((a, b) => {
-        const regularA = a.regulars.includes(state.student) ? 1 : 0;
-        const regularB = b.regulars.includes(state.student) ? 1 : 0;
-        if (regularA !== regularB) return regularB - regularA;
-        const levelA = a.level === student.level ? 1 : 0;
-        const levelB = b.level === student.level ? 1 : 0;
-        if (levelA !== levelB) return levelB - levelA;
-        return b.freeRate - a.freeRate;
-      });
-    }
-
-    function smartFixedResult() {
-      const eligible = [];
-      const filtered = [];
-      Object.values(TEACHERS).forEach((teacher) => {
-        if (!teacher.active) {
-          filtered.push({ teacher, reason: '非在职', detail: '非在职' });
-          return;
+    function teacherFreeCount(teacher) {
+      const period = currentPeriod();
+      let count = 0;
+      for (let day = 0; day < 7; day += 1) {
+        for (let row = 0; row < period.rows; row += 1) {
+          if (isTeacherFree(teacher, state.week, day, row)) count += 1;
         }
-        if (!teacher.qualified.includes(state.smartCourse)) {
-          filtered.push({ teacher, reason: '资质不符', detail: `无${COURSE_TYPES[state.smartCourse]}课程资质` });
-          return;
-        }
-        let conflict = null;
-        for (const slot of orderedSlots()) {
-          const weeks = teacherWeekConflicts(teacher.key, slot.day, slot.time);
-          if (weeks.length) {
-            conflict = { slot, week: weeks[0] };
-            break;
-          }
-        }
-        if (conflict) {
-          const reason = `第 ${conflict.week + 1} 周冲突`;
-          filtered.push({
-            teacher,
-            reason,
-            detail: `${reason}（${DAY_LABELS[conflict.slot.day]} ${conflict.slot.time}）`
-          });
-        } else {
-          eligible.push(teacher);
-        }
-      });
-      return { eligible: sortSmartTeachers(eligible), filtered };
-    }
-
-    function tempFilterResult() {
-      const info = demoDateInfo(state.temp.offset);
-      const cells = state.temp.duration / 30;
-      const eligible = [];
-      const filtered = [];
-      Object.values(TEACHERS).forEach((teacher) => {
-        if (!teacher.active) {
-          filtered.push({ teacher, reason: '非在职', detail: '非在职' });
-          return;
-        }
-        if (!teacher.qualified.includes(state.temp.course)) {
-          filtered.push({ teacher, reason: '资质不符', detail: `无${COURSE_TYPES[state.temp.course]}课程资质` });
-          return;
-        }
-        let blocked = null;
-        for (let index = 0; index < cells; index += 1) {
-          const time = addMinutesToTime(state.temp.start, index * 30);
-          if (!teacherFreeAt(teacher.key, info.weekday, time, info.week)) {
-            blocked = time;
-            break;
-          }
-        }
-        if (blocked) {
-          filtered.push({ teacher, reason: `${blocked} 已占用`, detail: `${blocked} 已占用，无法连续 ${cells} 节` });
-        } else {
-          eligible.push(teacher);
-        }
-      });
-      return { eligible: sortSmartTeachers(eligible), filtered };
-    }
-
-    function filteredSummary(filtered) {
-      if (!filtered.length) return '';
-      const counts = {};
-      filtered.forEach((item) => { counts[item.reason] = (counts[item.reason] || 0) + 1; });
-      return Object.entries(counts).map(([reason, count]) => `${reason} ×${count}`).join(' · ');
-    }
-
-    function tempCreditsEnough() {
-      return currentStudent().tempCredits >= state.temp.duration / 30;
-    }
-
-    /* ------------------------------------------------------------------
-     * 网格状态计算
-     * ------------------------------------------------------------------ */
-    function fixedCell(day, time) {
-      const teacherKey = state.teacher || 'david';
-      const hold = activeHold();
-      const candidate = conflictCandidate();
-
-      if (state.scenario === 'conflict' && day === 1 && time === '19:00') {
-        return { kind: 'original', label: '⚠', cls: 'border-rose-300 bg-rose-50 text-rose-700' };
       }
-      if (candidate && candidate.day === day && candidate.time === time) {
-        return { kind: 'candidate', label: '候补', cls: 'border-amber-400 border-dashed bg-amber-50/70 text-amber-800' };
-      }
-      if (hold && hold.day === day && hold.time === time) {
-        return { kind: 'hold', label: '预', cls: 'border-amber-400 border-dashed bg-amber-50/70 text-amber-800' };
+      return count;
+    }
+
+    function levelGroup() {
+      return TEACHERS.filter((teacher) => state.level === 'all' || teacher.level === state.level);
+    }
+
+    function levelDistance(teacherLevel, targetLevel) {
+      if (!targetLevel) return 0;
+      return Math.abs((LEVEL_ORDER[teacherLevel] ?? 1) - (LEVEL_ORDER[targetLevel] ?? 1));
+    }
+
+    function sortedTeachers() {
+      const list = levelGroup()
+        .map((teacher) => ({ teacher, free: teacherFreeCount(teacher) }))
+        .filter((item) => item.free > 0);
+
+      if (state.contextType === 'student') {
+        const student = contextStudent();
+        list.sort((a, b) => {
+          const familiarA = a.teacher.regulars.includes(state.student) ? 1 : 0;
+          const familiarB = b.teacher.regulars.includes(state.student) ? 1 : 0;
+          if (familiarA !== familiarB) return familiarB - familiarA;
+          const levelA = levelDistance(a.teacher.level, student.level);
+          const levelB = levelDistance(b.teacher.level, student.level);
+          if (levelA !== levelB) return levelA - levelB;
+          const loadA = weekLoad(a.teacher);
+          const loadB = weekLoad(b.teacher);
+          if (loadA !== loadB) return loadA - loadB;
+          if (a.free !== b.free) return b.free - a.free;
+          return a.teacher.name.localeCompare(b.teacher.name);
+        });
+      } else if (state.contextType === 'class') {
+        const cls = contextClass();
+        list.sort((a, b) => {
+          const assignedA = cls.teacher === a.teacher.key ? 1 : 0;
+          const assignedB = cls.teacher === b.teacher.key ? 1 : 0;
+          if (assignedA !== assignedB) return assignedB - assignedA;
+          const levelA = levelDistance(a.teacher.level, cls.level);
+          const levelB = levelDistance(b.teacher.level, cls.level);
+          if (levelA !== levelB) return levelA - levelB;
+          const loadA = weekLoad(a.teacher);
+          const loadB = weekLoad(b.teacher);
+          if (loadA !== loadB) return loadA - loadB;
+          return b.free - a.free;
+        });
+      } else {
+        list.sort((a, b) => {
+          if (a.free !== b.free) return b.free - a.free;
+          const loadA = weekLoad(a.teacher);
+          const loadB = weekLoad(b.teacher);
+          if (loadA !== loadB) return loadA - loadB;
+          return a.teacher.name.localeCompare(b.teacher.name);
+        });
       }
 
-      const busy = BUSY[teacherKey] && BUSY[teacherKey][day] && BUSY[teacherKey][day][time];
-      if (busy) {
-        return { kind: 'busy', label: busy, cls: 'border-amber-300 bg-amber-50 text-amber-900' };
-      }
-      if (LEAVE[teacherKey] && LEAVE[teacherKey].has(`${day}|${time}`)) {
-        return { kind: 'leave', label: '假', cls: 'border-rose-200 bg-rose-50 text-rose-700' };
-      }
-      if (CLOSED[teacherKey] && CLOSED[teacherKey].has(`${day}|${time}`)) {
-        return { kind: 'closed', label: '休', cls: 'border-slate-200 bg-slate-100 text-slate-500' };
-      }
-      if (isIntent(time)) {
-        return { kind: 'available', label: '可排', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
-      }
-      return { kind: 'available', label: '可排', cls: 'border-slate-200 bg-slate-50/80 text-slate-500 opacity-60' };
+      return list;
     }
 
-    function canPickFixed(day, time) {
-      const status = fixedCell(day, time);
-      return ['available', 'original', 'candidate', 'hold'].includes(status.kind);
+    function hiddenCount() {
+      return levelGroup().filter((teacher) => teacherFreeCount(teacher) === 0).length;
     }
 
-    function groupBlock(day, time) {
-      const cls = currentClass();
-      const activeTeacher = cls.teacher;
-      if (!activeTeacher) return { kind: 'closed', label: '休' };
-      if (day === 5 && time === '10:00') return { kind: 'full', label: '16/16' };
-      if (day === 6 && time === '09:00') return { kind: 'full', label: '16/16' };
-      if (day === 6 && time === '10:00') return { kind: 'partial', label: '15/16', week: 8, reason: '小班外出活动' };
-      return { kind: 'closed', label: '休' };
-    }
-
-    function makeupBlock(day, time) {
-      if (!currentClass().teacher) return { kind: 'closed', label: '休' };
-      if ((day === 5 && time === '10:00') || (day === 6 && time === '09:00') || (day === 6 && time === '10:00')) {
-        return { kind: 'available', label: '可排' };
-      }
-      return { kind: 'closed', label: '休' };
-    }
-
-    function groupCell(day, time) {
-      return isGroupMakeup() ? makeupBlock(day, time) : groupBlock(day, time);
-    }
-
-    function selectedGroupBlocks() {
-      if (state.mode !== 'batch_group' && state.mode !== 'group_makeup') return [];
-      return orderedSlots().map((slot) => ({ slot, block: groupCell(slot.day, slot.time) }));
-    }
-
-    function selectedIsCandidate() {
-      return hasCandidateSelected();
-    }
-
-    function fixedAllGreen() {
-      const slots = orderedSlots();
-      return slots.length > 0 && slots.every((slot) => slotWeekConflicts(slot).length === 0);
-    }
-
-    function groupAllGreen() {
-      const blocks = selectedGroupBlocks();
-      return blocks.length > 0 && blocks.every((item) => isGroupMakeup() ? item.block.kind === 'available' : item.block.kind === 'full');
-    }
-
-    function creditsNeeded() {
-      if (state.mode === 'group_makeup') return state.selectedSlots.length;
-      return state.mode === 'batch_group'
-        ? state.selectedSlots.length * groupCreditUnit()
-        : billableCount() * fixedCreditUnit();
-    }
-
-    function creditsEnough() {
-      if (state.mode === 'group_makeup') return state.selectedSlots.length <= 1 && currentClass().credits >= 1;
-      if (state.mode === 'batch_group') return state.selectedSlots.length <= maxGroupSlots();
-      return currentStudent().credits >= creditsNeeded();
-    }
-
-    function confirmReady() {
-      if (isParent()) return false;
-      if (!state.online || state.completed) return false;
-      if (!state.selectedSlots.length) return false;
-      if (state.mode === 'group_makeup') {
-        if (!currentClass().teacher) return false;
-        if (state.selectedSlots.length !== 1) return false;
-        return groupCell(state.selectedSlots[0].day, state.selectedSlots[0].time).kind === 'available';
-      }
-      if (state.mode === 'batch_group') {
-        if (!currentClass().teacher) return false;
-        if (!creditsEnough()) return false;
-        return groupAllGreen();
-      }
-      if (!creditsEnough()) return false;
-      if (!fixedAllGreen()) return false;
-      if (hasCandidateSelected() && !state.candidateAck) return false;
-      return true;
+    function selectUrl(teacher) {
+      const query = new URLSearchParams();
+      query.set('role', state.role);
+      query.set('teacherId', teacher.id);
+      query.set('mode', 'schedule_select');
+      query.set('week', String(state.week));
+      if (state.contextType === 'student') query.set('studentId', STUDENTS[state.student].id);
+      if (state.contextType === 'class') query.set('classId', CLASSES[state.classKey].id);
+      return `m3a_calendar_grid.html?${query.toString()}`;
     }
 
     /* ------------------------------------------------------------------
      * 页面骨架
      * ------------------------------------------------------------------ */
+    let toastTimer = null;
+
     function render(preserveScroll = true) {
       const previous = document.getElementById('content');
       const previousTop = previous ? previous.scrollTop : 0;
       const app = document.getElementById('app');
-      app.innerHTML = `${EMBED ? '' : renderConsole()}${renderFrame()}`;
+      app.innerHTML = `${state.embed ? '' : renderConsole()}${renderFrame()}`;
       const next = document.getElementById('content');
       if (next) next.scrollTop = preserveScroll ? previousTop : 0;
       if (window.lucide) window.lucide.createIcons();
@@ -882,967 +531,223 @@
 
     function renderFrame() {
       const isTablet = state.device === 'tablet';
-      const frameCls = EMBED
-        ? `h-[812px] w-full max-w-[390px] rounded-none`
+      const frameCls = state.embed
+        ? 'h-[812px] w-full max-w-[390px] rounded-none'
         : isTablet
-          ? `h-[860px] w-[768px] max-w-full rounded-3xl shadow-2xl ring-1 ring-slate-300`
-          : `h-[812px] w-full max-w-[390px] rounded-2xl shadow-xl ring-1 ring-slate-300 sm:rounded-3xl sm:shadow-2xl`;
-      return `<main class="flex min-h-screen w-full justify-center ${EMBED ? '' : 'overflow-x-hidden px-0 py-0 sm:px-3 sm:py-6'}">
+          ? 'h-[860px] w-[768px] max-w-full rounded-3xl shadow-2xl ring-1 ring-slate-300'
+          : 'h-[812px] w-full max-w-[390px] rounded-2xl shadow-xl ring-1 ring-slate-300 sm:rounded-3xl sm:shadow-2xl';
+      return `<main class="flex min-h-screen w-full justify-center ${state.embed ? '' : 'overflow-x-hidden px-0 py-0 sm:px-3 sm:py-6'}">
         <div id="frame" class="relative flex ${frameCls} shrink-0 flex-col overflow-hidden bg-white transition-all duration-300">
           ${renderBanner()}
-          ${!state.online && !isParent() ? renderOfflineStrip() : ''}
-          ${isParent() ? renderParentView() : renderWorkbench()}
+          ${!state.online ? renderOfflineStrip() : ''}
+          ${renderBoard()}
           ${renderOverlay()}
           ${state.toast ? renderToast() : ''}
         </div>
       </main>`;
     }
 
-    function renderWorkbench() {
-      return `<div id="content" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div class="mx-auto w-full max-w-[720px] px-3 pb-4 pt-3">
-          ${renderContent()}
-        </div>
-      </div>
-      ${renderConfirmBar()}`;
-    }
-
-    function renderContent() {
-      if (state.mode === 'group_makeup') {
-        return `${renderGroupContext()}
-          ${renderMakeupTaskCard()}
-          ${currentClass().teacher ? renderGroupGrid() : renderBlockedCard()}`;
-      }
-      if (state.mode === 'batch_group') {
-        return `${renderGroupContext()}
-          ${currentClass().teacher ? renderGroupSummary() : ''}
-          ${currentClass().teacher ? renderGroupGrid() : renderBlockedCard()}`;
-      }
-      return `${state.scenario === 'conflict' ? renderConflictTicket() : ''}
-        ${renderFixedContext()}
-        ${state.scenario === 'conflict' ? '' : renderRecommendations()}
-        ${renderSmartBar()}
-        ${renderFixedGrid()}`;
-    }
-
-    /* ------------------------------------------------------------------
-     * Banner / 权限页
-     * ------------------------------------------------------------------ */
-    function roleMeta() {
-      if (state.role === 'admin') {
-        return { banner: 'from-slate-900 via-violet-950 to-slate-800', initial: 'S' };
-      }
-      if (state.role === 'parent') {
-        return { banner: 'from-slate-800 via-blue-900 to-slate-700', initial: 'A' };
-      }
-      return { banner: 'from-slate-900 via-fuchsia-950 to-slate-800', initial: 'L' };
-    }
-
     function renderBanner() {
       const meta = roleMeta();
-      const title = isParent()
-        ? '排课工作台'
-        : (state.mode === 'group_makeup' ? '小班单节补排' : state.mode === 'batch_group' ? '小班整班排课' : '批量固定位排课');
-      const subtitle = isParent()
-        ? ''
-        : (state.mode === 'group_makeup'
-          ? '暂停待排退回 1 节 · 单周选位'
-          : state.mode === 'batch_group' ? '全学期 16 周 · 11.16 - 03.08' : '未来 4 周 · 11.16 - 12.13');
-      const backRole = isParent() ? 'parent' : state.role;
+      const week = weekMeta();
       return `<header class="relative flex h-16 shrink-0 items-center gap-2 overflow-hidden bg-gradient-to-br ${meta.banner} px-3 text-white">
         <span class="pointer-events-none absolute -right-7 -top-9 h-24 w-24 rounded-full border border-white/10"></span>
         <span class="pointer-events-none absolute right-16 top-5 h-14 w-14 rounded-full border border-white/10"></span>
         <span class="pointer-events-none absolute -bottom-8 left-20 h-20 w-20 rounded-full bg-white/5"></span>
-        <a href="m3a_calendar_grid.html?role=${backRole}" class="relative flex h-9 shrink-0 items-center gap-0.5 rounded-xl bg-white/10 pl-1 pr-2 text-[12px] font-semibold ring-1 ring-white/15 transition hover:bg-white/20" aria-label="返回课表">
-          ${icon('chevron-left', 'h-4 w-4')}取消
+        <a href="m0_workspace_home.html?role=${state.role}" class="relative flex h-9 shrink-0 items-center gap-0.5 rounded-xl bg-white/10 pl-1 pr-2 text-[12px] font-semibold ring-1 ring-white/15 transition hover:bg-white/20" aria-label="返回来源页">
+          ${icon('chevron-left', 'h-4 w-4')}<span>返回</span>
         </a>
         <div class="relative min-w-0 flex-1">
-          <h1 class="truncate text-[18px] font-bold tracking-tight">${title}</h1>
-          ${subtitle ? `<p class="mt-0.5 truncate text-[12px] font-medium text-white/70">${subtitle}</p>` : ''}
+          <h1 class="truncate text-[18px] font-bold tracking-tight">老师空闲大盘</h1>
+          <p class="mt-0.5 truncate text-[12px] font-medium text-white/70">${week.label} ${week.range} · 第 1 步 挑老师</p>
         </div>
-        ${isParent() ? '' : `<button data-action="open-rules" class="relative flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[12px] font-semibold text-white/80 transition hover:bg-white/10 hover:text-white">
-          ${icon('info', 'h-4 w-4')}规则
-        </button>`}
+        <button type="button" data-action="open-rules" class="relative flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[12px] font-semibold text-white/80 transition hover:bg-white/10 hover:text-white">
+          ${icon('info', 'h-4 w-4')}<span>排课规则</span>
+        </button>
       </header>`;
     }
 
     function renderOfflineStrip() {
       return `<div class="flex shrink-0 items-center gap-1.5 border-b border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">
         ${icon('wifi-off', 'h-4 w-4 shrink-0 text-amber-600')}
-        <span class="truncate">离线只读：可查看排课方案，暂不可提交</span>
+        <span class="truncate">离线只读：可浏览老师空档，暂不能提交排课</span>
       </div>`;
     }
 
-    function renderParentView() {
-      return `<div id="content" class="min-h-0 flex-1 overflow-y-auto">
-        <div class="mx-auto flex h-full w-full max-w-[520px] flex-col items-center justify-center px-6 pb-8 text-center">
-          <div class="grid h-16 w-16 place-items-center rounded-2xl border border-indigo-100 bg-indigo-50 text-indigo-700">
-            ${icon('lock', 'h-7 w-7')}
-          </div>
-          <h2 class="mt-4 text-[18px] font-bold text-slate-900">批量排课由班长发起</h2>
-          <p class="mt-2 max-w-[310px] text-[14px] font-medium leading-relaxed text-slate-600">你可以在课表中查看孩子的完整安排，临时课请直接选择空闲时段预约。</p>
-          <a href="m3a_calendar_grid.html?role=parent" class="mt-5 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-5 text-[16px] font-bold text-white transition hover:bg-indigo-700">
-            ${icon('calendar-days', 'h-4 w-4')}查看我的课表
-          </a>
-          <p class="mt-3 text-[12px] font-medium text-slate-500">孩子的课程变动会通过通知中心同步</p>
+    function renderBoard() {
+      const list = sortedTeachers();
+      const total = list.length;
+      const hidden = hiddenCount();
+      const visibleCount = Math.min(state.shown, total, LOAD_LIMIT);
+      const visible = list.slice(0, visibleCount);
+      return `<div id="content" data-level="${state.level}" data-period="${state.period}" data-week="${state.week}" data-context="${state.contextType}" data-total="${total}" data-hidden="${hidden}" data-shown="${visibleCount}" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div class="mx-auto w-full max-w-[720px] px-3 pb-1 pt-1">
+          ${renderStepHint()}
+          ${renderContextCard()}
+          ${renderWeekSwitch()}
+          ${renderFilters()}
+          ${renderSummary(total, hidden)}
+          ${visible.length ? `<section class="mt-1 space-y-1" aria-label="老师空档列表">${visible.map((item) => renderTeacherCard(item.teacher, item.free)).join('')}</section>` : renderEmptyState()}
+          ${renderLoadMore(total, visibleCount)}
+          <p class="mt-2 text-center text-[12px] font-medium leading-relaxed text-slate-500">本页只对比空档。点“选取”进入老师当周课表，完成选时段与 4 周校验。</p>
         </div>
       </div>`;
     }
 
-    /* ------------------------------------------------------------------
-     * 固定位上下文
-     * ------------------------------------------------------------------ */
-    function renderFixedContext() {
-      const student = currentStudent();
-      const teacher = currentTeacher();
-      const hold = activeHold();
-      const conflict = state.scenario === 'conflict';
-      const holdText = conflict ? '原时段 周二 19:00' : (hold ? `续费预占 ${DAY_LABELS[hold.day]} ${hold.time}` : '');
-      return `<section aria-label="排课对象">
-        <button data-action="open-students" class="w-full rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3 text-left transition active:scale-[0.995]">
-          <div class="flex items-start gap-2.5">
-            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-indigo-100 bg-indigo-50 text-[16px] font-bold text-indigo-700">${esc(student.nickname.slice(0, 1))}</span>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center justify-between gap-2">
-                <h2 class="truncate text-[16px] font-bold text-slate-900">${esc(student.name)}（${esc(student.nickname)}）</h2>
-                <span class="flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-indigo-600">切换 ${icon('chevron-down', 'h-3.5 w-3.5')}</span>
-              </div>
-              <div class="mt-1 flex flex-wrap items-center gap-1.5">
-                <span class="text-[12px] font-medium text-slate-600">${student.age} 岁</span>
-                <span class="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[12px] font-semibold text-indigo-700">固定位课次 ${student.credits} 节可用</span>
-                ${holdText ? `<span class="rounded-md border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[12px] font-semibold text-amber-900">${holdText}</span>` : ''}
-              </div>
-              <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex items-center rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-medium text-indigo-700">${esc(student.preference)}</span>
-                <span class="text-[12px] font-medium text-slate-500">可排时间 ${student.windowLabel}</span>
-              </div>
-            </div>
-          </div>
-        </button>
+    function renderStepHint() {
+      return `<div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-600">
+        <span class="rounded-md bg-slate-900 px-1.5 py-0.5 font-semibold text-white">1 挑老师</span>
+        <span class="text-slate-500">→</span>
+        <span class="rounded-md bg-white px-1.5 py-0.5 font-semibold text-slate-700 ring-1 ring-inset ring-slate-200">2 课表选时段</span>
+        <span class="ml-auto inline-flex items-center gap-1 truncate text-slate-500">${icon('layout-grid', 'h-3.5 w-3.5')}7 列 = 周一 → 周日</span>
+      </div>`;
+    }
 
-        <button data-action="open-teachers" class="mt-2 flex w-full items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-left transition active:scale-[0.995]">
-          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-bold text-slate-700">${teacher.initial}</span>
+    function renderContextCard() {
+      const student = contextStudent();
+      const cls = contextClass();
+      if (student) {
+        return `<button type="button" data-action="open-context" class="mt-1 flex w-full items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 px-2 py-1 text-left transition active:scale-[0.995]" aria-label="切换排课对象">
+          <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-indigo-100 bg-indigo-50 text-[14px]">${student.emoji}</span>
           <span class="min-w-0 flex-1">
-            <span class="flex flex-wrap items-center gap-1.5">
-              <span class="truncate text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
-              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${teacher.level}</span>
-              <span class="rounded bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">[${ownerLabel(teacher)}]</span>
+            <span class="flex min-w-0 items-center gap-1">
+              <span class="truncate text-[14px] font-bold text-slate-900">${esc(student.nickname)}</span>
+              <span class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[12px] font-bold leading-none text-slate-700">${esc(student.level)}</span>
             </span>
-            <span class="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600">
-              <span>${teacherScopeLabel()}</span>
-              <span class="text-slate-500">·</span>
-              <span>本周已排 ${teacher.load} 节</span>
-            </span>
+            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(student.name)} · 固定位可用 <span class="font-bold text-indigo-700">${student.credits}</span> 节 · 熟客优先</span>
           </span>
-          <span class="flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-slate-600">切换 ${icon('chevron-down', 'h-3.5 w-3.5')}</span>
-        </button>
-      </section>`;
-    }
-
-    function renderRecommendations() {
-      const recs = (RECOMMENDATIONS[recKey()] || DEFAULT_RECOMMENDATIONS[state.student] || [])
-        .filter((rec) => teacherWeekConflicts(state.teacher, rec.day, rec.time).length === 0);
-      return `<section class="mt-3" aria-label="黄金推荐">
-        <div class="mb-1.5 flex items-center justify-between gap-2 px-0.5">
-          <h2 class="text-[14px] font-bold text-slate-900">黄金推荐</h2>
-          <span class="text-[12px] font-medium text-slate-500">老师空闲与学员意向的交集</span>
-        </div>
-        ${recs.length ? `<div class="grid grid-cols-2 gap-2">
-          ${recs.map((rec) => {
-            const active = isSelected(rec.day, rec.time);
-            return `<button data-action="pick-slot" data-day="${rec.day}" data-time="${rec.time}" class="rounded-xl border p-2.5 text-left transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-slate-50/70 ring-2 ring-inset ring-indigo-500' : 'border-slate-200/80 bg-slate-50/70'}">
-              <div class="flex items-center justify-between gap-1">
-                <span class="text-[12px] font-bold ${active ? 'text-indigo-700' : 'text-emerald-800'}">${active ? '✓ 已选' : '🟢 推荐'}</span>
-                <span class="text-[12px] font-semibold ${active ? 'text-indigo-600' : 'text-emerald-700'}">4 周全通</span>
-              </div>
-              <div class="mt-1 text-[16px] font-bold tracking-tight text-slate-900">${DAY_LABELS[rec.day]} ${rec.time}</div>
-            </button>`;
-          }).join('')}
-        </div>` : `<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-3 py-3 text-center text-[12px] font-medium text-slate-600">当前老师在意向时段无 4 周全通，试试按时段智能筛师</div>`}
-      </section>`;
-    }
-
-    function renderSmartBar() {
-      const hasSlots = state.selectedSlots.length > 0;
-      return `<section class="mt-3 flex items-center gap-2" aria-label="智能筛师">
-        ${hasSlots ? `<button data-action="open-smart-fixed" class="flex h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-indigo-200 bg-indigo-50 px-2 text-[12px] font-bold text-indigo-700 transition active:bg-indigo-100">
-          ${icon('search', 'h-3.5 w-3.5 shrink-0')}<span class="truncate">按已选时段智能筛师</span>
-        </button>` : ''}
-        <button data-action="open-temp-smart" class="flex h-9 min-w-0 ${hasSlots ? 'flex-1' : 'w-full'} items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white px-2 text-[12px] font-bold text-slate-800 transition active:bg-slate-50">
-          ${icon('timer', 'h-3.5 w-3.5 shrink-0')}<span class="truncate">临时课智能筛师</span>
-        </button>
-      </section>`;
-    }
-
-    /* ------------------------------------------------------------------
-     * 固定位纯净网格
-     * ------------------------------------------------------------------ */
-    function renderFixedGrid() {
-      const student = currentStudent();
-      const teacher = currentTeacher();
-      const rows = student.times;
-      return `<section class="mt-3" aria-label="可排时段">
-        <div class="mb-1.5 flex items-center justify-between gap-2 px-0.5">
-          <h2 class="text-[14px] font-bold text-slate-900">可排时段</h2>
-          <span class="truncate text-[12px] font-medium text-slate-500">${esc(teacher.short)} 老师 · 未来 4 周</span>
-        </div>
-        <div class="overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70">
-          <div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-slate-50">
-            <div class="flex h-9 items-center justify-center text-[12px] font-semibold text-slate-600">时间</div>
-            ${DAY_LABELS.map((day, index) => `<div class="flex h-9 flex-col items-center justify-center border-l border-slate-100">
-              <span class="text-[12px] font-bold leading-none text-slate-700">${day}</span>
-              <span class="mt-0.5 font-mono text-[12px] font-medium leading-none text-slate-600">${GRID_DATES[index]}</span>
-            </div>`).join('')}
-          </div>
-          <div>
-            ${rows.map((time) => `<div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-t border-slate-100 first:border-t-0">
-              <div class="sticky left-0 z-20 flex h-7 items-center justify-center border-r border-slate-100 bg-white font-mono text-[12px] font-medium text-slate-600">${time}</div>
-              ${DAY_LABELS.map((_, day) => {
-                const status = fixedCell(day, time);
-                const selected = isSelected(day, time);
-                const pickable = canPickFixed(day, time);
-                const cls = selected
-                  ? (status.kind === 'original'
-                    ? 'border-rose-300 bg-rose-50 text-rose-700 ring-2 ring-inset ring-rose-400'
-                    : 'border-indigo-300 bg-indigo-50 text-indigo-700 ring-2 ring-inset ring-indigo-500')
-                  : status.cls;
-                const label = selected
-                  ? (status.kind === 'candidate' ? '候补' : status.kind === 'original' ? '冲突' : '已选')
-                  : status.label;
-                return `<button data-action="pick-slot" data-day="${day}" data-time="${time}" ${pickable ? '' : 'disabled'} aria-label="${DAY_LABELS[day]} ${time} ${esc(status.label)}" class="m-px flex h-[26px] min-w-0 items-center justify-center overflow-hidden rounded-md border px-0.5 text-[12px] font-bold leading-none transition active:scale-95 ${pickable ? '' : 'cursor-not-allowed'} ${cls}">
-                  <span class="truncate">${esc(label)}</span>
-                </button>`;
-              }).join('')}
-            </div>`).join('')}
-          </div>
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 bg-slate-50/60 px-2 py-1.5 text-[12px] font-medium text-slate-600">
-            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-emerald-300"></span>可排</span>
-            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-amber-300"></span>已排 / 续费预占</span>
-            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-rose-300"></span>请假 / 冲突</span>
-            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-slate-300"></span>休息</span>
-          </div>
-        </div>
-        ${renderWeekPreview()}
-      </section>`;
-    }
-
-    function renderWeekPreview() {
-      const slots = orderedSlots();
-      const anyConflict = slots.some((slot) => slotWeekConflicts(slot).length > 0);
-      return `<div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2">
-        <div class="mb-1.5 flex items-center justify-between gap-2">
-          <h3 class="text-[12px] font-bold text-slate-700">未来 4 周穿透预览</h3>
-          <span class="text-[12px] font-medium ${!slots.length ? 'text-slate-500' : anyConflict ? 'text-rose-700' : 'text-emerald-700'}">${!slots.length ? '等待选择时段' : anyConflict ? '存在冲突周' : '全部可排'}</span>
-        </div>
-        ${!slots.length ? `<div class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-2 py-3 text-center text-[12px] font-medium text-slate-500">选择一个或多个时段后显示</div>` : `<div class="space-y-1">
-          ${slots.map((slot) => {
-            const weeks = slotWeekConflicts(slot);
-            const bad = weeks.length > 0;
-            const reasonText = weeks.map((week) => `第 ${week + 1} 周（${WEEK_PREVIEW[week].date}）${weekConflictReason(state.teacher, slot.day, slot.time, week)}`).join('、');
-            return `<div class="rounded-lg border px-1.5 py-1 ${bad ? 'border-rose-200 bg-rose-50/80' : 'border-emerald-200 bg-emerald-50/60'}">
-              <div class="flex items-center gap-1.5">
-                <span class="w-[64px] shrink-0 truncate text-[12px] font-bold ${bad ? 'text-rose-800' : 'text-slate-800'}">${DAY_LABELS[slot.day]} ${slot.time}</span>
-                <div class="flex flex-1 items-center gap-1">
-                  ${WEEK_PREVIEW.map((week, index) => {
-                    const weekBad = weeks.includes(index);
-                    return `<span class="flex flex-1 items-center justify-center rounded-md border px-0.5 py-0.5 text-[12px] font-bold leading-none ${weekBad ? 'border-rose-300 bg-rose-100 text-rose-700' : 'border-emerald-200 bg-white text-emerald-700'}">W${index + 1} ${weekBad ? '✕' : '✓'}</span>`;
-                  }).join('')}
-                </div>
-              </div>
-              ${bad ? `<div class="mt-1 pl-[70px] text-[12px] font-semibold leading-tight text-rose-700">${esc(reasonText)}</div>` : ''}
-            </div>`;
-          }).join('')}
-        </div>`}
-      </div>`;
-    }
-
-    function renderConflictTicket() {
-      const adopted = selectedIsCandidate();
-      return `<section class="mb-2.5 overflow-hidden rounded-2xl border border-rose-200 bg-rose-50/80">
-        <div class="p-2.5">
-          <div class="flex items-center gap-1.5">
-            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-rose-600 text-white">${icon('siren', 'h-4 w-4')}</span>
-            <h2 class="text-[14px] font-bold text-rose-900">续费时段冲突</h2>
-            <span class="ml-auto rounded-md border border-rose-200 bg-white px-1.5 py-0.5 text-[12px] font-bold text-rose-700">待确认</span>
-          </div>
-          <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-rose-800">Alice 原周二 19:00 因老师第 3 周休假无法继承。已临时保留候补时段 [周二 19:30]，请尽快与家长确认。</p>
-          <div class="mt-2 flex gap-2">
-            <button data-action="adopt-candidate" class="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-indigo-600 px-2 text-[12px] font-bold text-white transition active:bg-indigo-700 ${adopted ? 'opacity-70' : ''}">
-              ${icon(adopted ? 'check' : 'calendar-check', 'h-3.5 w-3.5')}${adopted ? '已采用候补时段' : '采用候补时段'}
-            </button>
-            <button data-action="contact-parent" class="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-white px-2 text-[12px] font-semibold text-rose-800 transition active:bg-rose-50">
-              ${icon('message-circle', 'h-3.5 w-3.5')}联系家长
-            </button>
-          </div>
-        </div>
-        <div class="border-t border-rose-200/70 bg-white/75 px-3 py-2">
-          <p class="text-[12px] font-medium leading-relaxed text-slate-700"><span class="font-bold text-slate-800">家长端将看到：</span>因授课老师作息调整，已为您预留备选时段 [周二 19:30]，请联系班长确认。<span class="text-slate-500">24 小时未确认自动释放。</span></p>
-        </div>
-      </section>`;
-    }
-
-    /* ------------------------------------------------------------------
-     * 小班上下文与 16 周网格
-     * ------------------------------------------------------------------ */
-    function renderGroupContext() {
-      const cls = currentClass();
-      const teacher = cls.teacher ? TEACHERS[cls.teacher] : null;
-      const makeup = isGroupMakeup();
-      return `<section aria-label="小班排课对象">
-        <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
-          <div class="flex items-start gap-2.5">
-            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-teal-200 bg-teal-50 text-teal-700">${icon('users', 'h-5 w-5')}</span>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5">
-                <h2 class="truncate text-[16px] font-bold text-slate-900">${esc(cls.name)}</h2>
-                <span class="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-700">${cls.code}</span>
-              </div>
-              <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">👥 在读 ${cls.enrolled}/${cls.capacity} 人</span>
-                <span class="rounded-md border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[12px] font-semibold text-teal-700">${makeup ? `待补排 ${cls.pendingMakeup || 1} 节` : `小班课次 ${cls.credits} 节可用`}</span>
-                <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">主理人 ${cls.owner}</span>
-                <span class="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${makeup ? '单节补排' : `全学期 ${cls.weeks} 周`}</span>
-                ${!teacher ? '<span class="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[12px] font-bold text-rose-700">授课老师未委任</span>' : ''}
-              </div>
-            </div>
-          </div>
-        </div>
-        ${teacher ? `<div class="mt-2 flex w-full items-center gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5">
-          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-bold text-slate-700">${teacher.initial}</span>
+          <span class="shrink-0 text-[12px] font-semibold text-indigo-600">切换</span>
+        </button>`;
+      }
+      if (cls) {
+        const teacher = cls.teacher ? TEACHERS.find((item) => item.key === cls.teacher) : null;
+        return `<button type="button" data-action="open-context" class="mt-1 flex w-full items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 px-2 py-1 text-left transition active:scale-[0.995]" aria-label="切换排课对象">
+          <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-teal-200 bg-teal-50 text-[14px] font-bold text-teal-800">${esc(cls.code.slice(0, 1))}</span>
           <span class="min-w-0 flex-1">
-            <span class="flex flex-wrap items-center gap-1.5">
-              <span class="truncate text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
-              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${teacher.level}</span>
+            <span class="flex min-w-0 items-center gap-1">
+              <span class="truncate text-[14px] font-bold text-slate-900">${esc(cls.name)}</span>
+              <span class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[12px] font-bold leading-none text-slate-700">${esc(cls.code)}</span>
+              ${teacher ? '' : '<span class="shrink-0 rounded border border-amber-300 bg-amber-50 px-1 py-0.5 text-[12px] font-bold leading-none text-amber-900">待委任</span>'}
             </span>
-            <span class="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600">
-              <span>授课老师</span><span class="text-slate-500">·</span><span>本周已排 ${teacher.load} 节</span>
-            </span>
+            <span class="mt-0.5 block truncate text-[12px] font-medium ${teacher ? 'text-slate-600' : 'text-amber-900'}">小班课次可用 <span class="font-bold text-indigo-700">${cls.credits}</span> 节 · ${teacher ? `主讲 ${esc(teacher.name)}` : '请先委任主讲老师'}</span>
           </span>
-          <span class="rounded-md border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[12px] font-semibold text-teal-700">已委任</span>
-        </div>` : ''}
-      </section>`;
+          <span class="shrink-0 text-[12px] font-semibold text-indigo-600">切换</span>
+        </button>`;
+      }
+      return `<button type="button" data-action="open-context" class="mt-1 flex w-full items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-2 py-1 text-left transition active:scale-[0.995]" aria-label="选择学员或小班">
+        <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500">${icon('user-plus', 'h-4 w-4')}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-[14px] font-bold text-slate-900">选择学员 / 小班 (可选)</span>
+          <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">不选也可仅查空档，直接浏览老师空闲分布</span>
+        </span>
+        <span class="shrink-0 text-[12px] font-semibold text-indigo-600">选择</span>
+      </button>`;
     }
 
-    function renderMakeupTaskCard() {
-      const cls = currentClass();
-      return `<section class="mt-3 rounded-2xl border border-amber-300 bg-amber-50/50 p-3" aria-label="待补排">
-        <div class="flex items-start gap-2">
-          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-800">${icon('bell', 'h-4 w-4')}</span>
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-1.5">
-              <h2 class="truncate text-[14px] font-bold text-amber-950">小班课待补排</h2>
-              <span class="ml-auto shrink-0 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">${cls.pendingMakeup || 1} 节</span>
-            </div>
-            <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-800">暂停待排退回的散课次已进入单节补排模式；选择单周连续双格后确认，待办自动核销。</p>
-            <div class="mt-1.5 text-[12px] font-bold text-indigo-700">立即补排 →</div>
-          </div>
+    function renderWeekSwitch() {
+      return `<div class="mt-1 flex items-center justify-between gap-2">
+        <div class="inline-flex rounded-lg bg-slate-100 p-0.5">
+          ${WEEK_META.map((item) => `<button type="button" data-week-select="${item.value}" aria-pressed="${state.week === item.value}" class="h-6 rounded-md px-3 text-[12px] font-semibold transition ${state.week === item.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">${item.label}</button>`).join('')}
         </div>
-      </section>`;
-    }
-
-    function renderGroupSummary() {
-      const slots = orderedSlots();
-      const allFull = slots.length > 0 && groupAllGreen();
-      const viewingPartial = !!state.conflictDetail;
-      const partial = !allFull && viewingPartial;
-      const rightMain = allFull ? `${slots.length} 个时段` : partial ? '15/16' : '16/16';
-      const rightSub = allFull ? '均 16 周全通' : partial ? '局部冲突' : '周全通';
-      const subtitle = slots.length
-        ? `已选 ${slots.length} 个时段 · 每段独立 16 周穿透`
-        : partial ? `已查看 ${DAY_LABELS[state.conflictDetail.day]} ${state.conflictDetail.time} 的冲突详情` : '全学期每周 50 分钟 · 优先推荐全通时段';
-      return `<section class="mt-3" aria-label="16 周连贯度">
-        <div class="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
-          <div class="min-w-0">
-            <div class="flex items-center gap-1.5">
-              <span class="grid h-7 w-7 place-items-center rounded-lg ${partial ? 'bg-amber-100 text-amber-800' : 'bg-teal-100 text-teal-700'}">${icon(partial ? 'triangle-alert' : 'sparkles', 'h-4 w-4')}</span>
-              <h2 class="text-[14px] font-bold text-slate-900">16 周连贯度</h2>
-            </div>
-            <p class="mt-1 text-[12px] font-medium text-slate-600">${subtitle}</p>
-          </div>
-          <div class="shrink-0 text-right">
-            <div class="text-[18px] font-bold ${partial ? 'text-amber-800' : 'text-teal-800'}">${rightMain}</div>
-            <div class="text-[12px] font-semibold ${partial ? 'text-amber-700' : 'text-teal-700'}">${rightSub}</div>
-          </div>
-        </div>
-      </section>`;
-    }
-
-    function renderGroupGrid() {
-      const detail = state.conflictDetail;
-      const makeup = isGroupMakeup();
-      return `<section class="mt-3" aria-label="${makeup ? '小班单节补排时段' : '小班整班时段'}">
-        <div class="mb-1.5 flex items-center justify-between gap-2 px-0.5">
-          <h2 class="text-[14px] font-bold text-slate-900">${makeup ? '补排时段' : '整班时段'}</h2>
-          <span class="text-[12px] font-medium text-slate-500">${esc(currentClass().code)} · ${makeup ? '单周 50 分钟' : '每周 1 小时'}</span>
-        </div>
-        <div class="overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70">
-          <div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-slate-50">
-            <div class="flex h-9 items-center justify-center text-[12px] font-semibold text-slate-600">时间</div>
-            ${DAY_LABELS.map((day, index) => `<div class="flex h-9 flex-col items-center justify-center border-l border-slate-100">
-              <span class="text-[12px] font-bold leading-none text-slate-700">${day}</span>
-              <span class="mt-0.5 font-mono text-[12px] font-medium leading-none text-slate-600">${GRID_DATES[index]}</span>
-            </div>`).join('')}
-          </div>
-          <div>
-            ${GROUP_TIMES.map((time) => `<div class="grid grid-cols-[40px_repeat(7,minmax(0,1fr))] border-t border-slate-100 first:border-t-0">
-              <div class="sticky left-0 z-20 flex h-[56px] items-center justify-center border-r border-slate-100 bg-white font-mono text-[12px] font-medium text-slate-600">${time}</div>
-              ${DAY_LABELS.map((_, day) => {
-                const block = groupCell(day, time);
-                const selected = isSelected(day, time);
-                const viewing = !makeup && !!detail && detail.day === day && detail.time === time;
-                const pickable = makeup ? block.kind === 'available' : (block.kind === 'full' || block.kind === 'partial');
-                let cls = 'border-slate-200 bg-slate-100 text-slate-500';
-                if (makeup && block.kind === 'available') cls = 'border-2 border-teal-400 bg-teal-50 text-teal-950';
-                if (!makeup && block.kind === 'full') cls = 'border-2 border-teal-400 bg-teal-50 text-teal-950';
-                if (!makeup && block.kind === 'partial') cls = 'border border-amber-300 bg-amber-50 text-amber-900';
-                if (selected) cls = 'border-indigo-300 bg-slate-50/70 text-indigo-700 ring-2 ring-inset ring-indigo-500';
-                if (viewing && !selected) cls = `${cls} ring-2 ring-inset ring-amber-500`;
-                const aria = makeup
-                  ? (block.kind === 'available' ? '可排' : '不可用')
-                  : (block.kind === 'full' ? '16 周全通' : block.kind === 'partial' ? '15 周可排' : '不可用');
-                return `<button data-action="pick-group-slot" data-day="${day}" data-time="${time}" ${pickable ? '' : 'disabled'} aria-label="${DAY_LABELS[day]} ${time} ${aria}" class="m-px flex h-[54px] min-w-0 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-md px-0.5 text-[12px] font-bold leading-tight transition active:scale-95 ${pickable ? '' : 'cursor-not-allowed'} ${cls}">
-                  ${selected ? `<span class="rounded bg-indigo-600 px-1 py-0.5 text-[12px] leading-none text-white">已选</span>` : ''}
-                  ${!selected && makeup && block.kind === 'available' ? `<span class="text-[12px] leading-none">可排</span>` : ''}
-                  ${!makeup && !selected && block.kind === 'full' ? `<span class="rounded bg-teal-600 px-1 py-0.5 text-[12px] leading-none text-white">[G]</span>` : ''}
-                  ${!makeup && !selected && block.kind === 'full' ? `<span class="text-[12px] leading-none">${block.label}</span>` : ''}
-                  ${!makeup && selected ? `<span class="text-[12px] leading-none">16/16</span>` : ''}
-                  ${!makeup && block.kind === 'partial' ? `<span class="text-[12px] leading-none">⚠ ${block.label}</span><span class="text-[12px] leading-none">第 8 周</span>` : ''}
-                  ${block.kind === 'closed' ? `<span class="text-[12px] leading-none">休</span>` : ''}
-                </button>`;
-              }).join('')}
-            </div>`).join('')}
-          </div>
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 bg-slate-50/60 px-2 py-1.5 text-[12px] font-medium text-slate-600">
-            ${makeup
-              ? `<span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-teal-400"></span>可排</span>
-                 <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-indigo-300"></span>已选</span>
-                 <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-slate-300"></span>不可用</span>`
-              : `<span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-teal-400"></span>16 周全通</span>
-                 <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-amber-300"></span>局部冲突</span>
-                 <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-sm bg-slate-300"></span>不可用</span>`}
-          </div>
-        </div>
-        ${!makeup && detail ? `<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5">
-          <div class="flex items-center gap-1.5 text-[12px] font-bold text-amber-900">${icon('triangle-alert', 'h-3.5 w-3.5')}第 ${detail.week} 周冲突 · ${DAY_LABELS[detail.day]} ${detail.time}</div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-800">${esc(detail.reason)}，无法整学期排定。该时段未加入已选，可改选上方 16 周全通时段。</p>
-        </div>` : ''}
-        ${makeup
-          ? `<div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5"><p class="text-[12px] font-medium leading-relaxed text-slate-600">单节补排仅校验所选单周时段，不执行 16 周跨周连贯度评分；确认后待补排待办自动核销。</p></div>`
-          : renderCoherenceBar()}
-      </section>`;
-    }
-
-    function renderCoherenceBar() {
-      const slots = orderedSlots();
-      return `<div class="mt-2 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-[12px] font-bold text-slate-700">16 周连贯度预览</span>
-          <span class="text-[12px] font-bold ${slots.length ? 'text-teal-700' : 'text-slate-500'}">${slots.length ? `${slots.length} 个时段 · 每段 16/16` : '等待选择时段'}</span>
-        </div>
-        ${!slots.length ? `<div class="mt-1.5 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-2 py-3 text-center text-[12px] font-medium text-slate-500">选择一个或多个时段后显示</div>` : `<div class="mt-1.5 space-y-1.5">
-          ${slots.map((slot) => `<div class="rounded-lg border border-slate-200 bg-white px-1.5 py-1">
-            <div class="flex items-center gap-1.5">
-              <span class="w-[64px] shrink-0 truncate text-[12px] font-bold text-slate-800">${DAY_LABELS[slot.day]} ${slot.time}</span>
-              <span class="shrink-0 text-[12px] font-semibold text-teal-700">16/16 周全通</span>
-            </div>
-            <div class="mt-1 flex gap-0.5 pl-0">
-              ${Array.from({ length: 16 }, () => '<span class="h-2 flex-1 rounded-full bg-emerald-500"></span>').join('')}
-            </div>
-          </div>`).join('')}
-        </div>`}
+        <span class="text-[12px] font-medium text-slate-600">${weekMeta().range}</span>
       </div>`;
     }
 
-    function renderBlockedCard() {
-      return `<section class="mt-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-5 text-center">
-        <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-rose-200 bg-rose-50 text-rose-700">${icon('user-x', 'h-6 w-6')}</div>
-        <h2 class="mt-3 text-[16px] font-bold text-slate-900">请先委任授课老师</h2>
-        <p class="mx-auto mt-1.5 max-w-[280px] text-[14px] font-medium leading-relaxed text-slate-600">请先在小班管理中委任授课老师后再排课</p>
-        <a href="m1c_classes.html" class="mt-3 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 text-[14px] font-bold text-white transition hover:bg-indigo-700">
-          ${icon('arrow-up-right', 'h-4 w-4')}去小班管理
-        </a>
-      </section>`;
-    }
-
-    /* ------------------------------------------------------------------
-     * 吸底确认栏
-     * ------------------------------------------------------------------ */
-    function bottomState() {
-      const s = {
-        disabled: true,
-        title: '',
-        subtitle: '',
-        error: '',
-        summary: '',
-        chips: [],
-        showCandidate: false,
-        holdNotice: null,
-        buttonLabel: ''
-      };
-      const slots = orderedSlots();
-      const count = slots.length;
-
-      if (state.mode === 'group_makeup') {
-        const cls = currentClass();
-        s.buttonLabel = count ? '确认补排 1 节（连续双格）' : '确认补排 1 节';
-        if (!cls.teacher) {
-          s.title = '请先在小班管理中委任授课老师';
-          s.subtitle = '完成委任后即可补排';
-          return s;
-        }
-        if (count !== 1) {
-          s.title = '请选择 1 个补排时段';
-          s.subtitle = '单节补排仅选单周一个连续双格';
-          return s;
-        }
-        s.title = '已选 1 个补排时段';
-        s.chips = slots;
-        s.summary = '扣减 1 节待补排课次 · 待办自动核销';
-        const cell = groupCell(slots[0].day, slots[0].time);
-        if (cell.kind !== 'available') {
-          s.error = '该时段不可补排';
-          return s;
-        }
-        s.subtitle = '单周选位 · 不执行 16 周连贯度评分';
-        s.disabled = !confirmReady();
-        return s;
-      }
-
-      if (state.mode === 'batch_group') {
-        const cls = currentClass();
-        s.buttonLabel = count
-          ? `确认整班排课 16 周（${count} 个时段 · 扣减 ${count * groupCreditUnit()} 节小班课次）`
-          : '确认整班排课 16 周';
-        if (!cls.teacher) {
-          s.title = '请先在小班管理中委任授课老师';
-          s.subtitle = '完成委任后即可选择整班时段';
-          return s;
-        }
-        if (!count) {
-          s.title = '请选择整班时段';
-          s.subtitle = state.conflictDetail
-            ? `${DAY_LABELS[state.conflictDetail.day]} ${state.conflictDetail.time} 第 ${state.conflictDetail.week} 周冲突，未加入已选`
-            : '小班课按全学期 16 周连续双格排定，可多选';
-          return s;
-        }
-        s.title = `已选 ${count} 个时段`;
-        s.chips = slots;
-        const remaining = cls.credits - creditsNeeded();
-        s.summary = `共扣 16×${count} 节小班课次 · ${remaining >= 0 ? `剩余 ${remaining} 节` : `尚缺 ${-remaining} 节`}`;
-        if (!creditsEnough()) {
-          s.subtitle = '请取消部分时段后再确认';
-          s.error = `小班课次不足，最多选 ${maxGroupSlots()} 个时段`;
-          return s;
-        }
-        const bad = selectedGroupBlocks().find((item) => item.block.kind !== 'full');
-        if (bad) {
-          s.subtitle = '每个时段独立执行 16 周连贯度校验';
-          s.error = `${DAY_LABELS[bad.slot.day]} ${bad.slot.time} 全学期未全部可排`;
-          return s;
-        }
-        s.subtitle = '全学期 16 周全通 · 单一事务整批锁定';
-        s.disabled = !confirmReady();
-        return s;
-      }
-
-      s.buttonLabel = count
-        ? `确认批量锁定 4 周（${count} 个时段 · 扣减 ${billableCount() * fixedCreditUnit()} 节固定位）`
-        : '确认批量锁定 4 周';
-      if (!count) {
-        s.title = '请选择每周时段';
-        s.subtitle = '可一次选择多个时段批量锁定；推荐时段已按学员意向筛选';
-        if (!activeHold() && currentStudent().credits < fixedCreditUnit()) {
-          s.error = `固定位课次不足 4 节（仅剩 ${currentStudent().credits} 节）`;
-        }
-        return s;
-      }
-      s.title = `已选 ${count} 个时段`;
-      s.chips = slots;
-      const credits = currentStudent().credits;
-      const billable = billableCount();
-      const converted = convertedCount();
-      const remaining = credits - creditsNeeded();
-      s.summary = converted > 0
-        ? `预占转正 ${converted} 个 · 新排 ${billable} 个 · 共扣 ${billable * fixedCreditUnit()} 节固定位 · ${remaining >= 0 ? `剩余 ${remaining} 节` : `尚缺 ${-remaining} 节`}`
-        : `共扣 ${count * fixedCreditUnit()} 节固定位 · ${remaining >= 0 ? `剩余 ${remaining} 节` : `尚缺 ${-remaining} 节`}`;
-      if (!creditsEnough()) {
-        s.subtitle = '请取消部分时段或先完成续费';
-        s.error = count === 1
-          ? `固定位课次不足 4 节（仅剩 ${credits} 节）`
-          : `固定位课次不足（需 ${creditsNeeded()} 节，仅剩 ${credits} 节）`;
-        return s;
-      }
-      const weekBad = weekConflictSlots();
-      if (weekBad.length) {
-        const first = weekBad[0];
-        const weeks = slotWeekConflicts(first);
-        s.subtitle = '可打开智能筛师，切换未来 4 周全通的老师';
-        s.error = `${DAY_LABELS[first.day]} ${first.time} 第 ${weeks[0] + 1} 周${weekConflictReason(state.teacher, first.day, first.time, weeks[0])}，整批暂不能锁定`;
-        return s;
-      }
-      const hold = activeHold();
-      if (hold) {
-        const inSelection = isSelected(hold.day, hold.time);
-        s.holdNotice = {
-          convert: inSelection,
-          text: inSelection
-            ? '原预占位将转为正式固定位'
-            : `原预占位 [${DAY_LABELS[hold.day]} ${hold.time}] 将自动释放`,
-          detail: inSelection
-            ? '该预占时段保留在已选清单中，确认后直接转为实线固定位，不重复扣占。'
-            : '确认后原时段立即释放，不会同时占用两个时段，续费权益无缝继承。'
-        };
-      }
-      if (hasCandidateSelected()) {
-        s.showCandidate = true;
-        if (!state.candidateAck) s.error = '请先与家长确认候补时段后再确认';
-      }
-      s.subtitle = `${count > 1 ? '每个时段独立' : '所选时段'} 4 周全通校验 · 单一事务整批锁定`;
-      s.disabled = !confirmReady();
-      return s;
-    }
-
-    function renderSlotChips(slots) {
-      return `<div class="mt-1.5 flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-        ${slots.map((slot) => `<button data-action="remove-slot" data-day="${slot.day}" data-time="${slot.time}" class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[12px] font-semibold text-indigo-700 transition active:bg-indigo-100" aria-label="取消 ${DAY_LABELS[slot.day]} ${slot.time}">
-          <span>${DAY_LABELS[slot.day]} ${slot.time}</span>
-          <span class="text-[14px] leading-none text-indigo-400">×</span>
-        </button>`).join('')}
+    function renderFilters() {
+      return `<div class="mt-1 flex h-6 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="级别筛选">
+        <span class="shrink-0 text-[12px] font-medium text-slate-500">级别</span>
+        ${LEVEL_FILTERS.map((item) => `<button type="button" data-filter="level" data-value="${item.value}" aria-pressed="${state.level === item.value}" class="h-6 shrink-0 rounded-full px-2.5 text-[12px] transition ${state.level === item.value ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${item.label}</button>`).join('')}
+      </div>
+      <div class="mt-1 flex h-6 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="时段筛选">
+        <span class="shrink-0 text-[12px] font-medium text-slate-500">时段</span>
+        ${Object.values(PERIODS).map((item) => `<button type="button" data-filter="period" data-value="${item.key}" aria-pressed="${state.period === item.key}" class="h-6 shrink-0 rounded-full px-2.5 text-[12px] transition ${state.period === item.key ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${item.label}</button>`).join('')}
       </div>`;
     }
 
-    function renderConfirmBar() {
-      const s = bottomState();
-      const offline = !state.online;
-      const disabled = s.disabled || offline;
-      const hasChips = s.chips.length > 0;
-      return `<section class="relative z-40 shrink-0 border-t border-slate-200 bg-white px-3 pb-2.5 pt-2 shadow-[0_-6px_18px_rgba(15,23,42,0.06)]" aria-label="确认排课">
-        <div class="mx-auto w-full max-w-[720px]">
-          ${s.holdNotice ? `<div class="mb-2 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-2">
-            <div class="flex items-center gap-1.5 text-[12px] font-bold text-amber-900">💡 ${esc(s.holdNotice.text)}</div>
-            <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-800">${esc(s.holdNotice.detail)}</p>
-          </div>` : ''}
-          ${s.showCandidate ? `<div class="mb-2 rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-2">
-            <div class="flex items-center gap-1.5 text-[12px] font-bold text-amber-900">${icon('clock-3', 'h-3.5 w-3.5')}候补时段已临时保留 24 小时</div>
-            <label class="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[12px] font-semibold text-amber-900">
-              <input type="checkbox" id="candidateAck" ${state.candidateAck ? 'checked' : ''} class="h-4 w-4 rounded border-amber-300 accent-indigo-600">
-              已与家长确认候补时段
-            </label>
-          </div>` : ''}
-          ${hasChips ? `<div class="flex items-center justify-between gap-2">
-            <div class="min-w-0 truncate text-[16px] font-bold text-slate-900">${s.title}</div>
-            <button data-action="clear-slots" class="shrink-0 rounded-md px-1.5 py-0.5 text-[12px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">清空</button>
-          </div>
-          ${renderSlotChips(s.chips)}
-          <div class="mt-0.5 text-[12px] font-semibold text-slate-700">${s.summary}</div>` : `<div class="truncate text-[16px] font-bold text-slate-900">${s.title}</div>`}
-          <div class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${s.subtitle}</div>
-          ${s.error ? `<div class="mt-1 text-[12px] font-bold text-rose-700">${esc(s.error)}</div>` : ''}
-          ${offline ? `<div class="mt-1 text-[12px] font-bold text-amber-700">当前为离线只读，暂不可提交</div>` : ''}
-          <button data-action="confirm-booking" ${disabled ? 'disabled' : ''} class="mt-2 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl px-2 ${state.mode === 'batch_group' || state.mode === 'group_makeup' ? 'text-[12px]' : 'text-[14px]'} font-bold transition ${disabled ? 'cursor-not-allowed bg-slate-200 text-slate-500' : 'bg-indigo-600 text-white active:bg-indigo-700'}">
-            ${icon(disabled ? 'lock' : 'check-check', 'h-4 w-4 shrink-0')}
-            <span class="truncate">${s.buttonLabel}</span>
-          </button>
-        </div>
-      </section>`;
-    }
-
-    /* ------------------------------------------------------------------
-     * 抽屉、智能筛师面板、成功反馈与提示
-     * ------------------------------------------------------------------ */
-    function renderOverlay() {
-      if (!state.overlay) return '';
-      if (state.completed) return renderSuccess();
-      if (state.overlay === 'temp-confirm') return renderTempConfirm();
-      const content = state.overlay === 'students'
-        ? renderStudentSheet()
-        : state.overlay === 'teachers'
-          ? renderTeacherSheet()
-          : state.overlay === 'smart-fixed'
-            ? renderSmartFixedSheet()
-            : state.overlay === 'temp-smart'
-              ? renderTempSheet()
-              : renderRulesSheet();
-      return `<div class="absolute inset-0 z-50">
-        <button data-action="close-overlay" class="absolute inset-0 h-full w-full bg-slate-900/40" aria-label="关闭"></button>
-        <div class="absolute inset-x-0 bottom-0 max-h-[85%] overflow-y-auto rounded-t-3xl border-t border-slate-200 bg-white px-4 pb-5 pt-2.5 shadow-2xl">
-          <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200"></div>
-          ${content}
-        </div>
+    function renderSummary(total, hidden) {
+      return `<div class="mt-1 flex items-center justify-between gap-2">
+        <p class="min-w-0 truncate text-[12px] font-medium text-slate-600">当前时段 <span class="text-[14px] font-bold text-slate-900">${total}</span> 位老师有空档</p>
+        <span class="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[12px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">${currentPeriod().label}</span>
+      </div>
+      <div class="mt-0.5 flex items-center gap-x-2 gap-y-0 text-[12px] font-medium text-slate-600">
+        <span class="flex items-center gap-1"><span class="h-1.5 w-3 rounded-[1px] bg-emerald-500"></span>空闲</span>
+        <span class="flex items-center gap-1"><span class="h-1.5 w-3 rounded-[1px] bg-slate-200"></span>已占 / 休息</span>
+        ${hidden ? `<span class="ml-auto truncate text-slate-500">零空闲 ${hidden} 位已隐藏</span>` : ''}
       </div>`;
     }
 
-    function sheetHeader(title, subtitle) {
-      return `<div class="mb-3 flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <h2 class="text-[16px] font-bold text-slate-900">${title}</h2>
-          ${subtitle ? `<p class="mt-0.5 text-[12px] font-medium text-slate-600">${subtitle}</p>` : ''}
-        </div>
-        <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600" aria-label="关闭">${icon('x', 'h-4 w-4')}</button>
-      </div>`;
-    }
-
-    function renderStudentSheet() {
-      return `${sheetHeader('切换学员', '课次与意向作息跟随学员档案')}
-        <div class="space-y-2">
-          ${Object.values(STUDENTS).map((student) => {
-            const active = student.key === state.student;
-            return `<button data-action="select-student" data-key="${student.key}" class="flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${active ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
-              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl ${active ? 'bg-white text-indigo-700' : 'bg-slate-100 text-slate-700'} text-[14px] font-bold">${esc(student.nickname.slice(0, 1))}</span>
-              <span class="min-w-0 flex-1">
-                <span class="flex items-center gap-1.5">
-                  <span class="truncate text-[14px] font-bold text-slate-900">${esc(student.name)}</span>
-                  <span class="text-[12px] font-medium text-slate-500">${student.age} 岁</span>
-                </span>
-                <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(student.preference)}</span>
-              </span>
-              <span class="shrink-0 text-right">
-                <span class="block text-[14px] font-bold ${student.credits < 4 ? 'text-amber-700' : 'text-indigo-700'}">${student.credits} 节</span>
-                <span class="block text-[12px] font-medium text-slate-500">固定位</span>
-              </span>
-              ${active ? `<span class="shrink-0 text-indigo-600">${icon('check-circle-2', 'h-4 w-4')}</span>` : ''}
-            </button>`;
-          }).join('')}
-        </div>`;
-    }
-
-    function renderTeacherSheet() {
-      const subtitle = isAdmin() ? '全平台在职老师 · 管理员跨班长统筹' : '全平台在职老师 · 班长可全域约课';
-      return `${sheetHeader('切换授课老师', subtitle)}
-        <div class="mb-2 flex items-start gap-1.5 rounded-xl border border-indigo-100 bg-indigo-50/70 px-2.5 py-2">
-          ${icon('globe-2', 'h-4 w-4 shrink-0 text-indigo-600')}
-          <p class="text-[12px] font-medium leading-relaxed text-indigo-800">班长可为学员预约全平台任意在职老师的空闲时段，不再受班长与老师归属关系限制。</p>
-        </div>
-        <div class="space-y-2">
-          ${Object.values(TEACHERS).map((teacher) => {
-            const active = teacher.key === state.teacher;
-            return `<button data-action="select-teacher" data-key="${teacher.key}" class="flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition ${active ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
-              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl ${active ? 'bg-white text-indigo-700' : 'bg-slate-100 text-slate-700'} text-[14px] font-bold">${teacher.initial}</span>
-              <span class="min-w-0 flex-1">
-                <span class="flex flex-wrap items-center gap-1.5">
-                  <span class="truncate text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
-                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${teacher.level}</span>
-                  <span class="rounded bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">[${ownerLabel(teacher)}]</span>
-                </span>
-                <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${teacher.qualified.map((key) => COURSE_TYPES[key]).join(' / ')}资质 · 本周已排 ${teacher.load} 节 · 空闲 ${teacher.freeRate}%</span>
-              </span>
-              ${active ? `<span class="shrink-0 text-indigo-600">${icon('check-circle-2', 'h-4 w-4')}</span>` : `<span class="shrink-0 text-[12px] font-semibold text-slate-500">选择</span>`}
-            </button>`;
-          }).join('')}
-        </div>`;
-    }
-
-    function renderSmartFixedSheet() {
-      if (!state.selectedSlots.length) {
-        return `${sheetHeader('按已选时段智能筛师', '请先在网格中勾选 1~N 个每周时段')}
-          <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-600">尚未选择时段，返回网格勾选后可反选老师。</div>`;
-      }
-      const { eligible, filtered } = smartFixedResult();
-      const summary = filtered.length ? `已过滤 ${filtered.length} 位：${filteredSummary(filtered)}` : '全部在职老师均满足 4 周全通与资质条件';
-      return `${sheetHeader('按已选时段智能筛师', '全平台在职老师 · 未来 4 周全通校验')}
-        <div class="mb-2 flex flex-wrap gap-1.5">
-          ${orderedSlots().map((slot) => `<span class="rounded-lg border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-semibold text-indigo-700">${DAY_LABELS[slot.day]} ${slot.time}</span>`).join('')}
-          <span class="rounded-lg border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">4 周 × ${orderedSlots().length} 时段全通</span>
-        </div>
-        <div class="mb-2">
-          <div class="mb-1 text-[12px] font-semibold text-slate-600">课程类型</div>
-          <div class="inline-flex rounded-xl bg-slate-100 p-1">
-            ${Object.entries(COURSE_TYPES).map(([key, label]) => `<button data-action="smart-fixed-course" data-value="${key}" class="rounded-lg px-3 py-1.5 text-[12px] font-semibold transition ${state.smartCourse === key ? 'bg-white text-slate-900' : 'text-slate-600'}">${label}</button>`).join('')}
-          </div>
-        </div>
-        <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
-          <div class="flex items-center gap-1.5 text-[12px] font-bold ${filtered.length ? 'text-slate-800' : 'text-emerald-700'}">
-            ${icon('filter', 'h-3.5 w-3.5 shrink-0')}${summary}
-          </div>
-          ${filtered.length ? `<div class="mt-1 space-y-0.5">${filtered.map((item) => `<div class="text-[12px] font-medium leading-relaxed text-slate-600">${esc(item.teacher.short)} · ${esc(item.detail)}</div>`).join('')}</div>` : ''}
-        </div>
-        <div class="mb-1.5 flex items-center justify-between gap-2">
-          <h3 class="text-[14px] font-bold text-slate-900">全通候选 ${eligible.length} 位</h3>
-          <span class="text-[12px] font-medium text-slate-500">熟客优先 → 定级匹配 → 空闲率</span>
-        </div>
-        <div class="space-y-2">
-          ${eligible.length ? eligible.map((teacher, index) => renderSmartTeacherCard(teacher, index, '选择')).join('') : `<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-600">没有老师同时满足全部所选时段的 4 周全通条件，请调整时段或课程类型。</div>`}
-        </div>
-        <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-500">仅展示全部所选时段未来 4 周均空闲且具备课程资质的在职老师；任一周冲突或资质不符均会被过滤。</p>`;
-    }
-
-    function renderSmartTeacherCard(teacher, index, actionLabel, actionEnabled = true) {
-      const regular = teacher.regulars.includes(state.student);
-      const levelMatch = teacher.level === currentStudent().level;
-      const isTempBook = actionLabel === '立即预约' || actionLabel === '课次不足';
-      const actionCls = !actionEnabled
-        ? 'cursor-not-allowed bg-slate-200 text-slate-500'
-        : isTempBook
-          ? 'bg-indigo-600 px-2.5 text-white active:bg-indigo-700'
-          : 'border border-indigo-200 bg-white text-indigo-700 active:bg-indigo-50';
-      return `<div class="rounded-xl border ${index === 0 ? 'border-indigo-200 bg-indigo-50/40' : 'border-slate-200 bg-white'} p-2.5">
-        <div class="flex items-start gap-2">
-          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100 text-[14px] font-bold text-slate-700">${teacher.initial}</span>
-          <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span class="truncate text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
-              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${teacher.level}</span>
-              <span class="rounded bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-600 ring-1 ring-inset ring-slate-200">[${ownerLabel(teacher)}]</span>
+    function renderTeacherCard(teacher, free) {
+      const student = contextStudent();
+      const familiar = !!student && teacher.regulars.includes(state.student);
+      const sameLevel = !!student && teacher.level === student.level;
+      const mine = state.role === 'monitor' && teacher.owner === CURRENT_MONITOR;
+      const focus = state.focusTeacher === teacher.key;
+      const load = weekLoad(teacher);
+      const cardBorder = focus ? 'border-indigo-300 ring-2 ring-inset ring-indigo-200' : 'border-slate-200/80';
+      return `<article data-teacher="${teacher.key}" data-load="${load}" data-free="${free}" data-familiar="${familiar ? 1 : 0}" data-same-level="${sameLevel ? 1 : 0}" data-mine="${mine ? 1 : 0}" class="rounded-xl border ${cardBorder} bg-slate-50/70 px-2 py-0.5">
+        <div class="flex items-center gap-1.5">
+          <div class="flex min-w-0 flex-1 flex-col">
+            <div class="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
+              <span data-teacher-name="${teacher.key}" class="max-w-[112px] truncate text-[12px] font-bold leading-none text-slate-900">${esc(teacher.name)}</span>
+              <span class="rounded bg-slate-100 px-1 py-0.5 text-[12px] font-bold leading-none text-slate-700">${esc(teacher.level)}</span>
+              ${mine ? '<span class="rounded bg-slate-900 px-1 py-0.5 text-[12px] font-bold leading-none text-white">我负责</span>' : ''}
+              ${familiar ? '<span class="rounded bg-indigo-50 px-1 py-0.5 text-[12px] font-bold leading-none text-indigo-700">教过该学员</span>' : ''}
+              ${sameLevel ? '<span class="rounded bg-emerald-50 px-1 py-0.5 text-[12px] font-bold leading-none text-emerald-700">同定级</span>' : ''}
+              ${focus ? '<span class="rounded bg-indigo-600 px-1 py-0.5 text-[12px] font-bold leading-none text-white">当前</span>' : ''}
             </div>
-            <div class="mt-1 flex flex-wrap gap-1">
-              ${regular ? `<span class="rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">熟客优先</span>` : ''}
-              ${levelMatch ? `<span class="rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">定级匹配</span>` : ''}
-              <span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">本周空闲 ${teacher.freeRate}%</span>
+            <div class="mt-1 flex items-center justify-between gap-1.5">
+              <p class="truncate text-[12px] font-medium text-slate-600">${state.week === 0 ? '本周' : '下周'}负荷 <span class="text-[12px] font-bold text-slate-900">${load}</span>/${teacher.capacity} 节</p>
+              <a href="${selectUrl(teacher)}" target="_blank" rel="noopener" class="inline-flex h-6 shrink-0 items-center justify-center gap-0.5 rounded-md bg-indigo-600 px-2 text-[12px] font-bold text-white transition hover:bg-indigo-700 active:scale-[0.98]" aria-label="选取 ${esc(teacher.name)} 并进入课表">
+                ${icon('corner-up-right', 'h-3.5 w-3.5')}选取
+              </a>
             </div>
-            <div class="mt-1 text-[12px] font-medium text-slate-600">${regular ? `曾教过 ${currentStudent().nickname}` : '未带过该学员'} · ${teacher.qualified.map((key) => COURSE_TYPES[key]).join(' / ')}资质</div>
           </div>
-          <button data-action="${isTempBook ? 'temp-book' : 'smart-teacher'}" data-key="${teacher.key}" ${actionEnabled ? '' : 'disabled'} class="h-8 shrink-0 rounded-lg px-2.5 text-[12px] font-bold ${actionCls}">${actionLabel}</button>
+          <div class="shrink-0">${renderMatrix(teacher)}</div>
         </div>
+      </article>`;
+    }
+
+    function renderMatrix(teacher) {
+      const period = currentPeriod();
+      const cells = [];
+      for (let row = 0; row < period.rows; row += 1) {
+        for (let day = 0; day < 7; day += 1) {
+          const free = isTeacherFree(teacher, state.week, day, row);
+          cells.push(`<span class="h-1.5 w-4 rounded-[1px] ${free ? 'bg-emerald-500' : 'bg-slate-200'}"></span>`);
+        }
+      }
+      const timeLabels = [];
+      for (let row = 0; row < period.rows; row += 2) {
+        timeLabels.push(`<span class="flex h-[13px] items-start font-mono text-[12px] leading-none text-slate-500">${rowTime(period, row)}</span>`);
+      }
+      return `<div class="flex shrink-0 items-start gap-1" role="img" aria-label="${esc(teacher.name)} 空闲分布：7 列周一至周日，每两行一小时">
+        <div class="flex w-9 shrink-0 flex-col gap-px">${timeLabels.join('')}</div>
+        <div class="grid grid-cols-7 gap-px">${cells.join('')}</div>
       </div>`;
     }
 
-    function renderTempSheet() {
-      const info = demoDateInfo(state.temp.offset);
-      const end = addMinutesToTime(state.temp.start, state.temp.duration);
-      const cells = state.temp.duration / 30;
-      const { eligible, filtered } = tempFilterResult();
-      const summary = filtered.length ? `已过滤 ${filtered.length} 位：${filteredSummary(filtered)}` : '全部在职老师均满足连续空闲与资质条件';
-      return `${sheetHeader('临时课智能筛师', '时间窗 1~7 天 · 连续空闲全平台老师')}
-        <div class="mb-2 flex flex-wrap items-center gap-1.5">
-          <span class="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[12px] font-semibold text-indigo-700">学员临时课次 ${currentStudent().tempCredits} 节可用</span>
-          <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${info.label} ${DAY_LABELS[info.weekday]} ${state.temp.start}-${end}</span>
-          <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">连续 ${cells} 节 · ${COURSE_TYPES[state.temp.course]}</span>
-        </div>
-
-        <div class="mb-1 text-[12px] font-semibold text-slate-600">目标日期（距今 1~7 天）</div>
-        <div class="mb-2 grid grid-cols-3 gap-1.5">
-          ${Array.from({ length: 9 }, (_, offset) => {
-            const dayInfo = demoDateInfo(offset);
-            const enabled = offset >= 1 && offset <= 7;
-            const active = state.temp.offset === offset;
-            const label = offset === 0 ? '今天' : offset === 8 ? '第 8 天' : dayInfo.label;
-            return `<button data-action="temp-date" data-value="${offset}" ${enabled ? '' : 'disabled'} class="rounded-lg border px-1 py-1.5 text-center transition ${active ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : enabled ? 'border-slate-200 bg-white text-slate-700 active:bg-slate-50' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500 opacity-60'}">
-              <span class="block text-[12px] font-bold leading-tight">${label}</span>
-              <span class="block text-[12px] font-medium leading-tight">${DAY_LABELS[dayInfo.weekday]}</span>
-            </button>`;
-          }).join('')}
-        </div>
-
-        <div class="mb-1 text-[12px] font-semibold text-slate-600">起始时段</div>
-        <div class="mb-2 grid grid-cols-4 gap-1.5">
-          ${TEMP_STARTS.map((time) => `<button data-action="temp-start" data-value="${time}" class="rounded-lg border px-1 py-1.5 text-[12px] font-semibold transition ${state.temp.start === time ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 active:bg-slate-50'}">${time}</button>`).join('')}
-        </div>
-
-        <div class="mb-1 text-[12px] font-semibold text-slate-600">时长</div>
-        <div class="mb-2 grid grid-cols-4 gap-1.5">
-          ${[30, 60, 90, 120].map((mins) => `<button data-action="temp-duration" data-value="${mins}" class="rounded-lg border px-1 py-1.5 text-[12px] font-semibold transition ${state.temp.duration === mins ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 active:bg-slate-50'}">${mins >= 60 ? `${mins / 60}h` : '30m'}</button>`).join('')}
-        </div>
-
-        <div class="mb-1 text-[12px] font-semibold text-slate-600">课程类型</div>
-        <div class="mb-2 grid grid-cols-2 gap-1.5">
-          ${Object.entries(COURSE_TYPES).map(([key, label]) => `<button data-action="temp-course" data-value="${key}" class="rounded-lg border px-1 py-1.5 text-[12px] font-semibold transition ${state.temp.course === key ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 active:bg-slate-50'}">${label}</button>`).join('')}
-        </div>
-
-        <div class="mb-2 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2">
-          <div class="flex items-center gap-1.5 text-[12px] font-bold ${filtered.length ? 'text-slate-800' : 'text-emerald-700'}">
-            ${icon('filter', 'h-3.5 w-3.5 shrink-0')}${summary}
-          </div>
-          ${filtered.length ? `<div class="mt-1 space-y-0.5">${filtered.map((item) => `<div class="text-[12px] font-medium leading-relaxed text-slate-600">${esc(item.teacher.short)} · ${esc(item.detail)}</div>`).join('')}</div>` : ''}
-        </div>
-
-        <div class="mb-1.5 flex items-center justify-between gap-2">
-          <h3 class="text-[14px] font-bold text-slate-900">连续空闲候选 ${eligible.length} 位</h3>
-          <span class="text-[12px] font-medium text-slate-500">熟客优先 → 定级匹配 → 空闲率</span>
-        </div>
-        <div class="space-y-2">
-          ${eligible.length ? eligible.map((teacher, index) => renderSmartTeacherCard(teacher, index, tempCreditsEnough() ? '立即预约' : '课次不足', tempCreditsEnough())).join('') : `<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-600">该日期与时段没有连续空闲且具备资质的老师，请调整时间或时长。</div>`}
-        </div>
-        ${tempCreditsEnough() ? '' : `<p class="mt-2 text-[12px] font-bold text-rose-700">学员临时课次不足 ${cells} 节，暂不可预约。</p>`}
-        <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-500">仅展示目标日期与时段连续 N 个单元格全部空闲且具备资质的老师；仅部分空闲的老师会被过滤。当天与超过 7 天的时段不可预约。</p>`;
-    }
-
-    function renderTempConfirm() {
-      if (!state.tempPick) return '';
-      const teacher = TEACHERS[state.tempPick.teacher];
-      const info = demoDateInfo(state.temp.offset);
-      const end = addMinutesToTime(state.temp.start, state.temp.duration);
-      const cells = state.temp.duration / 30;
-      return `<div class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-        <div class="w-full max-w-[340px] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
-          <h2 class="text-[16px] font-bold text-slate-900">确认预约临时课</h2>
-          <p class="mt-1 text-[12px] font-medium text-slate-600">确认后将即时占用该时段，并扣减学员临时课次。</p>
-          <div class="mt-3 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5">
-            <div class="flex items-center justify-between gap-2 text-[12px]"><span class="font-medium text-slate-600">学员</span><span class="font-bold text-slate-900">${esc(currentStudent().name)}（${esc(currentStudent().nickname)}）</span></div>
-            <div class="flex items-center justify-between gap-2 text-[12px]"><span class="font-medium text-slate-600">老师</span><span class="font-bold text-slate-900">${esc(teacher.name)}</span></div>
-            <div class="flex items-center justify-between gap-2 text-[12px]"><span class="font-medium text-slate-600">时间</span><span class="font-bold text-slate-900">${info.label} ${DAY_LABELS[info.weekday]} ${state.temp.start}-${end}</span></div>
-            <div class="flex items-center justify-between gap-2 text-[12px]"><span class="font-medium text-slate-600">时长</span><span class="font-bold text-slate-900">连续 ${cells} 节（${state.temp.duration} 分钟）</span></div>
-            <div class="flex items-center justify-between gap-2 text-[12px]"><span class="font-medium text-slate-600">课程</span><span class="font-bold text-slate-900">${COURSE_TYPES[state.temp.course]}</span></div>
-          </div>
-          <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-600">扣减后剩余临时课次 ${currentStudent().tempCredits - cells} 节。</p>
-          <div class="mt-3 flex gap-2">
-            <button data-action="close-overlay" class="h-10 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition active:bg-slate-50">取消</button>
-            <button data-action="confirm-temp" class="h-10 flex-1 rounded-xl bg-indigo-600 text-[14px] font-bold text-white transition active:bg-indigo-700">确认预约</button>
-          </div>
-        </div>
+    function renderEmptyState() {
+      return `<div class="mt-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-8 text-center">
+        <div class="mx-auto grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500">${icon('search-x', 'h-5 w-5')}</div>
+        <p class="mt-2 text-[14px] font-bold text-slate-900">当前时段暂无老师有空档</p>
+        <p class="mt-1 text-[12px] font-medium text-slate-600">试试切换级别、时段或周次</p>
       </div>`;
     }
 
-    function renderRulesSheet() {
-      const rules = [
-        { icon: 'calendar-range', title: '4 周完整锁定', text: '固定位以连续 4 周为一组，4 周全部可排才会锁定；任一周冲突都不会占用原时段。' },
-        { icon: 'search', title: '智能筛师', text: '固定位勾选 1~N 个每周时段后，可反选未来 4 周全通且具备资质的老师；临时课按日期与连续时长反选，部分空闲的老师会被自动过滤。' },
-        { icon: 'move-right', title: '冲突就近候补', text: '遇到老师休假或临时占用，系统会就近推荐可用时段，并临时保留 24 小时。' },
-        { icon: 'refresh-cw', title: '续费预占平移', text: '换到新时段后，原预占时段会立即释放，不会同时占用两个时段，续费权益无缝继承。' },
-        { icon: 'users', title: '小班整学期', text: '小班按全学期 16 周整班排定，所有周次都可排才会确认。' },
-        { icon: 'calendar-plus', title: '单节补排', text: '暂停待排退回 1 节散 TS 时，工作台自动切换为单节补排；只选单周连续双格，不执行 16 周连贯度评分，确认后待办自动核销。' },
-        { icon: 'mouse-pointer-click', title: '临时课边界', text: '日常 1~4 节临时课，可在课表绿色空闲格直接预约，或使用临时课智能筛师反选老师；本工作台只处理 4 周固定位与 16 周小班整班排课。' }
-      ];
-      return `${sheetHeader('排课规则', '确认前请留意以下安排')}
-        <div class="space-y-2.5">
-          ${rules.map((rule, index) => `<div class="flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50/60 p-2.5">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700">${icon(rule.icon, 'h-4 w-4')}</span>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5">
-                <span class="text-[12px] font-bold text-indigo-700">0${index + 1}</span>
-                <h3 class="text-[14px] font-bold text-slate-900">${rule.title}</h3>
-              </div>
-              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">${rule.text}</p>
-            </div>
-          </div>`).join('')}
-        </div>`;
-    }
-
-    function renderSuccess() {
-      const data = state.completed;
-      const isGroup = data.isGroup;
-      const isMakeup = !!data.isMakeup;
-      const fixedBillable = data.billable ?? data.count;
-      const creditsLine = isMakeup
-        ? '扣减 1 节待补排课次'
-        : isGroup
-          ? `共扣 16×${data.count} 节小班课次`
-          : `共扣 ${4 * fixedBillable} 节固定位课次`;
-      return `<div class="absolute inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm">
-        <div class="max-h-[92%] w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-2xl">
-          <div class="mx-auto grid h-14 w-14 place-items-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600">${icon('check', 'h-7 w-7')}</div>
-          <h2 class="mt-3 text-[18px] font-bold text-slate-900">${isMakeup ? '单节补排已排定' : isGroup ? '全学期 16 周已排定' : '未来 4 周已锁定'}</h2>
-          <p class="mt-1 text-[14px] font-semibold text-slate-700">${isMakeup ? '已选 1 个时段 · 扣减 1 节待补排课次' : isGroup ? `已选 ${data.count} 个时段 · 共扣 ${16 * data.count} 节小班课次` : `已选 ${data.count} 个时段 · 共扣 ${4 * fixedBillable} 节固定位课次`}</p>
-          <div class="mt-3 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left">
-            ${data.slots.map((slot) => {
-              const convertedSlot = !isGroup && !isMakeup && data.holdMode === 'converted' && data.hold && data.hold.day === slot.day && data.hold.time === slot.time;
-              const status = isMakeup ? '已补排' : isGroup ? '16/16 全通' : convertedSlot ? '预占转正' : '4 周已锁';
-              const statusCls = isMakeup || isGroup || !convertedSlot ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700';
-              return `<div class="flex items-center justify-between gap-2 rounded-lg bg-white px-2 py-1.5">
-                <span class="min-w-0 truncate text-[14px] font-bold text-slate-900">${DAY_LABELS[slot.day]} ${slot.time} - ${(isGroup || isMakeup) ? endHour(slot.time) : endTime(slot.time)}</span>
-                <span class="shrink-0 rounded-md border px-1.5 py-0.5 text-[12px] font-bold ${statusCls}">${status}</span>
-              </div>`;
-            }).join('')}
-          </div>
-          <div class="mt-2 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left">
-            <div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">${icon('check-circle-2', 'h-3.5 w-3.5 shrink-0 text-emerald-600')}${creditsLine}</div>
-            <div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-700">${icon('bell', 'h-3.5 w-3.5 shrink-0 text-indigo-600')}${isMakeup ? '已通知绑定班长 · 待补排待办已核销 · 小班修改日志已记录' : isGroup ? `已通知小班家长与 ${currentClass().teacher ? TEACHERS[currentClass().teacher].short : '授课'} 老师` : `已通知家长与 ${currentTeacher().short} 老师`}</div>
-            ${!isGroup && !isMakeup && data.holdMode === 'released' ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('undo-2', 'h-3.5 w-3.5 shrink-0 text-amber-600')}原预占位 [${DAY_LABELS[data.hold.day]} ${data.hold.time}] 已释放</div>` : ''}
-            ${!isGroup && !isMakeup && data.holdMode === 'converted' ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('badge-check', 'h-3.5 w-3.5 shrink-0 text-amber-600')}原预占位 [${DAY_LABELS[data.hold.day]} ${data.hold.time}] 已转为正式固定位</div>` : ''}
-            ${!isGroup && !isMakeup && data.converted > 0 ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-amber-800">${icon('shield-check', 'h-3.5 w-3.5 shrink-0 text-amber-600')}预占转正不重复扣减</div>` : ''}
-            ${!isGroup && !isMakeup && !data.holdMode ? `<div class="flex items-center gap-1.5 text-[12px] font-medium text-slate-600">${icon('move-right', 'h-3.5 w-3.5 shrink-0 text-slate-500')}全部时段已在单一事务内原子锁定</div>` : ''}
-          </div>
-          <a href="${data.link}" class="mt-4 flex h-11 items-center justify-center rounded-xl bg-indigo-600 text-[14px] font-bold text-white transition hover:bg-indigo-700">返回课表</a>
-        </div>
-      </div>`;
+    function renderLoadMore(total, visibleCount) {
+      if (total <= 5) {
+        return `<p class="mt-2 text-center text-[12px] font-medium text-slate-500">已显示全部 ${visibleCount} 位老师</p>`;
+      }
+      if (visibleCount >= LOAD_LIMIT) {
+        return `<div class="mt-2 rounded-lg border border-slate-200/80 bg-slate-50/70 px-3 py-1.5 text-center text-[12px] font-semibold text-slate-600">已显示 ${visibleCount} 位 · 已达上限</div>`;
+      }
+      if (visibleCount >= total) {
+        return `<p class="mt-2 text-center text-[12px] font-medium text-slate-500">已显示全部 ${visibleCount} 位老师</p>`;
+      }
+      return `<button type="button" data-action="load-more" class="mt-2 flex h-9 w-full items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50 active:bg-slate-100">
+        ${icon('chevron-down', 'h-4 w-4')}再加载 5 位老师
+        <span class="text-[12px] font-medium text-slate-500">(已显示 ${visibleCount} / 上限 ${LOAD_LIMIT})</span>
+      </button>`;
     }
 
     function renderToast() {
@@ -1850,246 +755,95 @@
     }
 
     /* ------------------------------------------------------------------
-     * 操作与状态切换
+     * 浮层：对象选择 / 排课规则
      * ------------------------------------------------------------------ */
-    function showToast(message) {
-      state.toast = message;
-      render(true);
-      window.clearTimeout(showToast.timer);
-      showToast.timer = window.setTimeout(() => {
-        state.toast = '';
-        render(true);
-      }, 2600);
+    function overlayShell(title, content) {
+      return `<div class="absolute inset-0 z-50">
+        <button type="button" data-action="close-overlay" class="absolute inset-0 h-full w-full bg-slate-900/40" aria-label="关闭浮层"></button>
+        <div class="absolute inset-x-0 bottom-0 max-h-[85%] overflow-y-auto rounded-t-3xl bg-white px-3 pb-5 pt-2.5 shadow-2xl">
+          <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-200"></div>
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-[16px] font-bold text-slate-900">${title}</h2>
+            <button type="button" data-action="close-overlay" class="grid h-8 w-8 place-items-center rounded-lg bg-slate-100 text-slate-600" aria-label="关闭">${icon('x', 'h-4 w-4')}</button>
+          </div>
+          ${content}
+        </div>
+      </div>`;
     }
 
-    function pickFixedSlot(day, time) {
-      if (!canPickFixed(day, time)) return;
-      if (isSelected(day, time)) {
-        removeSlot(day, time);
-        state.completed = null;
-        render(true);
-        return;
-      }
-      const target = { day, time };
-      if (!isHoldSlot(target) && billableCount() >= maxFixedSlots()) {
-        showToast(`固定位课次不足，最多选 ${maxFixedSlots()} 个时段`);
-        return;
-      }
-      state.selectedSlots.push(target);
-      state.completed = null;
-      syncCandidateAck();
-      render(true);
+    function renderOverlay() {
+      if (state.overlay === 'context') return overlayShell('选择学员 / 小班', renderContextSheetContent());
+      if (state.overlay === 'rules') return overlayShell('排课规则', renderRulesContent());
+      return '';
     }
 
-    function pickGroupSlot(day, time) {
-      const block = groupCell(day, time);
-      if (isGroupMakeup()) {
-        if (block.kind !== 'available') return;
-        state.selectedSlots = isSelected(day, time) ? [] : [{ day, time }];
-        state.conflictDetail = null;
-        state.completed = null;
-        render(true);
-        return;
-      }
-      if (block.kind !== 'full' && block.kind !== 'partial') return;
-      if (block.kind === 'partial') {
-        state.conflictDetail = { day, time, week: block.week, reason: block.reason };
-        state.completed = null;
-        render(true);
-        return;
-      }
-      if (isSelected(day, time)) {
-        removeSlot(day, time);
-      } else {
-        const max = maxGroupSlots();
-        if (state.selectedSlots.length >= max) {
-          showToast(`小班课次不足，最多选 ${max} 个时段`);
-          return;
-        }
-        state.selectedSlots.push({ day, time });
-      }
-      state.conflictDetail = null;
-      state.completed = null;
-      render(true);
+    function renderContextSheetContent() {
+      const studentButtons = Object.values(STUDENTS).map((student) => {
+        const active = state.contextType === 'student' && state.student === student.key;
+        return `<button type="button" data-pick-context="student" data-key="${student.key}" class="flex w-full items-center gap-2 rounded-xl border p-2.5 text-left transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-200/80 bg-slate-50/70 hover:bg-slate-100'}">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-indigo-100 bg-white text-[16px]">${student.emoji}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-[14px] font-bold text-slate-900">${esc(student.nickname)}</span>
+            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(student.level)} · 固定位可用 ${student.credits} 节</span>
+          </span>
+          ${active ? `<span class="shrink-0 text-[12px] font-bold text-indigo-600">已选</span>` : ''}
+        </button>`;
+      }).join('');
+
+      const classButtons = Object.values(CLASSES).map((cls) => {
+        const active = state.contextType === 'class' && state.classKey === cls.key;
+        const teacher = cls.teacher ? TEACHERS.find((item) => item.key === cls.teacher) : null;
+        return `<button type="button" data-pick-context="class" data-key="${cls.key}" class="flex w-full items-center gap-2 rounded-xl border p-2.5 text-left transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-200/80 bg-slate-50/70 hover:bg-slate-100'}">
+          <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-teal-200 bg-white text-[14px] font-bold text-teal-800">${esc(cls.code.slice(0, 1))}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-[14px] font-bold text-slate-900">${esc(cls.name)}</span>
+            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${cls.credits} 节可用 · ${teacher ? `主讲 ${esc(teacher.name)}` : '主讲待委任'}</span>
+          </span>
+          ${active ? `<span class="shrink-0 text-[12px] font-bold text-indigo-600">已选</span>` : ''}
+        </button>`;
+      }).join('');
+
+      return `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">选学员后按熟客、定级与当周负荷排序；也可保持无对象，仅查空档。</p>
+        <div class="mt-2 grid grid-cols-1 gap-2">${studentButtons}</div>
+        <p class="mt-3 text-[12px] font-semibold text-slate-600">小班</p>
+        <div class="mt-1 grid grid-cols-1 gap-2">${classButtons}</div>
+        <button type="button" data-pick-context="none" class="mt-2 flex h-11 w-full items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">
+          ${icon('search', 'h-4 w-4')}仅查空档
+        </button>`;
     }
 
-    function chooseStudent(key) {
-      if (!STUDENTS[key]) return;
-      state.student = key;
-      state.overlay = null;
-      state.completed = null;
-      state.candidateAck = false;
-      state.conflictDetail = null;
-      state.tempPick = null;
-      state.selectedSlots = [];
-      if (state.scenario === 'conflict' && key !== 'alice') state.scenario = 'normal';
-      if (state.scenario === 'insufficient' && key !== 'charlie') state.scenario = 'normal';
-      render(true);
-    }
-
-    function chooseTeacher(key) {
-      if (!TEACHERS[key]) return;
-      state.teacher = key;
-      state.overlay = null;
-      state.completed = null;
-      state.candidateAck = false;
-      state.selectedSlots = [];
-      state.conflictDetail = null;
-      if (state.scenario === 'conflict') state.scenario = 'normal';
-      render(true);
-    }
-
-    function chooseSmartTeacher(key) {
-      if (!TEACHERS[key]) return;
-      state.teacher = key;
-      state.overlay = null;
-      state.completed = null;
-      state.candidateAck = false;
-      if (state.scenario === 'conflict') state.scenario = 'normal';
-      showToast(`已切换为 ${TEACHERS[key].short}，已选时段保留`);
-    }
-
-    function confirmTempBooking() {
-      if (!state.tempPick) return;
-      const teacher = TEACHERS[state.tempPick.teacher];
-      if (!teacher) return;
-      const cells = state.temp.duration / 30;
-      const info = demoDateInfo(state.temp.offset);
-      const end = addMinutesToTime(state.temp.start, state.temp.duration);
-      if (currentStudent().tempCredits < cells) {
-        state.overlay = 'temp-smart';
-        state.tempPick = null;
-        showToast('临时课次不足，暂不可预约');
-        return;
-      }
-      currentStudent().tempCredits -= cells;
-      state.overlay = null;
-      state.tempPick = null;
-      showToast(`已为 ${currentStudent().nickname} 预约 ${info.label} ${DAY_LABELS[info.weekday]} ${state.temp.start}-${end}，扣减 ${cells} 节临时课次`);
-    }
-
-    function confirmBooking() {
-      if (!confirmReady()) return;
-      const slots = orderedSlots();
-      if (!slots.length) return;
-      const first = slots[0];
-      const isGroup = state.mode === 'batch_group';
-      if (state.mode === 'group_makeup') {
-        const link = `m3a_calendar_grid.html?role=${state.role}&booked=1&mode=makeup&classId=${state.classId}&slots=${encodeURIComponent(slotsParam(slots))}&day=${DAY_EN[first.day]}&time=${first.time}`;
-        state.completed = {
-          isMakeup: true,
-          isGroup: false,
-          slots,
-          count: 1,
-          credits: 1,
-          link
-        };
-        state.overlay = 'success';
-        render(true);
-        return;
-      }
-      if (isGroup) {
-        const link = `m3a_calendar_grid.html?role=${state.role}&booked=1&mode=group&slots=${encodeURIComponent(slotsParam(slots))}&day=${DAY_EN[first.day]}&time=${first.time}`;
-        state.completed = {
-          isGroup: true,
-          slots,
-          count: slots.length,
-          credits: slots.length * groupCreditUnit(),
-          link
-        };
-      } else {
-        const hold = activeHold();
-        const holdMode = hold ? (isSelected(hold.day, hold.time) ? 'converted' : 'released') : null;
-        const link = `m3a_calendar_grid.html?role=${state.role}&booked=1&mode=fixed&slots=${encodeURIComponent(slotsParam(slots))}&day=${DAY_EN[first.day]}&time=${first.time}`;
-        state.completed = {
-          isGroup: false,
-          slots,
-          count: slots.length,
-          billable: billableCount(),
-          converted: convertedCount(),
-          credits: billableCount() * fixedCreditUnit(),
-          holdMode,
-          hold,
-          link
-        };
-      }
-      state.overlay = 'success';
-      render(true);
-    }
-
-    function adoptCandidate() {
-      if (state.scenario !== 'conflict') return;
-      const candidate = { day: 1, time: '19:30' };
-      const originalIndex = state.selectedSlots.findIndex((slot) => slot.day === 1 && slot.time === '19:00');
-      if (originalIndex >= 0) {
-        state.selectedSlots[originalIndex] = candidate;
-      } else if (!isSelected(candidate.day, candidate.time)) {
-        if (billableCount() >= maxFixedSlots()) {
-          showToast(`固定位课次不足，最多选 ${maxFixedSlots()} 个时段`);
-          return;
-        }
-        state.selectedSlots.push(candidate);
-      }
-      state.candidateAck = false;
-      state.completed = null;
-      render(true);
-    }
-
-    function resetDemo() {
-      state.role = 'monitor';
-      state.device = 'mobile';
-      state.online = true;
-      state.overlay = null;
-      state.completed = null;
-      state.toast = '';
-      applyScenarioPreset('normal', false);
-      render(false);
-    }
-
-    function setControl(group, value) {
-      state.completed = null;
-      state.overlay = null;
-      state.toast = '';
-      if (group === 'role') {
-        state.role = value;
-        if (value === 'parent') {
-          state.overlay = null;
-        }
-        render(false);
-        return;
-      }
-      if (group === 'mode') {
-        state.mode = value;
-        state.candidateAck = false;
-        state.conflictDetail = null;
-        if (value === 'batch_group') {
-          if (state.scenario !== 'group-blocked') {
-            state.classId = 'ket1';
-            state.teacher = state.teacher || 'david';
-            state.selectedSlots = [{ day: 5, time: '10:00' }, { day: 6, time: '09:00' }];
-            state.scenario = 'group';
-          }
-        } else if (value === 'group_makeup') {
-          state.classId = 'ket1p';
-          state.teacher = 'david';
-          state.selectedSlots = [];
-          state.scenario = 'group-makeup';
-        } else {
-          state.scenario = 'normal';
-          state.selectedSlots = [];
-        }
-        render(false);
-        return;
-      }
-      if (group === 'device') {
-        state.device = value;
-        render(false);
-        return;
-      }
-      if (group === 'network') {
-        state.online = value === 'on';
-        render(false);
-      }
+    function renderRulesContent() {
+      return `<div class="mt-2 space-y-2">
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-indigo-600">${icon('calendar-check', 'h-3.5 w-3.5')}</span>
+            <p class="text-[14px] font-bold text-slate-900">固定位与整班排课</p>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">以 4 周为一轮，每个每周时段是独立原子单元；未来 4 周全通才可落单，避免残缺预占。</p>
+        </div>
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-amber-600">${icon('refresh-cw', 'h-3.5 w-3.5')}</span>
+            <p class="text-[14px] font-bold text-slate-900">续费预占可平移</p>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">原预占位会自动释放，或转为正式固定位且不重复扣减；跨时段不会双占。</p>
+        </div>
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-teal-700">${icon('layout-grid', 'h-3.5 w-3.5')}</span>
+            <p class="text-[14px] font-bold text-slate-900">小班连续双格</p>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">老师课表按连续双格选取并校验 4 周连贯度；未委任主讲老师时先完成委任。</p>
+        </div>
+        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700">${icon('mouse-pointer-click', 'h-3.5 w-3.5')}</span>
+            <p class="text-[14px] font-bold text-slate-900">本页只负责挑老师</p>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">点“选取”进入老师当周课表后，再选具体时段、查看 4 周校验并提交。</p>
+        </div>
+      </div>
+      <button type="button" data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">知道了</button>`;
     }
 
     /* ------------------------------------------------------------------
@@ -2097,24 +851,28 @@
      * ------------------------------------------------------------------ */
     function segment(group, options, activeValue) {
       return `<div class="inline-flex rounded-xl bg-slate-100 p-1">
-        ${options.map((option) => `<button data-control="${group}" data-value="${option.value}" class="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition ${activeValue === option.value ? 'bg-white text-slate-900' : 'text-slate-600 hover:text-slate-900'}">${option.label}</button>`).join('')}
+        ${options.map((option) => `<button type="button" data-control="${group}" data-value="${option.value}" class="rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition ${activeValue === option.value ? 'bg-white text-slate-900' : 'text-slate-600 hover:text-slate-900'}">${option.label}</button>`).join('')}
       </div>`;
     }
 
     function renderConsole() {
       const scenarios = [
-        { value: 'normal', label: '固定位常规' },
-        { value: 'hold-shift', label: 'HOLD 平移' },
-        { value: 'hold-convert', label: 'HOLD 转正' },
-        { value: 'conflict', label: '续费冲突降级' },
-        { value: 'insufficient', label: '课次不足' },
-        { value: 'group', label: '小班整班' },
-        { value: 'group-makeup', label: '小班单节补排' },
-        { value: 'group-blocked', label: '小班未委任' },
-        { value: 'smart-fixed', label: '智能筛师·固定位' },
-        { value: 'smart-temp', label: '智能筛师·临时课' },
-        { value: 'teacher-all', label: '全平台老师' },
-        { value: 'parent', label: '家长视角' }
+        { value: 'student-alice', label: '学员 Alice' },
+        { value: 'student-bob', label: '学员 Bob' },
+        { value: 'class-ket', label: '小班 KET' },
+        { value: 'class-unassigned', label: '小班待委任' },
+        { value: 'empty', label: '仅查空档' },
+        { value: 'level-all', label: '全部级别' },
+        { value: 'level-standard', label: 'Standard' },
+        { value: 'level-senior', label: 'Senior' },
+        { value: 'level-junior', label: 'Junior' },
+        { value: 'period-early', label: '早 06-11' },
+        { value: 'period-mid', label: '中 10-15' },
+        { value: 'period-afternoon', label: '下 14-19' },
+        { value: 'period-evening', label: '晚 18-24' },
+        { value: 'week-next', label: '下周' },
+        { value: 'load-more', label: '已加载 10 位' },
+        { value: 'focus-david', label: '当前老师 David' }
       ];
       return `<header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
         <div class="mx-auto max-w-[1400px] px-3 py-2.5">
@@ -2122,17 +880,13 @@
             <div class="flex min-w-0 items-center gap-2">
               <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-slate-900 text-[12px] font-bold text-amber-400">D</span>
               <div class="min-w-0">
-                <div class="truncate text-[14px] font-bold text-slate-900">排课工作台演示控制台</div>
-                <div class="truncate text-[12px] font-medium text-slate-500">沉浸式排课 · 意向交集 · 4 周原子锁定 · 小班双格 · 智能筛师</div>
+                <div class="truncate text-[14px] font-bold text-slate-900">老师空闲大盘演示控制台</div>
+                <div class="truncate text-[12px] font-medium text-slate-500">两步式排课 · 空档对比 · 5 位分批 · 课表复选</div>
               </div>
             </div>
             <div class="flex items-center gap-2">
               <span class="text-[12px] font-medium text-slate-500">角色</span>
-              ${segment('role', [{ value: 'monitor', label: '班长' }, { value: 'admin', label: '管理员' }, { value: 'parent', label: '家长' }], state.role)}
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-[12px] font-medium text-slate-500">模式</span>
-              ${segment('mode', [{ value: 'batch_fixed', label: '固定位' }, { value: 'batch_group', label: '小班' }, { value: 'group_makeup', label: '单节补排' }], state.mode)}
+              ${segment('role', [{ value: 'monitor', label: '班长' }, { value: 'admin', label: '管理员' }], state.role)}
             </div>
             <div class="flex items-center gap-2">
               <span class="text-[12px] font-medium text-slate-500">设备</span>
@@ -2143,22 +897,92 @@
               ${segment('network', [{ value: 'on', label: '在线' }, { value: 'off', label: '离线' }], state.online ? 'on' : 'off')}
             </div>
             <div class="ml-auto flex flex-wrap items-center gap-2">
-              <span class="hidden text-[12px] font-medium text-slate-500 xl:inline">${TODAY_LABEL}</span>
-              <button data-action="reset-demo" class="rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">重置演示</button>
-              <a href="../docs/prd/m3d_course_scheduling.md" class="rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-indigo-700 transition hover:bg-indigo-50">PRD 文档</a>
+              <span class="hidden text-[12px] font-medium text-slate-500 xl:inline">演示日 11-14 周六</span>
+              <button type="button" data-action="reset-demo" class="rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">重置演示</button>
             </div>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-1.5">
             <span class="mr-1 text-[12px] font-medium text-slate-500">场景</span>
-            ${scenarios.map((scenario) => `<button data-scenario="${scenario.value}" class="rounded-lg border px-2 py-1.5 text-[12px] font-semibold transition ${((!isParent() && state.scenario === scenario.value) || (scenario.value === 'parent' && isParent())) ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">${scenario.label}</button>`).join('')}
+            ${scenarios.map((scenario) => `<button type="button" data-scenario="${scenario.value}" class="rounded-lg border px-2 py-1.5 text-[12px] font-semibold transition ${state.scenario === scenario.value ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">${scenario.label}</button>`).join('')}
           </div>
         </div>
       </header>`;
     }
 
     /* ------------------------------------------------------------------
-     * 事件绑定
+     * 交互
      * ------------------------------------------------------------------ */
+    function flashToast(message) {
+      state.toast = message;
+      render(true);
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        state.toast = '';
+        render(true);
+      }, 2400);
+    }
+
+    function pickContext(type, key) {
+      state.overlay = null;
+      state.shown = 5;
+      state.scenario = '';
+      if (type === 'student' && STUDENTS[key]) {
+        state.contextType = 'student';
+        state.student = key;
+      } else if (type === 'class' && CLASSES[key]) {
+        state.contextType = 'class';
+        state.classKey = key;
+      } else {
+        state.contextType = 'none';
+      }
+      render(false);
+      if (type === 'class' && CLASSES[key] && !CLASSES[key].teacher) {
+        flashToast('该小班尚未委任主讲老师，排课前请先委任');
+      }
+    }
+
+    function setFilter(group, value) {
+      if (group === 'level' && ['all', 'Standard', 'Senior', 'Junior'].includes(value)) state.level = value;
+      if (group === 'period' && PERIODS[value]) state.period = value;
+      state.shown = 5;
+      state.scenario = '';
+      render(false);
+    }
+
+    function setWeek(value) {
+      state.week = value === 1 ? 1 : 0;
+      state.shown = 5;
+      state.scenario = '';
+      render(false);
+    }
+
+    function setControl(group, value) {
+      if (group === 'role' && ['monitor', 'admin'].includes(value)) state.role = value;
+      if (group === 'device' && ['mobile', 'tablet'].includes(value)) state.device = value;
+      if (group === 'network') state.online = value === 'on';
+      state.scenario = '';
+      render(false);
+    }
+
+    function resetDemo() {
+      state.role = 'monitor';
+      state.device = 'mobile';
+      state.online = true;
+      state.contextType = 'none';
+      state.student = 'alice';
+      state.classKey = 'ket1';
+      state.level = 'Standard';
+      state.period = 'mid';
+      state.week = 0;
+      state.shown = 5;
+      state.overlay = null;
+      state.focusTeacher = null;
+      state.toast = '';
+      state.scenario = '';
+      if (toastTimer) clearTimeout(toastTimer);
+      render(false);
+    }
+
     document.addEventListener('click', (event) => {
       const control = event.target.closest('[data-control]');
       if (control) {
@@ -2168,17 +992,26 @@
 
       const scenarioButton = event.target.closest('[data-scenario]');
       if (scenarioButton) {
-        const scenario = scenarioButton.dataset.scenario;
-        state.completed = null;
-        state.overlay = null;
-        if (scenario === 'parent') {
-          state.role = 'parent';
-          state.scenario = 'parent';
-        } else {
-          if (state.role === 'parent') state.role = 'monitor';
-          applyScenarioPreset(scenario, false);
-        }
+        applyScenario(scenarioButton.dataset.scenario);
         render(false);
+        return;
+      }
+
+      const weekButton = event.target.closest('[data-week-select]');
+      if (weekButton) {
+        setWeek(Number(weekButton.dataset.weekSelect));
+        return;
+      }
+
+      const filterButton = event.target.closest('[data-filter]');
+      if (filterButton) {
+        setFilter(filterButton.dataset.filter, filterButton.dataset.value);
+        return;
+      }
+
+      const pickButton = event.target.closest('[data-pick-context]');
+      if (pickButton) {
+        pickContext(pickButton.dataset.pickContext, pickButton.dataset.key);
         return;
       }
 
@@ -2186,94 +1019,23 @@
       if (!trigger) return;
       const action = trigger.dataset.action;
 
-      if (action === 'open-students') {
-        state.overlay = 'students';
-        render(true);
-      } else if (action === 'open-teachers') {
-        state.overlay = 'teachers';
+      if (action === 'open-context') {
+        state.overlay = 'context';
         render(true);
       } else if (action === 'open-rules') {
         state.overlay = 'rules';
         render(true);
-      } else if (action === 'open-smart-fixed') {
-        if (!state.selectedSlots.length) {
-          showToast('请先在网格中勾选 1~N 个每周时段');
-          return;
-        }
-        state.overlay = 'smart-fixed';
-        render(true);
-      } else if (action === 'open-temp-smart') {
-        state.overlay = 'temp-smart';
-        state.tempPick = null;
-        render(true);
       } else if (action === 'close-overlay') {
         state.overlay = null;
-        state.tempPick = null;
         render(true);
-      } else if (action === 'select-student') {
-        chooseStudent(trigger.dataset.key);
-      } else if (action === 'select-teacher') {
-        chooseTeacher(trigger.dataset.key);
-      } else if (action === 'smart-teacher') {
-        chooseSmartTeacher(trigger.dataset.key);
-      } else if (action === 'smart-fixed-course') {
-        state.smartCourse = trigger.dataset.value;
-        render(true);
-      } else if (action === 'temp-date') {
-        state.temp.offset = Number(trigger.dataset.value);
-        state.tempPick = null;
-        render(true);
-      } else if (action === 'temp-start') {
-        state.temp.start = trigger.dataset.value;
-        state.tempPick = null;
-        render(true);
-      } else if (action === 'temp-duration') {
-        state.temp.duration = Number(trigger.dataset.value);
-        state.tempPick = null;
-        render(true);
-      } else if (action === 'temp-course') {
-        state.temp.course = trigger.dataset.value;
-        state.tempPick = null;
-        render(true);
-      } else if (action === 'temp-book') {
-        if (!tempCreditsEnough()) {
-          showToast(`学员临时课次不足，连续 ${state.temp.duration / 30} 节暂不可预约`);
-          return;
+      } else if (action === 'load-more') {
+        const total = sortedTeachers().length;
+        if (state.shown < LOAD_LIMIT && state.shown < total) {
+          state.shown = Math.min(LOAD_LIMIT, state.shown + 5);
+          render(true);
         }
-        state.tempPick = { teacher: trigger.dataset.key };
-        state.overlay = 'temp-confirm';
-        render(true);
-      } else if (action === 'confirm-temp') {
-        confirmTempBooking();
-      } else if (action === 'pick-slot') {
-        pickFixedSlot(Number(trigger.dataset.day), trigger.dataset.time);
-      } else if (action === 'pick-group-slot') {
-        pickGroupSlot(Number(trigger.dataset.day), trigger.dataset.time);
-      } else if (action === 'remove-slot') {
-        removeSlot(Number(trigger.dataset.day), trigger.dataset.time);
-        state.completed = null;
-        render(true);
-      } else if (action === 'clear-slots') {
-        state.selectedSlots = [];
-        state.candidateAck = false;
-        state.completed = null;
-        state.toast = '';
-        render(true);
-      } else if (action === 'adopt-candidate') {
-        adoptCandidate();
-      } else if (action === 'contact-parent') {
-        showToast('已生成联系提醒，家长端将同步展示备选时段');
-      } else if (action === 'confirm-booking') {
-        confirmBooking();
       } else if (action === 'reset-demo') {
         resetDemo();
-      }
-    });
-
-    document.addEventListener('change', (event) => {
-      if (event.target && event.target.id === 'candidateAck') {
-        state.candidateAck = event.target.checked;
-        render(true);
       }
     });
 
