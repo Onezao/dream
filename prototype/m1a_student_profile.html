@@ -114,6 +114,9 @@
     <span class="bg-slate-50 border-slate-200/80 bg-slate-100 text-slate-700 text-slate-600 text-slate-500 bg-slate-400 bg-slate-900 hover:bg-slate-800 border-slate-300 bg-white/70"></span>
     <span class="bg-white/60 bg-white/70 bg-white/20 bg-white/15 ring-white/30 text-emerald-600 text-rose-600 bg-slate-900/40 bg-white/95 bg-slate-200/60 bg-indigo-50/40 text-indigo-300 backdrop-blur-[1px]"></span>
     <span class="h-[812px] w-[390px] h-[860px] w-[768px] grid-cols-1 grid-cols-2 grid-cols-3"></span>
+    <span class="bg-slate-50/70 border-slate-300 bg-slate-50/60 border-slate-400 border-dashed opacity-60 h-7 rounded-lg px-2.5 bg-indigo-50/80 border-indigo-200 hover:bg-indigo-100/70 bg-slate-50 border-slate-200"></span>
+    <span class="h-8 px-3 h-6 px-2.5 text-[11px] rounded-full border-0 bg-slate-900 text-white bg-slate-100 text-slate-600 hover:bg-slate-200/80 font-medium font-semibold"></span>
+    <span class="focus:ring-2 focus:ring-indigo-500/15 focus:bg-white ring-1 ring-indigo-500 bg-indigo-50/60 border-indigo-500 text-[14px] font-medium h-11 rounded-xl px-3.5"></span>
   </div>
 
   <script>
@@ -143,14 +146,14 @@
         title: 'text-amber-950', body: 'text-amber-900/85', sub: 'text-amber-700', right: 'text-amber-950', dot: 'bg-amber-500'
       },
       indigo: {
-        card: 'border-slate-200/80 bg-slate-50/70',
+        card: 'border-slate-300 bg-slate-50/70',
         chip: 'border-indigo-200 bg-indigo-100 text-indigo-800',
         icon: 'bg-indigo-100 text-indigo-700',
         action: 'bg-indigo-600 text-white hover:bg-indigo-700',
         title: 'text-indigo-950', body: 'text-indigo-900/85', sub: 'text-indigo-700', right: 'text-indigo-950', dot: 'bg-indigo-500'
       },
       emerald: {
-        card: 'border-slate-200/80 bg-slate-50/70',
+        card: 'border-slate-300 bg-slate-50/70',
         chip: 'border-emerald-200 bg-emerald-100 text-emerald-800',
         icon: 'bg-emerald-100 text-emerald-700',
         action: 'bg-emerald-600 text-white hover:bg-emerald-700',
@@ -164,7 +167,7 @@
         title: 'text-rose-950', body: 'text-rose-900/85', sub: 'text-rose-700', right: 'text-rose-950', dot: 'bg-rose-500'
       },
       slate: {
-        card: 'border-slate-200/80 bg-slate-50',
+        card: 'border-slate-300 bg-slate-50/70',
         chip: 'border-slate-200 bg-slate-100 text-slate-700',
         icon: 'bg-slate-100 text-slate-600',
         action: 'bg-slate-900 text-white hover:bg-slate-800',
@@ -649,7 +652,7 @@
       const risk = leaveRisk(p);
       if (!risk || p.staffKind === 'trial' || p.status === 'ARCHIVED') return '';
       const pct = (risk.ratio * 100).toFixed(1).replace(/\.0$/, '');
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <div class="flex items-center justify-between gap-2">
           <div class="flex min-w-0 items-center gap-2">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">${icon('activity', 'h-4 w-4')}</span>
@@ -1156,14 +1159,24 @@
       return '';
     }
 
+    function bannerBack() {
+      if (state.overlay) return null;
+      if (state.page === 'detail') return 'back-center';
+      if (state.page === 'staffDetail') return 'back-staff';
+      return null;
+    }
+
     function renderBanner() {
       const b = BANNERS[state.role];
       const subtitle = bannerSubtitle();
+      const back = bannerBack();
       return `
         <header class="relative flex h-[64px] shrink-0 items-center justify-between overflow-hidden bg-gradient-to-br ${b.gradient} px-4 text-white">
           ${b.pattern}
           <div class="relative flex min-w-0 items-center gap-2.5">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">${b.initial}</span>
+            ${back
+              ? `<button data-action="${back}" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15">${icon('chevron-left', 'h-4 w-4')}返回</button>`
+              : `<span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">${b.initial}</span>`}
             <div class="min-w-0">
               <div class="truncate text-[18px] font-bold tracking-tight">${esc(bannerTitle())}</div>
               ${subtitle ? `<div class="truncate text-[12px] font-medium text-white/70">${esc(subtitle)}</div>` : ''}
@@ -1225,16 +1238,10 @@
       </div>`;
     }
 
-    function backRow(action, label) {
-      return `<button data-action="${action}" class="flex items-center gap-1 text-[14px] font-semibold text-slate-500 transition hover:text-slate-800">
-        ${icon('chevron-left', 'h-4 w-4')}${esc(label)}
-      </button>`;
-    }
-
-    function assetTile(label, value, t) {
-      return `<div class="rounded-xl bg-white/60 px-2.5 py-2">
-        <div class="text-[12px] font-medium ${t.sub}">${esc(label)}</div>
-        <div class="mt-0.5 font-mono text-[18px] font-bold ${t.right}">${esc(value)}</div>
+    function assetTile(label, value) {
+      return `<div class="rounded-xl bg-white px-2.5 py-2">
+        <div class="text-[12px] font-medium text-slate-600">${esc(label)}</div>
+        <div class="mt-0.5 font-mono text-[18px] font-bold text-slate-900">${esc(value)}</div>
       </div>`;
     }
 
@@ -1278,13 +1285,13 @@
       </button>`;
 
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-        ${pageHeader('我的孩子', state.role === 'admin' ? `${count} 个孩子 · 仅本人家庭可见` : `${count} 个孩子 · 单账号上限 10 个`, `<button data-action="add-profile" ${blocked ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 添加</button>`)}
+        ${pageHeader('我的孩子', state.role === 'admin' ? `${count} 个孩子 · 仅本人家庭可见` : `${count} 个孩子 · 单账号上限 10 个`, `<button data-action="add-profile" ${blocked ? 'disabled' : ''} class="h-11 shrink-0 rounded-xl bg-indigo-600 px-4 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 添加</button>`)}
         ${isFull ? `<div class="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
           <span class="mt-0.5 shrink-0 text-amber-700">${icon('alert-triangle', 'h-4 w-4')}</span>
           <div class="text-[12px] font-medium leading-relaxed text-amber-900"><span class="font-bold">名下档案已达上限 (10/10)</span><br>如需新增，请先注销不再使用的档案。</div>
         </div>` : ''}
 
-        <section class="${tablet ? 'grid grid-cols-2 gap-2' : 'overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/70'}">
+        <section class="${tablet ? 'grid grid-cols-2 gap-2' : 'overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70'}">
           ${state.profiles.map((p) => profileItem(p, tablet)).join('')}
           ${tablet ? addRow : ''}
         </section>
@@ -1298,7 +1305,7 @@
     function profileItem(p, standalone) {
       const active = p.id === state.activeId;
       const cls = standalone
-        ? 'rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3'
+        ? 'rounded-2xl border border-slate-300 bg-slate-50/70 p-3'
         : `border-b border-slate-100 last:border-0 ${active ? 'bg-white' : ''}`;
       return `<button data-action="open-profile" data-id="${p.id}" class="flex w-full items-center gap-3 ${cls} px-3.5 py-3 text-left transition hover:bg-slate-50 active:bg-slate-50">
         ${avatar(p, 'h-11 w-11', 'text-[16px]')}
@@ -1322,15 +1329,15 @@
     }
 
     function claimCard(blocked) {
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <div class="flex items-start gap-2.5">
           <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-indigo-100 text-indigo-700">${icon('link-2', 'h-4 w-4')}</span>
           <div class="min-w-0 flex-1">
-            <h2 class="text-[16px] font-bold text-indigo-950">认领试课宝贝</h2>
-            <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-indigo-900/85">把孩子的试课记录并入当前账号，历史排课、学员备注与购课单完整保留。</p>
+            <h2 class="text-[16px] font-bold text-slate-900">认领试课宝贝</h2>
+            <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">把孩子的试课记录并入当前账号，历史排课、学员备注与购课单完整保留。</p>
           </div>
+          <button data-action="open-claim" ${blocked ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-40">开始认领</button>
         </div>
-        <button data-action="open-claim" ${blocked ? 'disabled' : ''} class="mt-3 h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300">开始认领</button>
       </section>`;
     }
 
@@ -1344,15 +1351,15 @@
       ];
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         ${pageHeader('我的孩子', '暂未绑定学员 · 可先浏览老师')}
-        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-5">
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-5">
           <span class="grid h-12 w-12 place-items-center rounded-2xl bg-indigo-100 text-indigo-700">${icon('user-plus', 'h-5 w-5')}</span>
-          <h2 class="mt-3 text-[18px] font-bold text-indigo-950">还没有孩子档案</h2>
-          <p class="mt-1 text-[14px] font-medium text-indigo-900/85">先浏览老师与空课表，选好课再添加孩子档案。</p>
+          <h2 class="mt-3 text-[18px] font-bold text-slate-900">还没有孩子档案</h2>
+          <p class="mt-1 text-[14px] font-medium text-slate-600">先浏览老师与空课表，选好课再添加孩子档案。</p>
           <button data-action="add-profile" class="mt-4 h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">添加孩子档案</button>
-          <button data-action="open-claim" ${state.online === 'off' ? 'disabled' : ''} class="mt-2 h-10 w-full rounded-xl border border-indigo-200 bg-white/60 text-[14px] font-bold text-indigo-700 disabled:opacity-40">认领试课</button>
+          <button data-action="open-claim" ${state.online === 'off' ? 'disabled' : ''} class="mx-auto mt-2 block text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline disabled:cursor-not-allowed disabled:opacity-40">已有试课记录？去认领 →</button>
         </section>
 
-        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
           <div class="flex items-center justify-between">
             <h2 class="text-[16px] font-bold text-slate-900">推荐老师</h2>
             <span class="text-[12px] font-medium text-slate-500">公开试课</span>
@@ -1364,12 +1371,12 @@
                 <div class="truncate text-[14px] font-bold text-slate-900">${t.name}</div>
                 <div class="truncate text-[12px] font-medium text-slate-500">${t.level}</div>
               </div>
-              <button data-action="add-profile" data-reason="预约排课前，请先添加宝贝档案" class="h-8 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50">预约</button>
+              <button data-action="add-profile" data-reason="预约排课前，请先添加宝贝档案" class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70">预约</button>
             </div>`).join('')}
           </div>
         </section>
 
-        <a href="m1b_teacher_parent.html" target="_blank" rel="noopener" class="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-slate-50/70 px-4 py-3">
+        <a href="m1b_teacher_parent.html" target="_blank" rel="noopener" class="flex items-center justify-between rounded-2xl border border-slate-300 bg-slate-50/70 px-4 py-3">
           <span class="flex items-center gap-2 text-[14px] font-semibold text-slate-700">${icon('plus-circle', 'h-4 w-4 text-slate-500')}去约课大厅看看</span>
           ${icon('chevron-right', 'h-4 w-4 text-slate-300')}
         </a>
@@ -1383,17 +1390,16 @@
       const p = activeProfile();
       if (!p) return renderEmpty();
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3 pb-10">
-        ${backRow('back-center', '我的孩子')}
         ${identityCard(p, 'parent')}
         ${assetCard(p)}
         ${coursewareCard(p, 'parent', 'profile')}
         ${notesCard(p, state.role === 'admin' ? 'staff' : 'parent', 'profile')}
         ${lessonHistoryCard()}
         ${infoCard(p, 'parent')}
-        ${p.trialHistory ? `<div class="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-emerald-800">试课记录已并入：历史结课 ${p.stats.completed} 节，学员备注与试课购课单均可查。</div>` : ''}
+        ${p.trialHistory ? `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">试课记录已并入：历史结课 ${p.stats.completed} 节，学员备注与试课购课单均可查。</div>` : ''}
         <div class="flex gap-2">
           <button data-action="open-edit" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>
-          <button data-action="open-guard" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[16px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300">注销档案</button>
+          <button data-action="open-guard" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300">注销档案</button>
         </div>
         <p class="text-center text-[12px] font-medium text-slate-500">注销前需清零课次资产</p>
       </div>`;
@@ -1404,7 +1410,7 @@
       const tag = isTrial
         ? `<span class="shrink-0 rounded-full border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-600">试课档案</span>`
         : (p.tag ? `<span class="shrink-0 rounded-full border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(p.tag)}</span>` : '');
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <div class="flex items-start gap-3.5">
           ${avatar(p, 'h-16 w-16', 'text-[18px]')}
           <div class="min-w-0 flex-1">
@@ -1430,15 +1436,15 @@
         <div class="flex items-center justify-between gap-2">
           <div class="flex items-center gap-2">
             <span class="grid h-8 w-8 place-items-center rounded-xl ${t.icon}">${icon('wallet', 'h-4 w-4')}</span>
-            <h2 class="text-[16px] font-bold ${t.title}">课次资产</h2>
+            <h2 class="text-[16px] font-bold text-slate-900">课次资产</h2>
           </div>
-          <span class="text-[12px] font-medium ${t.sub}">1 积分 = 1 元</span>
+          <span class="text-[12px] font-medium text-slate-600">1 积分 = 1 元</span>
         </div>
         <div class="mt-2.5 grid grid-cols-2 gap-1.5">
-          ${assetTile('待排课次', `${p.stats.pendingTs} 节`, t)}
-          ${assetTile('未来已排', `${p.stats.upcoming} 节`, t)}
-          ${assetTile('临时课可约', `${p.stats.temp ?? 0} 节`, t)}
-          ${assetTile('历史结课', `${p.stats.completed} 节`, t)}
+          ${assetTile('待排课次', `${p.stats.pendingTs} 节`)}
+          ${assetTile('未来已排', `${p.stats.upcoming} 节`)}
+          ${assetTile('临时课可约', `${p.stats.temp ?? 0} 节`)}
+          ${assetTile('历史结课', `${p.stats.completed} 节`)}
         </div>
       </section>`;
     }
@@ -1447,18 +1453,28 @@
       const list = p.courseware || [];
       const restrictedUnbound = state.role === 'monitor' && p.staffKind === 'trial' && p.status === 'UNBOUND';
       const staff = mode === 'staff' && p.status !== 'ARCHIVED' && !restrictedUnbound;
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+      const selfActive = mode === 'parent' && p.status === 'ACTIVE' && (state.role === 'parent' || state.role === 'admin');
+      const editable = staff || selfActive;
+      const maintainHint = state.role === 'parent'
+        ? '管理员、负责班长、授课老师与家长均可维护；保存后同步至老师日历'
+        : '管理员、负责班长、授课老师与家长均可维护；保存后同步至老师日历与家长端';
+      const readonlyHint = restrictedUnbound || p.status === 'UNBOUND'
+        ? '待认领试课档案由平台管理员维护'
+        : p.status === 'ARCHIVED'
+          ? '已归档档案只读 · 不支持调整'
+          : maintainHint;
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <div class="flex items-center justify-between gap-2">
           <div class="flex min-w-0 items-center gap-2">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">${icon('book-open-check', 'h-4 w-4')}</span>
             <h2 class="truncate text-[16px] font-bold text-slate-900">在学课件</h2>
             <span class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-500">${list.length}/6</span>
           </div>
-          ${staff
-            ? `<button data-action="open-courseware" data-kind="${kind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40">调整</button>`
+          ${editable
+            ? `<button data-action="open-courseware" data-kind="${kind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">调整</button>`
             : `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`}
         </div>
-        <p class="mt-0.5 text-[12px] font-medium text-slate-500">${staff ? '保存后同步至老师日历与家长端' : restrictedUnbound ? '待认领试课档案由平台管理员维护' : p.status === 'ARCHIVED' ? '已归档档案只读 · 不支持调整' : '由管理员或负责班长维护 · 家长端只读'}</p>
+        <p class="mt-0.5 text-[12px] font-medium text-slate-500">${editable ? maintainHint : readonlyHint}</p>
         <div class="mt-2.5 space-y-1.5">
           ${list.length ? list.map((item) => {
             const cw = cwById(item.cwId);
@@ -1497,7 +1513,7 @@
           ['建档人', esc(p.createdBy || 'Sarah')]
         );
       }
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <h2 class="text-[16px] font-bold text-slate-900">基础信息</h2>
         <div class="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2.5">
           ${rows.map(([k, v]) => `<div class="min-w-0">
@@ -1523,14 +1539,14 @@
       const staffView = mode === 'staff';
       const editable = staffView && p.status !== 'ARCHIVED';
       const note = (p.notes || '').trim();
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <div class="flex items-center justify-between gap-2">
           <div class="flex min-w-0 items-center gap-2">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">${icon('notebook-pen', 'h-4 w-4')}</span>
             <h2 class="truncate text-[16px] font-bold text-slate-900">学员备注</h2>
           </div>
           ${editable
-            ? `<button data-action="open-notes" data-kind="${kind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40">编辑备注</button>`
+            ? `<button data-action="open-notes" data-kind="${kind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">编辑备注</button>`
             : `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`}
         </div>
         <p class="mt-0.5 text-[12px] font-medium text-slate-500">班长与老师可随时更新孩子的教学注意事项</p>
@@ -1551,7 +1567,7 @@
         indigo: 'border-indigo-200 bg-indigo-100 text-indigo-700',
         slate: 'border-slate-200 bg-slate-100 text-slate-700'
       };
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <div class="flex items-center justify-between gap-2">
           <div class="flex min-w-0 items-center gap-2">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">${icon('history', 'h-4 w-4')}</span>
@@ -1621,7 +1637,7 @@
       const logs = p.audit || [];
       const head = logs.slice(0, 5);
       const tail = logs.slice(5);
-      return `<details class="group rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4" ${logs.length ? '' : 'open'}>
+      return `<details class="group rounded-2xl border border-slate-300 bg-slate-50/70 p-4" ${logs.length ? '' : 'open'}>
         <summary class="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
           <span class="flex min-w-0 items-center gap-2">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">${icon('history', 'h-4 w-4')}</span>
@@ -1660,7 +1676,7 @@
           : '';
       return `<div class="absolute inset-0 z-50">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
-        <div class="absolute inset-x-4 top-1/2 max-h-[88%] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl">
+        <div class="absolute inset-x-4 top-1/2 max-h-[88%] -translate-y-1/2 overflow-y-auto rounded-2xl bg-slate-50 p-4 shadow-2xl">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <h2 class="text-[18px] font-bold tracking-tight text-slate-900">认领试课</h2>
@@ -1669,7 +1685,7 @@
             <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
           <div class="mt-3">${stepIndicator()}</div>
-          ${blockedMsg ? `<div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">${blockedMsg}</div>` : ''}
+          ${blockedMsg ? `<div class="mt-3 rounded-xl border border-amber-300 bg-amber-50/50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">${blockedMsg}</div>` : ''}
           <div class="mt-3">${state.claim.step === 1 ? claimStep1(blocked) : claimStep2(t, blocked)}</div>
         </div>
       </div>`;
@@ -1695,15 +1711,15 @@
     }
 
     function claimStep1(blocked) {
-      return `<section class="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+      return `<section class="space-y-3.5 rounded-2xl border border-slate-200/80 bg-white p-4">
         <div>
           <label for="claimNickname" class="mb-1 block text-[14px] font-semibold text-slate-700">孩子规范昵称</label>
-          <input id="claimNickname" value="${esc(state.claim.nickname)}" placeholder="如 LeoW8" maxlength="30" class="h-11 w-full rounded-xl border ${state.claim.error ? 'border-rose-300' : 'border-slate-200'} bg-white px-3 font-mono text-[16px] font-semibold text-slate-900 outline-none transition focus:border-indigo-500">
+          <input id="claimNickname" value="${esc(state.claim.nickname)}" placeholder="如 LeoW8" maxlength="30" class="h-11 w-full rounded-xl border ${state.claim.error ? 'border-rose-300' : 'border-slate-200'} bg-slate-50/70 px-3.5 font-mono text-[16px] font-semibold text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
           <p class="mt-1 text-[12px] font-medium text-slate-500">昵称可向建档老师获取</p>
         </div>
         <div>
           <label for="claimLast4" class="mb-1 block text-[14px] font-semibold text-slate-700">建档预留手机 / 微信后四位</label>
-          <input id="claimLast4" value="${esc(state.claim.last4)}" inputmode="numeric" maxlength="4" placeholder="8000" class="h-11 w-full rounded-xl border ${state.claim.error ? 'border-rose-300' : 'border-slate-200'} bg-white px-3 font-mono text-[16px] font-semibold tracking-widest text-slate-900 outline-none transition focus:border-indigo-500">
+          <input id="claimLast4" value="${esc(state.claim.last4)}" inputmode="numeric" maxlength="4" placeholder="8000" class="h-11 w-full rounded-xl border ${state.claim.error ? 'border-rose-300' : 'border-slate-200'} bg-slate-50/70 px-3.5 font-mono text-[16px] font-semibold tracking-widest text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
           <p class="mt-1 text-[12px] font-medium text-slate-500">也可由教务老师在后台绑定家长邮箱</p>
         </div>
         ${state.claim.error ? `<div id="claimError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(state.claim.error)}</div>` : ''}
@@ -1713,22 +1729,22 @@
     }
 
     function claimStep2(t, blocked) {
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+      return `<section class="rounded-2xl border border-slate-200/80 bg-white p-4">
         <div class="flex items-start gap-3">
           ${avatar(t, 'h-14 w-14', 'text-[18px]', 'indigo')}
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-1.5">
-              <span class="font-mono text-[18px] font-bold text-indigo-950">${esc(t.nickname)}</span>
+              <span class="font-mono text-[18px] font-bold text-slate-900">${esc(t.nickname)}</span>
               ${statusChip(t.status, 'admin')}
             </div>
-            <div class="mt-0.5 text-[14px] font-medium text-indigo-900/85">${esc(t.realName)} · ${genderLabel(t.gender)} · ${t.age}岁</div>
-            <div class="mt-0.5 text-[12px] font-medium text-indigo-700">历史试课 ${t.trialLessons} 节</div>
+            <div class="mt-0.5 text-[14px] font-medium text-slate-600">${esc(t.realName)} · ${genderLabel(t.gender)} · ${t.age}岁</div>
+            <div class="mt-0.5 text-[12px] font-medium text-slate-600">历史试课 ${t.trialLessons} 节</div>
           </div>
         </div>
-        <div class="mt-3 rounded-xl bg-white/60 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900/85">历史排课、学员备注与试课购课单将无缝并入您的名下。</div>
+        <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">历史排课、学员备注与试课购课单将无缝并入您的名下。</div>
         ${state.claim.error ? `<div id="claimError" class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(state.claim.error)}</div>` : ''}
         <div class="mt-3 flex gap-2">
-          <button data-action="claim-back" class="h-11 flex-1 rounded-xl border border-indigo-200 bg-white/70 text-[16px] font-semibold text-indigo-700">返回修改</button>
+          <button data-action="claim-back" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">返回修改</button>
           <button data-action="claim-confirm" ${blocked ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300">确认认领并绑定</button>
         </div>
       </section>`;
@@ -1749,14 +1765,14 @@
       const tablet = state.device === 'tablet';
       const options = counselorOptions();
       const counselorSelect = isAdmin
-        ? `<select id="staffCounselor" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] font-semibold text-slate-700 outline-none transition focus:border-indigo-500">
+        ? `<select id="staffCounselor" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] font-semibold text-slate-700 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
             <option value="all" ${state.staffCounselor === 'all' ? 'selected' : ''}>全部班长</option>
             <option value="mine" ${state.staffCounselor === 'mine' ? 'selected' : ''}>我直管</option>
             <option value="platform" ${state.staffCounselor === 'platform' ? 'selected' : ''}>平台未划拨</option>
             ${options.filter((k) => k !== 'Sarah' && k !== 'platform').map((k) => `<option value="${esc(k)}" ${state.staffCounselor === k ? 'selected' : ''}>班长 ${esc(k)}</option>`).join('')}
           </select>`
         : '';
-      const seg = (key, label, count) => `<button data-action="staff-tab" data-tab="${key}" class="flex-1 rounded-xl px-2 py-2 text-[12px] font-bold transition ${state.staffTab === key ? 'bg-white text-indigo-700' : 'text-slate-500'}">${label}${count ? ` (${count})` : ''}</button>`;
+      const seg = (key, label, count) => `<button data-action="staff-tab" data-tab="${key}" class="h-8 shrink-0 whitespace-nowrap rounded-full border-0 px-3 text-[12px] transition ${state.staffTab === key ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}${count ? ` (${count})` : ''}</button>`;
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         <div class="flex items-end justify-between gap-3 px-1">
           <div class="min-w-0">
@@ -1768,23 +1784,23 @@
         <div class="space-y-2">
           <div class="relative">
             <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-            <input id="staffSearch" value="${esc(state.staffQuery)}" placeholder="搜索昵称 / 学员姓名或小名" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
+            <input id="staffSearch" value="${esc(state.staffQuery)}" placeholder="搜索昵称 / 学员姓名或小名" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
           </div>
           ${counselorSelect}
         </div>
-        <div class="flex gap-1 rounded-2xl bg-slate-200/60 p-1">
+        <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
           ${seg('all', '全部', counts.all)}
           ${seg('active', '在读', counts.active)}
           ${seg('archived', '已归档', counts.archived)}
         </div>
-        ${items.some((p) => scheduleChild(p).demo) ? `<div class="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-600">
+        ${items.some((p) => scheduleChild(p).demo) ? `<div class="flex items-start gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2 text-[12px] font-medium text-slate-600">
           <span class="mt-0.5 shrink-0 text-slate-500">${icon('info', 'h-3.5 w-3.5')}</span>
           <span>演示数据：非 Alice / Bob 学员的课表统一展示 Alice 的周课表</span>
         </div>` : ''}
         <div class="${tablet ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">
           ${items.length
             ? items.map((p) => staffRow(p)).join('')
-            : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">没有匹配的学员</div>`}
+            : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center text-[14px] font-medium text-slate-500">没有匹配的学员</div>`}
         </div>
       </div>`;
     }
@@ -1792,7 +1808,8 @@
     function staffRow(p) {
       const cw = p.courseware && p.courseware.length ? cwById(p.courseware[0].cwId) : null;
       const schedule = scheduleChild(p);
-      return `<article class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
+      const archived = p.status === 'ARCHIVED';
+      return `<article class="rounded-2xl border ${archived ? 'border-dashed border-slate-400 bg-slate-50/60 opacity-60' : 'border-slate-300 bg-slate-50/70'} p-3">
         <button data-action="staff-open" data-kind="${p.staffKind}" data-id="${p.id}" class="flex w-full items-center gap-3 text-left">
           ${avatar(p, 'h-11 w-11', 'text-[16px]')}
           <div class="min-w-0 flex-1">
@@ -1811,10 +1828,10 @@
           </div>
           ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
         </button>
-        <div class="mt-2 flex gap-1.5 border-t border-slate-100 pt-2">
-          <a href="${scheduleUrl(p)}" target="_blank" rel="noopener" title="${schedule.demo ? '演示数据：该学员课表统一展示 Alice 的周课表' : '查看该学员周课表'}" class="flex h-8 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">${icon('calendar-days', 'h-3.5 w-3.5 shrink-0')}查看课表</a>
-          <button data-action="buy4" data-nick="${esc(p.nickname)}" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-indigo-600 text-[12px] font-bold text-white transition hover:bg-indigo-700">${icon('plus', 'h-3.5 w-3.5')}买4排4</button>
-          <button data-action="staff-open" data-kind="${p.staffKind}" data-id="${p.id}" class="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">档案 / 学情 ↗</button>
+        <div class="mt-2 flex items-center gap-3 border-t border-slate-100 pt-2">
+          <button data-action="buy4" data-nick="${esc(p.nickname)}" class="inline-flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70">${icon('plus', 'h-3.5 w-3.5 shrink-0')}买4排4</button>
+          <a href="${scheduleUrl(p)}" target="_blank" rel="noopener" title="${schedule.demo ? '演示数据：该学员课表统一展示 Alice 的周课表' : '查看该学员周课表'}" class="inline-flex items-center gap-0.5 whitespace-nowrap text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">查看课表 →</a>
+          <button data-action="staff-open" data-kind="${p.staffKind}" data-id="${p.id}" class="ml-auto whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">档案 / 学情 →</button>
         </div>
       </article>`;
     }
@@ -1827,10 +1844,8 @@
       if (!p) return renderStaffList();
       const isTrial = p.staffKind === 'trial';
       const canBind = isTrial && (p.status === 'UNBOUND' || p.status === 'TRIALING');
-      const backLabel = isTrial ? '试课学员' : (state.role === 'admin' ? '全员学员' : '所辖学员');
       const schedule = scheduleChild(p);
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3 pb-10">
-        ${backRow('back-staff', backLabel)}
         ${identityCard(p, 'staff')}
         ${leaveRiskCard(p)}
         ${canBind ? bindCard(p) : ''}
@@ -1839,15 +1854,15 @@
         ${infoCard(p, 'staff')}
         ${notesCard(p, 'staff', p.staffKind)}
         ${lessonHistoryCard()}
-        ${isTrial && p.status === 'ACTIVE' ? `<div class="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-[12px] font-medium text-emerald-800">已认领并绑定至 ${esc(p.parentEmail || '家长账号')}${p.claimedAt ? ` · ${esc(p.claimedAt)}` : ''}</div>` : ''}
-        ${isTrial && p.status === 'ARCHIVED' ? `<div class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[12px] font-medium text-slate-500">已于 ${esc(p.archivedAt || '—')} 归档 · 昵称仍保持占用</div>` : ''}
+        ${isTrial && p.status === 'ACTIVE' ? `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium text-slate-600">已认领并绑定至 ${esc(p.parentEmail || '家长账号')}${p.claimedAt ? ` · ${esc(p.claimedAt)}` : ''}</div>` : ''}
+        ${isTrial && p.status === 'ARCHIVED' ? `<div class="rounded-xl border border-dashed border-slate-400 bg-slate-50/60 px-3 py-2.5 text-[12px] font-medium text-slate-600 opacity-60">已于 ${esc(p.archivedAt || '—')} 归档 · 昵称仍保持占用</div>` : ''}
         ${auditCard(p)}
-        ${schedule.demo ? `<div class="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-600">
+        ${schedule.demo ? `<div class="flex items-start gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2 text-[12px] font-medium text-slate-600">
           <span class="mt-0.5 shrink-0 text-slate-500">${icon('info', 'h-3.5 w-3.5')}</span>
           <span>演示数据：该学员课表展示 Alice 的周课表</span>
         </div>` : ''}
         <div class="flex gap-2">
-          <a href="${scheduleUrl(p)}" target="_blank" rel="noopener" title="${schedule.demo ? '演示数据：该学员课表统一展示 Alice 的周课表' : '查看该学员周课表'}" class="flex h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-700 transition hover:bg-slate-50">${icon('calendar-days', 'h-4 w-4 shrink-0')}查看课表</a>
+          <a href="${scheduleUrl(p)}" target="_blank" rel="noopener" title="${schedule.demo ? '演示数据：该学员课表统一展示 Alice 的周课表' : '查看该学员周课表'}" class="flex h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">${icon('calendar-days', 'h-4 w-4 shrink-0')}查看课表</a>
           ${isTrial
             ? `<button data-action="toast" data-message="已打开 1v1 临时课代约" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${icon('calendar-plus', 'h-4 w-4')}代约试课</button>`
             : `<button data-action="buy4" data-nick="${esc(p.nickname)}" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${icon('plus', 'h-4 w-4')}买4排4</button>`}
@@ -1857,7 +1872,7 @@
 
     function bindCard(t) {
       const expiring = t.status === 'UNBOUND' && t.daysLeft <= 7;
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <h2 class="text-[16px] font-bold text-slate-900">${t.status === 'TRIALING' ? '试课中 · 可绑定家长' : '待认领试课档案'}</h2>
@@ -1865,9 +1880,9 @@
           </div>
           ${expiring ? `<span class="shrink-0 text-[12px] font-medium text-rose-700">(剩 ${t.daysLeft} 天归档)</span>` : ''}
         </div>
-        <div class="mt-3 flex gap-2">
-          <button data-action="open-bind" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-10 flex-1 rounded-lg bg-indigo-600 text-[14px] font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">绑定家长 Email</button>
-          <button data-action="toast" data-message="已打开 1v1 临时课代约" class="h-10 flex-1 rounded-lg border border-slate-300 bg-white text-[14px] font-bold text-slate-700 transition hover:bg-slate-50">代约试课</button>
+        <div class="mt-3 flex items-center gap-3">
+          <button data-action="open-bind" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-40">绑定家长 Email</button>
+          <button data-action="toast" data-message="已打开 1v1 临时课代约" class="whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">代约试课 →</button>
         </div>
       </section>`;
     }
@@ -1892,17 +1907,17 @@
         return [t.nickname, t.realName, t.englishName, t.contact].some((v) => String(v || '').toLowerCase().includes(q));
       });
       const tablet = state.device === 'tablet';
-      const seg = (key, label, count) => `<button data-action="set-admin-tab" data-tab="${key}" class="flex-1 whitespace-nowrap rounded-xl px-1.5 py-2 text-[12px] font-bold transition ${state.adminTab === key ? 'bg-white text-indigo-700' : 'text-slate-500'}">${label}${count ? ` (${count})` : ''}</button>`;
+      const seg = (key, label, count) => `<button data-action="set-admin-tab" data-tab="${key}" class="h-6 shrink-0 whitespace-nowrap rounded-full border-0 px-2.5 text-[11px] transition ${state.adminTab === key ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}${count ? ` (${count})` : ''}</button>`;
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         <div class="flex items-center justify-between gap-3 px-1">
           <p class="min-w-0 text-[12px] font-medium text-slate-600">免注册代建 · 30 天未认领自动归档</p>
-          <button data-action="open-trial" ${state.online === 'off' ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 新建试课</button>
+          <button data-action="open-trial" ${state.online === 'off' ? 'disabled' : ''} class="h-11 shrink-0 rounded-xl bg-indigo-600 px-4 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 新建试课</button>
         </div>
         <div class="relative">
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-          <input id="trialSearch" value="${esc(state.trialQuery)}" placeholder="搜索昵称 / 学员姓名或小名" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
+          <input id="trialSearch" value="${esc(state.trialQuery)}" placeholder="搜索昵称 / 学员姓名或小名" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
         </div>
-        <div class="flex gap-1 overflow-x-auto rounded-2xl bg-slate-200/60 p-1">
+        <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
           ${seg('all', '全部', counts.all)}
           ${seg('unbound', '待认领', counts.unbound)}
           ${seg('trialing', '试课中', counts.trialing)}
@@ -1912,14 +1927,15 @@
         <div class="${tablet ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">
           ${list.length
             ? list.map((t) => trialCard(t)).join('')
-            : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">没有匹配的试课学员</div>`}
+            : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center text-[14px] font-medium text-slate-500">没有匹配的试课学员</div>`}
         </div>
       </div>`;
     }
 
     function trialCard(t) {
       const expiring = t.status === 'UNBOUND' && t.daysLeft <= 7;
-      return `<article class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
+      const archived = t.status === 'ARCHIVED';
+      return `<article class="rounded-2xl border ${archived ? 'border-dashed border-slate-400 bg-slate-50/60 opacity-60' : 'border-slate-300 bg-slate-50/70'} p-3">
         <button data-action="staff-open" data-kind="trial" data-id="${t.id}" class="flex w-full items-center gap-2.5 text-left">
           ${avatar(t, 'h-10 w-10', 'text-[14px]', 'slate')}
           <div class="min-w-0 flex-1">
@@ -1939,10 +1955,10 @@
           <div class="flex items-center justify-between gap-3"><span class="shrink-0">建档人</span><span class="truncate text-right font-semibold text-slate-700">${esc(t.createdBy || 'Sarah')}</span></div>
           ${expiring ? `<div class="text-right font-medium text-rose-700">(剩 ${t.daysLeft} 天归档)</div>` : ''}
         </div>
-        <div class="mt-2 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2">
-          ${t.status === 'UNBOUND' || t.status === 'TRIALING' ? `<button data-action="open-bind" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">绑定家长 Email</button>` : ''}
-          ${t.status === 'UNBOUND' || t.status === 'TRIALING' ? `<button data-action="toast" data-message="已打开 1v1 临时课代约" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">代约试课</button>` : ''}
-          <button data-action="staff-open" data-kind="trial" data-id="${t.id}" class="ml-auto h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">综合档案详情</button>
+        <div class="mt-2 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-2">
+          ${t.status === 'UNBOUND' || t.status === 'TRIALING' ? `<button data-action="open-bind" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-40">绑定家长 Email</button>` : ''}
+          ${t.status === 'UNBOUND' || t.status === 'TRIALING' ? `<button data-action="toast" data-message="已打开 1v1 临时课代约" class="whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">代约试课 →</button>` : ''}
+          <button data-action="staff-open" data-kind="trial" data-id="${t.id}" class="ml-auto whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">综合档案详情 →</button>
         </div>
       </article>`;
     }
@@ -1985,10 +2001,10 @@
       const f = state.form;
       const isEdit = f.mode === 'edit';
       const invalid = !!profileFormError(f);
-      const inputCls = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500';
+      const inputCls = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15';
       const initial = (f.englishName || '?').trim().charAt(0).toUpperCase() || '?';
-      return `<div class="absolute inset-0 z-50 flex flex-col bg-white">
-        <div class="flex min-h-[56px] shrink-0 items-center justify-between border-b border-slate-200 px-4 py-2">
+      return `<div class="absolute inset-0 z-50 flex flex-col bg-slate-50">
+        <div class="flex min-h-[56px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-2">
           <div class="min-w-0">
             <h2 class="truncate text-[16px] font-bold text-slate-900">${isEdit ? '编辑学员档案' : '添加学员档案'}</h2>
             <p class="truncate text-[12px] font-medium text-slate-500">${esc(f.reason || '规范昵称全平台唯一')}</p>
@@ -1997,76 +2013,91 @@
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-          <div class="space-y-3.5">
-            <div class="flex items-center gap-3.5">
-              <label class="relative grid h-16 w-16 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-full border border-slate-300 bg-white">
-                <img id="avatarPreview" src="${esc(f.avatarDataUrl)}" class="${f.avatarDataUrl ? '' : 'hidden'} h-full w-full object-cover" alt="">
-                <span id="avatarInitial" class="${f.avatarDataUrl ? 'hidden' : ''} text-[18px] font-bold text-slate-500">${esc(initial)}</span>
-                <input id="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
-              </label>
-              <div class="min-w-0">
-                <label for="avatarInput" class="inline-flex h-9 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 text-[14px] font-semibold text-slate-700 hover:bg-slate-50">选择照片</label>
-                <p class="mt-1 text-[12px] font-medium text-slate-500">1:1 · JPG/PNG/WebP · ≤ 2MB</p>
+          <div class="space-y-3">
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+              <div class="flex items-center gap-2">
+                <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">1</span>
+                <h3 class="text-[14px] font-bold text-slate-900">学员信息</h3>
               </div>
-            </div>
+              <div class="flex items-center gap-3.5">
+                <label class="relative grid h-16 w-16 shrink-0 cursor-pointer place-items-center overflow-hidden rounded-full border border-slate-300 bg-slate-50/70">
+                  <img id="avatarPreview" src="${esc(f.avatarDataUrl)}" class="${f.avatarDataUrl ? '' : 'hidden'} h-full w-full object-cover" alt="">
+                  <span id="avatarInitial" class="${f.avatarDataUrl ? 'hidden' : ''} text-[18px] font-bold text-slate-500">${esc(initial)}</span>
+                  <input id="avatarInput" type="file" accept="image/jpeg,image/png,image/webp" class="hidden">
+                </label>
+                <div class="min-w-0">
+                  <label for="avatarInput" class="inline-flex h-9 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 text-[14px] font-semibold text-slate-700 hover:bg-slate-50">选择照片</label>
+                  <p class="mt-1 text-[12px] font-medium text-slate-500">1:1 · JPG/PNG/WebP · ≤ 2MB</p>
+                </div>
+              </div>
 
-            <div>
-              <label for="fRealName" class="mb-1 block text-[14px] font-semibold text-slate-700">学员姓名或小名</label>
-              <input id="fRealName" value="${esc(f.realName)}" placeholder="张小丽 / 小丽" maxlength="24" class="${inputCls}">
-            </div>
-
-            <div class="grid grid-cols-[1fr_76px_76px] gap-2">
               <div>
-                <label for="fEnglish" class="mb-1 block text-[14px] font-semibold text-slate-700">英文名</label>
-                <input id="fEnglish" value="${esc(f.englishName)}" placeholder="Alice" maxlength="24" autocomplete="off" class="${inputCls}">
+                <label for="fRealName" class="mb-1 block text-[14px] font-semibold text-slate-700">学员姓名或小名</label>
+                <input id="fRealName" value="${esc(f.realName)}" placeholder="张小丽 / 小丽" maxlength="24" class="${inputCls}">
               </div>
+
+              <div class="grid grid-cols-[1fr_76px_76px] gap-2">
+                <div>
+                  <label for="fEnglish" class="mb-1 block text-[14px] font-semibold text-slate-700">英文名</label>
+                  <input id="fEnglish" value="${esc(f.englishName)}" placeholder="Alice" maxlength="24" autocomplete="off" class="${inputCls}">
+                </div>
+                <div>
+                  <label for="fInitial" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">姓首字母</label>
+                  <input id="fInitial" value="${esc(f.initial)}" placeholder="Z" maxlength="1" autocomplete="off" class="${inputCls} text-center font-mono uppercase">
+                </div>
+                <div>
+                  <label for="fAge" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">年龄</label>
+                  <input id="fAge" type="number" min="1" max="99" value="${esc(f.age)}" placeholder="12" inputmode="numeric" class="${inputCls} text-center">
+                </div>
+              </div>
+
               <div>
-                <label for="fInitial" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">姓首字母</label>
-                <input id="fInitial" value="${esc(f.initial)}" placeholder="Z" maxlength="1" autocomplete="off" class="${inputCls} text-center font-mono uppercase">
+                <label for="fSuffix" class="mb-1 block text-[14px] font-semibold text-slate-700">微调后缀 <span class="font-normal text-[12px] text-slate-500">（可选，重名时使用）</span></label>
+                <input id="fSuffix" value="${esc(f.suffix)}" placeholder="b" maxlength="3" autocomplete="off" class="${inputCls} w-36 font-mono lowercase">
               </div>
+
               <div>
-                <label for="fAge" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">年龄</label>
-                <input id="fAge" type="number" min="1" max="99" value="${esc(f.age)}" placeholder="12" inputmode="numeric" class="${inputCls} text-center">
+                <span class="mb-1 block text-[14px] font-semibold text-slate-700">性别</span>
+                <div class="grid grid-cols-3 gap-2">
+                  ${['male', 'female', 'undisclosed'].map((g) => `<button data-action="toggle-gender" data-gender="${g}" class="h-11 rounded-xl border px-2 text-[14px] font-semibold transition ${f.gender === g ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'}">${genderLabel(g)}</button>`).join('')}
+                </div>
               </div>
-            </div>
+            </section>
 
-            <div class="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5">
-              <div class="flex items-center justify-between">
-                <span class="text-[12px] font-semibold text-indigo-700">系统生成规范昵称</span>
-                <span class="flex items-center gap-1 text-[12px] font-medium text-indigo-700">${icon('lock', 'h-3.5 w-3.5')}全平台唯一</span>
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+              <div class="flex items-center gap-2">
+                <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">2</span>
+                <h3 class="text-[14px] font-bold text-slate-900">规范昵称</h3>
               </div>
-              <div id="nickPreview" class="mt-0.5 break-all font-mono text-[18px] font-bold ${computeNickname(f) ? 'text-indigo-950' : 'text-indigo-300'}">${esc(computeNickname(f) || '英文名+首字母+年龄')}</div>
-              <div id="nickStatus" class="mt-0.5 text-[12px] font-medium"></div>
-            </div>
-
-            <div>
-              <label for="fSuffix" class="mb-1 block text-[14px] font-semibold text-slate-700">微调后缀 <span class="font-normal text-[12px] text-slate-500">（可选，重名时使用）</span></label>
-              <input id="fSuffix" value="${esc(f.suffix)}" placeholder="b" maxlength="3" autocomplete="off" class="${inputCls} w-36 font-mono lowercase">
-            </div>
-
-            <div>
-              <span class="mb-1 block text-[14px] font-semibold text-slate-700">性别</span>
-              <div class="inline-flex rounded-xl bg-slate-100 p-1">
-                ${['male', 'female', 'undisclosed'].map((g) => `<button data-action="toggle-gender" data-gender="${g}" class="h-9 rounded-lg px-4 text-[14px] font-semibold ${f.gender === g ? 'bg-white text-slate-900' : 'text-slate-500'}">${genderLabel(g)}</button>`).join('')}
+              <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[12px] font-semibold text-slate-700">系统生成规范昵称</span>
+                  <span class="flex items-center gap-1 text-[12px] font-medium text-slate-500">${icon('lock', 'h-3.5 w-3.5')}全平台唯一</span>
+                </div>
+                <div id="nickPreview" class="mt-0.5 break-all font-mono text-[18px] font-bold ${computeNickname(f) ? 'text-slate-900' : 'text-slate-500'}">${esc(computeNickname(f) || '英文名+首字母+年龄')}</div>
+                <div id="nickStatus" class="mt-0.5 text-[12px] font-medium"></div>
               </div>
-            </div>
+            </section>
 
-            <div>
-              <div class="mb-1 flex items-center justify-between">
-                <span class="text-[14px] font-semibold text-slate-700">选课偏好</span>
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">3</span>
+                  <h3 class="text-[14px] font-bold text-slate-900">选课偏好</h3>
+                </div>
                 <span class="text-[12px] font-medium text-slate-500">不选即不限</span>
               </div>
               <div class="flex flex-wrap gap-1.5">
-                ${COURSE_TYPES.map((t) => `<button data-action="toggle-pref" data-pref="${esc(t)}" class="h-8 rounded-lg border px-2.5 text-[12px] font-semibold ${f.prefs.includes(t) ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600'}">${esc(t)}</button>`).join('')}
+                ${COURSE_TYPES.map((t) => `<button data-action="toggle-pref" data-pref="${esc(t)}" class="h-8 rounded-lg border px-2.5 text-[12px] font-semibold transition ${f.prefs.includes(t) ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'}">${esc(t)}</button>`).join('')}
               </div>
-            </div>
+            </section>
 
             ${f.error ? `<div id="profileError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(f.error)}</div>` : ''}
           </div>
         </div>
 
-        <div class="flex shrink-0 gap-2 border-t border-slate-200 px-4 py-3">
-          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-700 hover:bg-slate-50">取消</button>
+        <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
           <button id="btnSubmitProfile" data-action="submit-profile" ${invalid ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${isEdit ? '保存修改' : '确认创建'}</button>
         </div>
       </div>`;
@@ -2075,9 +2106,9 @@
     function renderTrialSheet() {
       const f = state.trialForm;
       const invalid = !!trialFormError(f);
-      const inputCls = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500';
-      return `<div class="absolute inset-0 z-50 flex flex-col bg-white">
-        <div class="flex min-h-[56px] shrink-0 items-center justify-between border-b border-slate-200 px-4 py-2">
+      const inputCls = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15';
+      return `<div class="absolute inset-0 z-50 flex flex-col bg-slate-50">
+        <div class="flex min-h-[56px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-2">
           <div class="min-w-0">
             <h2 class="truncate text-[16px] font-bold text-slate-900">创建试课学员档案</h2>
             <p class="truncate text-[12px] font-medium text-slate-500">待认领 · 30 天未认领自动归档</p>
@@ -2086,60 +2117,78 @@
         </div>
 
         <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-          <div class="space-y-3.5">
-            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">档案暂归平台托管，家长注册后可自助认领或由教务绑定。</div>
+          <div class="space-y-3">
+            <div class="rounded-xl border border-amber-300 bg-amber-50/50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">档案暂归平台托管，家长注册后可自助认领或由教务绑定。</div>
 
-            <div>
-              <label for="fTrialRealName" class="mb-1 block text-[14px] font-semibold text-slate-700">学员姓名或小名</label>
-              <input id="fTrialRealName" value="${esc(f.realName)}" placeholder="王小明 / 小明" maxlength="24" class="${inputCls}">
-            </div>
-
-            <div class="grid grid-cols-[1fr_76px_76px] gap-2">
-              <div>
-                <label for="fTrialEnglish" class="mb-1 block text-[14px] font-semibold text-slate-700">英文名</label>
-                <input id="fTrialEnglish" value="${esc(f.englishName)}" placeholder="Leo" maxlength="24" autocomplete="off" class="${inputCls}">
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+              <div class="flex items-center gap-2">
+                <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">1</span>
+                <h3 class="text-[14px] font-bold text-slate-900">学员信息</h3>
               </div>
               <div>
-                <label for="fTrialInitial" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">姓首字母</label>
-                <input id="fTrialInitial" value="${esc(f.initial)}" placeholder="W" maxlength="1" autocomplete="off" class="${inputCls} text-center font-mono uppercase">
+                <label for="fTrialRealName" class="mb-1 block text-[14px] font-semibold text-slate-700">学员姓名或小名</label>
+                <input id="fTrialRealName" value="${esc(f.realName)}" placeholder="王小明 / 小明" maxlength="24" class="${inputCls}">
+              </div>
+
+              <div class="grid grid-cols-[1fr_76px_76px] gap-2">
+                <div>
+                  <label for="fTrialEnglish" class="mb-1 block text-[14px] font-semibold text-slate-700">英文名</label>
+                  <input id="fTrialEnglish" value="${esc(f.englishName)}" placeholder="Leo" maxlength="24" autocomplete="off" class="${inputCls}">
+                </div>
+                <div>
+                  <label for="fTrialInitial" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">姓首字母</label>
+                  <input id="fTrialInitial" value="${esc(f.initial)}" placeholder="W" maxlength="1" autocomplete="off" class="${inputCls} text-center font-mono uppercase">
+                </div>
+                <div>
+                  <label for="fTrialAge" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">年龄</label>
+                  <input id="fTrialAge" type="number" min="1" max="99" value="${esc(f.age)}" placeholder="8" inputmode="numeric" class="${inputCls} text-center">
+                </div>
+              </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+              <div class="flex items-center gap-2">
+                <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">2</span>
+                <h3 class="text-[14px] font-bold text-slate-900">规范昵称</h3>
+              </div>
+              <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[12px] font-semibold text-slate-700">系统生成规范昵称</span>
+                  <span class="flex items-center gap-1 text-[12px] font-medium text-slate-500">${icon('lock', 'h-3.5 w-3.5')}全平台唯一</span>
+                </div>
+                <div id="trialNickPreview" class="mt-0.5 break-all font-mono text-[18px] font-bold ${computeNickname(f) ? 'text-slate-900' : 'text-slate-500'}">${esc(computeNickname(f) || '英文名+首字母+年龄')}</div>
+                <div id="trialNickStatus" class="mt-0.5 text-[12px] font-medium"></div>
+              </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+              <div class="flex items-center gap-2">
+                <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">3</span>
+                <h3 class="text-[14px] font-bold text-slate-900">联系与偏好</h3>
               </div>
               <div>
-                <label for="fTrialAge" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">年龄</label>
-                <input id="fTrialAge" type="number" min="1" max="99" value="${esc(f.age)}" placeholder="8" inputmode="numeric" class="${inputCls} text-center">
+                <label for="fTrialContact" class="mb-1 block text-[14px] font-semibold text-slate-700">家长联系方式</label>
+                <input id="fTrialContact" value="${esc(f.contact)}" placeholder="13800138000 / WeChat_ID" maxlength="32" class="${inputCls}">
+                <p class="mt-1 text-[12px] font-medium text-slate-500">用于认领核验与线下排课通知</p>
               </div>
-            </div>
 
-            <div class="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5">
-              <div class="flex items-center justify-between">
-                <span class="text-[12px] font-semibold text-indigo-700">系统生成规范昵称</span>
-                <span class="flex items-center gap-1 text-[12px] font-medium text-indigo-700">${icon('lock', 'h-3.5 w-3.5')}全平台唯一</span>
+              <div>
+                <div class="mb-1 flex items-center justify-between">
+                  <span class="text-[14px] font-semibold text-slate-700">选课偏好</span>
+                  <span class="text-[12px] font-medium text-slate-500">选填</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  ${COURSE_TYPES.map((t) => `<button data-action="toggle-trial-pref" data-pref="${esc(t)}" class="h-8 rounded-lg border px-2.5 text-[12px] font-semibold transition ${f.prefs.includes(t) ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'}">${esc(t)}</button>`).join('')}
+                </div>
               </div>
-              <div id="trialNickPreview" class="mt-0.5 break-all font-mono text-[18px] font-bold ${computeNickname(f) ? 'text-indigo-950' : 'text-indigo-300'}">${esc(computeNickname(f) || '英文名+首字母+年龄')}</div>
-              <div id="trialNickStatus" class="mt-0.5 text-[12px] font-medium"></div>
-            </div>
-
-            <div>
-              <label for="fTrialContact" class="mb-1 block text-[14px] font-semibold text-slate-700">家长联系方式</label>
-              <input id="fTrialContact" value="${esc(f.contact)}" placeholder="13800138000 / WeChat_ID" maxlength="32" class="${inputCls}">
-              <p class="mt-1 text-[12px] font-medium text-slate-500">用于认领核验与线下排课通知</p>
-            </div>
-
-            <div>
-              <div class="mb-1 flex items-center justify-between">
-                <span class="text-[14px] font-semibold text-slate-700">选课偏好</span>
-                <span class="text-[12px] font-medium text-slate-500">选填</span>
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                ${COURSE_TYPES.map((t) => `<button data-action="toggle-trial-pref" data-pref="${esc(t)}" class="h-8 rounded-lg border px-2.5 text-[12px] font-semibold ${f.prefs.includes(t) ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600'}">${esc(t)}</button>`).join('')}
-              </div>
-            </div>
+            </section>
 
             ${f.error ? `<div id="trialError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(f.error)}</div>` : ''}
           </div>
         </div>
 
-        <div class="flex shrink-0 gap-2 border-t border-slate-200 px-4 py-3">
-          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-700 hover:bg-slate-50">取消</button>
+        <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
           <button id="btnSubmitTrial" data-action="submit-trial" ${invalid ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认创建并去排课</button>
         </div>
       </div>`;
@@ -2163,8 +2212,8 @@
             </div>
             <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">注销后昵称永久保留、不可再次使用；历史学员备注与财务单据只读封存。</p>
             <div class="mt-4 flex gap-2">
-              <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-700 hover:bg-slate-50">取消</button>
-              <button data-action="guard-delete" data-id="${p.id}" class="h-11 flex-1 rounded-xl bg-rose-600 text-[16px] font-semibold text-white">确认注销</button>
+              <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+              <button data-action="guard-delete" data-id="${p.id}" class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white">确认注销</button>
             </div>
           </div>
         </div>`;
@@ -2200,7 +2249,7 @@
           </div>
 
           <div class="mt-4 flex gap-2">
-            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-700 hover:bg-slate-50">知道了</button>
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">知道了</button>
             <button data-action="contact-monitor" class="h-11 flex-1 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white">联系班长清退</button>
           </div>
         </div>
@@ -2223,7 +2272,7 @@
 
           <div class="mt-4">
             <label for="bindEmail" class="mb-1 block text-[14px] font-semibold text-slate-700">家长注册邮箱</label>
-            <input id="bindEmail" type="email" value="${esc(state.bind.email)}" placeholder="parent@example.com" class="h-11 w-full rounded-xl border ${state.bind.error ? 'border-rose-300' : 'border-slate-200'} bg-white px-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
+            <input id="bindEmail" type="email" value="${esc(state.bind.email)}" placeholder="parent@example.com" class="h-11 w-full rounded-xl border ${state.bind.error ? 'border-rose-300' : 'border-slate-200'} bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
             <p class="mt-1 text-[12px] font-medium text-slate-500">系统将核验该邮箱是否已注册</p>
             <p class="mt-0.5 text-[12px] font-medium text-slate-500">演示可用：grace@example.com</p>
           </div>
@@ -2231,7 +2280,7 @@
           ${state.bind.error ? `<div id="bindError" class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(state.bind.error)}</div>` : ''}
 
           <div class="mt-4 flex gap-2">
-            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-700 hover:bg-slate-50">取消</button>
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
             <button data-action="submit-bind" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认绑定</button>
           </div>
         </div>
@@ -2259,7 +2308,7 @@
           </div>
 
           <div class="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-4 pb-3">
-            <div class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-500">仅管理员与负责班长可维护；家长端只读，保存后同步至老师日历。</div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">支持管理员、负责班长、授课老师与所属家长维护；家长仅可调整本人名下在读孩子；保存后同步至老师日历并提醒负责班长与授课老师。</div>
 
             ${draft.length ? draft.map((item, i) => {
               const info = cwById(item.cwId);
@@ -2270,7 +2319,7 @@
                   <div class="truncate text-[12px] font-medium text-slate-500">${esc(info.nameCn)}</div>
                 </div>
                 ${info.levels.length
-                  ? `<select id="cwLevel-${i}" class="h-9 shrink-0 rounded-lg border border-slate-200 bg-white px-2 text-[14px] font-semibold text-slate-700 outline-none focus:border-indigo-500">
+                  ? `<select id="cwLevel-${i}" class="h-9 shrink-0 rounded-lg border border-slate-200 bg-slate-50/70 px-2 text-[14px] font-semibold text-slate-700 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
                     ${info.levels.map((l) => `<option ${l === item.level ? 'selected' : ''}>${esc(l)}</option>`).join('')}
                   </select>`
                   : `<span class="shrink-0 text-[12px] font-medium text-slate-500">标准</span>`}
@@ -2284,19 +2333,19 @@
               ? `<div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">已达 6 门上限，请先移除后再添加。</div>`
               : `<div class="space-y-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
                 <div class="text-[12px] font-bold text-slate-500">新增课件</div>
-                <select id="cwPick" class="h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-[14px] font-semibold text-slate-700 outline-none focus:border-indigo-500">
+                <select id="cwPick" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[14px] font-semibold text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15">
                   <option value="">选择课件</option>
                   ${available.map((x) => `<option value="${x.id}" ${cw.pickCw === x.id ? 'selected' : ''}>${esc(x.nameEn)} · ${esc(x.nameCn)}</option>`).join('')}
                 </select>
-                <select id="cwLevel" ${picked ? '' : 'disabled'} class="h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-[14px] font-semibold text-slate-700 outline-none focus:border-indigo-500 disabled:bg-slate-100 disabled:text-slate-500">
+                <select id="cwLevel" ${picked ? '' : 'disabled'} class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[14px] font-semibold text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 disabled:bg-slate-100 disabled:text-slate-500">
                   ${picked
                     ? picked.levels.map((l) => `<option ${l === cw.pickLevel ? 'selected' : ''}>${esc(l)}</option>`).join('')
                     : `<option>选择级别</option>`}
                 </select>
-                <button data-action="cw-add" ${canAdd ? '' : 'disabled'} class="h-9 w-full rounded-lg bg-indigo-600 text-[14px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">添加到在学课件</button>
+                <button data-action="cw-add" ${canAdd ? '' : 'disabled'} class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">添加到在学课件</button>
               </div>`}
 
-            ${target.audit && target.audit.length ? `<details class="rounded-xl border border-slate-200 bg-white p-3">
+            ${target.audit && target.audit.length ? `<details class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
               <summary class="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
                 <span class="flex min-w-0 items-center gap-1.5">
                   <span class="truncate text-[14px] font-bold text-slate-800">档案变动日志</span>
@@ -2305,7 +2354,7 @@
                 <span class="shrink-0 text-[12px] font-medium text-slate-500">${target.audit.length} 条</span>
               </summary>
               <div class="mt-2 space-y-1.5">
-                ${target.audit.slice(0, 3).map((a) => `<div class="rounded-lg bg-slate-50 px-2 py-1.5">
+                ${target.audit.slice(0, 3).map((a) => `<div class="rounded-lg bg-white px-2 py-1.5">
                   <div class="text-[12px] font-medium text-slate-600">${esc(a.at)} · ${esc(a.by)}</div>
                   <div class="mt-0.5 break-words text-[12px] font-medium leading-relaxed text-slate-700">${esc(logSummary(a))}</div>
                 </div>`).join('')}
@@ -2313,8 +2362,8 @@
             </details>` : ''}
           </div>
 
-          <div class="flex shrink-0 gap-2 border-t border-slate-200 px-4 py-3">
-            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-700 hover:bg-slate-50">取消</button>
+          <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
             <button data-action="cw-save" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">保存生效</button>
           </div>
         </div>
@@ -2336,10 +2385,10 @@
             <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
           <label for="notesInput" class="mt-3 mb-1 block text-[14px] font-semibold text-slate-700">教学注意事项</label>
-          <textarea id="notesInput" maxlength="300" rows="5" placeholder="记录孩子的性格偏好、教学注意事项等" class="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(e.text)}</textarea>
+          <textarea id="notesInput" maxlength="300" rows="5" placeholder="记录孩子的性格偏好、教学注意事项等" class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(e.text)}</textarea>
           <p class="mt-1 text-[12px] font-medium text-slate-500">纯文本 · 最多 300 字</p>
           <div class="mt-4 flex gap-2">
-            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-700 hover:bg-slate-50">取消</button>
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
             <button data-action="save-notes" class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">保存备注</button>
           </div>
         </div>
@@ -2360,7 +2409,7 @@
       if (!nickEl) return;
       const nick = computeNickname(f);
       nickEl.textContent = nick || '英文名+首字母+年龄';
-      nickEl.className = `mt-0.5 break-all font-mono text-[18px] font-bold ${nick ? 'text-indigo-950' : 'text-indigo-300'}`;
+      nickEl.className = `mt-0.5 break-all font-mono text-[18px] font-bold ${nick ? 'text-slate-900' : 'text-slate-500'}`;
 
       const statusEl = $('nickStatus');
       if (statusEl) statusEl.innerHTML = statusLine(profileNicknameStatus(f));
@@ -2380,7 +2429,7 @@
       if (!nickEl) return;
       const nick = computeNickname(f);
       nickEl.textContent = nick || '英文名+首字母+年龄';
-      nickEl.className = `mt-0.5 break-all font-mono text-[18px] font-bold ${nick ? 'text-indigo-950' : 'text-indigo-300'}`;
+      nickEl.className = `mt-0.5 break-all font-mono text-[18px] font-bold ${nick ? 'text-slate-900' : 'text-slate-500'}`;
 
       const statusEl = $('trialNickStatus');
       if (statusEl) statusEl.innerHTML = statusLine(trialNicknameStatus(f));
@@ -2523,7 +2572,7 @@
         clearProfileError();
         document.querySelectorAll('[data-action="toggle-gender"]').forEach((b) => {
           const on = b.dataset.gender === state.form.gender;
-          b.className = `h-9 rounded-lg px-4 text-[14px] font-semibold ${on ? 'bg-white text-slate-900' : 'text-slate-500'}`;
+          b.className = `h-11 rounded-xl border px-2 text-[14px] font-semibold transition ${on ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'}`;
         });
         return;
       }
@@ -2535,7 +2584,7 @@
         clearProfileError();
         document.querySelectorAll('[data-action="toggle-pref"]').forEach((b) => {
           const on = state.form.prefs.includes(b.dataset.pref);
-          b.className = `h-8 rounded-lg border px-2.5 text-[12px] font-semibold ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`;
+          b.className = `h-8 rounded-lg border px-2.5 text-[12px] font-semibold transition ${on ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'}`;
         });
         return;
       }
@@ -2547,7 +2596,7 @@
         clearTrialError();
         document.querySelectorAll('[data-action="toggle-trial-pref"]').forEach((b) => {
           const on = state.trialForm.prefs.includes(b.dataset.pref);
-          b.className = `h-8 rounded-lg border px-2.5 text-[12px] font-semibold ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`;
+          b.className = `h-8 rounded-lg border px-2.5 text-[12px] font-semibold transition ${on ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'}`;
         });
         return;
       }
@@ -2931,6 +2980,11 @@
       if (!target) return;
       if (kind === 'trial' && target.status === 'ARCHIVED') return showToast('已归档档案不可调整课件');
       if (state.role === 'monitor' && kind === 'trial' && target.status === 'UNBOUND') return showToast('待认领试课档案由平台管理员维护');
+      if (state.role === 'parent') {
+        if (kind !== 'profile') return;
+        if (target.status === 'UNBOUND') return showToast('待认领试课档案由平台管理员维护');
+        if (target.status !== 'ACTIVE') return showToast('仅可调整本人名下在读孩子的在学课件');
+      }
       state.cw = {
         targetKind: kind,
         targetId: id,
@@ -2971,7 +3025,9 @@
       recordFieldChange(target, '在学课件与级别', coursewareSnapshot(beforeList), coursewareSnapshot(cw.draft), operatorName());
       state.overlay = null;
       renderAll();
-      showToast(`在学课件已保存，共 ${cw.draft.length} 门`);
+      showToast(state.role === 'parent'
+        ? '已保存并同步，已提醒负责班长与授课老师'
+        : `在学课件已保存，共 ${cw.draft.length} 门，已同步至老师日历与家长端`);
     }
 
     function handleAvatar(e) {

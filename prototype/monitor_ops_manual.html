@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dream 班长运营流程与规则手册</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased">
+  <!-- 顶部深色班长渐变 Banner -->
+  <header class="bg-gradient-to-br from-slate-900 via-fuchsia-950 to-slate-800 text-white shadow-md">
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span class="inline-flex items-center rounded-full bg-fuchsia-500/20 px-3 py-1 text-xs font-bold text-fuchsia-200 ring-1 ring-fuchsia-400/30">班长工作台 · SOP 手册</span>
+          <span class="text-xs text-slate-300">1v1 课次 30 分钟 · 小班课 50 分钟</span>
+        </div>
+        <span class="text-xs text-slate-300">适用对象：中方教务班长（含兼任家长）</span>
+      </div>
+      <h1 class="mt-3 text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">Dream 班长运营流程与规则手册</h1>
+      <p class="mt-1.5 max-w-3xl text-sm text-slate-200">聚焦日常教务排班、收款录单、应急代课与每周资金归集的标准操作流程（SOP）与业务红线。</p>
+      <!-- 搜索框 text-[16px] 防止 iOS 缩放 -->
+      <div class="mt-4 flex items-center gap-2 rounded-xl bg-white/10 p-1.5 ring-1 ring-white/20 backdrop-blur-sm sm:max-w-lg">
+        <span class="pl-2.5 text-slate-200" aria-hidden="true">🔍</span>
+        <input id="searchInput" type="search" placeholder="搜索章节、排课、16积分、周转账、Q&A..." class="w-full bg-transparent py-1.5 pr-2 text-[16px] text-white placeholder:text-slate-300 focus:outline-none" />
+        <button id="clearSearch" type="button" class="hidden rounded-lg bg-white/15 px-2.5 py-1 text-xs font-medium text-white hover:bg-white/25">清空</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 移动端横向章节胶囊导航 -->
+  <nav aria-label="移动端章节导航" class="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur lg:hidden">
+    <div id="mobileNav" class="flex gap-2 overflow-x-auto px-4 py-2.5"></div>
+  </nav>
+
+  <!-- 主体两栏布局：桌面端左侧固定目录 + 右侧内容区 -->
+  <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:flex lg:items-start lg:gap-8">
+    <aside class="hidden lg:sticky lg:top-6 lg:block lg:w-64 lg:shrink-0">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="mb-3 flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-500">手册目录</span>
+          <span id="matchBadge" class="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[11px] font-semibold text-fuchsia-700"></span>
+        </div>
+        <nav id="desktopNav" class="space-y-1"></nav>
+      </div>
+    </aside>
+
+    <main class="min-w-0 flex-1 space-y-6">
+      <div id="emptyState" class="hidden rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <p class="text-base font-semibold text-slate-700">未找到匹配的规则或 Q&amp;A</p>
+        <p class="mt-1 text-sm text-slate-500">试试搜索：固定位、16积分、跨组、代课、周转账、小红点</p>
+      </div>
+      <div id="chaptersContainer" class="space-y-6"></div>
+      <section id="qa" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
+          <div>
+            <span class="inline-block rounded-md bg-fuchsia-50 px-2 py-0.5 text-xs font-bold text-fuchsia-700">FAQ 速查</span>
+            <h2 class="mt-1 text-lg font-bold text-slate-900 sm:text-xl">Q&amp;A：常见场景与异常处理速查</h2>
+          </div>
+          <span id="qaCount" class="text-xs font-medium text-slate-500">共 8 条</span>
+        </div>
+        <div id="qaList" class="mt-4 divide-y divide-slate-100"></div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500">
+    Dream 教务排班与分账管理系统 · 班长运营手册（纯业务 SOP 基准）
+  </footer>
+
+<script>
+const DIAGRAMS = {
+  workbench: () => `
+    <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4">
+      <div class="mb-2.5 flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-700">内嵌图解 1：Tab 3【教务中心】8 金刚位红点 + 筛选胶囊 + 紧急/提醒卡</span>
+        <span class="rounded bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">7px 红点仅提示待办</span>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div class="grid grid-cols-4 gap-2 text-center text-[11px]">
+          ${[
+            ['所辖学员', false, '👥'], ['主理小班', false, '🏫'], ['负责老师', false, '👩‍🏫'], ['今日调度', true, '⚡'],
+            ['购课续费', true, '💳'], ['退款管理', true, '↩️'], ['周转账单', true, '🧾'], ['经办记录', false, '📋']
+          ].map(([name, dot, icon]) => `
+            <div class="relative flex flex-col items-center rounded-lg bg-slate-50 py-2 px-1">
+              ${dot ? '<span class="absolute right-2 top-1.5 h-[7px] w-[7px] rounded-full bg-rose-500 ring-2 ring-white"></span>' : ''}
+              <span class="text-base leading-none">${icon}</span>
+              <span class="mt-1 font-medium text-slate-700">${name}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-2.5 text-[11px]">
+          <span class="rounded-full bg-indigo-600 px-2.5 py-0.5 font-semibold text-white">全部 (9)</span>
+          <span class="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-700">排课 (3)</span>
+          <span class="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-700">续费 (4)</span>
+          <span class="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-700">退款 (1)</span>
+          <span class="rounded-full bg-slate-100 px-2.5 py-0.5 font-medium text-slate-700">转账 (1)</span>
+        </div>
+        <div class="mt-3 grid gap-2 sm:grid-cols-2">
+          <div class="rounded-lg border border-rose-200 bg-rose-50 p-2.5">
+            <div class="flex items-center justify-between text-xs font-bold text-rose-800">
+              <span>老师请假待代课</span>
+              <span class="rounded bg-rose-600 px-1.5 py-0.5 text-[10px] text-white">浅红紧急卡</span>
+            </div>
+            <p class="mt-1 text-[11px] text-rose-700">Mia老师 · 今日 19:00 1v1 需指派代课</p>
+          </div>
+          <div class="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+            <div class="flex items-center justify-between text-xs font-bold text-amber-900">
+              <span>固定位续费待确认</span>
+              <span class="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] text-white">浅黄提醒卡</span>
+            </div>
+            <p class="mt-1 text-[11px] text-amber-800">Leo同学 · 72h 续费预占保护中</p>
+          </div>
+        </div>
+      </div>
+    </div>`,
+
+  pool: () => `
+    <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4">
+      <div class="mb-2.5 flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-700">内嵌图解 2：空闲大盘微缩选师卡（按价位 + 时段过滤）</span>
+        <span class="rounded bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">自动校验连续 4 周</span>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div class="mb-2.5 flex flex-wrap gap-1.5 text-[11px]">
+          <span class="rounded-md bg-fuchsia-50 px-2 py-0.5 font-semibold text-fuchsia-700 ring-1 ring-fuchsia-200">价位：16积分</span>
+          <span class="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-700">时段：晚 18-24</span>
+          <span class="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-700">隐藏无空档老师</span>
+        </div>
+        <div class="space-y-2">
+          ${[
+            ['Emma T.', '16积分', ['教过该学员', '我负责'], ['18:00', '19:00', '20:30']],
+            ['Lucas W.', '16积分', ['跨组可代排'], ['18:30', '20:00', '21:00']]
+          ].map(([name, price, tags, slots]) => `
+            <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 p-2.5">
+              <div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-xs font-bold text-slate-900">${name}</span>
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">${price}</span>
+                  ${tags.map(t => `<span class="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">${t}</span>`).join('')}
+                </div>
+                <div class="mt-1.5 flex gap-1">
+                  ${slots.map(s => `<span class="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">${s}</span>`).join('')}
+                </div>
+              </div>
+              <span class="rounded-lg bg-indigo-600 px-3 py-1 text-[11px] font-semibold text-white">选取</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>`,
+
+  calendar: () => `
+    <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4">
+      <div class="mb-2.5 flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-700">内嵌图解 3：7+1 色周课表微缩图例（浅底 + 深字 + 语义边框）</span>
+        <span class="rounded bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-700">含续费 HOLD 虚线</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        ${[
+          ['bg-amber-50 border-amber-300 text-amber-900', '🟠 固定位', 'Alic · 买4排4'],
+          ['bg-amber-50/70 border-amber-400 border-dashed text-amber-800', '🟠 续费预占', '【预】72h HOLD'],
+          ['bg-yellow-50 border-yellow-300 text-yellow-900', '🟡 临时课', 'BobZ · 提前1-7天'],
+          ['bg-blue-50 border-blue-300 text-blue-900', '🔵 被代课', '原师/班长/家长视角'],
+          ['bg-purple-50 border-purple-300 text-purple-900', '🟣 代上课', '仅代课老师课表可见'],
+          ['bg-emerald-50 border-emerald-200 text-emerald-700', '🟢 空闲可约', '点击单约/连约1-4节'],
+          ['bg-rose-50 border-rose-200 text-rose-700', '🔴 已请假', '老师闭麦请假时段'],
+          ['bg-teal-50 border-2 border-teal-400 text-teal-950', '🟩 小班课', '[G] KET1 · 50分钟双格']
+        ].map(([cls, title, desc]) => `
+          <div class="rounded-lg border ${cls} p-2">
+            <div class="text-xs font-bold">${title}</div>
+            <div class="mt-0.5 text-[11px] opacity-90">${desc}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="mt-2 rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 text-[11px] text-slate-600">
+        ⚪ <strong>灰色「休」</strong>：老师未开放授课的休息时段或已过期不可操作时段。
+      </div>
+    </div>`,
+
+  settlement: () => `
+    <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4">
+      <div class="mb-2.5 flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-700">内嵌图解 4：周度资金归集与发薪红线时间轴</span>
+        <span class="rounded bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">逾期平台先垫付并追缴</span>
+      </div>
+      <div class="grid gap-2 sm:grid-cols-4">
+        ${[
+          ['周一 03:30', '系统预生成账单', '汇总上周已结课且由你代收款的课次（≤0 静默跳过）', 'border-slate-200 bg-white text-slate-800'],
+          ['周一 08:00', '通知打款传凭证', '收到待办与邮件提醒，核对后线下打款并上传凭证', 'border-amber-300 bg-amber-50 text-amber-900'],
+          ['周二核算日', '平台财务审核', '管理员核对打款凭证并确认收款（截止红线）', 'border-indigo-300 bg-indigo-50 text-indigo-900'],
+          ['周三发薪日', '统一发放课酬', '向老师全额发薪；未传凭证将标红逾期并通知追缴', 'border-rose-300 bg-rose-50 text-rose-900']
+        ].map(([time, title, desc, cls], idx) => `
+          <div class="rounded-lg border ${cls} p-2.5">
+            <div class="text-[11px] font-bold opacity-80">Step ${idx + 1} · ${time}</div>
+            <div class="mt-0.5 text-xs font-bold">${title}</div>
+            <p class="mt-1 text-[11px] leading-relaxed opacity-90">${desc}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>`
+};
+
+const CHAPTERS = [
+  {
+    id: 'quickstart',
+    badge: 'Quickstart',
+    title: '新班长 5 分钟入门速览',
+    keywords: '公私分明 Tab 首页 学员课表 教务中心 我的 每日 周一',
+    blocks: [
+      {
+        heading: '1. 记住“公私分明”三大 Tab（彻底隔离自家娃与外部学员）',
+        bullets: [
+          '<strong>首页</strong>：第 1 行是教务高频入口（线下录单、教务排课、今日调度、周转账单），第 2 行是自家孩子家庭入口，下方是自家家庭信息流。',
+          '<strong>Tab 2【学员课表】</strong>：只看自家孩子的本周课表，绝不会混入外部学员。',
+          '<strong>Tab 3【教务中心】</strong>：只管负责的外部学员、小班和老师团队，绝不显示自家孩子数据；所有待排课、待续费、待退款、待转账全在这里处理。',
+          '<strong>Tab 4【我的】</strong>：纯个人中心（自家多孩档案、个人账单、中英语言切换、改密），不包含任何对公教务单据。'
+        ]
+      },
+      {
+        heading: '2. 每天打开系统的 3 件事 & 每周一必做 1 件事',
+        cards: [
+          { title: '看红点与紧急卡片', tone: 'rose', text: '进入 Tab 3【教务中心】，优先处理顶部置顶的浅红紧急卡（老师请假待代课、固定位续费时段冲突）。' },
+          { title: '盯紧待排与续费', tone: 'amber', text: '处理浅黄提醒卡（新购待排固定位、临期 72 小时续费预占单），防止黄金时段被释放。' },
+          { title: '随手记备忘', tone: 'slate', text: '协助家长请假/挪课或更换上课学员后，顺手更新学员备注与在学课件进度，方便下一位老师无缝衔接。' },
+          { title: '每周一 08:00 必做', tone: 'indigo', text: '查收【周转账单】提醒，核对上周已结课由你代收的课次总额，在周二审核前完成线下打款并上传凭证，确保周三准时发薪。' }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'ch1',
+    badge: '第一章',
+    title: '工作台导航与 7px 小红点规则',
+    keywords: 'Tab 3 教务中心 8 大入口 小红点 7px 筛选胶囊 浅红 浅黄',
+    blocks: [
+      {
+        heading: '1.1 Tab 3【教务中心】8 大入口分工',
+        table: {
+          headers: ['分区', '入口名称', '核心用途', '小红点规则'],
+          rows: [
+            ['第 1 行：对象与调度', '所辖学员', '查看名下所有学员档案、剩余课次资产、穿透学员周课表', '无角标'],
+            ['第 1 行：对象与调度', '主理小班', '管理负责的小班课排期、在读学员进退班', '无角标'],
+            ['第 1 行：对象与调度', '负责老师', '查看全平台老师团队、查看老师 7 色周排期、浏览风采/视频', '无角标'],
+            ['第 1 行：对象与调度', '今日调度', '处理近几日突发请假、临期变动与同屏指派代课', '有紧急待办时亮 7px 红点'],
+            ['第 2 行：单据与记录', '购课续费', '线下代录购课单、确认收款、跟进自动续费单', '有待处理单据时亮 7px 红点'],
+            ['第 2 行：单据与记录', '退款管理', '发起或跟进退费单、核销剩余待排课次', '有待处理退款时亮 7px 红点'],
+            ['第 2 行：单据与记录', '周转账单', '查看每周归集账单、上传线下打款凭证', '有待打款/补凭证时亮 7px 红点'],
+            ['第 2 行：单据与记录', '经办记录', '自查本人经办的排课、代课、请假与调课操作流水', '无角标']
+          ]
+        },
+        callout: '提示：顶栏图标只用极简 7px 小红点提示“有事待办”，具体待处理条数看下方筛选胶囊（全部 / 排课 / 续费 / 退款 / 转账），点击即可一键过滤。'
+      }
+    ],
+    diagram: 'workbench'
+  },
+  {
+    id: 'ch2',
+    badge: '第二章',
+    title: '收款录单、价位与退费规则',
+    keywords: '16积分 18积分 21积分 价位 调价 跨价位 补差价 退费 核销 资金持有人',
+    blocks: [
+      {
+        heading: '2.1 老师价位体系与录单规则',
+        bullets: [
+          '<strong>1v1 标准价位（全端透明）</strong>：由管理员统一维护，首期分为 <strong>16积分</strong>、<strong>18积分</strong>、<strong>21积分</strong> 三档（英文显示 16/18/21 Pts）。班长只能从启用字典中点选，不能手填任意单价。',
+          '<strong>小班课定价</strong>：50 分钟小班课不绑定 1v1 价位字典，由主理人在小班设置中单独填写单节积分售价与老师小班课酬。',
+          '<strong>1v1 固定位（买 4 排 4）与临时课</strong>：固定位 4 周为一轮（每周 1~3 节，共 4~12 节）；临时课 1~20 节，可提前 1~7 天自主约课。',
+          '<strong>资金持有人锁定</strong>：线下收款并确认后即时生成“待排期课次”，资金持有人永久锁定为最初收款的你（班长），直至结课并在下周一纳入周转账单。'
+        ]
+      },
+      {
+        heading: '2.2 调价、跨价位红线与核销退费',
+        bullets: [
+          '<strong>老师调价后</strong>：已生成的购课单（含已生成的 72 小时续费预占单）系统内先不自动改价，仅新生成单据按新价位计价；如需补差由班长与家长线下沟通。',
+          '<strong>跨价位换师</strong>：同价位可直接平移；跨价位换师<strong>系统不支持线上补差价或退差价</strong>，请先线下协商差价，再在系统内协助调整或退旧买新。',
+          '<strong>核销退费</strong>：仅限“待排期”未上课次可退费核销（周三发薪锁盘后的已结课课次物理冻结，不可退改）。在【退款管理】填写备注后提交，对应待排课次即刻作废。'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'ch3',
+    badge: '第三章 · 重点',
+    title: '怎么排课（权限边界 + 四大场景 + 7+1 色课表 + 续费 HOLD）',
+    keywords: '排课 跨组 代排 我负责 空闲大盘 买4排4 固定老师 连约 7色 小班课 72h HOLD 续费',
+    blocks: [
+      {
+        heading: '3.1 排课权限与跨组帮忙代排',
+        bullets: [
+          '<strong>全域开放，主责清晰</strong>：班长拥有全域排课与代课调配权限。平时优先排满自己名下带 <strong>我负责</strong> 徽标的老师；遇到自己老师满档或<strong>其他班长忙不过来帮忙代排/救急</strong>时，可直接切换筛选给全校其他老师或学员排课。',
+          '<strong>财课不串账</strong>：无论谁经手代排，原收款班长的资金归属不变，授课老师课酬自动计入实际授课老师名下。'
+        ]
+      },
+      {
+        heading: '3.2 四大排课场景选工具对照表',
+        table: {
+          headers: ['你的业务场景', '推荐入口', '核心操作与优势'],
+          rows: [
+            ['场景 1：新学员还没定老师，找人排【1v1 固定位】或【加约临时课】', '【空闲大盘】', '按价位（16/18/21积分）+ 时段过滤，一次看多位有空档老师，自动校验固定位连续 4 周全通'],
+            ['场景 2：已锁定某位老师（老生调时间、加临时课、查空档）', '【负责老师】→ 7 色周课表', '不用去大盘海选，直接点 🟢 绿格，支持单约 1 节或连约 2~4 节（余额/空档不足自动置灰）'],
+            ['场景 3：当天或近 3 天突发急事（紧急代课、临时请假、救急排课）', '【今日调度】', '聚焦昨天到未来 3 天，左侧看异常、右侧同屏对照有空老师，1 秒指派代课或代办请假'],
+            ['场景 4：小班课排期与学员进退班', '【主理小班】', '连续占用 2 格（50 分钟冷青色 [G]），集中管理每周固定排期与在读学员进退班']
+          ]
+        }
+      },
+      {
+        heading: '3.3 实操要点：空闲大盘买 4 排 4、固定老师微调与 7 天续费 HOLD',
+        bullets: [
+          '<strong>空闲大盘排固定位</strong>：从待办卡点【立即排课】或首页【教务排课】进入 → 选价位与时段（优先展示「教过该学员」与「我负责」）→ 点【选取】→ 选定每周固定时间，系统自动执行未来连续 4 周全通校验，一键生成 🟠 橙色固定位。',
+          '<strong>固定老师微调 / 帮同事代排</strong>：在【负责老师】将顶部筛选从「我负责」切为「全部」（或在【所辖学员】搜学员进入课表），点 🟢【约】格即可单约或连约，操作流水完整记入你的【经办记录】。',
+          '<strong>到期前 7 天自动续费与 72h HOLD</strong>：每周一 08:30 系统扫描处于固定位第 4 周的学员，自动生成续费单并在未来 4 周课表打上虚线橙色【预】字预占锁（72 小时排他保护）。若家长确认不续，请主动取消续费单释放时段。'
+        ]
+      }
+    ],
+    diagrams: ['pool', 'calendar']
+  },
+  {
+    id: 'ch4',
+    badge: '第四章',
+    title: '请假、挪位、换人与应急代课',
+    keywords: '请假 3h 临期 更换实际上课学员 转课 今日调度 代课 离职 防线',
+    blocks: [
+      {
+        heading: '4.1 弹性请假、更换实际上课学员与今日调度找代课',
+        bullets: [
+          '<strong>弹性请假与 &lt;3h 温和提示</strong>：取消 12.5% 配额与硬锁死，随时可请假退回待排池；若距开课不足 3 小时（&lt;3h）请假/挪位/换人，弹出温和确认框，确认后放行并记入《出勤异常记录》供对账。',
+          '<strong>更换实际上课学员（原转课）</strong>：二宝或亲友代上时，点课程卡片 →【更换实际上课学员】，无需退旧买新；原购课单与资金归属不变，仅变更实际进班学员与备注关联。',
+          '<strong>今日调度应急找代课</strong>：点击浅红紧急卡【指派代课】，系统按「曾教过该学员 → 同/近价位 → 本周已排较少」智能排序有空老师，1 秒完成换师（原师变 🔵 被代课，代课师变 🟣 代上课，课酬归代课老师）。'
+        ]
+      },
+      {
+        heading: '4.2 老师 / 班长离职交接红线',
+        callout: '老师离职三防线：必须将名下未来临时课、未来固定位、主讲小班课全部协调代课/换师/改绑清零后才可离职。班长离职两防线：须先完成未结课次离职移交转账单，并将所辖老师与小班批量改绑给接手班长。'
+      }
+    ]
+  },
+  {
+    id: 'ch5',
+    badge: '第五章',
+    title: '每周资金归集与转账对账',
+    keywords: '周一 03:30 08:00 周二 审核 周三 发薪 垫付 逾期 周转账单',
+    blocks: [
+      {
+        heading: '5.1 严格执行“周一出单、周二审核、周三发薪”周度节律',
+        bullets: [
+          '<strong>资金归集责任锁定</strong>：只要课次在你名下收款，无论后续是否跨组排课或换师代课，按实际结课进度始终纳入你的周转账单。',
+          '<strong>逾期垫付红线</strong>：若周二审核前未完成线下打款并上传凭证，平台周三将先垫付老师工资，同时将你的账单标红记为逾期欠款并通知财务追缴。'
+        ]
+      }
+    ],
+    diagram: 'settlement'
+  },
+  {
+    id: 'ch6',
+    badge: '第六章',
+    title: '老师与学员档案日常维护',
+    keywords: '老师档案 相册 头像 视频 50MB 二维码 价位 学员备注 课件',
+    blocks: [
+      {
+        heading: '6.1 老师多媒体档案与学员备注课件',
+        bullets: [
+          '<strong>风采相册与主头像</strong>：上传 1~6 张生活/教学照，支持拖拽排序并裁切 1:1 主头像（删除主头像自动顺位替补，至少保留 1 张）。',
+          '<strong>视频、介绍与建联</strong>：上传 1~3 分钟 MP4 试讲视频（H.264 编码，≤ 50MB）、中英文自我介绍（各 ≤ 2000 字）及 ClassIn 好友二维码；从 16/18/21积分中选择绑定价位（修改关键字段写入审计日志）。',
+          '<strong>学员备注与在学课件</strong>：在【所辖学员】点击学员呼出综合档案抽屉，随时更新在学课件/级别与家校备忘；老师请假时也可在抽屉顺手补充进度。'
+        ]
+      }
+    ]
+  }
+];
+
+const QA_ITEMS = [
+  ['Q1：家长想换更高或更低价位的老师（如 16积分 换到 21积分），系统怎么操作？', '系统内不支持线上补差价或退差价。同价位可直接平移；跨价位调整需先与家长线下协商补/退差价，再在系统内协助退旧买新或调整排课。'],
+  ['Q2：刚把老师价位从 16积分 调成 18积分，为什么自动生成的待续费单还是 16积分？', '这是预期规则。老师调价后，已生成的购课单（含续费预占单）先不自动改价，仅新生成单据按新价位计价。若本轮需按新价结算，由班长与家长线下补差。'],
+  ['Q3：某节课指派给其他老师代课了，结课后钱谁转给平台、课酬算谁的？', '财课分离、各算各账：代收款项的转账责任仍归最初收款的班长，随周一转账单交给平台；上课课酬 100% 计入实际授课的代课老师名下，原老师本节课酬为 0。'],
+  ['Q4：小班课为什么在选老师价位时找不到对应价格？', '小班课（50 分钟双格）不走 1v1 老师价位字典（16/18/21积分），而由管理员/主理人在小班配置中单独填写单节售价积分与老师课酬。'],
+  ['Q5：周三发薪锁盘后家长才反馈上周某节课其实没上，还能在端内退回课次吗？', '周三发薪锁盘后已结算课次物理锁定，班长端无法退改或核销。请联系平台管理员在后台执行【异常结课回退】，核实后自动为学员补回 1 节待排期课次。'],
+  ['Q6：为什么 Tab 3 顶栏图标只看到小红点，看不到具体待办数字？', '为避免图标被数字遮挡且与下方筛选胶囊重复，系统规定强待办/审单入口亮 7px 小红点；精确条数统一在下方筛选胶囊（如 排课 (3)、续费 (5)）查看。'],
+  ['Q7：新老师没空接单，或想找全校其他班长名下老师代课，可以跨组约吗？', '可以。系统已放开班长全域约课与代课调配权限，空闲大盘与今日调度均可查看全平台符合条件的老师（本人负责的会标有「我负责」徽标）。'],
+  ['Q8：为什么我自己的孩子周课表，在教务中心里搜不到？', '这是公私物理隔离红线。自家孩子的课表、买课与请假统一在首页家庭区与 Tab 2【学员课表】操作，Tab 3【教务中心】绝不混入个人家庭数据。']
+];
+
+const toneMap = {
+  rose: 'border-rose-200 bg-rose-50 text-rose-900',
+  amber: 'border-amber-200 bg-amber-50 text-amber-900',
+  indigo: 'border-indigo-200 bg-indigo-50 text-indigo-900',
+  slate: 'border-slate-200 bg-slate-50 text-slate-800'
+};
+
+function renderBlock(b) {
+  let html = `<div class="mt-4"><h3 class="text-sm font-bold text-slate-900 sm:text-base">${b.heading}</h3>`;
+  if (b.bullets) {
+    html += `<ul class="mt-2 space-y-1.5 text-sm leading-relaxed text-slate-700">${b.bullets.map(li => `<li class="flex gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-fuchsia-600"></span><span>${li}</span></li>`).join('')}</ul>`;
+  }
+  if (b.cards) {
+    html += `<div class="mt-2.5 grid gap-2.5 sm:grid-cols-2">${b.cards.map(c => `<div class="rounded-xl border p-3 ${toneMap[c.tone]}"><div class="text-xs font-bold">${c.title}</div><p class="mt-1 text-xs leading-relaxed opacity-90">${c.text}</p></div>`).join('')}</div>`;
+  }
+  if (b.table) {
+    html += `<div class="mt-2.5 overflow-x-auto rounded-xl border border-slate-200"><table class="min-w-full divide-y divide-slate-200 text-left text-xs sm:text-sm"><thead class="bg-slate-100 text-slate-700"><tr>${b.table.headers.map(h => `<th class="px-3 py-2 font-bold">${h}</th>`).join('')}</tr></thead><tbody class="divide-y divide-slate-100 bg-white">${b.table.rows.map(r => `<tr>${r.map((cell, i) => `<td class="px-3 py-2 ${i === 1 ? 'font-semibold text-slate-900' : 'text-slate-700'}">${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }
+  if (b.callout) {
+    html += `<div class="mt-3 rounded-xl border border-fuchsia-200 bg-fuchsia-50/70 p-3 text-xs leading-relaxed text-fuchsia-950 sm:text-sm">${b.callout}</div>`;
+  }
+  return html + '</div>';
+}
+
+function renderAll(query = '') {
+  const q = query.trim().toLowerCase();
+  const filteredChapters = CHAPTERS.filter(ch => !q || (ch.badge + ch.title + ch.keywords + JSON.stringify(ch.blocks)).toLowerCase().includes(q));
+  const filteredQA = QA_ITEMS.filter(([qu, an]) => !q || (qu + an).toLowerCase().includes(q));
+
+  document.getElementById('desktopNav').innerHTML = [
+    ...filteredChapters.map(c => `<a href="#${c.id}" class="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-fuchsia-50 hover:text-fuchsia-800"><span class="truncate">${c.badge} · ${c.title.split('（')[0]}</span></a>`),
+    `<a href="#qa" class="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-fuchsia-50 hover:text-fuchsia-800"><span>Q&amp;A 速查 (${filteredQA.length})</span></a>`
+  ].join('');
+
+  document.getElementById('mobileNav').innerHTML = [
+    ...filteredChapters.map(c => `<a href="#${c.id}" class="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 hover:border-fuchsia-300 hover:bg-fuchsia-50 hover:text-fuchsia-800">${c.badge}</a>`),
+    `<a href="#qa" class="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">Q&amp;A (${filteredQA.length})</a>`
+  ].join('');
+
+  document.getElementById('chaptersContainer').innerHTML = filteredChapters.map(ch => `
+    <article id="${ch.id}" class="scroll-mt-16 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div class="border-b border-slate-100 pb-3">
+        <span class="inline-block rounded-md bg-fuchsia-50 px-2 py-0.5 text-xs font-bold text-fuchsia-700">${ch.badge}</span>
+        <h2 class="mt-1 text-lg font-bold text-slate-900 sm:text-xl">${ch.title}</h2>
+      </div>
+      ${ch.blocks.map(renderBlock).join('')}
+      ${ch.diagram ? DIAGRAMS[ch.diagram]() : ''}
+      ${ch.diagrams ? ch.diagrams.map(d => DIAGRAMS[d]()).join('') : ''}
+    </article>
+  `).join('');
+
+  document.getElementById('qaList').innerHTML = filteredQA.map(([qu, an], idx) => `
+    <div class="py-3">
+      <button type="button" data-qa="${idx}" class="qa-btn flex w-full items-start justify-between gap-3 text-left text-sm font-bold text-slate-900 hover:text-fuchsia-800">
+        <span>${qu}</span>
+        <span class="qa-icon shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">+</span>
+      </button>
+      <div class="qa-ans hidden pt-2 text-sm leading-relaxed text-slate-700">${an}</div>
+    </div>
+  `).join('');
+
+  document.querySelectorAll('.qa-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ans = btn.nextElementSibling;
+      const icon = btn.querySelector('.qa-icon');
+      const open = ans.classList.toggle('hidden');
+      icon.textContent = open ? '+' : '−';
+    });
+  });
+
+  document.getElementById('qa').classList.toggle('hidden', filteredQA.length === 0);
+  document.getElementById('qaCount').textContent = `共 ${filteredQA.length} 条`;
+  document.getElementById('matchBadge').textContent = `${filteredChapters.length} 章 · ${filteredQA.length} Q&A`;
+  document.getElementById('emptyState').classList.toggle('hidden', filteredChapters.length > 0 || filteredQA.length > 0);
+}
+
+const searchInput = document.getElementById('searchInput');
+const clearSearch = document.getElementById('clearSearch');
+searchInput.addEventListener('input', e => {
+  clearSearch.classList.toggle('hidden', !e.target.value);
+  renderAll(e.target.value);
+});
+clearSearch.addEventListener('click', () => {
+  searchInput.value = '';
+  clearSearch.classList.add('hidden');
+  renderAll('');
+});
+
+renderAll('');
+</script>
+</body>
+</html>

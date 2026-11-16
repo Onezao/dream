@@ -408,26 +408,26 @@
 
     const STUDENTS = [
       {
-        id: 'stu_alice001', nickname: 'AliceZ12', realName: '张小丽', age: 12,
+        id: 'stu_alice001', nickname: 'AliceZ12', realName: '张小丽', age: 12, status: 'ACTIVE',
         current: [
           { cwId: 'cw_ort000001', levelId: 'lvl_ort00003' },
           { cwId: 'cw_wonders01', levelId: 'lvl_won00002' },
           { cwId: 'cw_raz000001', levelId: 'lvl_raz00002' }
         ],
         audit: [
-          { at: '2026-11-08 09:15', by: 'Leo', text: '升阶：Oxford Reading Tree Stage 2 → Stage 3' },
-          { at: '2026-10-12 16:40', by: 'Sarah', text: '新增 Raz-Kids · Level F' },
-          { at: '2026-09-01 10:20', by: 'Leo', text: '新增 Wonders · Grade 1' }
+          { at: '2026-11-08 09:15', by: 'Leo（班长）', text: '升阶：Oxford Reading Tree Stage 2 → Stage 3' },
+          { at: '2026-10-12 16:40', by: 'Sarah（管理员）', text: '新增 Raz-Kids · Level F' },
+          { at: '2026-09-01 10:20', by: 'Leo（班长）', text: '新增 Wonders · Grade 1' }
         ]
       },
       {
-        id: 'stu_bob00002', nickname: 'BobZ10', realName: '张小博', age: 10,
+        id: 'stu_bob00002', nickname: 'BobZ10', realName: '张小博', age: 10, status: 'ACTIVE',
         current: [
           { cwId: 'cw_phonics01', levelId: 'lvl_pho00002' },
           { cwId: 'cw_ket000001', levelId: 'lvl_ket00001' }
         ],
         audit: [
-          { at: '2026-10-20 11:05', by: 'Leo', text: '新增 Oxford Phonics World · Level 2' }
+          { at: '2026-10-20 11:05', by: 'Leo（班长）', text: '新增 Oxford Phonics World · Level 2' }
         ]
       }
     ];
@@ -526,6 +526,13 @@
       if (state.role === 'monitor') return 'Leo';
       if (state.role === 'teacher') return 'David';
       return 'Amy';
+    }
+
+    function operatorLabel() {
+      if (state.role === 'admin') return 'Sarah（管理员）';
+      if (state.role === 'monitor') return 'Leo（班长）';
+      if (state.role === 'teacher') return 'David（老师）';
+      return 'Amy（家长）';
     }
 
     function coverHtml(cw, size = 'h-14 w-14', text = 'text-[18px]') {
@@ -671,13 +678,13 @@
           </div>`}
         </div>
         ${list.length > AUDIT_PREVIEW ? `<button data-action="toggle-audit-all" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">${state.auditShowAll ? '收起记录' : `展开最近记录（共 ${list.length} 条）`}</button>` : ''}
-        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">日志为只读审计记录，按操作时间倒序展示；每条记录保留操作人、时间与变更前后快照，不可编辑或删除。</div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">日志为只读审计记录，按操作时间倒序展示；每条记录保留操作人、时间与变更前后快照，不可编辑或删除。</div>
       </div>`;
     }
 
     function auditCard(r) {
       const meta = AUDIT_ACTIONS[r.action] || AUDIT_ACTIONS.EDIT_META;
-      return `<article class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
+      return `<article class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
         <div class="flex flex-wrap items-center gap-1.5">
           <span class="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${meta.cls}">${icon(meta.icon, 'h-3 w-3')}${meta.label}</span>
           <span class="min-w-0 truncate text-[14px] font-bold text-slate-900">${esc(r.cwNameCn)}</span>
@@ -714,8 +721,8 @@
     function viewAllowed(v) {
       if (state.role === 'admin') return ['library', 'student'].includes(v);
       if (state.role === 'monitor') return v === 'student';
-      if (state.role === 'parent') return v === 'child';
-      return v === 'prep';
+      if (state.role === 'parent') return ['child', 'student'].includes(v);
+      return ['prep', 'student'].includes(v);
     }
 
     function currentViewKey() {
@@ -776,7 +783,7 @@
       if (view === 'library') { state.page = 'library'; state.navTab = 'settings'; }
       if (view === 'student') {
         state.page = 'student';
-        state.navTab = state.role === 'admin' ? 'settings' : 'ops';
+        state.navTab = state.role === 'admin' ? 'settings' : state.role === 'monitor' ? 'ops' : state.role === 'parent' ? 'me' : 'schedule';
         state.draft = null;
         state.draftStudentId = null;
       }
@@ -862,11 +869,14 @@
       const b = BANNERS[state.role];
       const isEditor = state.page === 'editor';
       const isAudit = state.page === 'audit';
+      const isConfigBack = state.page === 'student' && (state.role === 'parent' || state.role === 'teacher');
+      const backAction = isEditor ? 'cancel-editor' : isAudit ? 'cancel-audit' : isConfigBack ? 'back-config' : '';
       return `<header class="relative flex h-16 shrink-0 items-center justify-between gap-2 overflow-hidden bg-gradient-to-br ${b.gradient} px-3 text-white">
         ${b.pattern}
         <div class="relative flex min-w-0 items-center gap-2">
-          ${isEditor || isAudit ? `<button data-action="${isAudit ? 'cancel-audit' : 'cancel-editor'}" class="-ml-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-white/90 transition hover:bg-white/15" aria-label="${isAudit ? '返回课件库' : '返回课件库'}">${icon('chevron-left', 'h-5 w-5')}</button>` : ''}
-          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/20 text-[12px] font-bold ring-1 ring-white/30">${b.initial}</span>
+          ${backAction
+            ? `<button data-action="${backAction}" class="-ml-1 inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="返回">${icon('chevron-left', 'h-4 w-4')}返回</button>`
+            : `<span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/20 text-[12px] font-bold ring-1 ring-white/30">${b.initial}</span>`}
           <h1 class="truncate text-[18px] font-bold tracking-tight">${esc(bannerTitle())}</h1>
         </div>
         <button data-action="toast" data-message="您有 3 条未读消息" class="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="通知">
@@ -909,7 +919,6 @@
         <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(item.label)}</h2>
         <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(item.desc)}</p>
         ${item.href ? `<a href="${item.href}" target="_blank" rel="noopener" class="mt-5 inline-flex h-11 items-center rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white">前往查看</a>` : ''}
-        <button data-action="back-main" class="mt-3 text-[14px] font-semibold text-indigo-600">返回${state.role === 'admin' ? '课件库' : state.role === 'monitor' ? '在学课件' : state.role === 'parent' ? '孩子课件' : '备课课件'}</button>
       </div>`;
     }
 
@@ -926,22 +935,16 @@
       </div>`;
     }
 
-    function backRow(action, label) {
-      return `<button data-action="${action}" class="flex items-center gap-1 text-[14px] font-semibold text-slate-500 transition hover:text-slate-800">
-        ${icon('chevron-left', 'h-4 w-4')}${esc(label)}
-      </button>`;
-    }
-
     function miniStat(label, value, tone, suffix = '') {
       const valueTone = tone === 'indigo' ? 'text-indigo-700' : tone === 'emerald' ? 'text-emerald-700' : tone === 'rose' ? 'text-rose-700' : 'text-slate-900';
-      return `<div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-2 py-2">
+      return `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-2 py-2">
         <div class="text-[12px] font-medium text-slate-500">${esc(label)}</div>
         <div class="mt-0.5 font-mono text-[18px] font-bold ${valueTone}">${esc(value)}${suffix ? `<span class="ml-0.5 text-[12px] font-medium">${esc(suffix)}</span>` : ''}</div>
       </div>`;
     }
 
     function studentSwitch() {
-      return `<div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-2">
+      return `<div class="rounded-2xl border border-slate-300 bg-slate-50/70 p-2">
         <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
           ${state.students.map((s) => `<button data-action="switch-student" data-id="${s.id}" class="flex-1 rounded-lg py-2 text-[12px] font-bold transition ${s.id === state.activeStudentId ? 'bg-white text-indigo-700' : 'text-slate-500'}">${esc(s.nickname)}</button>`).join('')}
         </div>
@@ -983,26 +986,33 @@
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
           <input id="libSearch" value="${esc(state.libQuery)}" placeholder="搜索中文名 / 英文名" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
         </div>
-        <div class="flex gap-2">
-          <select id="libType" class="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-[14px] font-semibold text-slate-700 outline-none focus:border-indigo-500">
-            <option value="all" ${state.libType === 'all' ? 'selected' : ''}>全部课程类型</option>
-            ${COURSE_TYPES.map((t) => `<option value="${esc(t)}" ${state.libType === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}
-          </select>
-          <div class="flex shrink-0 gap-1 rounded-xl bg-slate-200/60 p-1">
-            ${[['all', '全部'], ['active', '启用'], ['inactive', '停用']].map(([key, label]) => `<button data-action="lib-status" data-status="${key}" class="rounded-lg px-2.5 text-[12px] font-bold transition ${state.libStatus === key ? 'bg-white text-indigo-700' : 'text-slate-500'}">${label}</button>`).join('')}
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <span class="shrink-0 pr-0.5 text-[12px] font-medium text-slate-500">类型</span>
+            ${['all', ...COURSE_TYPES].map((t) => {
+              const on = state.libType === t;
+              return `<button data-action="lib-type" data-type="${esc(t)}" class="h-8 shrink-0 whitespace-nowrap rounded-full border-0 px-3 text-[12px] transition ${on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${t === 'all' ? '全部' : esc(t)}</button>`;
+            }).join('')}
+          </div>
+          <div class="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <span class="shrink-0 pr-0.5 text-[12px] font-medium text-slate-500">状态</span>
+            ${[['all', '全部'], ['active', '启用'], ['inactive', '停用']].map(([key, label]) => {
+              const on = state.libStatus === key;
+              return `<button data-action="lib-status" data-status="${key}" class="h-8 shrink-0 whitespace-nowrap rounded-full border-0 px-3 text-[12px] transition ${on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}</button>`;
+            }).join('')}
           </div>
         </div>
         <div class="${grid}">
           ${list.length ? list.map(libraryCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center text-[14px] font-medium text-slate-500">没有匹配的课件</div>`}
         </div>
-        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">已被学员绑定的课件仅支持停用，禁止物理删除；停用后新增选择自动隐藏，已绑定档案继续展示【已停用】。</div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">已被学员绑定的课件仅支持停用，禁止物理删除；停用后新增选择自动隐藏，已绑定档案继续展示【已停用】。</div>
       </div>`;
     }
 
     function libraryCard(cw) {
       const canWrite = state.online === 'on';
       const muted = !cw.active;
-      return `<article class="rounded-2xl border p-3 ${cw.active ? 'border-slate-200/80 bg-slate-50/70' : 'border-dashed border-slate-300 bg-slate-50/60'}">
+      return `<article class="rounded-2xl border p-3 ${cw.active ? 'border-slate-300 bg-slate-50/70' : 'border-dashed border-slate-400 bg-slate-50/60 opacity-60'}">
         <div class="flex items-start gap-2.5">
           <span class="${muted ? 'grayscale opacity-60' : ''}">${coverHtml(cw, 'h-14 w-14', 'text-[18px]')}</span>
           <div class="min-w-0 flex-1">
@@ -1033,10 +1043,10 @@
             </button>
             <span class="text-[12px] font-medium ${muted ? 'text-slate-500' : 'text-slate-500'}">${cw.active ? '启用中' : '已停用'}</span>
           </div>
-          <div class="flex shrink-0 items-center gap-1.5">
-            <button data-action="preview-cw" data-id="${cw.id}" data-level="${cw.levels[0] ? cw.levels[0].id : ''}" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">样课</button>
-            <button data-action="open-audit" data-admin-only="true" data-cw="${cw.id}" class="h-8 rounded-lg border border-slate-300 bg-white px-2 text-[12px] font-bold text-slate-800 hover:bg-slate-50">日志</button>
-            <button data-action="edit-cw" data-id="${cw.id}" ${canWrite ? '' : 'disabled'} class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50 disabled:opacity-40">编辑</button>
+          <div class="flex shrink-0 items-center gap-2.5">
+            <button data-action="preview-cw" data-id="${cw.id}" data-level="${cw.levels[0] ? cw.levels[0].id : ''}" class="inline-flex items-center gap-0.5 whitespace-nowrap text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">样课 →</button>
+            <button data-action="open-audit" data-admin-only="true" data-cw="${cw.id}" class="inline-flex items-center gap-0.5 whitespace-nowrap text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">日志 →</button>
+            <button data-action="edit-cw" data-id="${cw.id}" ${canWrite ? '' : 'disabled'} class="h-7 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">编辑</button>
           </div>
         </div>
       </article>`;
@@ -1066,25 +1076,33 @@
       renderAll();
     }
 
+    function formSectionTitle(num, title, extra = '') {
+      return `<h2 class="flex items-center gap-2 text-[14px] font-bold text-slate-900">
+        <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">${num}</span>
+        <span>${esc(title)}</span>${extra}
+      </h2>`;
+    }
+
     function renderEditor() {
       const f = state.form;
       const isEdit = f.mode === 'edit';
-      const inputCls = 'h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500';
-      return `<div class="flex h-full min-h-0 flex-col">
-        <div id="editorScroll" class="min-h-0 flex-1 overflow-y-auto">
+      const fieldCls = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15';
+      const areaCls = 'h-20 w-full rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15';
+      return `<div class="flex h-full min-h-0 flex-col bg-slate-50">
+        <div id="editorScroll" class="min-h-0 flex-1 overflow-y-auto bg-slate-50">
           <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3">
             <p class="px-1 text-[12px] font-medium leading-relaxed text-slate-500">中英文名称与课程类型为必填 · 级别与样课图可选</p>
 
-            <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <h2 class="text-[16px] font-bold text-slate-900">基础信息</h2>
-              <div class="mt-2.5 space-y-3">
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4">
+              ${formSectionTitle(1, '基础信息')}
+              <div class="mt-3 space-y-3.5">
                 <div>
                   <label for="fNameCn" class="mb-1 block text-[14px] font-semibold text-slate-700">中文名 <span class="text-rose-500">*</span></label>
-                  <input id="fNameCn" value="${esc(f.nameCn)}" maxlength="64" placeholder="如 牛津阅读树" class="${inputCls}">
+                  <input id="fNameCn" value="${esc(f.nameCn)}" maxlength="64" placeholder="如 牛津阅读树" class="${fieldCls}">
                 </div>
                 <div>
                   <label for="fNameEn" class="mb-1 block text-[14px] font-semibold text-slate-700">英文名 <span class="text-rose-500">*</span></label>
-                  <input id="fNameEn" value="${esc(f.nameEn)}" maxlength="64" placeholder="如 Oxford Reading Tree" class="${inputCls}">
+                  <input id="fNameEn" value="${esc(f.nameEn)}" maxlength="64" placeholder="如 Oxford Reading Tree" class="${fieldCls}">
                 </div>
                 <div>
                   <div class="mb-1 flex items-center justify-between">
@@ -1094,17 +1112,17 @@
                   <div class="flex flex-wrap gap-1.5">
                     ${COURSE_TYPES.map((t) => {
                       const on = f.courseTypes.includes(t);
-                      return `<button data-action="toggle-type" data-value="${esc(t)}" class="h-8 rounded-lg border px-2.5 text-[12px] font-semibold ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600'}">${esc(t)}</button>`;
+                      return `<button data-action="toggle-type" data-value="${esc(t)}" class="h-8 rounded-lg border px-2.5 text-[12px] font-semibold transition ${on ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700'}">${esc(t)}</button>`;
                     }).join('')}
                   </div>
                 </div>
                 <div>
                   <label for="fDescCn" class="mb-1 block text-[14px] font-semibold text-slate-700">中文简介</label>
-                  <textarea id="fDescCn" maxlength="500" placeholder="课件中文简介（选填）" class="h-20 w-full rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(f.descCn)}</textarea>
+                  <textarea id="fDescCn" maxlength="500" placeholder="课件中文简介（选填）" class="${areaCls}">${esc(f.descCn)}</textarea>
                 </div>
                 <div>
                   <label for="fDescEn" class="mb-1 block text-[14px] font-semibold text-slate-700">English Description</label>
-                  <textarea id="fDescEn" maxlength="500" placeholder="Courseware description (optional)" class="h-20 w-full rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(f.descEn)}</textarea>
+                  <textarea id="fDescEn" maxlength="500" placeholder="Courseware description (optional)" class="${areaCls}">${esc(f.descEn)}</textarea>
                 </div>
                 <div>
                   <div class="mb-1 flex items-center justify-between">
@@ -1125,19 +1143,20 @@
               </div>
             </section>
 
-            <section id="formLevels" class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+            <section id="formLevels" class="rounded-2xl border border-slate-200/80 bg-white p-4">
               <div class="flex items-center justify-between gap-2">
-                <h2 class="text-[16px] font-bold text-slate-900">分级级别 <span class="text-[12px] font-medium text-slate-500">${f.levels.length} 个</span></h2>
-                <button data-action="add-level" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">+ 添加级别</button>
+                ${formSectionTitle(2, '分级级别', `<span class="text-[12px] font-medium text-slate-500">${f.levels.length} 个</span>`)}
+                <button data-action="add-level" class="h-8 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">+ 添加级别</button>
               </div>
-              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">级别英文名必填且不超过 32 字符；每级可上传 0-9 张样课内页，支持调整级别与配图顺序。</p>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">级别英文名必填且不超过 32 字符；每级可上传 0-9 张样课内页，支持调整级别与配图顺序。</p>
               <div class="mt-2.5 space-y-2">
                 ${f.levels.length ? f.levels.map((lvl, i) => levelEditor(lvl, i)).join('') : `<div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-5 text-center text-[12px] font-medium text-slate-500">尚未配置级别 · 可保存为无分级课件</div>`}
               </div>
             </section>
 
-            <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <button data-action="toggle-form-active" class="flex w-full items-center justify-between gap-3 ${isEdit ? '' : 'cursor-default'}" aria-label="${isEdit ? '切换启用状态' : '新建课件默认停用'}">
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4">
+              ${formSectionTitle(3, '状态与发布')}
+              <button data-action="toggle-form-active" class="mt-3 flex w-full items-center justify-between gap-3 ${isEdit ? '' : 'cursor-default'}" aria-label="${isEdit ? '切换启用状态' : '新建课件默认停用'}">
                 <div class="text-left">
                   <div class="text-[16px] font-semibold text-slate-900">${isEdit ? '启用课件' : '状态'}</div>
                   <div class="mt-0.5 text-[12px] font-medium text-slate-500">${isEdit ? '停用后新增选择自动隐藏，已绑定档案继续展示【已停用】' : '新建课件默认停用，核验完成后再手动开启'}</div>
@@ -1149,7 +1168,7 @@
                   </span>
                 </div>
               </button>
-              <p class="mt-2.5 rounded-lg border px-3 py-2 text-[12px] font-medium leading-relaxed ${isEdit ? (!f.active ? 'border-slate-200 bg-white text-slate-600' : 'border-slate-200 bg-white text-slate-700') : 'border-amber-200 bg-amber-50 text-amber-900'}">
+              <p class="mt-2.5 rounded-xl border px-3 py-2 text-[12px] font-medium leading-relaxed ${isEdit ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-amber-200 bg-amber-50 text-amber-900'}">
                 ${isEdit
                   ? (f.active ? '当前为启用状态；停用后新增选择自动隐藏，已绑定档案继续展示【已停用】。' : '当前为停用状态；已绑定档案继续展示【已停用】，可在核验无误后手动开启启用。')
                   : '新建课件默认处于停用状态；完善级别与样课配图并核对无误后，可在列表或详情中手动开启启用。'}
@@ -1159,16 +1178,16 @@
             ${isEdit && f.boundCount === 0 ? `<section class="rounded-2xl border border-rose-200 bg-rose-50/70 p-4">
               <div class="flex items-center justify-between gap-2">
                 <div><div class="text-[14px] font-bold text-rose-950">删除课件</div><div class="mt-0.5 text-[12px] font-medium text-rose-800">该课件从未被学员绑定，可物理清理。</div></div>
-                <button data-action="delete-cw" ${state.online === 'on' ? '' : 'disabled'} class="h-8 shrink-0 rounded-lg border border-rose-300 bg-white px-2.5 text-[12px] font-bold text-rose-700 disabled:opacity-40">删除</button>
+                <button data-action="delete-cw" ${state.online === 'on' ? '' : 'disabled'} class="h-7 shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 text-[12px] font-bold text-rose-700 disabled:opacity-40">删除</button>
               </div>
             </section>` : ''}
-            ${isEdit && f.boundCount > 0 ? `<div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">已被 ${f.boundCount} 名学员绑定，仅可停用，不可删除；停用后已绑定档案继续展示【已停用】。</div>` : ''}
+            ${isEdit && f.boundCount > 0 ? `<div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">已被 ${f.boundCount} 名学员绑定，仅可停用，不可删除；停用后已绑定档案继续展示【已停用】。</div>` : ''}
 
             ${f.error ? `<div id="formError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-rose-700">${esc(f.error)}</div>` : ''}
           </div>
         </div>
         <div class="flex shrink-0 gap-2 border-t border-slate-200 bg-white px-4 py-3">
-          <button data-action="cancel-editor" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
+          <button data-action="cancel-editor" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
           <button data-action="save-cw" ${state.online === 'on' ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${isEdit ? '保存修改' : '确认创建'}</button>
         </div>
       </div>`;
@@ -1179,14 +1198,14 @@
       const isLast = i === state.form.levels.length - 1;
       const nameInvalid = state.form.showErrors && (!lvl.name.trim() || lvl.name.length > 32);
       const countInvalid = lvl.images.length > 9;
-      return `<div class="rounded-xl border ${nameInvalid || countInvalid ? 'border-rose-300 bg-rose-50/40' : 'border-slate-200 bg-white'} p-2.5">
+      return `<div class="rounded-xl border ${nameInvalid || countInvalid ? 'border-rose-300 bg-rose-50/40' : 'border-slate-200 bg-slate-50/70'} p-2.5">
         <div class="flex items-center gap-1.5">
           <div class="flex shrink-0 gap-1">
             <button data-action="move-level" data-index="${i}" data-delta="-1" ${isFirst ? 'disabled' : ''} class="grid h-8 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 disabled:opacity-30" aria-label="上移">${icon('chevron-up', 'h-4 w-4')}</button>
             <button data-action="move-level" data-index="${i}" data-delta="1" ${isLast ? 'disabled' : ''} class="grid h-8 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 disabled:opacity-30" aria-label="下移">${icon('chevron-down', 'h-4 w-4')}</button>
           </div>
-          <input id="fLevelName-${i}" value="${esc(lvl.name)}" maxlength="32" placeholder="级别英文名，如 Stage 1" class="h-10 min-w-0 flex-1 rounded-lg border ${nameInvalid ? 'border-rose-400 bg-rose-50' : 'border-slate-200 bg-white'} px-2.5 text-[16px] font-semibold text-slate-900 outline-none focus:border-indigo-500">
-          <button data-action="remove-level" data-index="${i}" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-rose-200 bg-white text-rose-600" aria-label="删除级别">${icon('trash-2', 'h-4 w-4')}</button>
+          <input id="fLevelName-${i}" value="${esc(lvl.name)}" maxlength="32" placeholder="级别英文名，如 Stage 1" class="h-11 min-w-0 flex-1 rounded-xl border ${nameInvalid ? 'border-rose-400 bg-rose-50' : 'border-slate-200 bg-white'} px-3.5 text-[16px] font-semibold text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+          <button data-action="remove-level" data-index="${i}" class="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-rose-200 bg-white text-rose-600" aria-label="删除级别">${icon('trash-2', 'h-3.5 w-3.5')}</button>
         </div>
         ${nameInvalid ? `<div class="mt-1 text-[12px] font-semibold text-rose-700">级别英文名必填，最长 32 字符</div>` : ''}
         <div class="mt-2 grid grid-cols-3 gap-1.5">
@@ -1330,38 +1349,43 @@
       ensureDraft();
       const s = activeStudent();
       const draft = state.draft;
-      const canWriteRole = state.role === 'admin' || state.role === 'monitor';
+      const parentBlocked = state.role === 'parent' && s.status !== 'ACTIVE';
+      const roleCanWrite = ['admin', 'monitor', 'teacher', 'parent'].includes(state.role);
+      const canWriteRole = roleCanWrite && !parentBlocked;
       const online = state.online === 'on';
       const canWrite = canWriteRole && online;
-      const isParent = state.role === 'parent';
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
 
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-        ${pageHeader('在学课件', `${s.nickname} · ${draft.length}/6`, isParent ? `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>` : '')}
+        ${pageHeader('在学课件', `${s.nickname} · ${draft.length}/6`)}
         ${studentSwitch()}
 
-        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+        ${parentBlocked ? `<div class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">该学员档案当前非 ACTIVE，家长仅可查看；如需调整请联系负责班长。</div>` : ''}
+
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
               <h2 class="text-[16px] font-bold text-slate-900">在学课件 <span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-500">${draft.length}/6</span></h2>
-              <p class="mt-0.5 text-[12px] font-medium text-slate-500">${canWriteRole ? '最多 6 门 · 保存后同步老师课表与家长端' : '由管理员或班长维护 · 家长端只读'}</p>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">管理员、负责班长、授课老师与家长均可维护；家长仅可调整本人名下在读孩子；保存后同步老师课表并提醒负责班长与授课老师</p>
             </div>
-            ${canWriteRole ? `<button data-action="save-config" ${online ? '' : 'disabled'} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">保存生效</button>` : ''}
+            ${canWriteRole ? `<button data-action="save-config" ${online ? '' : 'disabled'} class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">保存生效</button>` : ''}
           </div>
 
           ${!online && canWriteRole ? `<div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] font-medium text-amber-900">离线模式：可查看，保存与调整不可用。</div>` : ''}
 
           <div class="mt-2.5 ${grid}">
             ${draft.length ? draft.map((item, i) => configItem(item, i, canWrite)).join('') : `<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-500">尚未配置在学课件</div>`}
-            ${canWriteRole ? `<button data-action="config-add" ${(online && draft.length < 6) ? '' : 'disabled'} title="${draft.length >= 6 ? '每个学员最多支持配置 6 门在学课件' : '从已启用课件中添加'}" class="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white py-3 text-[12px] font-bold text-slate-700 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">${icon('plus', 'h-4 w-4')}添加在学课件</button>` : ''}
+            ${canWriteRole ? `<div class="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-2 text-center">
+              <button data-action="config-add" ${(online && draft.length < 6) ? '' : 'disabled'} title="${draft.length >= 6 ? '每个学员最多支持配置 6 门在学课件' : '从已启用课件中添加'}" class="inline-flex h-7 items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">${icon('plus', 'h-3.5 w-3.5')}添加在学课件</button>
+            </div>` : ''}
           </div>
 
           ${draft.length >= 6 ? `<div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] font-medium text-amber-900">已达 6 门上限，【添加在学课件】已置灰；请先移除后再添加。</div>` : ''}
 
-          ${canWriteRole ? auditDetails(s) : ''}
+          ${auditDetails(s)}
         </section>
 
-        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${canWriteRole ? '停用课件不会自动解绑；已绑定的停用课件继续展示【已停用】。保存后老师日历与家长端即时刷新。' : '在学课件由管理员或班长维护，家长端仅可查看封面、名称与级别。'}</div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${parentBlocked ? '该学员档案当前非 ACTIVE，家长仅可查看；如需调整请联系负责班长。' : canWriteRole ? '停用课件不会自动解绑；已绑定的停用课件继续展示【已停用】。保存后老师日历与家长端即时刷新；家长修改时提醒负责班长与授课老师。' : '在学课件由管理员、负责班长、授课老师与家长共同维护。'}</div>
       </div>`;
     }
 
@@ -1378,11 +1402,11 @@
                 <div class="truncate text-[14px] font-bold text-slate-900">${esc(cw.nameCn)}</div>
                 <div class="truncate text-[12px] font-medium text-slate-500">${esc(cw.nameEn)}</div>
               </div>
-              ${canWrite ? `<button data-action="config-remove" data-index="${i}" ${state.online === 'on' ? '' : 'disabled'} class="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 disabled:opacity-40" aria-label="移除">${icon('x', 'h-3.5 w-3.5')}</button>` : ''}
+              ${canWrite ? `<button data-action="config-remove" data-index="${i}" ${state.online === 'on' ? '' : 'disabled'} class="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-[12px] font-bold text-rose-700 disabled:opacity-40" aria-label="移除">${icon('x', 'h-3.5 w-3.5')}移除</button>` : ''}
             </div>
             <div class="mt-1 flex flex-wrap items-center gap-1.5">
               ${cw.levels.length && canWrite
-                ? `<select id="cfgLevel-${i}" ${state.online === 'on' ? '' : 'disabled'} class="h-9 rounded-lg border border-slate-200 bg-white px-2 text-[14px] font-semibold text-slate-700 outline-none focus:border-indigo-500 disabled:bg-slate-100 disabled:text-slate-500">
+                ? `<select id="cfgLevel-${i}" ${state.online === 'on' ? '' : 'disabled'} class="h-8 rounded-lg border border-slate-200 bg-white px-2 text-[12px] font-semibold text-slate-700 outline-none transition focus:border-indigo-500 disabled:bg-slate-100 disabled:text-slate-500">
                     <option value="" ${item.levelId ? '' : 'selected'}>标准（暂不指定级别）</option>
                     ${cw.levels.map((l) => `<option value="${l.id}" ${l.id === item.levelId ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}
                   </select>`
@@ -1419,6 +1443,7 @@
     function saveConfig() {
       if (state.online === 'off') return showToast('离线模式下不可保存在学课件');
       const s = activeStudent();
+      if (state.role === 'parent' && s.status !== 'ACTIVE') return showToast('家长仅可维护本人名下 ACTIVE 学员');
       ensureDraft();
       const before = s.current;
       const after = state.draft;
@@ -1430,13 +1455,19 @@
       s.audit = s.audit || [];
       s.audit.unshift({
         at: '2026-11-10 14:32',
-        by: operatorName(),
+        by: operatorLabel(),
         text: summarizeChanges(before, after)
       });
       state.draft = clone(s.current);
       state.draftStudentId = s.id;
       renderAll();
-      showToast(`在学课件已保存，共 ${after.length} 门；老师课表与家长端已同步刷新`);
+      if (state.role === 'parent') {
+        showToast(`在学课件已保存，共 ${after.length} 门；已提醒负责班长与授课老师`);
+      } else if (state.role === 'teacher') {
+        showToast(`在学课件已保存，共 ${after.length} 门；已同步至老师课表与家长端`);
+      } else {
+        showToast(`在学课件已保存，共 ${after.length} 门；老师课表与家长端已同步刷新`);
+      }
     }
 
     function openAddPicker() {
@@ -1471,7 +1502,7 @@
       const items = s.current || [];
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-        ${pageHeader('孩子课件', `${s.nickname} · 只读`, `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`)}
+        ${pageHeader('孩子课件', `${s.nickname} · 在学课件`, `<button data-action="open-config" class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70">编辑在学课件</button>`)}
         ${studentSwitch()}
         <div class="grid grid-cols-2 gap-2">
           ${miniStat('在学课件', items.length, 'indigo', '/6')}
@@ -1480,7 +1511,7 @@
         <div class="${grid}">
           ${items.length ? items.map(parentCoursewareCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center text-[14px] font-medium text-slate-500">该孩子暂未配置在学课件</div>`}
         </div>
-        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">在学课件由管理员或班长维护 · 家长端只读。点击封面可查看当前级别样课内页。</div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">家长可自助调整本人名下在读孩子的在学课件 · 保存后同步老师课表并提醒负责班长与授课老师。点击封面可查看当前级别样课内页。</div>
       </div>`;
     }
 
@@ -1488,7 +1519,7 @@
       const cw = findCw(item.cwId);
       if (!cw) return '';
       const lvl = findLevel(cw, item.levelId);
-      return `<article class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
+      return `<article class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
         <div class="flex items-start gap-2.5">
           <button data-action="preview-cw" data-id="${cw.id}" data-level="${esc(item.levelId || '')}" aria-label="查看样课">${coverHtml(cw, 'h-14 w-14', 'text-[18px]')}</button>
           <div class="min-w-0 flex-1">
@@ -1502,7 +1533,7 @@
         </div>
         <div class="mt-2 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
           <span class="text-[12px] font-medium text-slate-500">${(lvl ? lvl.images : []).length} 张样课图</span>
-          <button data-action="preview-cw" data-id="${cw.id}" data-level="${esc(item.levelId || '')}" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">查看样课</button>
+          <button data-action="preview-cw" data-id="${cw.id}" data-level="${esc(item.levelId || '')}" class="inline-flex items-center gap-0.5 whitespace-nowrap text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">查看样课 →</button>
         </div>
       </article>`;
     }
@@ -1540,12 +1571,14 @@
           </div>
         </article>
 
-        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-          <div class="flex items-center justify-between gap-2">
-            <h2 class="text-[16px] font-bold text-slate-900">Current Courseware <span class="text-[12px] font-medium text-slate-500">在学课件</span></h2>
-            <span class="rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-500">${items.length}/6</span>
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">在学课件 <span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 align-middle font-mono text-[12px] font-bold text-slate-500">${items.length}/6</span></h2>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">Current Courseware · 仅本人授课学员 · 点击课件胶囊查看当前级别样课内页</p>
+            </div>
+            <button data-action="open-config" class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70">编辑在学课件</button>
           </div>
-          <p class="mt-0.5 text-[12px] font-medium text-slate-500">点击课件胶囊查看当前级别样课内页</p>
           <div class="mt-2.5 flex flex-wrap gap-1.5">
             ${items.length ? items.map(teacherCoursewareTag).join('') : `<span class="text-[14px] font-medium text-slate-500">该学员暂未配置在学课件</span>`}
           </div>
@@ -1623,7 +1656,7 @@
           <button data-action="pick-add" ${canAdd ? '' : 'disabled'} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">添加到在学课件</button>
         </div>` : `<div class="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-500">暂无可添加的启用课件</div>`}
         <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-500">仅可选择已启用课件；新建课件默认为停用，需在课件库手动启用后才会出现在这里。已绑定的停用课件仍会在在学列表中展示。</div>
-        <button data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
+        <button data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
       `);
     }
 
@@ -1671,7 +1704,7 @@
               </button>`).join('')}
             </div>` : `<div class="mt-1.5 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-[12px] font-medium text-slate-500">该级别暂无样课图</div>`}
           </div>
-          <button data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">关闭</button>
+          <button data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">关闭</button>
         </div>
       </div>`;
     }
@@ -1739,7 +1772,7 @@
         ${modalHeader('删除课件', '仅从未被学员绑定的课件可物理删除')}
         <div class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-rose-900">确认删除「${esc(cw.nameCn)}」？删除后不可恢复，历史排课不会关联该课件。</div>
         <div class="mt-3 flex gap-2">
-          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
           <button data-action="confirm-delete-cw" class="h-11 flex-1 rounded-xl bg-rose-600 text-[16px] font-semibold text-white">确认删除</button>
         </div>
       `);
@@ -1755,7 +1788,19 @@
 
       if (action === 'nav') return navTo(el.dataset.tab);
       if (action === 'toast') return showToast(el.dataset.message || '');
-      if (action === 'back-main') return setView(state.role === 'admin' ? 'library' : state.role === 'monitor' ? 'student' : state.role === 'parent' ? 'child' : 'prep');
+      if (action === 'open-config') {
+        state.page = 'student';
+        state.navTab = state.role === 'parent' ? 'me' : 'schedule';
+        state.draft = null;
+        state.draftStudentId = null;
+        state.overlay = null;
+        return renderAll();
+      }
+      if (action === 'back-config') {
+        if (state.role === 'parent') return setView('child');
+        if (state.role === 'teacher') return setView('prep');
+        return setView('student');
+      }
       if (action === 'open-audit') return openAudit(el.dataset.cw || 'all');
       if (action === 'toggle-audit-all') { state.auditShowAll = !state.auditShowAll; return renderContentOnly(); }
       if (action === 'cancel-audit') {
@@ -1768,6 +1813,7 @@
       if (action === 'switch-student') return setStudent(el.dataset.id);
       if (action === 'create-courseware') return openEditor('create');
       if (action === 'edit-cw') return openEditor('edit', el.dataset.id);
+      if (action === 'lib-type') { state.libType = el.dataset.type; return renderAll(); }
       if (action === 'lib-status') { state.libStatus = el.dataset.status; return renderAll(); }
       if (action === 'toggle-cw') {
         if (state.online === 'off') return showToast('离线模式下不可启停课件');
@@ -1835,7 +1881,7 @@
         clearFormError();
         document.querySelectorAll('[data-action="toggle-type"]').forEach((b) => {
           const on = state.form.courseTypes.includes(b.dataset.value);
-          b.className = `h-8 rounded-lg border px-2.5 text-[12px] font-semibold ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600'}`;
+          b.className = `h-8 rounded-lg border px-2.5 text-[12px] font-semibold transition ${on ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700'}`;
         });
         return;
       }
@@ -1974,7 +2020,6 @@
 
     document.getElementById('frame').addEventListener('change', (e) => {
       const id = e.target.id;
-      if (id === 'libType') { state.libType = e.target.value; return renderAll(); }
       if (id === 'auditCw') { state.auditCwId = e.target.value; state.auditShowAll = false; return renderContentOnly(); }
       if (id === 'fCoverInput') return handleCoverFile(e.target.files && e.target.files[0]);
       if (id && id.startsWith('fLevelImg-')) return handleLevelImages(Number(id.split('-')[1]), e.target.files);

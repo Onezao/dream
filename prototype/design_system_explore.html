@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<!-- Dream UI 规范探索预览页（§2.2.1 · §8.1 · §8.3 · §8.4）。纯前端演示数据，不连接后端。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Dream · UI 规范探索预览</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 900: '#1e1b4b' }
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
+
+  <!-- 顶部规范场景切换控制台（不属于移动端产品界面） -->
+  <header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2.5 text-[12px]">
+      <div class="flex items-center gap-2">
+        <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-[11px] font-bold text-amber-300">UI</span>
+        <span class="text-[14px] font-bold text-slate-900">DESIGN.md 规范探索预览</span>
+        <span class="hidden text-[12px] font-medium text-slate-500 md:inline">390×812 视口 · 100% Tailwind</span>
+      </div>
+
+      <!-- 4 个快捷场景切换胶囊 -->
+      <div id="sceneSwitcher" class="flex flex-wrap items-center gap-1.5">
+        <button data-scene="header" class="scene-btn h-8 rounded-full px-3 text-[12px] font-semibold transition whitespace-nowrap">1. 顶栏返回</button>
+        <button data-scene="filters" class="scene-btn h-8 rounded-full px-3 text-[12px] font-semibold transition whitespace-nowrap">2. 筛选胶囊</button>
+        <button data-scene="cards" class="scene-btn h-8 rounded-full px-3 text-[12px] font-semibold transition whitespace-nowrap">3. 卡内动作</button>
+        <button data-scene="form" class="scene-btn h-8 rounded-full px-3 text-[12px] font-semibold transition whitespace-nowrap">4. 提质表单</button>
+      </div>
+
+      <a href="../DESIGN.md" target="_blank" rel="noopener" class="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-600 hover:bg-slate-50 lg:inline-flex">
+        <i data-lucide="book-open" class="h-3.5 w-3.5"></i>DESIGN.md
+      </a>
+    </div>
+  </header>
+
+  <!-- 居中 390×812 移动端预览视口 -->
+  <main class="flex justify-center px-4 py-6">
+    <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300">
+      <div id="appHeader" class="shrink-0"></div>
+      <div id="appContent" class="min-h-0 flex-1 overflow-y-auto"></div>
+      <div id="appFooter" class="shrink-0"></div>
+      <div id="drawerRoot"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-16 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
+    </div>
+  </main>
+
+  <script>
+    /* ------------------------------------------------------------------
+     * 状态管理
+     * ------------------------------------------------------------------ */
+    const state = {
+      scene: 'header', // 'header' | 'filters' | 'cards' | 'form'
+
+      // 视图 1：顶栏返回 (§8.3)
+      headerMode: 'root', // 'root' | 'sub'
+      subTitle: '购课单详情 · ord_9k2m7x',
+
+      // 视图 2：筛选胶囊 (§8.1.2)
+      orderStatus: 'all', // 'all' | 'pending' | 'paid' | 'void'
+      teacherPrice: 'all', // 'all' | '16' | '18' | '21'
+      todoTab: 'all', // 'all' | 'schedule' | 'renew' | 'refund' | 'transfer'
+      teacherFilter: 'all', // 'all' | 'david' | 'sarah' | 'mike' | 'claire' | 'emma' | 'lucas'
+      teacherDrawerOpen: false,
+      teacherSearchQuery: '',
+
+      // 视图 4：提质表单 (§8.4)
+      form: {
+        studentName: 'AliceZ12（张语桐）',
+        parentPhone: '138****6219',
+        classType: 'fixed', // 'fixed' | 'temp'
+        packageOpt: '8', // '8' | '16' | '24' | 'custom'
+        customSessions: 12,
+        payMethod: 'wechat', // 'wechat' | 'bank'
+        remark: '老学员续报周二/周四晚 19:00 固定位'
+      }
+    };
+
+    const TEACHER_OPTIONS = [
+      { id: 'all', label: '授课老师', name: '全部老师', initials: 'ALL', priceTier: '', load: '不限授课老师' },
+      { id: 'david', label: 'David Miller', name: 'David Miller', initials: 'DM', priceTier: '21积分', load: '本周 18/24 节' },
+      { id: 'sarah', label: 'Sarah Jenkins', name: 'Sarah Jenkins', initials: 'SJ', priceTier: '18积分', load: '本周 22/24 节' },
+      { id: 'mike', label: 'Mike Ross', name: 'Mike Ross', initials: 'MR', priceTier: '16积分', load: '本周 14/24 节' },
+      { id: 'claire', label: 'Claire Vance', name: 'Claire Vance', initials: 'CV', priceTier: '18积分', load: '本周 20/24 节' },
+      { id: 'emma', label: 'Emma Watson', name: 'Emma Watson', initials: 'EW', priceTier: '21积分', load: '本周 19/24 节' },
+      { id: 'lucas', label: 'Lucas Chen', name: 'Lucas Chen', initials: 'LC', priceTier: '16积分', load: '本周 11/24 节' }
+    ];
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        el.classList.add('hidden');
+      }, 2200);
+    }
+
+    /* ------------------------------------------------------------------
+     * 视图 1：页面返回按钮唯一位置 (§8.3)
+     * ------------------------------------------------------------------ */
+    function renderHeaderScene() {
+      const isRoot = state.headerMode === 'root';
+
+      const headerHtml = isRoot
+        ? `
+          <div class="sticky top-0 z-20 flex h-14 items-center justify-between bg-gradient-to-r from-slate-900 via-fuchsia-950 to-slate-800 px-4 text-white">
+            <h1 class="text-[18px] font-bold tracking-tight text-white">教务中心</h1>
+            <button id="btnBell" type="button" class="relative grid h-8 w-8 place-items-center rounded-lg text-white/85 hover:bg-white/10 transition">
+              <i data-lucide="bell" class="h-4.5 w-4.5"></i>
+              <span class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-slate-900"></span>
+            </button>
+          </div>
+        `
+        : `
+          <div class="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-fuchsia-950 to-slate-800 px-4 text-white">
+            <div class="flex min-w-0 items-center gap-1.5">
+              <button id="btnBackToRoot" type="button" class="-ml-1 inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[13px] font-semibold text-white/90 hover:bg-white/10 active:bg-white/15 transition">
+                <i data-lucide="chevron-left" class="h-4 w-4"></i>
+                <span>返回</span>
+              </button>
+              <h1 class="truncate text-[16px] font-bold text-white">${state.subTitle}</h1>
+            </div>
+            <span class="shrink-0 rounded-full border border-emerald-400/30 bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-100">已支付</span>
+          </div>
+        `;
+
+      const rootBodyHtml = `
+        <div class="space-y-4 p-4">
+          <!-- 模式对比切换条 -->
+          <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-[14px] font-bold text-slate-900">当前：根视图顶栏（4 大主 Tab）</p>
+                <p class="mt-0.5 text-[12px] font-medium text-slate-600">左侧严禁放返回按钮，仅保留大标题 + 右侧通知铃铛</p>
+              </div>
+              <span class="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white">Root</span>
+            </div>
+            <div class="mt-3 flex gap-2">
+              <button data-header-mode="root" class="flex-1 h-8 rounded-full bg-slate-900 text-[12px] font-semibold text-white">根视图顶栏</button>
+              <button data-header-mode="sub" class="flex-1 h-8 rounded-full bg-slate-100 text-[12px] font-medium text-slate-600 hover:bg-slate-200/80">二级/下钻顶栏 →</button>
+            </div>
+          </div>
+
+          <!-- 可点击下钻列表 -->
+          <div class="space-y-2.5">
+            <p class="text-[12px] font-semibold text-slate-600">点击任意条目模拟进入二级页 / Tab 下钻子视图：</p>
+
+            <button data-drill="购课单详情 · ord_9k2m7x" type="button" class="drill-item box-border flex w-full items-center justify-between rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 text-left hover:bg-slate-100/80 transition">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[14px] font-bold text-slate-900">购课单详情</span>
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">ord_9k2m7x</span>
+                </div>
+                <p class="mt-1 text-[12px] font-medium text-slate-600">AliceZ12 · 1v1 固定位 · 8 节 · 960 积分</p>
+              </div>
+              <span class="inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 whitespace-nowrap">进入详情 →</span>
+            </button>
+
+            <button data-drill="小班档案 · 30min 启蒙小班" type="button" class="drill-item box-border flex w-full items-center justify-between rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 text-left hover:bg-slate-100/80 transition">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[14px] font-bold text-slate-900">小班运营详情</span>
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">cls_3m8p1q</span>
+                </div>
+                <p class="mt-1 text-[12px] font-medium text-slate-600">Sarah · 周二/四 19:00 · 在读 3/4 人</p>
+              </div>
+              <span class="inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 whitespace-nowrap">下钻查看 →</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      const subBodyHtml = `
+        <div class="space-y-4 p-4">
+          <!-- 模式对比切换条 -->
+          <div class="rounded-2xl border border-indigo-200/80 bg-indigo-50/50 p-3.5">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-[14px] font-bold text-slate-900">当前：二级页 / 下钻子视图顶栏</p>
+                <p class="mt-0.5 text-[12px] font-medium text-slate-600">唯一吸顶 h-14 角色 Banner 最左侧固定 &lt; 返回，正文区绝无第二条返回栏</p>
+              </div>
+              <span class="rounded-full bg-indigo-600 px-2.5 py-1 text-[11px] font-semibold text-white">Sub</span>
+            </div>
+            <div class="mt-3 flex gap-2">
+              <button data-header-mode="root" class="flex-1 h-8 rounded-full bg-slate-100 text-[12px] font-medium text-slate-600 hover:bg-slate-200/80">← 切回根视图</button>
+              <button data-header-mode="sub" class="flex-1 h-8 rounded-full bg-slate-900 text-[12px] font-semibold text-white">二级/下钻顶栏</button>
+            </div>
+          </div>
+
+          <!-- 规范正文示例 -->
+          <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[12px] font-semibold text-slate-600">应付积分</span>
+              <span class="text-[18px] font-bold text-slate-900">960 积分</span>
+            </div>
+            <div class="flex items-center justify-between border-t border-slate-200/70 pt-2.5">
+              <span class="text-[12px] font-semibold text-slate-600">授课老师</span>
+              <span class="text-[13px] font-semibold text-slate-700">Sarah · 18积分/节</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[12px] font-semibold text-slate-600">资金持有方</span>
+              <span class="text-[12px] font-medium text-slate-600">班长 · 林妈妈（待周度归集）</span>
+            </div>
+          </div>
+
+          <!-- 正反规范说明 -->
+          <div class="rounded-2xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 p-3.5">
+            <p class="text-[13px] font-bold text-slate-900">严禁“双顶栏叠罗汉”</p>
+            <p class="mt-1 text-[12px] font-medium text-slate-700">顶栏下方正文区内严禁再放置“&lt; 返回列表”按钮、面包屑或重复返回条。点击顶部最左侧「&lt; 返回」即可回到根视图。</p>
+          </div>
+        </div>
+      `;
+
+      return {
+        header: headerHtml,
+        content: isRoot ? rootBodyHtml : subBodyHtml,
+        footer: `
+          <div class="border-t border-slate-200/80 bg-white px-4 py-2.5 text-center text-[12px] font-medium text-slate-600">
+            §8.3 页面返回按钮唯一位置规范 · 点击顶栏或卡片交互体验
+          </div>
+        `
+      };
+    }
+
+    /* ------------------------------------------------------------------
+     * 视图 2：筛选胶囊统一标准 (§8.1.2)
+     * ------------------------------------------------------------------ */
+    function renderFiltersScene() {
+      const statusItems = [
+        { id: 'all', label: '全部' },
+        { id: 'pending', label: '待付款' },
+        { id: 'paid', label: '已支付' },
+        { id: 'void', label: '已作废' }
+      ];
+      const priceItems = [
+        { id: 'all', label: '全部' },
+        { id: '16', label: '16积分' },
+        { id: '18', label: '18积分' },
+        { id: '21', label: '21积分' }
+      ];
+      const todoItems = [
+        { id: 'all', label: '全部' },
+        { id: 'schedule', label: '排课' },
+        { id: 'renew', label: '续费' },
+        { id: 'refund', label: '退款' },
+        { id: 'transfer', label: '转账' }
+      ];
+
+      const pillClass = (active, size) => {
+        const base = size === 'md'
+          ? 'h-8 px-3 text-[12px]'
+          : 'h-6 px-2.5 text-[11px]';
+        const stateCls = active
+          ? 'bg-slate-900 text-white font-semibold'
+          : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600 font-medium';
+        return `${base} ${stateCls} border-0 shrink-0 rounded-full whitespace-nowrap transition`;
+      };
+
+      const selectedTeacher = TEACHER_OPTIONS.find((t) => t.id === state.teacherFilter) || TEACHER_OPTIONS[0];
+      const teacherActive = state.teacherFilter !== 'all';
+      const triggerCls = teacherActive
+        ? 'border border-indigo-500 bg-indigo-50/50 text-indigo-700 font-semibold text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1 shrink-0 transition'
+        : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1 shrink-0 transition';
+
+      const statusLabel = statusItems.find((i) => i.id === state.orderStatus).label;
+      const priceLabel = priceItems.find((i) => i.id === state.teacherPrice).label;
+      const todoLabel = todoItems.find((i) => i.id === state.todoTab).label;
+
+      const contentHtml = `
+        <div class="space-y-4 p-4">
+          <!-- 1. md 标准列表胶囊 -->
+          <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[13px] font-bold text-slate-900">1. md 标准列表胶囊</span>
+              <span class="rounded-full bg-white px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600 border border-slate-200">h-8 px-3 text-[12px]</span>
+            </div>
+            <p class="text-[12px] font-medium text-slate-600">用于购课单、退款单、学员/小班等常规列表顶部筛选</p>
+            <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+              ${statusItems.map((item) => `
+                <button type="button" data-filter-group="orderStatus" data-filter-val="${item.id}" class="${pillClass(state.orderStatus === item.id, 'md')}">${item.label}</button>
+              `).join('')}
+            </div>
+          </section>
+
+          <!-- 2. sm 高密度微胶囊 -->
+          <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[13px] font-bold text-slate-900">2. sm 高密度微胶囊</span>
+              <span class="rounded-full bg-white px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600 border border-slate-200">h-6 px-2.5 text-[11px]</span>
+            </div>
+
+            <!-- 价位筛选 -->
+            <div class="space-y-1.5">
+              <span class="text-[12px] font-semibold text-slate-600">教师价位（空间受限多维条）：</span>
+              <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                ${priceItems.map((item) => `
+                  <button type="button" data-filter-group="teacherPrice" data-filter-val="${item.id}" class="${pillClass(state.teacherPrice === item.id, 'sm')}">${item.label}</button>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- 一行等分 flex-1 -->
+            <div class="space-y-1.5 border-t border-slate-200/70 pt-2.5">
+              <span class="text-[12px] font-semibold text-slate-600">待办大厅 5 项一行等分（flex-1）：</span>
+              <div class="flex w-full items-center gap-1">
+                ${todoItems.map((item) => `
+                  <button type="button" data-filter-group="todoTab" data-filter-val="${item.id}" class="flex-1 ${pillClass(state.todoTab === item.id, 'sm')}">${item.label}</button>
+                `).join('')}
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. 下拉筛选微触发器 -->
+          <section class="relative rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[13px] font-bold text-slate-900">3. 下拉筛选微触发器</span>
+              <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 border border-slate-200">${teacherActive ? '已选中高亮' : '默认态'}</span>
+            </div>
+            <p class="text-[12px] font-medium text-slate-600">选项 &gt; 4 个或需搜人时使用，点击从底部滑出半屏抽屉（禁用悬浮下拉）</p>
+
+            <div class="flex items-center gap-2">
+              <button id="btnTeacherTrigger" type="button" class="${triggerCls}">
+                <span>${selectedTeacher.label}</span>
+                <i data-lucide="chevron-down" class="h-3.5 w-3.5"></i>
+              </button>
+              ${teacherActive ? `<button id="btnClearTeacher" type="button" class="text-[12px] font-semibold text-indigo-600 hover:underline">重置</button>` : ''}
+            </div>
+          </section>
+
+          <!-- 当前筛选实时状态摘要 -->
+          <div class="rounded-2xl border border-indigo-200/80 bg-indigo-50/50 p-3.5">
+            <p class="text-[12px] font-bold text-slate-900">当前激活组合</p>
+            <p class="mt-1 text-[12px] font-medium text-slate-700">
+              订单状态：<span class="font-bold text-slate-900">${statusLabel}</span> ·
+              价位：<span class="font-bold text-slate-900">${priceLabel}</span> ·
+              待办：<span class="font-bold text-slate-900">${todoLabel}</span> ·
+              老师：<span class="font-bold text-indigo-700">${selectedTeacher.id === 'all' ? '全部' : selectedTeacher.name}</span>
+            </p>
+          </div>
+        </div>
+      `;
+
+      return {
+        header: `
+          <div class="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur">
+            <h1 class="text-[16px] font-bold text-slate-900">筛选胶囊统一标准</h1>
+            <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">§8.1.2</span>
+          </div>
+        `,
+        content: contentHtml,
+        footer: `
+          <div class="border-t border-slate-200/80 bg-white px-4 py-2.5 text-center text-[12px] font-medium text-slate-600">
+            激活态唯一 bg-slate-900 text-white · 未选态唯一 bg-slate-100 text-slate-600
+          </div>
+        `
+      };
+    }
+
+    function renderTeacherListHtml() {
+      const q = state.teacherSearchQuery.trim().toLowerCase();
+      const allOpt = TEACHER_OPTIONS[0];
+      const teachers = TEACHER_OPTIONS.slice(1).filter((t) => {
+        if (!q) return true;
+        return t.name.toLowerCase().includes(q) || t.priceTier.toLowerCase().includes(q);
+      });
+
+      const allSelected = state.teacherFilter === 'all';
+      const allRowHtml = !q
+        ? `
+          <button type="button" data-teacher-opt="all" class="flex min-h-[48px] w-full items-center justify-between rounded-xl px-3 py-2 text-left transition ${allSelected ? 'bg-indigo-50/80 text-indigo-700' : 'text-slate-800 hover:bg-slate-50'}">
+            <div class="flex items-center gap-2.5">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-bold ${allSelected ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'}">全部</span>
+              <div>
+                <div class="text-[13px] font-semibold">全部老师</div>
+                <div class="text-[11px] font-medium text-slate-500">不限授课老师</div>
+              </div>
+            </div>
+            ${allSelected ? '<i data-lucide="check" class="h-4 w-4 shrink-0 text-indigo-600"></i>' : ''}
+          </button>
+        `
+        : '';
+
+      const teacherRowsHtml = teachers.map((t) => {
+        const selected = state.teacherFilter === t.id;
+        const priceCls = t.priceTier === '21积分'
+          ? 'border-amber-200/80 bg-amber-50 text-amber-800'
+          : t.priceTier === '18积分'
+            ? 'border-indigo-200/80 bg-indigo-50 text-indigo-700'
+            : 'border-slate-200/80 bg-slate-100 text-slate-600';
+        return `
+          <button type="button" data-teacher-opt="${t.id}" class="flex min-h-[48px] w-full items-center justify-between rounded-xl px-3 py-2 text-left transition ${selected ? 'bg-indigo-50/80 text-indigo-700' : 'text-slate-800 hover:bg-slate-50'}">
+            <div class="flex min-w-0 items-center gap-2.5">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-bold ${selected ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'}">${t.initials}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="truncate text-[13px] font-semibold">${t.name}</span>
+                  <span class="shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold leading-none ${priceCls}">${t.priceTier}</span>
+                </div>
+                <div class="mt-0.5 text-[11px] font-medium text-slate-500">${t.load}</div>
+              </div>
+            </div>
+            ${selected ? '<i data-lucide="check" class="h-4 w-4 shrink-0 text-indigo-600"></i>' : ''}
+          </button>
+        `;
+      }).join('');
+
+      if (!allRowHtml && !teacherRowsHtml) {
+        return `<div class="py-8 text-center text-[12px] font-medium text-slate-500">未找到匹配的授课老师</div>`;
+      }
+
+      return `${allRowHtml}${teacherRowsHtml}`;
+    }
+
+    function renderTeacherDrawer(animateIn) {
+      const root = document.getElementById('drawerRoot');
+      if (!root) return;
+
+      if (!state.teacherDrawerOpen || state.scene !== 'filters') {
+        root.innerHTML = '';
+        return;
+      }
+
+      root.innerHTML = `
+        <div id="teacherDrawerBackdrop" class="absolute inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-[1px] transition-opacity duration-200 ${animateIn ? 'opacity-0' : 'opacity-100'}">
+          <div id="teacherDrawerSheet" class="relative flex max-h-[72%] w-full flex-col rounded-t-3xl bg-white shadow-2xl transition-transform duration-200 ease-out ${animateIn ? 'translate-y-full' : 'translate-y-0'}">
+            <!-- 顶部浅灰拖动把手 -->
+            <div class="flex shrink-0 justify-center pt-2.5 pb-1">
+              <span class="h-1 w-10 rounded-full bg-slate-300"></span>
+            </div>
+
+            <!-- 标题与右上角 [ 重置 ] + 关闭 -->
+            <div class="flex shrink-0 items-center justify-between px-4 pb-2 pt-1">
+              <h2 class="text-[15px] font-bold text-slate-900">选择授课老师</h2>
+              <div class="flex items-center gap-1">
+                <button id="btnDrawerResetTeacher" type="button" class="rounded-lg px-2 py-1 text-[12px] font-semibold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-700">[ 重置 ]</button>
+                <button id="btnDrawerCloseTeacher" type="button" aria-label="关闭" class="grid h-7 w-7 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
+                  <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- 轻量搜索框 -->
+            <div class="shrink-0 px-4 pb-2.5">
+              <div class="relative flex items-center">
+                <i data-lucide="search" class="pointer-events-none absolute left-3 h-4 w-4 text-slate-500"></i>
+                <input id="inpTeacherSearch" type="text" value="${state.teacherSearchQuery.replace(/"/g, '&quot;')}" placeholder="搜索老师姓名或价位..." class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-8 text-[16px] font-medium text-slate-800 placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:outline-none">
+                <button id="btnClearTeacherSearch" type="button" aria-label="清空搜索" class="${state.teacherSearchQuery ? '' : 'hidden '}absolute right-2 grid h-5 w-5 place-items-center rounded-full text-slate-500 hover:bg-slate-200 hover:text-slate-700">
+                  <i data-lucide="x" class="h-3 w-3"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- 高触控老师列表 -->
+            <div id="teacherListContainer" class="flex-1 space-y-1 overflow-y-auto px-3 pb-5">
+              ${renderTeacherListHtml()}
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+
+      if (animateIn) {
+        requestAnimationFrame(() => {
+          const backdrop = document.getElementById('teacherDrawerBackdrop');
+          const sheet = document.getElementById('teacherDrawerSheet');
+          if (backdrop) {
+            backdrop.classList.remove('opacity-0');
+            backdrop.classList.add('opacity-100');
+          }
+          if (sheet) {
+            sheet.classList.remove('translate-y-full');
+            sheet.classList.add('translate-y-0');
+          }
+        });
+      }
+
+      bindDrawerEvents();
+    }
+
+    function openTeacherDrawer() {
+      state.teacherDrawerOpen = true;
+      renderTeacherDrawer(true);
+    }
+
+    function closeTeacherDrawer() {
+      const backdrop = document.getElementById('teacherDrawerBackdrop');
+      const sheet = document.getElementById('teacherDrawerSheet');
+      if (backdrop && sheet) {
+        backdrop.classList.remove('opacity-100');
+        backdrop.classList.add('opacity-0');
+        sheet.classList.remove('translate-y-0');
+        sheet.classList.add('translate-y-full');
+        setTimeout(() => {
+          state.teacherDrawerOpen = false;
+          const root = document.getElementById('drawerRoot');
+          if (root) root.innerHTML = '';
+        }, 190);
+      } else {
+        state.teacherDrawerOpen = false;
+        const root = document.getElementById('drawerRoot');
+        if (root) root.innerHTML = '';
+      }
+    }
+
+    function bindTeacherOptionEvents() {
+      document.querySelectorAll('[data-teacher-opt]').forEach((el) => {
+        el.addEventListener('click', () => {
+          state.teacherFilter = el.dataset.teacherOpt;
+          closeTeacherDrawer();
+          render();
+        });
+      });
+    }
+
+    function bindDrawerEvents() {
+      const backdrop = document.getElementById('teacherDrawerBackdrop');
+      if (backdrop) {
+        backdrop.addEventListener('click', (e) => {
+          if (e.target === backdrop) {
+            closeTeacherDrawer();
+          }
+        });
+      }
+
+      const btnClose = document.getElementById('btnDrawerCloseTeacher');
+      if (btnClose) {
+        btnClose.addEventListener('click', closeTeacherDrawer);
+      }
+
+      const btnReset = document.getElementById('btnDrawerResetTeacher');
+      if (btnReset) {
+        btnReset.addEventListener('click', () => {
+          state.teacherFilter = 'all';
+          state.teacherSearchQuery = '';
+          closeTeacherDrawer();
+          render();
+          showToast('已重置授课老师筛选');
+        });
+      }
+
+      const inpSearch = document.getElementById('inpTeacherSearch');
+      const btnClearSearch = document.getElementById('btnClearTeacherSearch');
+      if (inpSearch) {
+        inpSearch.addEventListener('input', (e) => {
+          state.teacherSearchQuery = e.target.value;
+          if (btnClearSearch) {
+            btnClearSearch.classList.toggle('hidden', !state.teacherSearchQuery);
+          }
+          const listEl = document.getElementById('teacherListContainer');
+          if (listEl) {
+            listEl.innerHTML = renderTeacherListHtml();
+            if (window.lucide) window.lucide.createIcons();
+            bindTeacherOptionEvents();
+          }
+        });
+      }
+
+      if (btnClearSearch) {
+        btnClearSearch.addEventListener('click', () => {
+          state.teacherSearchQuery = '';
+          btnClearSearch.classList.add('hidden');
+          if (inpSearch) {
+            inpSearch.value = '';
+            inpSearch.focus();
+          }
+          const listEl = document.getElementById('teacherListContainer');
+          if (listEl) {
+            listEl.innerHTML = renderTeacherListHtml();
+            if (window.lucide) window.lucide.createIcons();
+            bindTeacherOptionEvents();
+          }
+        });
+      }
+
+      bindTeacherOptionEvents();
+    }
+
+    /* ------------------------------------------------------------------
+     * 视图 3：卡内文字链 vs 紧凑小按钮分场景 (§8.1.1 + §2.2.1)
+     * ------------------------------------------------------------------ */
+    function renderCardsScene() {
+      const contentHtml = `
+        <div class="space-y-3 p-4">
+          <p class="text-[12px] font-medium text-slate-600">同屏对比 4 类真实 Dream 业务卡（统一 box-border w-full，零投影，高对比文字）：</p>
+
+          <!-- 1. 浅红紧急卡 -->
+          <div class="box-border w-full rounded-2xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 p-3.5">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="h-2 w-2 shrink-0 rounded-full bg-rose-600"></span>
+                <span class="text-[14px] font-bold text-slate-900">老师请假待代课</span>
+              </div>
+              <span class="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-rose-700 border border-rose-200">开课前 2.5h</span>
+            </div>
+            <p class="mt-1.5 text-[12px] font-semibold text-slate-700">Sarah 临时急病请假 · 1v1 固定位（AliceZ12）</p>
+            <div class="mt-3 flex items-center justify-between gap-2">
+              <span class="text-[12px] font-medium text-slate-600">今日 19:00 - 19:30</span>
+              <button type="button" data-card-action="已触发紧急指派代课调度（ts_8841a）" class="h-7 rounded-lg border border-rose-200 bg-white px-2.5 text-[12px] font-bold text-rose-700 hover:bg-rose-50 whitespace-nowrap transition">指派代课</button>
+            </div>
+          </div>
+
+          <!-- 2. 浅黄提醒卡 -->
+          <div class="box-border w-full rounded-2xl border border-amber-300 bg-amber-50/50 p-3.5">
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-[14px] font-bold text-slate-900">购课单待确认收款</span>
+              <span class="rounded-full border border-amber-300 bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-900">待确认</span>
+            </div>
+            <p class="mt-1.5 text-[12px] font-semibold text-slate-700">LeoW08 · 16 节 (2 轮) · 实付 ¥1,920</p>
+            <div class="mt-3 flex items-center justify-between gap-2">
+              <span class="text-[12px] font-medium text-slate-600">班长：林妈妈 · 微信收款</span>
+              <button type="button" data-card-action="已确认购课单收款，16 节自动激活" class="h-7 rounded-lg border border-amber-300 bg-white px-2.5 text-[12px] font-bold text-amber-900 hover:bg-amber-50 whitespace-nowrap transition">确认收款</button>
+            </div>
+          </div>
+
+          <!-- 3. 中性操作卡 -->
+          <div class="box-border w-full rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-[14px] font-bold text-slate-900">David Miller</span>
+                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">21积分/节</span>
+              </div>
+              <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">空闲可用</span>
+            </div>
+            <p class="mt-1.5 text-[12px] font-medium text-slate-600">擅长自然拼读与绘本精读 · 本周剩余可排 6 节</p>
+            <div class="mt-3 flex items-center justify-between gap-2">
+              <span class="text-[12px] font-medium text-slate-600">匹配时段：周二/四 19:00</span>
+              <button type="button" data-card-action="已选取授课老师 David Miller · 21积分/节" class="h-7 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 hover:bg-indigo-100/70 whitespace-nowrap transition">选取</button>
+            </div>
+          </div>
+
+          <!-- 4. 中性只读卡（文字链） -->
+          <div class="box-border w-full rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-[14px] font-bold text-slate-900">AliceZ12 · 购课单详情 / 明日课次</span>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">已排课</span>
+            </div>
+            <p class="mt-1.5 text-[12px] font-semibold text-slate-700">明日 19:00 · Claire · 1v1 固定位第 5/8 节</p>
+            <div class="mt-3 flex items-center justify-between gap-2">
+              <span class="text-[12px] font-medium text-slate-600">纯只读跳转（无状态变更）</span>
+              <div class="flex items-center gap-3">
+                <button type="button" data-card-action="只读跳转：打开购课单详情页" class="inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline whitespace-nowrap">查看详情 →</button>
+                <button type="button" data-card-action="只读跳转：唤起 ClassIn 教室" class="inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline whitespace-nowrap">进入 ClassIn →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      return {
+        header: `
+          <div class="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur">
+            <h1 class="text-[16px] font-bold text-slate-900">卡内动作分场景规范</h1>
+            <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">§8.1.1</span>
+          </div>
+        `,
+        content: contentHtml,
+        footer: `
+          <div class="border-t border-slate-200/80 bg-white px-4 py-2.5 text-center text-[12px] font-medium text-slate-600">
+            状态变更用 h-7 紧凑小按钮 · 纯跳转只读用 Indigo 文字链
+          </div>
+        `
+      };
+    }
+
+    /* ------------------------------------------------------------------
+     * 视图 4：表单页面视觉提质实战 (§8.4)
+     * ------------------------------------------------------------------ */
+    function renderFormScene() {
+      const f = state.form;
+      const unitPrice = f.classType === 'fixed' ? 120 : 130;
+      const sessions = f.packageOpt === 'custom'
+        ? Math.max(1, Number(f.customSessions) || 1)
+        : Number(f.packageOpt);
+      const totalPoints = unitPrice * sessions;
+
+      const optBtnCls = (selected) => selected
+        ? 'relative rounded-xl border border-indigo-500 bg-indigo-50/60 p-3 text-left ring-1 ring-indigo-500 text-indigo-950 transition'
+        : 'relative rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-left text-slate-700 hover:bg-slate-100/70 transition';
+
+      const checkBadge = `
+        <span class="absolute right-2 top-2 grid h-4 w-4 place-items-center rounded-full bg-indigo-600 text-white">
+          <i data-lucide="check" class="h-2.5 w-2.5"></i>
+        </span>
+      `;
+
+      const contentHtml = `
+        <div class="min-h-full bg-slate-50 p-4 space-y-3">
+          <!-- 分组白卡 1：学员与班型 -->
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+            <div class="flex items-center gap-2">
+              <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">1</span>
+              <h2 class="text-[14px] font-bold text-slate-900">学员与班型</h2>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-[12px] font-semibold text-slate-600">学员档案</label>
+              <input id="inpStudentName" type="text" value="${f.studentName}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15" />
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-[12px] font-semibold text-slate-600">家长联系电话</label>
+              <input id="inpParentPhone" type="text" value="${f.parentPhone}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15" />
+            </div>
+
+            <div class="space-y-1.5">
+              <span class="block text-[12px] font-semibold text-slate-600">班型选择</span>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" data-form-class="fixed" class="${optBtnCls(f.classType === 'fixed')}">
+                  ${f.classType === 'fixed' ? checkBadge : ''}
+                  <p class="text-[13px] font-bold">1v1 固定位</p>
+                  <p class="mt-0.5 text-[11px] font-medium text-slate-600">120 积分/节</p>
+                </button>
+                <button type="button" data-form-class="temp" class="${optBtnCls(f.classType === 'temp')}">
+                  ${f.classType === 'temp' ? checkBadge : ''}
+                  <p class="text-[13px] font-bold">1v1 临时课</p>
+                  <p class="mt-0.5 text-[11px] font-medium text-slate-600">130 积分/节</p>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 分组白卡 2：课次与计价 -->
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+            <div class="flex items-center gap-2">
+              <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">2</span>
+              <h2 class="text-[14px] font-bold text-slate-900">课次与计价</h2>
+            </div>
+
+            <div class="space-y-1.5">
+              <span class="block text-[12px] font-semibold text-slate-600">购买节数</span>
+              <div class="grid grid-cols-2 gap-2">
+                ${[
+                  { id: '8', title: '8 节 (1 轮)', sub: '常规起步包' },
+                  { id: '16', title: '16 节 (2 轮)', sub: '稳步进阶包' },
+                  { id: '24', title: '24 节', sub: '学期连续包' },
+                  { id: 'custom', title: '自定义', sub: '按需输入节数' }
+                ].map((pkg) => `
+                  <button type="button" data-form-pkg="${pkg.id}" class="${optBtnCls(f.packageOpt === pkg.id)}">
+                    ${f.packageOpt === pkg.id ? checkBadge : ''}
+                    <p class="text-[13px] font-bold">${pkg.title}</p>
+                    <p class="mt-0.5 text-[11px] font-medium text-slate-600">${pkg.sub}</p>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            ${f.packageOpt === 'custom' ? `
+              <div class="space-y-1.5">
+                <label class="block text-[12px] font-semibold text-slate-600">自定义节数（节）</label>
+                <input id="inpCustomSessions" type="number" min="1" max="100" value="${f.customSessions}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] font-bold text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15" />
+              </div>
+            ` : ''}
+
+            <!-- 柔色实时试算摘要卡 -->
+            <div class="rounded-2xl border border-indigo-200/80 bg-indigo-50/50 p-3.5">
+              <div class="flex items-center justify-between text-[12px] font-medium text-slate-700">
+                <span>实时计价试算</span>
+                <span>${unitPrice} 积分 × ${sessions} 节</span>
+              </div>
+              <div class="mt-1.5 flex items-baseline justify-between">
+                <span class="text-[13px] font-semibold text-slate-800">应付合计积分</span>
+                <span class="text-[20px] font-bold tracking-tight text-indigo-700">${totalPoints} <span class="text-[12px] font-semibold">积分</span></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- 分组白卡 3：收款与备注 -->
+          <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+            <div class="flex items-center gap-2">
+              <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">3</span>
+              <h2 class="text-[14px] font-bold text-slate-900">收款与备注</h2>
+            </div>
+
+            <div class="space-y-1.5">
+              <span class="block text-[12px] font-semibold text-slate-600">收款方式（资金持有人锁定经办人）</span>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" data-form-pay="wechat" class="${optBtnCls(f.payMethod === 'wechat')}">
+                  ${f.payMethod === 'wechat' ? checkBadge : ''}
+                  <p class="text-[13px] font-bold">微信收款</p>
+                  <p class="mt-0.5 text-[11px] font-medium text-slate-600">即时到账核销</p>
+                </button>
+                <button type="button" data-form-pay="bank" class="${optBtnCls(f.payMethod === 'bank')}">
+                  ${f.payMethod === 'bank' ? checkBadge : ''}
+                  <p class="text-[13px] font-bold">银行卡转账</p>
+                  <p class="mt-0.5 text-[11px] font-medium text-slate-600">附转账凭证</p>
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-[12px] font-semibold text-slate-600">录单备注</label>
+              <input id="inpFormRemark" type="text" value="${f.remark}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15" />
+            </div>
+          </section>
+        </div>
+      `;
+
+      return {
+        header: `
+          <div class="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-fuchsia-950 to-slate-800 px-4 text-white">
+            <div class="flex items-center gap-1.5">
+              <button id="btnFormBack" type="button" class="-ml-1 inline-flex h-8 items-center gap-1 rounded-lg px-2 text-[13px] font-semibold text-white/90 hover:bg-white/10 active:bg-white/15 transition">
+                <i data-lucide="chevron-left" class="h-4 w-4"></i>
+                <span>返回</span>
+              </button>
+              <h1 class="text-[18px] font-bold text-white">线下购课录单</h1>
+            </div>
+            <span class="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-bold text-white/90">§8.4 表单</span>
+          </div>
+        `,
+        content: contentHtml,
+        footer: `
+          <div class="sticky bottom-0 z-20 border-t border-slate-200/80 bg-white/95 p-3 backdrop-blur">
+            <button id="btnSubmitOrder" type="button" class="h-11 w-full rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-[0.98]">
+              确认录单 · 计 ${totalPoints} 积分
+            </button>
+          </div>
+        `
+      };
+    }
+
+    /* ------------------------------------------------------------------
+     * 主渲染与事件绑定
+     * ------------------------------------------------------------------ */
+    function render() {
+      // 更新顶部场景切换胶囊
+      document.querySelectorAll('.scene-btn').forEach((btn) => {
+        const active = btn.dataset.scene === state.scene;
+        btn.className = active
+          ? 'scene-btn h-8 rounded-full px-3 text-[12px] font-semibold bg-slate-900 text-white transition whitespace-nowrap'
+          : 'scene-btn h-8 rounded-full px-3 text-[12px] font-medium bg-slate-100 hover:bg-slate-200/80 text-slate-600 transition whitespace-nowrap';
+      });
+
+      let view;
+      if (state.scene === 'header') view = renderHeaderScene();
+      else if (state.scene === 'filters') view = renderFiltersScene();
+      else if (state.scene === 'cards') view = renderCardsScene();
+      else view = renderFormScene();
+
+      document.getElementById('appHeader').innerHTML = view.header;
+      document.getElementById('appContent').innerHTML = view.content;
+      document.getElementById('appFooter').innerHTML = view.footer;
+
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+      bindViewEvents();
+    }
+
+    function bindViewEvents() {
+      // 视图 1 事件
+      const btnBackToRoot = document.getElementById('btnBackToRoot');
+      if (btnBackToRoot) {
+        btnBackToRoot.addEventListener('click', () => {
+          state.headerMode = 'root';
+          render();
+          showToast('已通过唯一吸顶顶栏返回根视图');
+        });
+      }
+      const btnBell = document.getElementById('btnBell');
+      if (btnBell) {
+        btnBell.addEventListener('click', () => showToast('根视图全局消息铃铛（2 条未读）'));
+      }
+      document.querySelectorAll('[data-header-mode]').forEach((el) => {
+        el.addEventListener('click', () => {
+          state.headerMode = el.dataset.headerMode;
+          render();
+        });
+      });
+      document.querySelectorAll('.drill-item').forEach((el) => {
+        el.addEventListener('click', () => {
+          state.subTitle = el.dataset.drill;
+          state.headerMode = 'sub';
+          render();
+        });
+      });
+
+      // 视图 2 事件
+      document.querySelectorAll('[data-filter-group]').forEach((el) => {
+        el.addEventListener('click', () => {
+          state[el.dataset.filterGroup] = el.dataset.filterVal;
+          render();
+        });
+      });
+      const btnTeacherTrigger = document.getElementById('btnTeacherTrigger');
+      if (btnTeacherTrigger) {
+        btnTeacherTrigger.addEventListener('click', () => {
+          openTeacherDrawer();
+        });
+      }
+      const btnClearTeacher = document.getElementById('btnClearTeacher');
+      if (btnClearTeacher) {
+        btnClearTeacher.addEventListener('click', () => {
+          state.teacherFilter = 'all';
+          state.teacherSearchQuery = '';
+          closeTeacherDrawer();
+          render();
+        });
+      }
+
+      // 视图 3 事件
+      document.querySelectorAll('[data-card-action]').forEach((el) => {
+        el.addEventListener('click', () => {
+          showToast(el.dataset.cardAction);
+        });
+      });
+
+      // 视图 4 事件
+      document.querySelectorAll('[data-form-class]').forEach((el) => {
+        el.addEventListener('click', () => {
+          state.form.classType = el.dataset.formClass;
+          render();
+        });
+      });
+      document.querySelectorAll('[data-form-pkg]').forEach((el) => {
+        el.addEventListener('click', () => {
+          state.form.packageOpt = el.dataset.formPkg;
+          render();
+        });
+      });
+      document.querySelectorAll('[data-form-pay]').forEach((el) => {
+        el.addEventListener('click', () => {
+          state.form.payMethod = el.dataset.formPay;
+          render();
+        });
+      });
+      const inpCustom = document.getElementById('inpCustomSessions');
+      if (inpCustom) {
+        inpCustom.addEventListener('input', (e) => {
+          state.form.customSessions = e.target.value;
+          const unitPrice = state.form.classType === 'fixed' ? 120 : 130;
+          const sessions = Math.max(1, Number(e.target.value) || 1);
+          const totalPoints = unitPrice * sessions;
+          const submitBtn = document.getElementById('btnSubmitOrder');
+          if (submitBtn) submitBtn.textContent = `确认录单 · 计 ${totalPoints} 积分`;
+          // 同步更新试算数字，避免重绘丢失输入焦点
+          const calcWrap = inpCustom.closest('section').querySelector('.text-indigo-700');
+          if (calcWrap) calcWrap.innerHTML = `${totalPoints} <span class="text-[12px] font-semibold">积分</span>`;
+          const calcSub = inpCustom.closest('section').querySelector('.text-slate-700 span:last-child');
+          if (calcSub) calcSub.textContent = `${unitPrice} 积分 × ${sessions} 节`;
+        });
+      }
+      const inpStudent = document.getElementById('inpStudentName');
+      if (inpStudent) inpStudent.addEventListener('input', (e) => { state.form.studentName = e.target.value; });
+      const inpPhone = document.getElementById('inpParentPhone');
+      if (inpPhone) inpPhone.addEventListener('input', (e) => { state.form.parentPhone = e.target.value; });
+      const inpRemark = document.getElementById('inpFormRemark');
+      if (inpRemark) inpRemark.addEventListener('input', (e) => { state.form.remark = e.target.value; });
+
+      const btnFormBack = document.getElementById('btnFormBack');
+      if (btnFormBack) {
+        btnFormBack.addEventListener('click', () => showToast('吸顶顶栏唯一返回触发'));
+      }
+      const btnSubmit = document.getElementById('btnSubmitOrder');
+      if (btnSubmit) {
+        btnSubmit.addEventListener('click', () => {
+          const unitPrice = state.form.classType === 'fixed' ? 120 : 130;
+          const sessions = state.form.packageOpt === 'custom'
+            ? Math.max(1, Number(state.form.customSessions) || 1)
+            : Number(state.form.packageOpt);
+          const totalPoints = unitPrice * sessions;
+          const payLabel = state.form.payMethod === 'wechat' ? '微信收款' : '银行卡转账';
+          showToast(`录单成功：${state.form.studentName} · ${sessions} 节 · ${totalPoints} 积分（${payLabel}）`);
+        });
+      }
+    }
+
+    // 顶部控制台场景切换绑定
+    document.querySelectorAll('.scene-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.scene = btn.dataset.scene;
+        state.teacherDrawerOpen = false;
+        const root = document.getElementById('drawerRoot');
+        if (root) root.innerHTML = '';
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>

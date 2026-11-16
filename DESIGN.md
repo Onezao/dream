@@ -13,10 +13,10 @@
 - **免生硬切换与公私分流**：
   - **首页双焦点**：首页上方集中呈现公事/教务待办（深色/微徽标），下方集中呈现自家孩子即将上课日程（浅色/活力徽标）；
   - **金刚区严格限额**：单角色仅 1 行 4 个金刚位；双角色（班长兼家长）2 行 8 个（第 1 行公事，第 2 行家庭）；三合一管理员 3 行 12 个（第 1 行平台运营，第 2 行教务调度，第 3 行家庭）；
-  - **导航物理隔离**：自家孩子排课收纳于 **Tab 2【学员课表】**；负责的 50+ 外部学员教务收纳于 **Tab 3【教务中心】**；管理员基础配置（班长列表、老师定级、字典参数）收纳于 **Tab 4【管理与设置】**，根绝跨角色误操作与资金混淆。
+  - **导航物理隔离**：自家孩子排课收纳于 **Tab 2【学员课表】**；负责的 50+ 外部学员教务收纳于 **Tab 3【教务中心】**；管理员基础配置（班长列表、价位字典、字典参数）收纳于 **Tab 4【管理与设置】**，根绝跨角色误操作与资金混淆。
 - **色彩与主题暗示**：
   - **顶部身份 Banner**：家长夜蓝、老师深青绿、班长深梅红、管理员紫夜，低饱和 800/900 + 纹理，仅承载身份；
-  - 页面内容区统一纯白底：公事与家庭功能区不再使用整块深色或浅灰背景，改由**深色图标/微徽标 (`text-slate-900` / `bg-white text-indigo-600`)** 在白底上自然区分；
+  - 页面内容区默认纯白底（表单录入页除外，详见 8.4）：公事与家庭功能区不再使用整块深色或浅灰背景，改由**深色图标/微徽标 (`text-slate-900` / `bg-white text-indigo-600`)** 在白底上自然区分；
   - **内容卡片按三种卡面分型（中性浅灰 / 浅黄提醒 / 浅红紧急），不按角色分色**（详见 2.2.1）；角色色只保留在顶部 Banner。
 
 ### 1.2 多孩家庭“首页时间流聚合与 Tab 2 默认 7 色周课表” (Family Agenda & Weekly Grid)
@@ -42,25 +42,24 @@
     - 输入框 (Input) 统一 `text-[16px]`，高度统一 `h-11` (44px) ~ `h-12` (48px)。踩准 iOS Safari 安全防缩放标准线，输入大字清晰规整。
     - 卡片核心主标题、弹窗主项名称、主要确认按钮统一使用 `text-[16px]` (`font-semibold` 或 `font-bold`)。
   - **L3 次级正文 / 课程名 / 内容摘要 (Body / Subtitle)**：**`14px` (`text-[14px]` / `text-sm`)**，`font-medium text-slate-800`（如课表主要名称 `少儿英语`、老师姓名、学情反馈评语正文，比 15px 更精悍耐读）。
-  - **L4 辅助说明 / 标签 / 徽标 / 底栏 (Caption / Badge / Nav)**：**`12px` (`text-[12px]` / `text-xs`)**，`font-medium text-slate-600` 或 `text-slate-500`（如真实姓名、档案 12 位短 ID、时间戳、底栏导航文字、状态胶囊微徽标。**严禁使用 `text-slate-400` 作为文字色**；**12px 为常规页面物理绝对下限，严禁出现 11px 及以下极限小字**）。
-  - **紧凑业务卡 (Compact Purpose Card)**：标题 `14px`、正文/辅助 `12px`、关键数字 `16–18px`；单卡目标 4–5 行、120–150px 高，390×812 视口一屏 3–4 张（家庭事项信息流按 120px 可展示 4 张）。严禁为塞字段把正文降到 12px 以下，也不使用 10px 微缩字。
-  - **单屏 7 列周度日历微卡片 (全系统唯一业务特例)**：`text-[11px]` (`font-bold leading-tight`)，仅在单屏 7 列高密度周度日历排期网格单元格微卡片内独占保留，专用于适配单列 45px 极窄视口。
+  - **L4 辅助说明 / 标签 / 徽标 / 底栏 (Caption / Badge / Nav)**：**`12px` (`text-[12px]` / `text-xs`)**，`font-medium text-slate-600` 或 `text-slate-500`（如真实姓名、档案 12 位短 ID、时间戳、底栏导航文字、状态胶囊微徽标。**严禁使用 `text-slate-400` 作为文字色**；**12px 为常规页面正文与标签物理绝对下限**）。
+  - **紧凑业务卡 (Compact Purpose Card)**：标题 `14px`、正文/辅助 `12px`、关键数字 `16–18px`（密度底线详见 2.2.1）。严禁为塞字段把正文降到 12px 以下，也不使用 10px 微缩字。
+  - **`11px` 业务特例白名单 (`text-[11px]`)**：仅允许用于以下 3 类高密度微元素，全站其余正文与标签严禁使用 11px 及以下字号：① 单屏 7 列周度日历微卡片（适配 45px 极窄列）；② `sm` 高密度筛选微胶囊（详见 8.1.2）；③ 表单分组序号圆标数字（详见 8.4）。
 
 ### 2.2 基础色彩系统与四层收敛模型 (Color Palette & 4-Layer Hierarchy)
 
 为避免页面配色花哨、确保真正的风险告警与 7 色日历具备雷达级辨识度，系统对除 7 色日历网格外的所有常规功能实施**“四层色彩收敛模型 (60-30-10 法则)”**：
 
 1. **第一层：基座层 (Surfaces, 60% 基础骨架)**：
-   - 页面底层背景：**纯白 `bg-white`**（顶栏角色 Banner 与底部导航除外，二者保持角色色/纯白）
-   - 卡片表面：中性卡统一 `bg-slate-50/70` + `border border-slate-200/80`，**不使用投影**；卡内子面（胶囊、图标底、子面板、次要按钮）反白 `bg-white`；卡片按 2.2.1 的“三种卡面与一个特例”分级呈现
-   - 浮层与控件表面：弹窗、底部抽屉、输入框、表单控件保持 `bg-white`，用于与页面和灰卡建立层级
-   - 文字层次：微信 WeUI 与无障碍标准阶梯（`text-slate-900` 主字与核心大数 / `text-slate-700` 次字与老师名 / `text-slate-600` 关键表头与辅助信息；严禁使用低于 4.5:1 的弱灰字 `text-slate-400`）
+   - 页面底层背景：常规页面为**纯白 `bg-white`**（顶栏角色 Banner、底部导航，以及表单录入页 `bg-slate-50` 画布例外）；
+   - 卡片表面：常规列表卡按 2.2.1 的“三种卡面与一个特例”分级呈现，**卡片容器严禁投影**；卡内子面反白 `bg-white`（表单录入页分组白卡例外见 8.4）；
+   - 浮层与控件表面：弹窗、底部抽屉、输入框、表单控件保持 `bg-white`（表单内输入框常态 `bg-slate-50/70`、聚焦 `bg-white`），用于与页面建立层级；
+   - 文字层次：遵循无障碍 AA 4.5:1 阶梯（`text-slate-900` 主字与核心大数 / `text-slate-700` 次字 / `text-slate-600` 关键表头与辅助信息，严禁 `text-slate-400`）。
 2. **第二层：统一功能主色层 (Primary Brand, 30% 统一单色系)**：
    - **统一收敛为主色调——纯家长紫蓝色 (Indigo `#4f46e5` / `#eef2ff`)**；
    - **角色身份 Banner（身份识别例外）**：使用 2.2.2 的角色专属低饱和色，仅承担身份识别；主 CTA、底栏与焦点态仍统一 Indigo；
    - **金刚位图标容器 (King-Kong Quick Actions)**：全角色统一采用**白色圆形/圆角图标底** `bg-white text-indigo-600 border border-slate-200`，置于浅灰金刚位瓦片之上，彻底废除原本粉、绿、蓝、黄彩虹杂色；
-   - **主操作按钮 (Primary CTA)**：统一使用稳重高饱和度 `bg-indigo-600 hover:bg-indigo-700 text-white`（如主要表单提交、确认购课）；
-   - **次要操作与跨设备动作按钮**：统一采用白底深灰字 `border border-slate-300 bg-white text-slate-800 hover:bg-slate-50`（如【扫码 / 教室号】与【进入Classin】均实行低饱和中性平权，双按钮均不高亮，适配学员与家长设备物理分离的真实场景）；
+   - **主/次操作按钮色彩归属**：主操作按钮 (Primary CTA) 统一使用 `bg-indigo-600 hover:bg-indigo-700 text-white`；次要操作按钮统一使用 `border-slate-300 bg-white text-slate-800 hover:bg-slate-50`（含【扫码 / 教室号】与【进入Classin】双按钮平权，完整按钮层级与类名详见 8.1.1）；
    - **移动端底栏 (Bottom Nav)**：激活项统一高亮为 `text-indigo-600`，未激活统一为 `text-slate-500`；
    - **孩子通用昵称标签**：统一收敛为浅紫蓝徽标 `bg-indigo-50 text-indigo-700 border border-indigo-100`。
 3. **第三层：语义告警与状态反馈层 (Semantic Feedback, 10% 严格受控)**：
@@ -68,7 +67,7 @@
    - 🔴 **危险 / 熔断 / 异常 (Danger / Rose)**：`text-rose-700 bg-rose-50 border-rose-200`（仅用于：`<3h 阶梯时间熔断锁定`、老师 <24h 紧急请假、顶栏未读消息小红点、开课倒计时 `<3h`）；
    - 🟠 **警示 / 待办 / 待补 (Warning / Amber)**：`text-amber-800 bg-amber-50 border-amber-300`（仅用于：`72h 续费预占 HOLD 催续`、课后评语尚未提交补录、周转账单待确认）；
    - 🟢 **成功 / 充足 / 完成 (Success / Emerald)**：`text-emerald-700 bg-emerald-50 border-emerald-200`（仅用于：课后反馈已写、时间充足可免费挪位、转账审核已通过）；
-   - 2.2.1 的卡片标准中，卡面仅保留三种——中性浅灰、浅黄提醒、浅红紧急；白色只作为卡内子面与浮层，不再作为卡面。文字一律使用高对比中性黑灰，严禁字底同色与浅灰字。
+   - 2.2.1 的卡片标准中，常规列表卡面仅保留三种——中性浅灰、浅黄提醒、浅红紧急；白色只作为卡内子面、浮层与表单分组白卡（详见 8.4）。文字一律使用高对比中性黑灰，严禁字底同色与浅灰字。
 4. **第四层：业务看板专属特例 (7-Color Calendar Grid)**：
    - 7 色 Design Tokens 仅限周度日历排课网格单元格微卡片独占（详见下文 3.2 节），全站其他区域禁止使用彩虹杂色，确保排课看板成为唯一的视觉焦点。
 
@@ -76,13 +75,13 @@
 
 #### 2.2.1 卡片分级规范体系：三种卡面与一个特例 (Three Surfaces & One Exception)
 
-为彻底解决全站长列表卡片“字底同色泥泞（紫字叠紫底/黄字叠黄底）”、“灰字太浅看不清”及“常态全盘染色导致的彩虹拼盘碎花感”，系统正式确立**“三种卡面 + 一个业务专属特例”**的视觉分层治理体系。**白色不再是卡面，只作为卡内子面与浮层。**
+为彻底解决全站长列表卡片“字底同色泥泞（紫字叠紫底/黄字叠黄底）”、“灰字太浅看不清”及“常态全盘染色导致的彩虹拼盘碎花感”，系统正式确立**“三种卡面 + 一个业务专属特例”**的视觉分层治理体系。**常规列表场景中，白色不再作为卡面，只作为卡内子面与浮层**（表单录入页分组白卡例外，详见 8.4）。
 
 ##### 卡面一：中性卡 · 新常态 (Neutral Card)
 - **适用场景**：
   M2A 购课单、M2B 退款单、M5A 班长周转账单、M5B 老师课酬单、M4 消息通知、M1A 学员档案、M0 每孩一卡等全部常规业务卡与列表卡。
 - **表面与边框**：
-  - 统一 `rounded-2xl border border-slate-200/80 bg-slate-50/70`；
+  - 统一 `rounded-2xl border border-slate-300 bg-slate-50/70`；
   - **禁止投影**（`shadow-none`），卡面轮廓由 1px 边框定义；
   - `slate-50/70` 叠于纯白页面之上对比度约 1.02:1，**边框不可省略**，严禁仅靠底色差区分卡片。
 - **文字与对比度硬红线**：
@@ -93,7 +92,7 @@
   - **WCAG AA 4.5:1 硬红线**：**全面封杀 `text-slate-400` 作为文字色**，确保 12px 小字在长时间查阅下依然清晰。
 - **卡内微标签与操作按钮**：
   - 业务类型标签（如 `1v1 固定位`、`自动续费`、`承接原班`）：中性浅灰微胶囊 **`bg-slate-100 text-slate-700 font-bold border-0`**；颜色全站唯一留给状态胶囊；
-  - 主确认动作：**`bg-indigo-600 hover:bg-indigo-700 text-white`**；次要动作：**`border border-slate-300 bg-white text-slate-800 hover:bg-slate-50`**；
+  - 卡内操作按钮与文字链严格遵循 **8.1.1 按钮分级规范**；
   - 卡内浅灰子块必须反白 `bg-white` 或改用 `bg-slate-100`，避免灰套灰。
 
 ##### 卡面二：浅黄提醒卡 (Amber Reminder Card)
@@ -114,7 +113,7 @@
   - 仅真实紧急/风险提醒使用，普通卡严禁用 rose 装饰。
 
 ##### 失效/归档卡：中性卡的降级变体（不新增颜色）
-- 已取消/已作废/草稿归档统一 `rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 opacity-60`，**禁止投影**；
+- 已取消/已作废/草稿归档统一 `rounded-2xl border border-dashed border-slate-400 bg-slate-50/60 opacity-60`，**禁止投影**；
 - 必须同时具备**虚线边框 + 降透明度**，与常态中性灰卡清晰区分，安静沉底、不争夺视线。
 
 ##### 白色归属：卡内子面与浮层 (Inner Surfaces & Overlays)
@@ -146,7 +145,7 @@
 - 单卡目标 **4–5 行内容、约 120–150px 高**；390×812 手机视口一屏目标 **3–4 张**（家庭事项信息流按 120px 可展示 4 张）。
 - 推荐字段分工：① 类型徽标 + 标题 + 关键数字；② 对象 / 课程 + 短标签；③ 1–2 行必要摘要；④ 底部状态 + 紧凑行动按钮。
 - 去掉重复字段与低价值信息：不在卡内堆叠三列小统计、大段引用、重复页脚或大尺寸主按钮；长内容进入详情页。
-- 卡片正文不得低于 12px；标题 14px，关键数字 16–18px。严禁出现 11px 及以下极限小字（除单屏 7 列周历单元格特例外）。
+- 卡片正文不得低于 12px；标题 14px，关键数字 16–18px。`11px` 仅限 2.1 白名单微元素。
 
 #### 2.2.2 角色身份 Banner (Role Identity Banner)
 
@@ -166,14 +165,13 @@
   - **所有子页面与业务 Tab (Subpages & Child Tabs)**：Banner 主标题**100% 动态切换为当前页面的真实业务大标题**（18px 粗体白字，如 `学生课表`、`购课与账单`、`学员档案`、`消息中心`、`班长周转账单`、`教师课酬结算`）；
 - **导航层级与返回按钮策略 (Navigation Stack)**：
   - **底部 4 个主 Tab**（首页、学员课表、业务中心、我的）：左侧不展示返回箭头，标题左对齐或居中；
-  - **深入二级/三级子页面**（如从购课列表进入订单详情、从课表进入代课指派）：Banner 左侧必须展示 **`<` 返回按钮**，点击平滑返回上一级，消除用户迷航；
+  - **深入二级/三级子页面**（含独立单据详情页与表单页）：唯一吸顶 Banner 最左侧必须展示 **`< 返回`** 按钮（深色 Banner 上采用 `text-white/90 hover:bg-white/10`，详见 8.3），严禁在顶栏下方正文区内重复放置返回按钮。
 - **常驻消息铃铛与未读数角标 (Persistent Notification Badge)**：
   - Banner 右侧统一常驻白色半透明通知铃铛图标；
   - 存在未读通知时，必须悬挂醒目红色未读数角标（`1~99`，超 99 显示 `99+`）；点击一键直达消息中心；
 - **副标题瘦身与净化规约 (Subtitle Elimination & Meaningful Context)**：
-  - **严禁废话复读**：彻底删除“多孩家庭 · 双语通知接收人”、“母语老师 · 双语任务与课酬”、“Dream 教务 · 教务统筹”等角色自我解释型废话；严禁在“家长工作台”旁又贴一个“家长”徽章等同义复读；
-  - **默认纯净单行**：多数页面无需副标题，单行 18px 标题视觉最为利落；
-  - **高价值上下文准入**：仅当存在明确增量业务上下文时，才允许紧贴主标题下方展示 1 行 12px 浅白辅助字（`text-white/70`，如老师端带英文对照、班长端展示 `共 50 位学员`、转账单展示 `2026年第46周`），否则直接留白；
+  - **默认纯净单行，严禁废话复读**：绝大多数页面无需副标题，严禁展示角色自我解释型废话或同义徽章（详见 7.7 废话清零清单与页面标题映射表）；
+  - **高价值上下文准入**：仅当存在明确增量业务上下文时，才允许紧贴主标题下方展示 1 行 12px 浅白辅助字（`text-white/70`），否则直接留白；
 - **问候语首页专属铁律 (Greeting Hero Placement)**：
   - “晚上好，Leo / Amy / David”等迎宾问候语**100% 物理禁止出现在任何子页面**；
   - 严格只允许在【首页 / 工作台首页】的内容区首屏迎宾位展示，子页面首屏直接呈现业务表单、日历或列表；
@@ -185,7 +183,7 @@
   - 语言切换入口统一收归在【我的】(Me) 个人设置中，顶部 Banner 严禁放置语言切换开关。
 
 ### 2.3 间距、圆角与层级 (Spacing, Radius & Z-Index)
-- **圆角标准**：卡片容器统一 `rounded-xl` (12px) 或 `rounded-2xl` (16px)；按钮与输入框 `rounded-lg` (8px)；日历单元格微卡片 `rounded-md` (6px)。
+- **圆角标准**：卡片容器统一 `rounded-xl` (12px) 或 `rounded-2xl` (16px)；常规主/次按钮与输入框统一 `rounded-xl` (12px)；卡内紧凑小按钮 `rounded-lg` (8px)；日历单元格微卡片 `rounded-md` (6px)。
 - **弹窗与遮罩层级 (Z-Index)**：
   - 日历表格首列时间冻结 (`freeze-col`)：`z-20`
   - 全局顶部工作台切换条 / 日历表头冻结 (`freeze-header`)：`z-30`
@@ -205,15 +203,15 @@
   - **小班课（1vN）**：标准授课 50 分钟，连续占用 **2 个日历网格（1 小时）**。
 
 ### 3.2 7 色日历状态渲染矩阵与代课双视角 (Design Tokens)
-日历系统对网格实施严格的 7 色状态渲染，特别对**代课场景实施双视角差异化染色**。为兼顾单屏 7 列高密度排课的可读性，单元格采用**“呼吸感浅色底 + 语义边框 + 深色高对比文本”**微卡片设计（同时保留高饱和度状态徽标色）：
+日历系统对网格实施严格的 7 色基础排课渲染 + 1 种小班课专属冷青 (`TEAL`)，共 8 种状态渲染，特别对**代课场景实施双视角差异化染色**。为兼顾单屏 7 列高密度排课的可读性，单元格采用**“呼吸感浅色底 + 语义边框 + 深色高对比文本”**微卡片设计（同时保留高饱和度状态徽标色）：
 
 | 颜色标识 | `colorCode` 枚举 | 状态名称 (中/英) | 单元格微卡片样式 (Tailwind Tokens) | 徽标强调色 (Badge) | 单元格缩写/角标规则 | 适用视角与核心业务说明 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 🟠 **橙色** | `ORANGE` | **固定位 / Fixed Slot** | `bg-amber-50 border-amber-300 text-amber-900` *(正式)*<br>`bg-amber-50/70 border-amber-400 border-dashed text-amber-800` *(续费预占 HOLD)* | `bg-amber-500 text-white` | 学员昵称前3~4字（如 `Alic`）<br>• 转让加注【转】<br>• 续费预占加注【预】 | **全端通用**：四周一轮买 4 排 4 的固定位正课（最高预占优先级）。到期前 72h 自动生成续费单并虚线预占（`HOLD`）。 |
-| 🟡 **黄色** | `YELLOW` | **临时课 / Temp Lesson** | `bg-yellow-50 border-yellow-300 text-yellow-900` | `bg-yellow-400 text-gray-900` | 学员昵称前3~4字（如 `BobZ`）<br>• 转让加注【转】 | **全端通用**：家长提前 1-7 天自主抢位预约的临时正课（支持单次连约 1~4 节）。 |
+| 🟡 **黄色** | `YELLOW` | **临时课 / Temp Lesson** | `bg-yellow-50 border-yellow-300 text-yellow-900` | `bg-yellow-400 text-slate-900` | 学员昵称前3~4字（如 `BobZ`）<br>• 转让加注【转】 | **全端通用**：家长提前 1-7 天自主抢位预约的临时正课（支持单次连约 1~4 节）。 |
 | 🔵 **蓝色** | `BLUE` | **被代课 / Substituted** | `bg-blue-50 border-blue-300 text-blue-900` | `bg-blue-500 text-white` | 学员昵称前3~4字 + 蓝色代课指示点 | **仅在【原被代课老师、班长、家长/学员】视图显示**：提示本节课由代课老师上，不计原老师课酬。点击可弹窗查看代课老师信息。 |
 | 🟣 **紫色** | `PURPLE` | **代上课 / Substituting** | `bg-purple-50 border-purple-300 text-purple-900` | `bg-purple-600 text-white` | 学员昵称前3~4字 + 紫色代课指示点 | **仅在【代课老师】视图显示**：提示替同事代课并计入本人周课酬，点击可直接查看学员档案留言板掌握交接进度。 |
-| ⚪ **灰色** | `GRAY` | **不可约 / Unavailable** | `bg-slate-100 border-slate-200 text-slate-600` | `bg-gray-200 text-gray-500` | 居中显示单字 **“休”** | **全端通用**：老师未开放授课的日常休息时段或已过期不可操作时段。 |
+| ⚪ **灰色** | `GRAY` | **不可约 / Unavailable** | `bg-slate-100 border-slate-200 text-slate-600` | `bg-slate-200 text-slate-600` | 居中显示单字 **“休”** | **全端通用**：老师未开放授课的日常休息时段或已过期不可操作时段。 |
 | 🟢 **绿色** | `GREEN` | **空闲可约 / Available** | `bg-emerald-50/80 border-emerald-200 text-emerald-700 hover:bg-emerald-100` | `bg-emerald-500 text-white` | 居中显示单字 **“约”** | **全端通用**：老师常规开放授课且未被占用的空闲时段，家长点击可唤起预约/连约抽屉。 |
 | 🔴 **红色** | `RED` | **已请假 / On Leave** | `bg-rose-50 border-rose-200 text-rose-700` | `bg-rose-500 text-white` | 居中显示单字 **“假”** | **全端通用**：老师主动标记临时闭麦请假或因老师原因暂停待排的时段。 |
 | 🟩 **冷青** | `TEAL` | **小班课 / Group Class** | `bg-teal-50 border-2 border-teal-400 text-teal-950` | `bg-teal-600 text-white` | 连续双格贯穿 (56px) + **`[G]`** 徽标 + 小班简称 + 在读人数（如 `[G] KET1`，次行 `3/4人`） | **老师日历、主理人、老师绑定班长与管理端可见**：50 分钟授课，连续占用 2 个网格（1小时），与 1v1 固定位合并排布，以几何双倍高与专属冷青色彻底区隔。 |
@@ -261,8 +259,8 @@
 - **安全渲染红线**：严禁在页面渲染中无防护使用 `v-html`，防止 XSS 攻击注入。
 
 ### 4.3 响应式断点规范 (Mobile & Tablet Responsive)
-- **手机端 (`< 768px`, 默认视口)**：单列流式容器，底部常驻移动导航栏，操作面板统一采用底部抽屉（Bottom Sheet）。
-  - **卡片密度**：390×812 下顶部身份 Banner 56–64px，内容区一屏 3–4 张 4–5 行卡片；统计数字以一行概览呈现，不占用卡片正文行数。
+- **手机端 (`< 768px`, 默认视口)**：单列流式容器，底部常驻移动导航栏，高频单步操作统一采用底部抽屉（容器约束见 8.2.1）。
+  - **视口密度**：390×812 下顶部身份 Banner 56–64px，列表卡密度遵循 2.2.1 底线；统计数字以一行概览呈现，不占用卡片正文行数。
 - **平板端 (`md: >= 768px`, iPad 适配)**：自适应切换为双栏或卡片网格并列布局（`grid-cols-2`），侧边导航可折叠。
 - **桌面端 (`lg: >= 1024px`)**：固定左侧导航栏 + 宽屏多列数据看板与右侧详情抽屉。
 
@@ -275,7 +273,7 @@
 | 缓存级别 | 适用数据对象 | 缓存介质与策略 | 失效与更新机制 |
 | :--- | :--- | :--- | :--- |
 | **L1: 强缓存 (App Shell)** | 静态资源、HTML 离线壳、字体、图标 | CacheStorage (`CacheFirst`) | 随应用发版更新（hash 指纹驱动） |
-| **L2: 静态字典与会话上下文** | 课程类型字典 (`course_types`)、老师定级字典 (`teacher_levels`)、当前账号身份、名下学员档案列表、`activeProfileId` | LocalStorage + Pinia (`StaleWhileRevalidate`) | 24 小时 TTL，或在用户切换档案/修改偏好时主动广播失效 |
+| **L2: 静态字典与会话上下文** | 课程类型字典 (`course_types`)、老师价位字典 (`price_tiers` / `teacher_levels`)、当前账号身份、名下学员档案列表、`activeProfileId` | LocalStorage + Pinia (`StaleWhileRevalidate`) | 24 小时 TTL，或在用户切换档案/修改偏好时主动广播失效 |
 | **L3: 业务只读快照** | 老师公开脱敏履历列表、当周 7 色已排课表视图快照 | IndexedDB (`NetworkFirst with Cache Fallback`) | 优先网络拉取，弱网/断网自动降级读取本地缓存并标记“离线只读” |
 | **L4: 绝对零离线 (强制在线)** | 购课单支付确认、退款单、向平台转账单、排课并发抢位 (`SELECT ... FOR UPDATE`) | **严禁缓存 (`NetworkOnly`)** | 断网状态下操作按钮强制置灰阻断，Toast 提示“离线模式不可用” |
 
@@ -375,38 +373,32 @@
 
 ---
 
-## 8. 待定事项与架构演进 (TODO & UI Architecture Backlog)
+## 8. 交互容器、按钮筛选与页面骨架规范 (Containers, Controls & Page Skeletons)
 
 ### 8.1 按钮与筛选控件全站统一规范 (Button Hierarchy & Filter Controls Standard)
 
 - **痛点与治理目标**：
-  - 目前各页面中筛选控件形态割裂（存在胶囊分段条、带框小按钮、深浅混杂、实心高饱和与浅底描边混用等多种样式），造成界面认知混乱；
-  - 必须收敛建立**“4 级按钮体系 + 1 套标准筛选分段器”**的统一工程规范。
+  - 彻底收敛各页面中筛选控件形态割裂与按钮分级混乱问题，建立全站唯一的**“按钮与动作分级表 + 标准筛选分段器”**工程规范。
 
-#### 1. 按钮分级规范 (Button Hierarchy 4-Tier Standard)
+#### 1. 按钮与卡内动作分级规范 (Button & In-Card Action Hierarchy)
 | 按钮级别 | 适用场景 | 标准 Tailwind 类名 | 视觉表现与交互规范 |
 | :--- | :--- | :--- | :--- |
-| **主要按钮 (Primary CTA)** | 表单最终提交、确认收款、确认排课、购课结案 | `bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-11 px-5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-all` | 全屏/弹窗内唯一焦点主按钮，高饱和稳重紫蓝，严禁单屏出现多个主按钮并列抢夺视觉。 |
+| **主要按钮 (Primary CTA)** | 表单最终提交、确认收款、确认排课、购课结案 | `bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-11 px-5 font-semibold text-[16px] shadow-sm active:scale-[0.98] transition-all` | 全屏/弹窗内唯一焦点主按钮（允许极轻 `shadow-sm` 提升可点感，卡片仍保持 `shadow-none`）；严禁单屏多个主按钮并列。 |
 | **次要按钮 (Secondary Action)** | 取消、返回、修改草稿、查看修改日志、重置筛选 | `border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 rounded-xl h-11 px-4 font-medium text-[14px] active:bg-slate-100 transition-colors` | 白底深灰字，与主按钮平权并列，严禁使用弱对比灰字。 |
 | **破坏性按钮 (Danger / Destructive)** | 提前结课解散、作废单据、清退课次、拒绝退款 | `border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-xl h-11 px-4 font-semibold text-[14px]` 或确认终态时的 `bg-rose-600 text-white` | 浅红警示底配深红字，点击强二次确认，防止误触。 |
-| **文字链动作 (Text Link Action)** | 卡片页脚跳转、穿透查看详情、唤起教室直达 | `text-indigo-600 hover:text-indigo-700 font-medium text-[13px] inline-flex items-center gap-1 hover:underline` | 紧凑轻量，带箭头指示（如 `查看详情 →`、`进入 ClassIn →`），严禁使用大色块实心按钮挤占卡片高度。 |
+| **卡内紧凑小按钮 (Compact In-Card Action Pill)** | **卡片内触发待办核销、审批、调度或对象选取等状态变更动作**（如 `指派代课`、`确认收款`、`立即排课`、`选取`） | 统一 `h-7 rounded-lg px-2.5 text-[12px] font-bold whitespace-nowrap transition`：<br>• 浅红紧急卡：`border border-rose-200 bg-white text-rose-700 hover:bg-rose-50`<br>• 浅黄提醒卡：`border border-amber-300 bg-white text-amber-900 hover:bg-amber-50`<br>• 中性卡直接操作：`border border-indigo-200 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100/70` | 高度固定 `28px`，视觉抓手明确、不挤占卡片高度；单张卡片右侧最多放 1 个紧凑小按钮。 |
+| **文字链动作 (Text Link Action)** | **卡片内纯跳转 / 只读查看 / 无业务状态变更**（如 `查看详情 →`、`学员档案 →`、`进入 ClassIn →`） | `inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 whitespace-nowrap hover:underline` | 紧凑轻量带箭头指示，仅用于只读穿透与跳转，严禁对需要审批/核销的待办主动作降格用纯文字链。 |
 
 #### 2. 状态筛选分段器全站统一标准 (Segmented Filter Pills Standard)
-- **容器与布局规范**：
-  - 位于列表顶栏下方，高度严格固定为 **`h-9` (36px)**；
-  - 采用水平横向滚动弹性容器：`flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5`；
-  - 严禁在列表顶部堆叠多行筛选器，单行自适应滑动。
-- **胶囊样式两态收敛**：
-  - **默认未选中态 (Inactive Pill)**：
-    `bg-slate-100 hover:bg-slate-200/80 text-slate-600 font-medium text-[12px] px-3 py-1.5 rounded-full border-0 transition-colors cursor-pointer shrink-0`
-    （中性浅灰底，高对比深灰字，彻底废除带边框的小方盒样式）；
-  - **激活选中态 (Active Pill)**：
-    `bg-slate-900 text-white font-semibold text-[12px] px-3.5 py-1.5 rounded-full shadow-xs shrink-0`
-    （采用稳重大气的深色纯净胶囊，或者品牌紫蓝 `bg-indigo-600 text-white`，全站统一，严禁同个应用内混用）；
-  - **下拉筛选微触发器 (Filter Dropdown Trigger)**：
-    若涉及复合条件（如筛选老师、月份）：
-    `border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1 shrink-0`
-    （带 10px 向下小箭头 `▾`，激活过滤时边框高亮为 `border-indigo-500 text-indigo-700 bg-indigo-50/50`）。
+- **唯一色彩两态铁律（严禁混用 Indigo 或带边框方盒）**：
+  - **激活选中态 (Active Pill)**：全站唯一锁死深墨黑 **`bg-slate-900 text-white font-semibold border-0 shrink-0 rounded-full whitespace-nowrap transition`**（品牌紫蓝 `indigo-600` 专留给 Primary CTA，严禁用于筛选胶囊激活态）；
+  - **默认未选中态 (Inactive Pill)**：全站唯一锁死中性浅灰 **`bg-slate-100 hover:bg-slate-200/80 text-slate-600 font-medium border-0 shrink-0 rounded-full whitespace-nowrap transition`**。
+- **两档尺寸规格（按空间密度选用，严禁自造第三套）**：
+  - **`md` 标准列表胶囊**（`h-8 px-3 text-[12px]`）：用于购课单、退款单、学员/小班等常规列表顶部筛选（外层 `flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5`）；
+  - **`sm` 高密度微胶囊**（`h-6 px-2.5 text-[11px]`）：专用于空间受限的多维筛选条（如 M3D 教师空闲大盘级别/时段筛选、M0 教务大厅 5–6 项一行等分 `flex-1` 筛选）。
+- **下拉筛选微触发器 (Filter Dropdown Trigger)**：
+  - 选项 $\le 4$ 个的简单条件直接做成分段胶囊；仅在选项 $> 4$ 个或需搜人（如 `授课老师 ▾`、`所属班长 ▾`、`月份 ▾`）时使用触发器：`border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1 shrink-0`（激活过滤时高亮 `border-indigo-500 text-indigo-700 bg-indigo-50/50`）；
+  - **移动端展开形态铁律（禁用桌面悬浮下拉框）**：点击 `▾` 触发器后，**严禁在手机端弹出易裁切的悬浮小菜单或原生 `<select>`**，统一从底部滑出**半屏抽屉 (Bottom Sheet Drawer)**（含顶部拖动把手、按需搜人框、`h-11` 以上高触控行、当前选中 `✓` 与重置入口）。
 
 ---
 
@@ -421,12 +413,31 @@
 | 场景类型 | 必须采用的容器形态 | 适用业务场景清单 | 设计红线与技术约束 |
 | :--- | :---: | :--- | :--- |
 | **单据详情与重度台账 (Documents & Ledgers)** | **独立全屏页**<br>`Dedicated Page`<br>(拥有独立路由) | • **M2A 购课单详情与课次拆解页** (`/orders/:id`)<br>• **M2B 退款单审批与资产清算流** (`/refunds/:id`)<br>• **M5A 班长周转账单双视角核算详情** (`/transfers/:id`)<br>• **M5B 老师课酬单节数与薪酬对账详情** (`/settlements/:id`)<br>• **M1C 小班运营、排期总览与修改日志页** (`/classes/:id`)<br>• **M3D 沉浸式专用批量排课工作台** (`/scheduling/workbench`) | **严禁使用居中弹窗！**<br>• 必须拥有专属 URL 路由，支持浏览器前进/后退与深度链接直达；<br>• 顶栏常驻 `< 返回` 按钮；<br>• 单页自然竖向纵深流动，杜绝视口内盒中盒双重滚动条。 |
-| **高频日历单步操作 (Cell Operations)** | **底部滑出抽屉**<br>`Bottom Sheet Drawer`<br>(自底向上滑出) | • M3A 日历单元格点击交互（进教室、挪位、请假、代办转让）<br>• 日历空闲格轻量约课（30/60min）<br>• 老师 1~12 节批量请假报备抽屉<br>• 班长/老师切换多师负荷抽屉 | • 高度自适应（最大不超过屏幕高度的 85%）；<br>• 顶部常驻浅灰拖动把手条（Drag Handle）；<br>• 就地秒级闭环，点击背景遮罩或下滑平滑关闭，视口保持在原日历网格位置。 |
+| **高频日历单步操作 (Cell Operations)** | **底部滑出抽屉**<br>`Bottom Sheet Drawer`<br>(自底向上滑出) | • M3A 日历单元格点击交互（进教室、挪位、请假、代办转让）<br>• 日历空闲格轻量约课（25/50min，占 1~2 个 30 分钟格）<br>• 老师 1~12 节批量请假报备抽屉<br>• 班长/老师切换多师负荷抽屉 | • 高度自适应（最大不超过屏幕高度的 85%）；<br>• 顶部常驻浅灰拖动把手条（Drag Handle）；<br>• 就地秒级闭环，点击背景遮罩或下滑平滑关闭，视口保持在原日历网格位置。 |
 | **轻量确认与短输入 (Lightweight Modals)** | **居中紧凑弹窗**<br>`Center Modal`<br>(小巧卡片浮层) | • **破坏性操作二次确认**（提前结课解散承诺确认、作废单据确认）<br>• **极短字段单步录入**（管理员通道 B 特批急病请假原因录入框）<br>• **ClassIn 教室二维码/教室号扫码弹窗**<br>• **单张打款凭证大图灯箱预览** (`Lightbox`) | **严格白名单制，禁止塞入长列表！**<br>• 最大宽度严格限制在 340px ~ 360px；<br>• 单弹窗内容高度严禁超过首屏 60%，禁止弹窗内部产生滚动条；<br>• 包含清晰的标题、简短后果说明与【取消】/【确定】双按钮。 |
 
 #### 2. 单据详情页标准化布局规范 (Dedicated Document Page Layout)
 针对移出弹窗、转为独立页面的核心单据（购课单、退款单、转账单、课酬单），统一遵循三段式页面骨架：
-1. **顶栏 (Header)**：`< 返回` 链接 + 页面真实标题（如 `购课单详情 · ord_xxx`）+ 右侧当前状态胶囊（如 `[已支付]`）；
+1. **顶栏 (Role Banner Header)**：沿用 2.2.2 深色角色渐变 Banner，最左侧展示 `< 返回` + 页面真实标题（如 `购课单详情 · ord_xxx`）+ 右侧当前状态胶囊（如 `[已支付]`）；
 2. **上半区 (Summary Card)**：采用中性卡呈现核心金额/积分大数字、经办人、关联老师/学员/小班及凭证缩略图；
 3. **下半区 (Detail Ledger)**：全宽度展示 1~N 节 TS 课次拆分清单、状态标签、上课时间及审计变更时间轴；
 4. **底部常驻动作栏 (Sticky Footer Bar)**：仅在需要经办动作时吸底呈现（如【确认收款】、【提交转账单】、【驳回】），无动作时留白。
+
+---
+
+### 8.3 页面返回按钮唯一位置规范 (Single Header Back Button Standard)
+- **根视图（底栏 4 大主 Tab：首页 / 课表 / 教务中心 / 我的）**：
+  - 唯一吸顶角色 Banner（`56–64px`）左侧**严禁放返回按钮**，仅展示当前页大标题，右侧放 🔔 消息铃铛等全局动作。
+- **所有非根视图（含独立路由二级页、表单页 & Tab 内下钻子视图）**：
+  - 返回按钮 **100% 收敛并固定在唯一吸顶角色 Banner 最左侧**（`h-8 px-2 -ml-1 rounded-lg inline-flex items-center gap-1 text-[13px] font-semibold text-white/90 hover:bg-white/10 active:bg-white/15 transition`，配 `chevron-left` 图标 + `返回`）；
+  - **严禁在顶栏下方正文区内再放置第二条返回按钮、面包屑或返回条**，消除“双顶栏叠罗汉”与返回位置漂移。
+
+---
+
+### 8.4 表单页面视觉提质规范 (Form Page Polish Standard)
+针对传统表单平铺单调的问题，在不违背“卡片零投影、克制用色”铁律的前提下，表单录入页作为 2.2.1 的白名单场景例外，统一以下 5 项提质标准：
+1. **浅灰画布 + 分组白卡容器**：表单页底层画布使用 `bg-slate-50`，按业务逻辑将字段拆入多个独立白卡（`rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5`），卡间 `space-y-3`，层次清晰。
+2. **分组序号圆标**：每个白卡顶部的分组标题统一左侧带序号圆徽标（`h-5 w-5 rounded-full bg-indigo-50 text-indigo-600 text-[11px] font-bold grid place-items-center`）+ `text-[14px] font-bold text-slate-900`（如 `1. 学员与课程`、`2. 课次与计价`）。
+3. **呼吸感输入控件**：单行输入与选择框常态 `h-11 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition`（`16px` 踩准 iOS Safari 防自动缩放底线），聚焦态切为 `focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15`。
+4. **触感选项卡取代枯燥下拉框**：2~4 个高频枚举选项（如班型、套餐、收款方式）优先使用 `grid-cols-2 gap-2` 紧凑选项卡（未选 `border border-slate-200 bg-slate-50/60 text-slate-700`；选中 `border-indigo-500 bg-indigo-50/60 ring-1 ring-indigo-500 text-indigo-950` + 右上角选中勾）。
+5. **实时试算摘要卡 + 吸底主提交栏**：金额/课次等试算汇总区采用柔色摘要卡（`rounded-2xl border border-indigo-200/80 bg-indigo-50/50 p-3.5`）突出大数字；底部常驻吸底提交栏（`bg-white/95 border-t border-slate-200/80 p-3`）承载全宽 `h-11 bg-indigo-600 text-[16px]` 主 CTA。

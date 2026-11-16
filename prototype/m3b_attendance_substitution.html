@@ -84,6 +84,10 @@
       <button data-scenario="cellCompleted" class="scenario rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-600 hover:bg-slate-50">已结课回退</button>
       <button data-scenario="cellGroup" class="scenario rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-600 hover:bg-slate-50">小班课格</button>
     </div>
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-1.5 border-t border-slate-100 px-3 py-2 text-[12px]">
+      <span class="mr-1 font-medium text-slate-500">老师端演示</span>
+      <button data-scenario="teacherLeave" class="scenario rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-600 hover:bg-slate-50">老师批量请假交接</button>
+    </div>
   </header>
 
   <main class="flex justify-center px-0 py-4 sm:px-4">
@@ -149,7 +153,8 @@
       assignSub: '指派代课',
       changeStudent: '更换上课学员',
       classPause: '暂停待排',
-      cellSheet: '课格动作'
+      cellSheet: '课格动作',
+      teacherLeave: '老师批量请假'
     };
 
     const NAVS = {
@@ -308,22 +313,84 @@
       courseware: 'KET 冲刺讲义 · Unit 6'
     };
 
+    const TEACHER_PRICES = {
+      'David Miller': 18,
+      'Elena Wright': 18,
+      'Chris Park': 18,
+      'Sarah Jenkins': 21,
+      'Linda Chen': 16,
+      'Mia Wong': 21,
+      'Tom Reed': 18,
+      'Aaron Bell': 16,
+      'Nina Brooks': 16
+    };
+
     const SUB_CANDIDATES = [
-      { name: 'Elena Wright', active: true, qualified: true, free: true, taughtBefore: true, level: 'Senior', sameLevel: true, load: 3, note: '曾教过该学员 · 熟客优先' },
-      { name: 'Sarah Jenkins', active: true, qualified: true, free: true, taughtBefore: false, level: 'Standard', sameLevel: false, load: 2, note: '具备课程资质 · 本周已排 2 节' },
-      { name: 'Chris Park', active: true, qualified: true, free: true, taughtBefore: false, level: 'Senior', sameLevel: true, load: 5, note: '同定级 · 本周已排 5 节' },
-      { name: 'Mia Wong', active: true, qualified: true, free: false, taughtBefore: false, level: 'Standard', sameLevel: false, load: 4, note: '目标时段冲突：19:00-19:30 已有排课' },
-      { name: 'Tom Reed', active: false, qualified: true, free: true, taughtBefore: false, level: 'Senior', sameLevel: true, load: 0, note: '当前非在职' },
-      { name: 'Aaron Bell', active: true, qualified: false, free: true, taughtBefore: false, level: 'Standard', sameLevel: false, load: 1, note: '不具备该课程资质' }
+      { name: 'Elena Wright', active: true, qualified: true, free: true, taughtBefore: true, price: 18, load: 3, reason: '' },
+      { name: 'Chris Park', active: true, qualified: true, free: true, taughtBefore: false, price: 18, load: 5, reason: '' },
+      { name: 'Nina Brooks', active: true, qualified: true, free: true, taughtBefore: false, price: 16, load: 1, reason: '' },
+      { name: 'Sarah Jenkins', active: true, qualified: true, free: true, taughtBefore: false, price: 21, load: 2, reason: '' },
+      { name: 'Mia Wong', active: true, qualified: true, free: false, taughtBefore: false, price: 21, load: 4, reason: '19:00-19:30 已有课' },
+      { name: 'Tom Reed', active: false, qualified: true, free: true, taughtBefore: false, price: 18, load: 0, reason: '当前非在职' },
+      { name: 'Aaron Bell', active: true, qualified: false, free: true, taughtBefore: false, price: 16, load: 1, reason: '无课程资质' }
     ];
 
     const CLASS_CANDIDATES = [
-      { name: 'Elena Wright', active: true, qualified: true, twoCells: true, taughtBefore: true, sameLevel: true, load: 3, note: '曾带过本班 · 10:00-11:00 连续双格空闲' },
-      { name: 'Chris Park', active: true, qualified: true, twoCells: true, taughtBefore: false, sameLevel: true, load: 5, note: '同定级 · 10:00-11:00 连续双格空闲' },
-      { name: 'Sarah Jenkins', active: true, qualified: true, twoCells: false, taughtBefore: false, sameLevel: false, load: 2, note: '冲突：仅 10:30 单格空闲' },
-      { name: 'Mia Wong', active: true, qualified: false, twoCells: true, taughtBefore: false, sameLevel: false, load: 4, note: '不具备小班资质' },
-      { name: 'Tom Reed', active: false, qualified: true, twoCells: true, taughtBefore: false, sameLevel: true, load: 0, note: '当前非在职' }
+      { name: 'Elena Wright', active: true, qualified: true, twoCells: true, taughtBefore: true, price: 18, load: 3, reason: '' },
+      { name: 'Chris Park', active: true, qualified: true, twoCells: true, taughtBefore: false, price: 18, load: 5, reason: '' },
+      { name: 'Nina Brooks', active: true, qualified: true, twoCells: true, taughtBefore: false, price: 16, load: 1, reason: '' },
+      { name: 'Sarah Jenkins', active: true, qualified: true, twoCells: false, taughtBefore: false, price: 21, load: 2, reason: '仅 10:30 单格空闲' },
+      { name: 'Mia Wong', active: true, qualified: false, twoCells: true, taughtBefore: false, price: 21, load: 4, reason: '无小班资质' },
+      { name: 'Tom Reed', active: false, qualified: true, twoCells: true, taughtBefore: false, price: 18, load: 0, reason: '当前非在职' }
     ];
+
+    const INITIAL_STUDENT_HANDOVER = {
+      alice: { courseware: 'Oxford Discover 2 · Unit 3', level: 'Grade 2', note: '口部热身完成，发音进步明显。', updatedAt: '11-10 20:30', by: 'David Miller', fresh: false },
+      bob: { courseware: 'Power Up 3 · Unit 2', level: 'Grade 1', note: '注意力易分散，建议每 10 分钟安排一次互动。', updatedAt: '11-10 09:40', by: 'David Miller', fresh: false },
+      carol: { courseware: 'Phonics Starter · Unit 2', level: 'Starter', note: '试课学员，letters A-F 已掌握，需多鼓励。', updatedAt: '11-09 18:10', by: 'David Miller', fresh: false }
+    };
+
+    let STUDENT_HANDOVER = clone(INITIAL_STUDENT_HANDOVER);
+
+    const CLASS_HANDOVER = {
+      courseware: 'KET 冲刺讲义 · Unit 6',
+      level: 'KET 冲刺',
+      note: '本班 4 人，2 人已掌握 Unit 5 词汇；需带纸质讲义。',
+      updatedAt: '11-10 18:40',
+      by: 'David Miller'
+    };
+
+    const HANDOVER_OPTIONS = {
+      alice: {
+        coursewares: ['Oxford Discover 2 · Unit 3', 'Oxford Discover 2 · Unit 4', 'Oxford Discover 3 · Unit 1'],
+        levels: ['Grade 2', 'Grade 3']
+      },
+      bob: {
+        coursewares: ['Power Up 3 · Unit 2', 'Power Up 3 · Unit 3', 'Power Up 4 · Unit 1'],
+        levels: ['Grade 1', 'Grade 2']
+      },
+      carol: {
+        coursewares: ['Phonics Starter · Unit 2', 'Phonics Starter · Unit 3'],
+        levels: ['Starter', 'Level 1']
+      }
+    };
+
+    const TEACHER_LEAVE_SLOTS = [
+      { key: 't1', time: '10:00', lessonId: 'lsn_bob_today' },
+      { key: 't2', time: '11:00' },
+      { key: 't3', time: '14:00' },
+      { key: 't4', time: '15:00' },
+      { key: 't5', time: '16:00' },
+      { key: 't6', time: '17:00', lessonId: 'lsn_carol_today' },
+      { key: 't7', time: '17:30' },
+      { key: 't8', time: '18:00' },
+      { key: 't9', time: '18:30' },
+      { key: 't10', time: '19:00', lessonId: 'lsn_alice_tue' },
+      { key: 't11', time: '19:30', lessonId: 'lsn_alice_tue2' },
+      { key: 't12', time: '20:00' }
+    ];
+
+    const LEAVE_REASON_TAGS = ['身体不适', '突发停电', '家庭急事', '交通中断'];
 
     const TEACHER_TARGETS = {
       'David Miller': [
@@ -367,6 +434,7 @@
       changeStudent: null,
       assignSub: null,
       classDraft: null,
+      teacherLeave: null,
       cellView: 'main',
       cellScope: { lessonId: null, nextSelected: true },
       cellReason: '',
@@ -382,6 +450,7 @@
     function clone(value) { return JSON.parse(JSON.stringify(value)); }
 
     function resetState() {
+      STUDENT_HANDOVER = clone(INITIAL_STUDENT_HANDOVER);
       state.role = 'monitor';
       state.device = 'mobile';
       state.online = 'on';
@@ -396,6 +465,7 @@
       state.changeStudent = null;
       state.assignSub = null;
       state.classDraft = null;
+      state.teacherLeave = null;
       state.cellView = 'main';
       state.cellScope = { lessonId: null, nextSelected: true };
       state.cellReason = '';
@@ -463,6 +533,43 @@
 
     function studentByKey(key) { return STUDENTS.find((s) => s.key === key) || STUDENTS[0]; }
     function lessonById(id) { return state.lessons.find((l) => l.id === id) || null; }
+
+    function teacherPrice(name) {
+      return TEACHER_PRICES[name] != null ? TEACHER_PRICES[name] : 18;
+    }
+
+    function priceDistance(price, originPrice) {
+      return Math.abs(Number(price) - Number(originPrice));
+    }
+
+    function priceDiffLabel(price, originPrice) {
+      const diff = Number(price) - Number(originPrice);
+      if (diff === 0) return { label: '同价位', dir: 0 };
+      return { label: diff > 0 ? '高一档' : '低一档', dir: diff > 0 ? 1 : -1 };
+    }
+
+    function handoverFor(lesson) {
+      if (!lesson || isGroupLesson(lesson) || !lesson.studentKey) return null;
+      return STUDENT_HANDOVER[lesson.studentKey] || null;
+    }
+
+    function handoverUpdatedLine(lesson) {
+      const handover = handoverFor(lesson);
+      if (!handover) return '';
+      if (lesson.status === 'SUBSTITUTED' || handover.fresh) {
+        return `Handover updated by ${handover.by} · ${handover.updatedAt}`;
+      }
+      return '';
+    }
+
+    function candidateBadges(candidate, originPrice, taughtLabel = '教过该学员') {
+      const diff = priceDiffLabel(candidate.price, originPrice);
+      return [
+        `<span class="inline-flex items-center rounded-full bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-700 ring-1 ring-slate-200">${candidate.price}积分</span>`,
+        chip(diff.label, 'slate'),
+        candidate.taughtBefore ? chip(taughtLabel, 'indigo') : ''
+      ].filter(Boolean).join('');
+    }
 
     function roleMeta() { return ROLE_META[state.role]; }
     function navItems() { return NAVS[state.role] || NAVS.monitor; }
@@ -795,14 +902,10 @@
       </button>`;
     }
 
-    function cellPanelBack(label = '返回课格') {
-      return `<button data-action="cell-panel-main" class="mb-2 inline-flex items-center gap-1 rounded-lg px-1 py-1 text-[12px] font-semibold text-slate-600 active:bg-slate-100">${icon('arrow-left', 'h-3.5 w-3.5')}${esc(label)}</button>`;
-    }
-
     function cellReasonField() {
-      return `<div class="mt-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+      return `<div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
         <label for="cellReason" class="text-[12px] font-bold text-slate-800">处置原因 <span class="text-rose-600">必填</span></label>
-        <textarea id="cellReason" rows="2" placeholder="例如：ClassIn 进出记录核对，确认未上课" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-[14px] font-medium leading-relaxed text-slate-900 outline-none focus:border-indigo-500">${esc(state.cellReason)}</textarea>
+        <textarea id="cellReason" rows="2" placeholder="例如：ClassIn 进出记录核对，确认未上课" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-[16px] font-medium leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(state.cellReason)}</textarea>
         <div id="cellReasonHint" class="mt-1 text-[12px] font-medium ${state.cellReason.trim() ? 'text-emerald-700' : 'text-slate-600'}">${state.cellReason.trim() ? '已填写，提交后将追加只读留痕' : '异常处置、纠偏与清退须填写至少 1 个非空字符'}</div>
       </div>`;
     }
@@ -847,6 +950,7 @@
     }
 
     function bannerContext() {
+      if (state.overlay && state.overlay.type === 'teacherLeave') return 'David Miller · 老师端演示';
       if (state.role === 'monitor') return 'Leo · 仅本人经办';
       return `全平台 · ${recordMonitors().length} 位班长`;
     }
@@ -863,7 +967,7 @@
       const meta = roleMeta();
       const canBack = !!state.overlay;
       const left = canBack
-        ? `<button data-action="overlay-back" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="返回">${icon('arrow-left', 'h-5 w-5')}</button>`
+        ? `<button data-action="overlay-back" class="-ml-1 inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="返回">${icon('chevron-left', 'h-4 w-4')}返回</button>`
         : `<span class="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-white/20 text-[14px] font-bold ring-1 ring-white/30">${meta.initial}</span>`;
       return `<header class="relative flex h-16 shrink-0 items-center justify-between gap-3 overflow-hidden bg-gradient-to-br ${meta.gradient} px-4 text-white">
         ${bannerPattern()}
@@ -882,6 +986,7 @@
     }
 
     function scenarioText() {
+      if (state.scenario === 'teacherLeave') return '老师端演示 · 勾选已排课次后按学员补录交接信息';
       return state.hours < 3
         ? '班长端不锁 · 临期操作仅温和确认；代学员请假需选择处置方式'
         : '班长端不锁 · 请假、挪位、换人与代课随时可操作；经办记录只读留痕';
@@ -1038,7 +1143,7 @@
           点击确认后操作立即生效，并标记为临期变更，透明透出至课酬单出勤明细。
         </div>
         <div class="mt-4 flex gap-2">
-          <button data-action="cancel-soft" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">返回</button>
+          <button data-action="cancel-soft" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">取消</button>
           <button data-action="confirm-soft" class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white active:scale-[0.98]">确认放行</button>
         </div>
       `, 'max-w-[360px]');
@@ -1089,7 +1194,7 @@
             </span>
           </button>
         </div>
-        <button data-action="cancel-student-leave" class="mt-3 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">返回</button>
+        <button data-action="cancel-student-leave" class="mt-3 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">取消</button>
       `, 'max-w-[360px]');
     }
 
@@ -1115,7 +1220,7 @@
         <div class="mt-2">${neutralNote('资金与单据保持不变', '仅变更该课次的实际授课学员档案；原购课单金额、出资人与资金持有人不变。线下家长结算由双方自行完成，例如微信转账。', 'shield-check')}</div>
         <div class="relative mt-3">
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-          <input id="studentSearch" value="${esc(query)}" placeholder="按姓名或规范昵称检索" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-[16px] font-medium text-slate-900 outline-none focus:border-indigo-500" autocomplete="off">
+          <input id="studentSearch" value="${esc(query)}" placeholder="按姓名或规范昵称检索" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-[16px] font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15" autocomplete="off">
         </div>
         <div class="mt-2 max-h-56 space-y-1.5 overflow-y-auto">
           ${candidates.map((student) => {
@@ -1194,17 +1299,17 @@
             : `<div class="mt-1 text-[14px] font-bold leading-snug text-slate-900">${esc(lesson.teacher)}</div>`}
           ${group
             ? `<div class="mt-1 text-[12px] font-medium text-slate-600">小班 ${esc(lesson.size || CLASS_INFO.size)} · 连续 2 个 30min 格</div>`
-            : `<div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+            : `<div class="mt-1.5 flex flex-wrap items-center gap-2">
                 <span class="min-w-0 truncate text-[12px] font-semibold text-slate-700">学员 ${esc(lessonStudentLabel(lesson))}</span>
-                <button data-action="toast" data-message="打开学员档案" class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[12px] font-semibold text-slate-700 active:bg-slate-100">学员档案</button>
-                <button data-action="toast" data-message="打开课次资产明细" class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[12px] font-semibold text-slate-700 active:bg-slate-100">课次资产</button>
+                <button data-action="toast" data-message="打开学员档案" class="inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">学员档案 →</button>
+                <button data-action="toast" data-message="打开课次资产明细" class="inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">课次资产 →</button>
               </div>`}
           <div class="mt-2 flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-2 ring-1 ring-slate-200">
             <div class="min-w-0">
               <div class="text-[12px] font-medium text-slate-600">ClassIn 教室</div>
               <div class="truncate text-[14px] font-bold text-slate-900">${esc(lesson.room)}</div>
             </div>
-            <button data-action="copy-room" data-room="${esc(lesson.room)}" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-800 active:bg-slate-100">${icon('copy', 'h-3.5 w-3.5')}复制</button>
+            <button data-action="copy-room" data-room="${esc(lesson.room)}" class="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 active:scale-[0.98]">${icon('copy', 'h-3.5 w-3.5')}复制</button>
           </div>
           ${substituted ? `<div class="mt-1.5 text-[12px] font-medium leading-relaxed text-blue-800">原任老师课格蓝色 SUBBED_OUT，代课老师课格紫色 SUBBED_IN。</div>` : ''}
           ${pair ? `<label class="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 transition active:bg-slate-50">
@@ -1232,8 +1337,8 @@
         <div data-cell-layer="3" class="mt-2.5">
           <div class="mb-1.5 text-[12px] font-bold text-slate-700">状态处置</div>
           ${(!closed && status !== 'PENDING' && status !== 'COMPENSATED') || completedUnsettled ? cellReasonField() : ''}
-          ${!closed && status !== 'PENDING' && status !== 'COMPENSATED' ? `<button data-action="cell-withdraw" class="mt-2 h-10 w-full rounded-xl border border-rose-200 bg-rose-50 px-3 text-[14px] font-semibold text-rose-700 active:bg-rose-100 ${onlineCls()}">撤排退回课次</button>` : ''}
-          ${completedUnsettled ? `<button data-action="cell-compensate" class="mt-2 h-10 w-full rounded-xl border border-amber-300 bg-amber-50 px-3 text-[14px] font-semibold text-amber-900 active:bg-amber-100 ${onlineCls()}">异常未上课回退补生</button>` : ''}
+          ${!closed && status !== 'PENDING' && status !== 'COMPENSATED' ? `<button data-action="cell-withdraw" class="mt-2 h-11 w-full rounded-xl border border-rose-200 bg-rose-50 px-3 text-[14px] font-semibold text-rose-700 active:bg-rose-100 ${onlineCls()}">撤排退回课次</button>` : ''}
+          ${completedUnsettled ? `<button data-action="cell-compensate" class="mt-2 h-11 w-full rounded-xl border border-amber-300 bg-amber-50 px-3 text-[14px] font-semibold text-amber-900 active:bg-amber-100 ${onlineCls()}">异常未上课回退补生</button>` : ''}
           ${settledClosed ? `<div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">该课次已完成归集，不可回退补生。</div>` : ''}
           ${status === 'PENDING' || status === 'COMPENSATED' ? `<div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">${status === 'PENDING' ? '该课次已退回待排期，无待执行动作。' : '该课次已回退补生，无待执行动作。'}</div>` : ''}
         </div>
@@ -1249,7 +1354,6 @@
       const stats = studentLeaveStats(lesson.studentKey);
       const substituted = lesson.status === 'SUBSTITUTED';
       return sheetShell(`
-        ${cellPanelBack()}
         ${modalHeader('请假 / 同师挪位', `${lesson.student} · 本次范围 ${scopeRangeLabel(scope)}`)}
         <div class="mt-2 flex items-center justify-between gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2">
           <span class="text-[12px] font-semibold text-indigo-900">${scope.length > 1 ? `按 2 节生效 · ${scopeRangeLabel(scope)}` : '按 1 节生效'}</span>
@@ -1283,7 +1387,6 @@
       const canRestore = misMarked && lesson.settled !== true;
       const normalText = isClosedLesson(lesson) ? '正常出勤（已自动结课）' : '正常（次日 02:00 自动结课）';
       return sheetShell(`
-        ${cellPanelBack()}
         ${modalHeader('考勤 / 旷课标记', `${lesson.student} · 本次范围 ${scopeRangeLabel(scope)}`)}
         <div data-cell-panel="attendance" class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
           <div class="flex flex-wrap items-center gap-1.5">
@@ -1308,44 +1411,65 @@
     function renderCellGroupPanel(lesson) {
       const draft = state.classDraft || { selected: null, query: '' };
       const query = String(draft.query || '').trim().toLowerCase();
+      const originPrice = teacherPrice(originTeacherOf(lesson));
       const eligible = CLASS_CANDIDATES
         .filter((c) => c.active && c.qualified && c.twoCells)
         .sort((a, b) => {
           if (a.taughtBefore !== b.taughtBefore) return a.taughtBefore ? -1 : 1;
-          if (a.sameLevel !== b.sameLevel) return a.sameLevel ? -1 : 1;
+          const distanceA = priceDistance(a.price, originPrice);
+          const distanceB = priceDistance(b.price, originPrice);
+          if (distanceA !== distanceB) return distanceA - distanceB;
           return a.load - b.load;
         });
       const ineligible = CLASS_CANDIDATES.filter((c) => !(c.active && c.qualified && c.twoCells));
       const visibleEligible = eligible.filter((c) => c.name.toLowerCase().includes(query));
       const visibleIneligible = ineligible.filter((c) => c.name.toLowerCase().includes(query));
       return sheetShell(`
-        ${cellPanelBack()}
         ${modalHeader('代课 / 暂停待排', `${lesson.student} · ${fmtDate(lesson.date)} ${lesson.time}-${endTime(lesson.time, 60)}`)}
         <div class="mt-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-teal-900">
           路线 A：指派临时代课，自动筛出连续双格空闲且具备小班资质的老师，课酬按原班级快照平移。路线 B：暂停待排，TS 退回小班待排池并释放日历双格。
         </div>
+        <div class="mt-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[12px] font-bold text-slate-800">交接摘要</span>
+            ${chip('小班', 'teal')}
+          </div>
+          <div class="mt-1.5 grid grid-cols-[56px_minmax(0,1fr)] gap-x-2 gap-y-1 text-[12px] leading-relaxed">
+            <span class="font-medium text-slate-600">在学课件</span>
+            <span class="text-right font-semibold text-slate-800">${esc(CLASS_HANDOVER.courseware)} · ${esc(CLASS_HANDOVER.level)}</span>
+            <span class="font-medium text-slate-600">最新备注</span>
+            <span class="line-clamp-2 text-right font-medium text-slate-700">${esc(CLASS_HANDOVER.note)}</span>
+          </div>
+          <div class="mt-1.5 border-t border-slate-200 pt-1.5 text-[12px] font-medium text-slate-600">Handover updated by ${esc(CLASS_HANDOVER.by)} · ${esc(CLASS_HANDOVER.updatedAt)}</div>
+        </div>
         <div class="mt-2.5 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-[12px] font-bold text-purple-900">路线 A · 连续双格代课</div>
         <div class="relative mt-2">
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-          <input id="teacherSearch" value="${esc(draft.query || '')}" placeholder="搜索老师姓名" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-[16px] font-medium text-slate-900 outline-none focus:border-indigo-500">
+          <input id="teacherSearch" value="${esc(draft.query || '')}" placeholder="搜索老师姓名" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-[16px] font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
         </div>
         <div class="mt-1.5 space-y-1.5">
           ${visibleEligible.map((candidate) => {
             const on = draft.selected === candidate.name;
-            return `<button data-action="pick-class-sub" data-name="${esc(candidate.name)}" data-sub-row="${esc(candidate.name.toLowerCase())}" class="flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition ${on ? 'border-purple-400 bg-purple-50' : 'border-slate-200 bg-white hover:border-purple-300'}">
-              <span class="min-w-0">
-                <span class="block text-[14px] font-bold ${on ? 'text-purple-900' : 'text-slate-900'}">${esc(candidate.name)}</span>
-                <span class="mt-0.5 block text-[12px] font-medium text-slate-600">${esc(candidate.note)} · 本周已排 ${candidate.load} 节</span>
+            return `<button data-action="pick-class-sub" data-name="${esc(candidate.name)}" data-sub-row="${esc(candidate.name.toLowerCase())}" class="flex w-full items-start justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition ${on ? 'border-purple-400 bg-purple-50' : 'border-slate-200 bg-white hover:border-purple-300'}">
+              <span class="min-w-0 flex-1">
+                <span class="flex flex-wrap items-center gap-1">
+                  <span class="text-[14px] font-bold ${on ? 'text-purple-900' : 'text-slate-900'}">${esc(candidate.name)}</span>
+                  ${candidateBadges(candidate, originPrice, '教过本班')}
+                </span>
+                <span class="mt-1 block text-[12px] font-medium text-slate-600">✅ 连续双格空闲 · 本周已排 ${candidate.load} 节</span>
               </span>
-              <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? 'border-purple-500 bg-purple-600 text-white' : 'border-slate-300 bg-white text-transparent'}">${icon('check', 'h-3 w-3')}</span>
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? 'border-purple-500 bg-purple-600 text-white' : 'border-slate-300 bg-white text-transparent'}">${icon('check', 'h-3 w-3')}</span>
             </button>`;
           }).join('')}
-          ${visibleIneligible.map((candidate) => `<div data-sub-row="${esc(candidate.name.toLowerCase())}" class="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 opacity-70">
-            <span class="min-w-0">
-              <span class="block text-[14px] font-bold text-slate-600">${esc(candidate.name)}</span>
-              <span class="mt-0.5 block text-[12px] font-medium text-slate-600">${esc(candidate.note)}</span>
+          ${visibleIneligible.map((candidate) => `<div data-sub-row="${esc(candidate.name.toLowerCase())}" class="flex w-full items-start justify-between gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 opacity-70">
+            <span class="min-w-0 flex-1">
+              <span class="flex flex-wrap items-center gap-1">
+                <span class="text-[14px] font-bold text-slate-600">${esc(candidate.name)}</span>
+                ${candidateBadges(candidate, originPrice, '教过本班')}
+              </span>
+              <span class="mt-1 block text-[12px] font-medium text-slate-600">${esc(candidate.reason)}</span>
             </span>
-            <span class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[12px] font-semibold text-slate-600 ring-1 ring-slate-200">不可选</span>
+            <span class="mt-0.5 shrink-0 rounded-full bg-white px-2 py-0.5 text-[12px] font-semibold text-slate-600 ring-1 ring-slate-200">不可选</span>
           </div>`).join('')}
           ${!visibleEligible.length && !visibleIneligible.length ? `<div id="teacherSearchEmpty" class="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-3 py-4 text-center text-[12px] font-medium text-slate-600">没有匹配的老师，请更换姓名关键词。</div>` : '<div id="teacherSearchEmpty" class="hidden"></div>'}
         </div>
@@ -1353,8 +1477,8 @@
         <div class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
           <div class="text-[14px] font-bold text-slate-900">路线 B · 暂停待排</div>
           <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">TS 退回小班待排池并释放双格；系统不向小班家长发送应用内通知。</div>
-          <button data-action="cell-group-pause" data-id="${lesson.id}" class="mt-2 h-10 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 active:bg-slate-100 ${onlineCls()}">暂停待排</button>
-          <button data-action="toast" data-message="进入补排入口，为小班补排单节" class="mt-1.5 h-10 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 active:bg-slate-100">补排入口</button>
+          <button data-action="cell-group-pause" data-id="${lesson.id}" class="mt-2 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 active:bg-slate-100 ${onlineCls()}">暂停待排</button>
+          <button data-action="toast" data-message="进入补排入口，为小班补排单节" class="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 active:bg-slate-100">补排入口</button>
         </div>
       `);
     }
@@ -1362,12 +1486,14 @@
     /* ------------------------------------------------------------------
      * 智能筛师：1v1 指派代课
      * ------------------------------------------------------------------ */
-    function sortedSubCandidates() {
+    function sortedSubCandidates(originPrice) {
       return SUB_CANDIDATES
         .filter((c) => c.active && c.qualified && c.free)
         .sort((a, b) => {
           if (a.taughtBefore !== b.taughtBefore) return a.taughtBefore ? -1 : 1;
-          if (a.sameLevel !== b.sameLevel) return a.sameLevel ? -1 : 1;
+          const distanceA = priceDistance(a.price, originPrice);
+          const distanceB = priceDistance(b.price, originPrice);
+          if (distanceA !== distanceB) return distanceA - distanceB;
           return a.load - b.load;
         });
     }
@@ -1378,7 +1504,9 @@
       const lesson = lessonById(draft.lessonId);
       if (!lesson) return '';
       const origin = originTeacherOf(lesson);
-      const candidates = sortedSubCandidates();
+      const originPrice = teacherPrice(origin);
+      const task = draft.task || null;
+      const candidates = sortedSubCandidates(originPrice);
       const ineligible = SUB_CANDIDATES.filter((c) => !(c.active && c.qualified && c.free));
       const scopeLessons = (draft.lessonIds || [lesson.id]).map(lessonById).filter(Boolean);
       const scopeText = scopeLessons.length > 1 ? `${scopeRangeLabel(scopeLessons)} · 同一老师连派` : '1 节';
@@ -1386,50 +1514,64 @@
       const query = String(draft.query || '').trim().toLowerCase();
       const visibleEligible = candidates.filter((c) => c.name.toLowerCase().includes(query));
       const visibleIneligible = ineligible.filter((c) => c.name.toLowerCase().includes(query));
+      const handover = handoverFor(lesson);
+      const updatedLine = handoverUpdatedLine(lesson);
       return sheetShell(`
-        ${draft.cell ? cellPanelBack() : ''}
         ${modalHeader('指派代课', `${lesson.student} · 本次范围 ${scopeText}`)}
         ${substituted ? `<div class="mt-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2">
           <div class="text-[12px] font-semibold leading-relaxed text-purple-900">当前已由 ${esc(lesson.subTeacher || '代课老师')} 代课；可撤销后重新指派。</div>
-          <button data-action="cell-revoke-sub" class="mt-2 h-10 w-full rounded-xl border border-rose-200 bg-white text-[14px] font-semibold text-rose-700 active:bg-rose-50 ${onlineCls()}">撤销代课指派</button>
+          <button data-action="cell-revoke-sub" class="mt-2 h-11 w-full rounded-xl border border-rose-200 bg-white text-[14px] font-semibold text-rose-700 active:bg-rose-50 ${onlineCls()}">撤销代课指派</button>
         </div>` : ''}
-        <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
-          ${infoRow('原任老师', origin)}
-          ${infoRow('本次范围', scopeText)}
-          ${task ? infoRow('请假原因', task.reason) : infoRow('当前状态', lesson.status === 'LEAVE_PENDING' ? '老师请假 · 待指派' : '临时调度')}
-          ${infoRow('课程资质', lesson.courseware)}
+        <div class="mt-2.5 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2">
+          ${infoRow('原任老师', `${origin} · ${originPrice}积分`)}
+          ${task ? infoRow('请假原因', task.reason) : infoRow('当前状态', lesson.status === 'LEAVE_PENDING' || lesson.status === 'SUBSTITUTED' ? '老师请假 · 待指派' : '临时调度')}
+          ${handover ? '' : infoRow('课程资质', lesson.courseware)}
         </div>
+        ${handover ? `<div class="mt-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[12px] font-bold text-slate-800">交接摘要</span>
+            ${chip('同步自学员档案', 'slate')}
+          </div>
+          <div class="mt-1.5 grid grid-cols-[56px_minmax(0,1fr)] gap-x-2 gap-y-1 text-[12px] leading-relaxed">
+            <span class="font-medium text-slate-600">在学课件</span>
+            <span class="text-right font-semibold text-slate-800">${esc(handover.courseware)} · ${esc(handover.level)}</span>
+            <span class="font-medium text-slate-600">最新备注</span>
+            <span class="line-clamp-2 text-right font-medium text-slate-700">${esc(handover.note || '—')}</span>
+          </div>
+          ${updatedLine ? `<div class="mt-1.5 border-t border-slate-200 pt-1.5 text-[12px] font-medium text-slate-600">${esc(updatedLine)}</div>` : ''}
+        </div>` : ''}
         <div class="mt-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-purple-900">
-          仅在职、具备课程资质且目标时段全空闲的老师可选；按熟客优先 → 同定级 → 本周已排负荷排序。不符合条件者置灰并标注冲突原因。
+          仅在职、具备课程资质且目标时段全空闲的老师可选；按熟客优先 → 同价位 / 相近价位 → 本周已排负荷排序。不符合条件者置灰并标注具体原因。
         </div>
         <div class="relative mt-2.5">
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-          <input id="teacherSearch" value="${esc(draft.query || '')}" placeholder="搜索老师姓名" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-[16px] font-medium text-slate-900 outline-none focus:border-indigo-500">
+          <input id="teacherSearch" value="${esc(draft.query || '')}" placeholder="搜索老师姓名" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-[16px] font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
         </div>
         ${state.hours < 3 ? `<div class="mt-2">${amberNote('距开课不足 3 小时', '确认指派时会弹温和提示，点击确认后立即生效。')}</div>` : ''}
         ${!visibleEligible.length && !query ? `<div class="mt-2 rounded-xl border border-amber-300 bg-amber-50/60 px-3 py-2 text-[12px] font-semibold leading-relaxed text-amber-900">当前没有覆盖全部所选时段的可选老师，建议减少连选节数并拆单指派。</div>` : ''}
         <div class="mt-3 space-y-1.5">
           ${visibleEligible.map((candidate) => {
             const on = draft.selected === candidate.name;
-            const reasons = [];
-            if (candidate.taughtBefore) reasons.push('教过该学员');
-            if (candidate.sameLevel) reasons.push('同定级');
-            reasons.push(`本周已排 ${candidate.load} 节`);
-            return `<button data-action="pick-sub" data-name="${esc(candidate.name)}" data-sub-row="${esc(candidate.name.toLowerCase())}" class="flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition ${on ? 'border-purple-400 bg-purple-50' : 'border-slate-200 bg-white hover:border-purple-300'}">
-              <span class="min-w-0">
-                <span class="block text-[14px] font-bold ${on ? 'text-purple-900' : 'text-slate-900'}">${esc(candidate.name)} <span class="ml-1 rounded bg-slate-100 px-1 text-[12px] font-semibold text-slate-600">${esc(candidate.level)}</span></span>
-                <span class="mt-0.5 block text-[12px] font-medium text-slate-600">${esc(candidate.note)}</span>
-                <span class="mt-1 flex flex-wrap gap-1">${reasons.map((r) => chip(r, on ? 'purple' : 'slate')).join('')}</span>
+            return `<button data-action="pick-sub" data-name="${esc(candidate.name)}" data-sub-row="${esc(candidate.name.toLowerCase())}" class="flex w-full items-start justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition ${on ? 'border-purple-400 bg-purple-50' : 'border-slate-200 bg-white hover:border-purple-300'}">
+              <span class="min-w-0 flex-1">
+                <span class="flex flex-wrap items-center gap-1">
+                  <span class="text-[14px] font-bold ${on ? 'text-purple-900' : 'text-slate-900'}">${esc(candidate.name)}</span>
+                  ${candidateBadges(candidate, originPrice)}
+                </span>
+                <span class="mt-1 block text-[12px] font-medium text-slate-600">✅ 所选时段全空闲 · 本周已排 ${candidate.load} 节</span>
               </span>
-              <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? 'border-purple-500 bg-purple-600 text-white' : 'border-slate-300 bg-white text-transparent'}">${icon('check', 'h-3 w-3')}</span>
+              <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? 'border-purple-500 bg-purple-600 text-white' : 'border-slate-300 bg-white text-transparent'}">${icon('check', 'h-3 w-3')}</span>
             </button>`;
           }).join('')}
-          ${visibleIneligible.map((candidate) => `<div data-sub-row="${esc(candidate.name.toLowerCase())}" class="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 opacity-70">
-            <span class="min-w-0">
-              <span class="block text-[14px] font-bold text-slate-600">${esc(candidate.name)} <span class="ml-1 rounded bg-white px-1 text-[12px] font-semibold text-slate-600">${esc(candidate.level)}</span></span>
-              <span class="mt-0.5 block text-[12px] font-medium text-slate-600">${esc(candidate.note)} · 本周已排 ${candidate.load} 节</span>
+          ${visibleIneligible.map((candidate) => `<div data-sub-row="${esc(candidate.name.toLowerCase())}" class="flex w-full items-start justify-between gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 opacity-70">
+            <span class="min-w-0 flex-1">
+              <span class="flex flex-wrap items-center gap-1">
+                <span class="text-[14px] font-bold text-slate-600">${esc(candidate.name)}</span>
+                ${candidateBadges(candidate, originPrice)}
+              </span>
+              <span class="mt-1 block text-[12px] font-medium text-slate-600">${esc(candidate.reason)}</span>
             </span>
-            <span class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[12px] font-semibold text-slate-600 ring-1 ring-slate-200">不可选</span>
+            <span class="mt-0.5 shrink-0 rounded-full bg-white px-2 py-0.5 text-[12px] font-semibold text-slate-600 ring-1 ring-slate-200">不可选</span>
           </div>`).join('')}
           ${!visibleEligible.length && !visibleIneligible.length ? `<div id="teacherSearchEmpty" class="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-3 py-4 text-center text-[12px] font-medium text-slate-600">没有匹配的老师，请更换姓名关键词。</div>` : '<div id="teacherSearchEmpty" class="hidden"></div>'}
         </div>
@@ -1438,6 +1580,180 @@
           <button data-action="confirm-assign-sub" ${!draft.selected || state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-purple-600 text-[16px] font-semibold text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认指派代课</button>
         </div>
       `);
+    }
+
+    /* ------------------------------------------------------------------
+     * 老师批量请假与交接信息（AC-3B-16 演示场景）
+     * ------------------------------------------------------------------ */
+    function leaveAffectedLessons(selectedKeys) {
+      const seen = {};
+      const list = [];
+      (selectedKeys || []).forEach((key) => {
+        const slot = TEACHER_LEAVE_SLOTS.find((item) => item.key === key);
+        if (!slot || !slot.lessonId) return;
+        const lesson = lessonById(slot.lessonId);
+        if (!lesson || isGroupLesson(lesson) || seen[lesson.studentKey]) return;
+        seen[lesson.studentKey] = true;
+        list.push(lesson);
+      });
+      return list;
+    }
+
+    function ensureTeacherLeaveHandovers() {
+      if (!state.teacherLeave) return;
+      const next = {};
+      leaveAffectedLessons(state.teacherLeave.selected).forEach((lesson) => {
+        const existing = state.teacherLeave.handovers[lesson.studentKey];
+        const base = STUDENT_HANDOVER[lesson.studentKey] || {};
+        next[lesson.studentKey] = existing || {
+          courseware: base.courseware || '',
+          level: base.level || '',
+          note: base.note || ''
+        };
+      });
+      state.teacherLeave.handovers = next;
+    }
+
+    function openTeacherLeave() {
+      state.teacherLeave = {
+        selected: TEACHER_LEAVE_SLOTS.filter((slot) => slot.lessonId).map((slot) => slot.key),
+        reason: '',
+        handovers: {}
+      };
+      ensureTeacherLeaveHandovers();
+      state.overlay = { type: 'teacherLeave' };
+    }
+
+    function leaveHandoverOptions(studentKey) {
+      return HANDOVER_OPTIONS[studentKey] || {
+        coursewares: [STUDENT_HANDOVER[studentKey] ? STUDENT_HANDOVER[studentKey].courseware : '—'],
+        levels: [STUDENT_HANDOVER[studentKey] ? STUDENT_HANDOVER[studentKey].level : '—']
+      };
+    }
+
+    function renderTeacherLeaveSheet() {
+      const draft = state.teacherLeave;
+      if (!draft) return '';
+      ensureTeacherLeaveHandovers();
+      const affected = leaveAffectedLessons(draft.selected);
+      const scheduledSlots = TEACHER_LEAVE_SLOTS.filter((slot) => slot.lessonId);
+      const freeCount = TEACHER_LEAVE_SLOTS.length - scheduledSlots.length;
+      const selectedScheduled = draft.selected.filter((key) => TEACHER_LEAVE_SLOTS.find((slot) => slot.key === key && slot.lessonId)).length;
+      return sheetShell(`
+        ${modalHeader('老师批量请假', `David Miller · ${fmtDate(TODAY)} · 当天时段`)}
+        <div class="mt-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
+          <div class="flex flex-wrap items-center gap-1.5">
+            ${chip(`已排 ${scheduledSlots.length} 节`, 'amber')}
+            ${chip(`空闲 ${freeCount} 节`, 'emerald')}
+            <span class="ml-auto text-[12px] font-semibold text-slate-600">已勾选 ${draft.selected.length} 节</span>
+          </div>
+          <div class="mt-2 grid grid-cols-3 gap-1.5">
+            ${TEACHER_LEAVE_SLOTS.map((slot) => {
+              const lesson = slot.lessonId ? lessonById(slot.lessonId) : null;
+              const selected = draft.selected.includes(slot.key);
+              return `<label class="flex min-w-0 cursor-pointer items-start gap-1.5 rounded-xl border px-2 py-1.5 transition ${selected ? 'border-indigo-400 bg-indigo-50' : lesson ? 'border-amber-300 bg-amber-50/60' : 'border-slate-200 bg-white'}">
+                <input type="checkbox" data-leave-slot="${slot.key}" ${selected ? 'checked' : ''} class="mt-0.5 h-4 w-4 shrink-0 accent-indigo-600">
+                <span class="min-w-0">
+                  <span class="block text-[12px] font-bold ${selected ? 'text-indigo-900' : 'text-slate-900'}">${slot.time}</span>
+                  <span class="block truncate text-[12px] font-medium ${lesson ? 'text-amber-900' : 'text-slate-600'}" title="${lesson ? `已排 · ${esc(lessonStudentLabel(lesson))}` : '空闲'}">${lesson ? '已排' : '空闲'}</span>
+                </span>
+              </label>`;
+            }).join('')}
+          </div>
+        </div>
+        <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
+          <label for="teacherLeaveReason" class="text-[12px] font-bold text-slate-800">请假原因 <span class="text-rose-600">必填</span></label>
+          <input id="teacherLeaveReason" value="${esc(draft.reason)}" placeholder="如：身体不适，需临时就医" class="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            ${LEAVE_REASON_TAGS.map((tag) => `<button data-action="teacher-leave-reason" data-reason="${esc(tag)}" class="h-7 rounded-lg px-2.5 text-[12px] font-bold transition ${draft.reason === tag ? 'bg-slate-900 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}">${esc(tag)}</button>`).join('')}
+          </div>
+        </div>
+        <div class="mt-2.5 rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[14px] font-bold text-slate-900">交接信息（选填）</span>
+            <span class="text-[12px] font-medium text-slate-600">${affected.length} 位受影响学员</span>
+          </div>
+          <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">按已勾选的已排课次去重；提交后同步学员档案并在指派代课面板透传。</p>
+          ${affected.length ? affected.map((lesson) => {
+            const student = studentByKey(lesson.studentKey);
+            const handover = draft.handovers[lesson.studentKey] || {};
+            const options = leaveHandoverOptions(lesson.studentKey);
+            const coursewares = options.coursewares.indexOf(handover.courseware) === -1 && handover.courseware
+              ? [handover.courseware].concat(options.coursewares)
+              : options.coursewares;
+            const levels = options.levels.indexOf(handover.level) === -1 && handover.level
+              ? [handover.level].concat(options.levels)
+              : options.levels;
+            return `<div class="mt-2 rounded-xl border border-slate-200 bg-white p-2.5">
+              <div class="flex min-w-0 items-center justify-between gap-2">
+                <span class="min-w-0 truncate text-[14px] font-bold text-slate-900">${esc(student.name)}</span>
+                <span class="shrink-0 text-[12px] font-medium text-slate-600">${esc(student.tag)}</span>
+              </div>
+              <div class="mt-2">
+                <label class="block min-w-0">
+                  <span class="text-[12px] font-semibold text-slate-600">在学课件</span>
+                  <select data-handover-courseware="${lesson.studentKey}" class="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+                    ${coursewares.map((item) => `<option value="${esc(item)}" ${item === handover.courseware ? 'selected' : ''}>${esc(item)}</option>`).join('')}
+                  </select>
+                </label>
+                <label class="mt-2 block min-w-0">
+                  <span class="text-[12px] font-semibold text-slate-600">级别</span>
+                  <select data-handover-level="${lesson.studentKey}" class="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+                    ${levels.map((item) => `<option value="${esc(item)}" ${item === handover.level ? 'selected' : ''}>${esc(item)}</option>`).join('')}
+                  </select>
+                </label>
+              </div>
+              <label class="mt-2 block">
+                <span class="text-[12px] font-semibold text-slate-600">学员备注 Notes</span>
+                <textarea data-handover-note="${lesson.studentKey}" rows="2" placeholder="选填，如发音、注意力或下节课提醒" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 py-2 text-[12px] font-medium leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(handover.note || '')}</textarea>
+              </label>
+            </div>`;
+          }).join('') : `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-center text-[12px] font-medium text-slate-600">勾选含已排课次的时段后，这里会按学员逐一展开交接信息。</div>`}
+        </div>
+        <div class="mt-3 flex gap-2">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">取消</button>
+          <button data-action="submit-teacher-leave" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">提交请假</button>
+        </div>
+        <div class="mt-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">
+          ${icon('info', 'mr-1 inline h-3.5 w-3.5 align-[-2px] text-slate-500')}已勾选 ${selectedScheduled} 节已排课次；提交后已排格挂起为待代课，空闲格标记为已请假。
+        </div>
+      `);
+    }
+
+    function submitTeacherLeave() {
+      if (!guardWrite()) return;
+      const draft = state.teacherLeave;
+      if (!draft) return;
+      if (!draft.selected.length) return showToast('请至少勾选 1 个请假时段', true);
+      if (!draft.reason.trim()) return showToast('请填写请假原因', true);
+      ensureTeacherLeaveHandovers();
+      const affected = leaveAffectedLessons(draft.selected);
+      affected.forEach((lesson) => {
+        const handover = draft.handovers[lesson.studentKey];
+        if (!handover) return;
+        STUDENT_HANDOVER[lesson.studentKey] = {
+          courseware: handover.courseware,
+          level: handover.level,
+          note: handover.note,
+          updatedAt: '11-10 21:05',
+          by: 'David Miller',
+          fresh: true
+        };
+      });
+      draft.selected.forEach((key) => {
+        const slot = TEACHER_LEAVE_SLOTS.find((item) => item.key === key);
+        if (!slot || !slot.lessonId) return;
+        const lesson = lessonById(slot.lessonId);
+        if (!lesson) return;
+        lesson.leaveReason = draft.reason.trim();
+        if (isActiveLesson(lesson)) lesson.status = 'LEAVE_PENDING';
+      });
+      state.overlay = null;
+      state.returnOverlay = null;
+      state.teacherLeave = null;
+      state.cellView = 'main';
+      renderAll();
+      showToast('已提交请假，交接信息已同步');
     }
 
     /* ------------------------------------------------------------------
@@ -1463,7 +1779,7 @@
           ${infoRow('处理结果', '释放日历双格 · 退回班级待排池')}
         </div>
         <div class="mt-4 flex gap-2">
-          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">返回</button>
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">取消</button>
           <button data-action="confirm-class-pause" class="h-11 flex-[2] rounded-xl bg-rose-600 text-[16px] font-semibold text-white active:scale-[0.98]">确认暂停待排</button>
         </div>
       `, 'max-w-[360px]');
@@ -1473,13 +1789,13 @@
      * 经办记录（Append-Only 只读留痕）
      * ------------------------------------------------------------------ */
     function recordFilterPill(label, active, action, value) {
-      return `<button data-action="${esc(action)}" data-value="${esc(value)}" class="shrink-0 rounded-full px-3 py-1.5 text-[12px] transition ${active ? 'bg-slate-900 font-semibold text-white shadow-xs' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${esc(label)}</button>`;
+      return `<button data-action="${esc(action)}" data-value="${esc(value)}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${active ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${esc(label)}</button>`;
     }
 
     function renderRecordFilters() {
       const monitors = recordMonitors();
       const shownMonitors = state.recordsExpanded ? monitors : monitors.slice(0, 3);
-      return `<div class="space-y-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-2.5">
+      return `<div class="space-y-2 rounded-2xl border border-slate-300 bg-slate-50/70 p-2.5">
         <div class="flex items-center gap-2">
           <span class="w-11 shrink-0 text-[12px] font-semibold text-slate-600">时间</span>
           <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5">
@@ -1492,7 +1808,7 @@
             ${RECORD_TYPE_FILTERS.map((item) => recordFilterPill(item.label, state.recordsType === item.key, 'records-type', item.key)).join('')}
           </div>
         </div>
-        ${state.role === 'admin' ? `<div class="flex items-start gap-2 border-t border-slate-200/80 pt-2">
+        ${state.role === 'admin' ? `<div class="flex items-start gap-2 border-t border-slate-200 pt-2">
           <span class="w-11 shrink-0 pt-1 text-[12px] font-semibold text-slate-600">班长</span>
           <div class="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
             ${recordFilterPill('全部班长', state.recordsMonitor === 'ALL', 'records-monitor', 'ALL')}
@@ -1505,7 +1821,7 @@
 
     function renderRecordCard(rec) {
       const meta = RECORD_TYPE_META[rec.type] || RECORD_TYPE_META.schedule;
-      return `<article class="box-border w-full rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+      return `<article class="box-border w-full rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
         <div class="flex items-start justify-between gap-2">
           <div class="flex min-w-0 flex-wrap items-center gap-1.5">
             ${chip(meta.label, meta.tone)}
@@ -1536,7 +1852,7 @@
         </div>
         <div class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">原因：${esc(rec.reason || '—')}</div>
 
-        <div class="mt-2 flex items-center justify-between gap-2 border-t border-slate-200/70 pt-2">
+        <div class="mt-2 flex items-center justify-between gap-2 border-t border-slate-200 pt-2">
           <span class="font-mono text-[12px] font-medium text-slate-600">${esc(rec.id)}</span>
           <span class="inline-flex shrink-0 items-center gap-1 text-[12px] font-semibold text-slate-600">${icon('lock', 'h-3.5 w-3.5')}只读留痕</span>
         </div>
@@ -1595,6 +1911,7 @@
       else if (type === 'assignSub') el.innerHTML = renderAssignSubSheet();
       else if (type === 'cellSheet') el.innerHTML = renderCellSheet();
       else if (type === 'classPause') el.innerHTML = renderClassPauseSheet();
+      else if (type === 'teacherLeave') el.innerHTML = renderTeacherLeaveSheet();
       else el.innerHTML = '';
       if (window.lucide) lucide.createIcons();
     }
@@ -1644,6 +1961,7 @@
       state.changeStudent = null;
       state.assignSub = null;
       state.classDraft = null;
+      state.teacherLeave = null;
       state.cellView = 'main';
       state.cellScope = { lessonId: null, nextSelected: true };
       state.cellReason = '';
@@ -1666,6 +1984,7 @@
       state.changeStudent = null;
       state.assignSub = null;
       state.classDraft = null;
+      state.teacherLeave = null;
       state.cellView = 'main';
       state.cellScope = { lessonId: null, nextSelected: true };
       state.cellReason = '';
@@ -1692,6 +2011,7 @@
       state.changeStudent = null;
       state.assignSub = null;
       state.classDraft = null;
+      state.teacherLeave = null;
       state.cellView = 'main';
       state.cellScope = { lessonId: null, nextSelected: true };
       state.cellReason = '';
@@ -2444,6 +2764,12 @@
         state.cellView = 'main';
         state.cellScope = { lessonId: 'lsn_class_cell', nextSelected: true };
         state.overlay = { type: 'cellSheet', lessonId: 'lsn_class_cell' };
+      } else if (key === 'teacherLeave') {
+        state.hours = 6;
+        setRole('monitor', { silent: true, scenario: key });
+        state.page = 'records';
+        state.cellView = 'main';
+        openTeacherLeave();
       }
       renderAll({ resetScroll: true });
     }
@@ -2586,6 +2912,13 @@
       if (action === 'pick-class-sub') return pickClassSub(el.dataset.name);
       if (action === 'confirm-class-sub') return confirmClassSub();
       if (action === 'confirm-class-pause') return confirmClassPause();
+      if (action === 'teacher-leave-reason') {
+        if (!state.teacherLeave) return;
+        state.teacherLeave.reason = el.dataset.reason || '';
+        renderOverlay();
+        return;
+      }
+      if (action === 'submit-teacher-leave') return submitTeacherLeave();
       if (action === 'records-range') {
         state.recordsRange = el.dataset.value;
         state.recordsLimit = 20;
@@ -2621,6 +2954,26 @@
       if (target.matches('[data-cell-scope]')) {
         state.cellScope.nextSelected = target.checked;
         renderOverlay();
+        return;
+      }
+      if (target.matches('[data-leave-slot]')) {
+        if (!state.teacherLeave) return;
+        const key = target.dataset.leaveSlot;
+        const index = state.teacherLeave.selected.indexOf(key);
+        if (target.checked && index === -1) state.teacherLeave.selected.push(key);
+        if (!target.checked && index !== -1) state.teacherLeave.selected.splice(index, 1);
+        ensureTeacherLeaveHandovers();
+        renderOverlay();
+        return;
+      }
+      if (target.matches('[data-handover-courseware]') && state.teacherLeave) {
+        const key = target.dataset.handoverCourseware;
+        if (state.teacherLeave.handovers[key]) state.teacherLeave.handovers[key].courseware = target.value;
+        return;
+      }
+      if (target.matches('[data-handover-level]') && state.teacherLeave) {
+        const key = target.dataset.handoverLevel;
+        if (state.teacherLeave.handovers[key]) state.teacherLeave.handovers[key].level = target.value;
       }
     });
 
@@ -2642,6 +2995,15 @@
       if (event.target.id === 'cellReason') {
         state.cellReason = event.target.value;
         updateCellReasonHint();
+        return;
+      }
+      if (event.target.id === 'teacherLeaveReason' && state.teacherLeave) {
+        state.teacherLeave.reason = event.target.value;
+        return;
+      }
+      if (event.target.matches('[data-handover-note]') && state.teacherLeave) {
+        const key = event.target.dataset.handoverNote;
+        if (state.teacherLeave.handovers[key]) state.teacherLeave.handovers[key].note = event.target.value;
       }
     });
 
