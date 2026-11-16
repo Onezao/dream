@@ -31,14 +31,14 @@
 | :--- | :--- | :--- | :--- |
 | **学员档案 (`StudentProfile`)** | M1A 学员管理 | [`docs/prd/m1a_student_profile.md`](./prd/m1a_student_profile.md) | Section 4.6 学员档案全生命周期与资产安全流转 |
 | **老师/班长档案 (`TeacherProfile` / `MonitorProfile`)** | M1B 师资管理 | [`docs/prd/m1b_teacher_profile.md`](./prd/m1b_teacher_profile.md) | Section 4.7 老师与班长档案全生命周期与离职交接 |
-| **小班课小班 (`Class`)** | M1C 小班管理 | [`docs/prd/m1c_classes.md`](./prd/m1c_classes.md) | Section 4.2 小班全生命周期与提前结课解散规则 |
+| **小班实体 (`GroupClass`)** | M1C 小班管理 | [`docs/prd/m1c_classes.md`](./prd/m1c_classes.md) | Section 4.2 小班全生命周期与提前结课解散规则 |
 | **课件与在学配置 (`Courseware`)** | M1E 课件库 | [`docs/prd/m1e_courseware.md`](./prd/m1e_courseware.md) | Section 4.3 课件生命周期与学员绑定升阶规则 |
 | **购课单 (`CoursePurchaseOrder`)** | M2A 购课单据 | [`docs/prd/m2a_course_orders.md`](./prd/m2a_course_orders.md) | Section 4.2 购课单生命周期与 TS 裂变规则 |
 | **课次清退记录 (`CreditDeduction`)** | M2B 课次清退 | [`docs/prd/m2b_refund_orders.md`](./prd/m2b_refund_orders.md) | Section 4.2 课次清退/扣减规则与财务备注留痕 |
-| **续费预占锁 (`RenewalHoldLease`)** | M3A 日历排课 | [`docs/prd/m3a_calendar_grid.md`](./prd/m3a_calendar_grid.md) | Section 4.10 72h续费预占锁 (HOLD) 全生命周期 |
+| **统一时段覆盖 (`SlotOverride`)** | M3A 日历排课 | [`docs/prd/m3a_calendar_grid.md`](./prd/m3a_calendar_grid.md) | Section 4.10 临时加开 (`OPEN`) / 锁定 (`LOCKED`) / 请假 (`LEAVE`) / 续费预占 (`HOLD`) |
 | **代课工单 / 老师请假 / 学员请假 / 单节异常工单** | M3B 考勤与代课 | [`docs/prd/m3b_attendance_substitution.md`](./prd/m3b_attendance_substitution.md) | Section 4.10 考勤与代课四大实体状态机与流转矩阵 |
 | **排课工作台调度事务 (`ScheduleBatchTask`)** | M3D 排课工作台 | [`docs/prd/m3d_course_scheduling.md`](./prd/m3d_course_scheduling.md) | Section 4.3 排课批量事务与 72h HOLD 预占联动 |
-| **站内提醒 / 关键触发邮件 (`Notification` / `EmailDispatch`)** | M4 通知提醒 | [`docs/prd/m4_notification.md`](./prd/m4_notification.md) | Section 4.4 通知与关键邮件触发规则 |
+| **站内提醒 (`Notification`)** | M4 通知提醒 | [`docs/prd/m4_notification.md`](./prd/m4_notification.md) | Section 4.4 站内提醒生命周期（邮件投递交由异步任务通道托管） |
 | **周转账单 (`TransferOrder`)** | M5A 转账归集 | [`docs/prd/m5a_transfer_collection.md`](./prd/m5a_transfer_collection.md) | Section 4.2 周转账单生命周期与对账确认 |
 | **老师周课酬单 (`TeacherSalaryReport`)** | M5B 周度结算 | [`docs/prd/m5b_weekly_settlement.md`](./prd/m5b_weekly_settlement.md) | Section 4.6 老师周课酬单生命周期与发薪归档 |
 | **TS (TimeSlot - 最小课次流转枢纽)** | 全域流转枢纽 | [`docs/BUSINESS_RULES.md`](./BUSINESS_RULES.md) | Section 3.2 TS 全局生命周期状态机 (全系统统领封板) |
@@ -136,6 +136,12 @@ stateDiagram-v2
 - **关键业务修饰标记与布尔状态位 (Flags & Attributes)**：
   - `is_hold` (续费预占锁)：固定位到期前 7 天自动续费预排时为 `true`，触发 72h 倒计时；家长完成续费后置为 `false`；逾期未付自动释放；
   - `is_group` (小班课标识)：连续双网格（50分钟）课次，绑定 `class_id`，绝对不维护 `student_profile_id`。
+
+- **数据清理与归档治理边界 (Data Retention & Cleanup Policy)**：
+  1. **定期物理清理（防膨胀临时数据）**：① **历史过期时段覆盖 (`SlotOverride`)**：早于 **90 天** 的历史日期记录（`OPEN` / `LOCKED` / `LEAVE` / `HOLD`）定期物理清理；② **过期站内提醒 (`Notification`)**：已读消息满 **90 天**、全部消息满 **180 天** 后定期物理清理；
+  2. **按年转冷存 / 归档（不可删，脱离热查询）**：高频流水与审计数据（【经办记录】、通用审计日志、单据状态流转历史、《出勤异常记录》）留存满 **1~2 年** 后按自然年归档至低成本冷存；
+  3. **按既有 PRD 只读留存（不转冷库、不删除）**：已归档试课档案（`StudentProfile: ARCHIVED`）、离职教师/班长档案（`RESIGNED`）、已结案/解散小班（`GroupClass: ARCHIVED / EARLY_TERMINATED`）、已停用课件（`Courseware: INACTIVE`）保留只读标识，维持原样不转冷库；
+  4. **永久只读不可删除（财务与合规红线）**：购课单、`TS / TimeSlot`、周转账单、老师周课酬单、平台工具费周报、课次清退扣减记录及打款凭证永久只读留痕，严禁物理删除。
 
 ### 3.3 课次清退与财务备注 (Credit Deduction - 原退款单)
 - **极简定位**：少儿教务退费由班长/校长在线下（微信/支付宝）直接向家长转账退还，系统不再维护电商级退款审批流、10% 违约金自动公式或平台工具费沉淀。
