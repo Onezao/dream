@@ -13,13 +13,18 @@
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2.5">
           <span class="inline-flex items-center rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-bold text-indigo-200 ring-1 ring-indigo-400/30">全系统实体状态机 · SSOT 速查</span>
-          <span class="text-xs text-slate-300">共 15 个多状态实体 · 按业务模块排序</span>
+          <span class="text-xs text-slate-300">共 14 个多状态实体 · 按业务模块排序</span>
         </div>
         <div id="summaryPills" class="flex flex-wrap items-center gap-2 text-xs"></div>
       </div>
       <h1 class="mt-3 text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">Dream 全域实体状态机全景手册</h1>
       <p class="mt-1.5 max-w-3xl text-sm text-slate-200">汇总 M1 主数据、M2 购课、TS 全域枢纽、M3 教务排课、M4 通知与 M5 结算的全部多状态实体状态机图、触发人、功能入口、操作留痕与数据清理策略。</p>
-      <div id="moduleFilters" class="mt-4 flex flex-wrap gap-1.5"></div>
+      <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div id="moduleFilters" class="flex flex-wrap gap-1.5"></div>
+        <div class="relative w-full sm:w-64">
+          <input id="searchInput" type="search" placeholder="搜索实体、状态码或关键词..." class="h-9 w-full rounded-full border border-white/20 bg-white/10 px-3.5 text-xs text-white placeholder-slate-300 outline-none transition focus:border-indigo-300 focus:bg-white/15" />
+        </div>
+      </div>
     </div>
   </header>
 
@@ -61,19 +66,19 @@
         ],
         mermaid: `stateDiagram-v2
     [*] --> ACTIVE: 家长自主创建 (多孩家庭)
-    [*] --> UNBOUND: 管理员代建试课档案 (免注册)
-    UNBOUND --> ACTIVE: 后台绑定 Email / 家长自助认领
+    [*] --> UNBOUND: 班长/管理员代建试课档案 (免注册)
+    UNBOUND --> ACTIVE: 后台绑定家长 Email / 家长自助认领
     UNBOUND --> ARCHIVED: 超 30 天未认领自动失效归档
     ACTIVE --> ARCHIVED: 资产清零后申请注销档案
     ARCHIVED --> [*]`,
         transitions: [
           { edge: '[*] -> ACTIVE', actor: '家长本人', scene: '家长账号下创建孩子档案（上限 10 个），自动组装全平台唯一规范昵称', entry: 'Tab 2 多孩切换器【+ 添加新宝贝】；Tab 4【多孩档案】' },
-          { edge: '[*] -> UNBOUND', actor: '平台管理员（独享）', scene: '为未注册家长代建试课档案（支持 Tab 4 完整表单或 M3A 代约课 2 字段极简建档）', entry: 'Tab 4【试课建档】；M3A 管理员代约课抽屉【+ 快速建试课档】' },
-          { edge: 'UNBOUND -> ACTIVE', actor: '管理员 / 班长 / 家长', scene: '后台输入家长注册 Email 绑定，或家长输入规范昵称 + 联系方式后四位自助认领', entry: 'Tab 4 试课详情【绑定家长 Email】；家长多孩切换器【🔗 认领试课宝贝】' },
+          { edge: '[*] -> UNBOUND', actor: '班长 / 平台管理员', scene: '为未注册家长代建试课档案（班长创建自动归属本人负责，管理员可管理全校所有试课档案）', entry: 'Tab 3【所辖学员】；Tab 4【试课建档】；M3A 代约课抽屉【+ 快速建试课档】' },
+          { edge: 'UNBOUND -> ACTIVE', actor: '管理员 / 班长 / 家长', scene: '后台输入家长注册 Email 绑定，或家长输入规范昵称 + 预留联系方式后四位自助认领（自动继承 5 类试课数据）', entry: 'Tab 4 试课详情【绑定家长 Email】；家长多孩切换器【🔗 认领试课宝贝】' },
           { edge: 'UNBOUND -> ARCHIVED', actor: '系统自动跑批', scene: '最后一节试课结课或建档超 30 天仍未认领，自动失效归档并锁定昵称', entry: '系统定时失效归档任务' },
           { edge: 'ACTIVE -> ARCHIVED', actor: '家长本人 / 管理员', scene: '校验待排 TS 与未来已排 TS 均为 0 后软删除档案，永久锁定昵称', entry: 'Tab 4 / M1A 学员档案详情【注销/删除档案】' }
         ],
-        audit: '① 每次状态跃迁追加只读状态流转记录（管理员后台可查）；② 修改任一业务字段（备注、小名、英文名、年龄、头像、规范昵称、家长换绑、在学课件与级别）均记录只读变动快照，管理员与负责班长可在学员综合档案抽屉展开查看【档案变动日志】（家长端不可见）。'
+        audit: '① 每次状态跃迁追加只读状态流转记录（含原/新状态、操作人、时间、原因/认领关系，管理员后台可查）；② 修改任一业务字段（备注、小名、英文名、年龄、头像、规范昵称、家长换绑、在学课件与级别）均记录只读变动快照，管理员与负责班长可在学员综合档案抽屉展开查看【档案变动日志】（家长端不可见）。'
       },
       {
         id: 'teacher-profile',
@@ -191,20 +196,21 @@
     [*] --> PENDING_PAYMENT: 人工录单 / 提前7天自动续费跑批
     PENDING_PAYMENT --> PAID: 确认收款到账 (原子裂变生成 TS)
     PENDING_PAYMENT --> CANCELLED: 24h逾期释放 / 经办人作废 / 家长暂不续费
-    PAID --> PAID: 部分 TS 清退 (标记部分清退)
+    PAID --> PAID: 部分 TS 清退 (标记 PARTIALLY_REFUNDED)
     PAID --> REFUNDED: 剩余有效 TS 全部清退
     PAID --> TERMINATED: 小班课提前结课解散
     CANCELLED --> [*]
     REFUNDED --> [*]
     TERMINATED --> [*]`,
         transitions: [
-          { edge: '[*] -> PENDING_PAYMENT', actor: '班长 / 管理员 / 系统自动跑批', scene: '录入 1v1 固定位、临时课（含试课）、小班购课单；或最后一周周一 08点30分 自动生成续费单（并锁 HOLD）', entry: 'Tab 3【购课续费】→ 新建购课单；M3A 试课同步录单；系统续费跑批' },
-          { edge: 'PENDING_PAYMENT -> PAID', actor: '班长 / 主理人 / 管理员', scene: '核实线下到账后点击【确认收款】，原子裂变生成待排 TS，锁定资金持有人，续费单 HOLD 转正', entry: 'Tab 3【购课续费】单据列表/详情页；班长待办流【确认收款】' },
-          { edge: 'PENDING_PAYMENT -> CANCELLED', actor: '班长 / 管理员 / 家长 / 系统', scene: '经办人作废；1v1 续费单家长点击【暂不续费】；或开课前 24h 逾期未付自动释放 HOLD', entry: 'M2A 购课单详情【作废】；家长端待续费单【暂不续费】；24h 超时任务' },
-          { edge: 'PAID -> PAID', actor: '班长 / 管理员', scene: 'M2B 清退部分待排 TS，单据打上部分清退标记', entry: 'M1A 学员资产卡 / Tab 3【退款管理】→【课次清退】' },
-          { edge: 'PAID -> REFUNDED', actor: '班长 / 管理员', scene: 'M2B 将该单剩余有效 TS 全部清退归零', entry: 'M1A 学员资产卡 / Tab 3【退款管理】→【课次清退】' },
+          { edge: '[*] -> PENDING_PAYMENT', actor: '班长 / 管理员 / 系统自动跑批', scene: '录入 1v1 固定位（价位必选+老师选填）、1v1 临时课（1~20 节多价位组合按节购课，不可改价，含试课）、小班购课单；或最后一周周一 08点30分 自动生成续费单（并锁 HOLD）', entry: 'Tab 3【购课续费】→ 新建购课单；系统续费跑批' },
+          { edge: '[*] -> PAID (2合1快捷直达)', actor: '班长 / 管理员', scene: '在 M3A 约临时课抽屉勾选“同步录单”与“已确认收到课次费用”，点击【确认已收款并立即约课】，单事务直接落盘 PAID 购课单并裂变锁定 SCHEDULED TS（按本次代约 1~4 节计价，不可改价）', entry: 'M3A 老师课表空闲绿格 → 代学员约课抽屉' },
+          { edge: 'PENDING_PAYMENT -> PAID', actor: '班长 / 主理人 / 管理员', scene: '核实线下到账后点击【确认收款】：所有类型购课单（1v1 固定位、临时课、小班、试课单）均原子裂变待排 TS 并锁定资金持有人 holder_id，续费单 HOLD 转正', entry: 'Tab 3【购课续费】单据列表/详情页；班长待办流【确认收款】' },
+          { edge: 'PENDING_PAYMENT -> CANCELLED', actor: '班长 / 管理员 / 家长 / 系统定时任务', scene: '经办人作废；1v1 续费单家长点击【暂不续费】；或开课前 24h 逾期未付自动释放 HOLD', entry: 'M2A 购课单详情【作废】；家长端待续费单【暂不续费】；24h 超时释放任务' },
+          { edge: 'PAID -> PAID', actor: '资金持有人班长 / 管理员(需传凭证兜底)', scene: 'M2B 清退部分待排 TS，单据打上部分清退标记', entry: 'M1A 学员资产卡 / Tab 3【退款管理】→【课次清退】' },
+          { edge: 'PAID -> REFUNDED', actor: '资金持有人班长 / 管理员(需传凭证兜底)', scene: 'M2B 将该单剩余有效待排 TS 全部清退归零', entry: 'M1A 学员资产卡 / Tab 3【退款管理】→【课次清退】' },
           { edge: 'PAID -> TERMINATED', actor: '小班主理人 / 管理员', scene: '小班在 M1C 执行【提前结课解散】，联动终止小班购课单', entry: 'M1C 小班详情页【提前结课解散】' },
-          { edge: '协商子状态 adjustment_status', actor: '家长 → 班长', scene: '家长【申请调整】置为待处理（保留 HOLD）；班长改单或【标为已沟通】置为已处理', entry: '家长端 M2A 待续费单【申请调整】；班长端【修改购课单】/【标为已沟通】' }
+          { edge: '协商子状态 adjustment_status', actor: '家长 → 班长', scene: '家长点击【申请调整】置为待处理 PENDING_HANDLE（保留 HOLD）；班长【修改购课单】或【标为已沟通】后置为已处理 RESOLVED', entry: '家长端 M2A 待续费单【申请调整】；班长端 M2A【修改购课单】/【标为已沟通】' }
         ],
         audit: '① 每次状态跃迁均追加只读状态流转记录（含操作人、时间、作废/清退原因），详情页展示流转时间轴；② 确认收款前修改购课单（调时段/改老师/增减课次/改实收）与强制提交原因同步写入变更日志；③ 家长申请调整保留诉求标签、留言摘要与提交时间。'
       },
@@ -223,7 +229,8 @@
           { name: 'CANCELLED', label: '已取消', tone: 'slate' }
         ],
         mermaid: `stateDiagram-v2
-    [*] --> PENDING_SCHEDULE: 购课单确认收款裂变 / 异常回退补生
+    [*] --> PENDING_SCHEDULE: 固定位/小班收款裂变 / 异常回退 / 跨持有人临时退课
+    [*] --> SCHEDULED: M3A 约临时课同步录单直出 TS
     PENDING_SCHEDULE --> SCHEDULED: 约课 / 批量排课 / 续费转正
     PENDING_SCHEDULE --> CANCELLED: 课次清退 / 小班提前解散作废
     SCHEDULED --> PENDING_SCHEDULE: 请假退回待排期 / 撤排 / 暂停待排
@@ -233,15 +240,16 @@
     COMPLETED --> [*]
     CANCELLED --> [*]`,
         transitions: [
-          { edge: '[*] -> PENDING_SCHEDULE', actor: '班长 / 管理员', scene: '购课单 PAID 裂变生成待排 TS；或异常未上课回退自动补生 1 节新 TS', entry: 'M2A【确认收款】；M3A 课格抽屉【异常未上课回退补生】' },
+          { edge: '[*] -> PENDING_SCHEDULE', actor: '班长 / 管理员（随购课/回退触发）', scene: '购课单 PAID 裂变生成待排 TS；或异常未上课回退自动补生 1 节新 TS', entry: 'M2A【确认收款】；M3A 课格抽屉【异常未上课回退补生】' },
+          { edge: '[*] -> SCHEDULED', actor: '班长 / 管理员', scene: 'M3A 约临时课抽屉勾选“同步录单”并确认收款，单事务直出已排期 TS', entry: 'M3A 老师课表空闲绿格 → 代学员约课抽屉' },
           { edge: 'PENDING_SCHEDULE -> SCHEDULED', actor: '家长 / 班长 / 管理员', scene: '1v1 临时约课（1~4 节）、固定位/小班 4 周批量排课或单节补排', entry: 'M3A 家长/老师课表空闲格预约；M3D 排课工作台【确认排课】' },
           { edge: 'PENDING_SCHEDULE -> CANCELLED', actor: '班长 / 主理人 / 管理员', scene: 'M2B 课次清退扣减；或 M1C 小班提前结课解散作废待排 TS', entry: 'M1A 资产抽屉 / M2B【课次清退】；M1C【提前结课解散】' },
-          { edge: 'SCHEDULED -> PENDING_SCHEDULE', actor: '家长(≥24h) / 班长 / 管理员', scene: '1v1 请假退期待排、撤排退回课次；或小班【暂停待排】退回小班池', entry: 'M3A 课格动作抽屉；M3A 日调度抽屉；M3B 应急代办包' },
-          { edge: 'SCHEDULED -> SCHEDULED', actor: '家长(挪位≥3h) / 班长 / 管理员', scene: '同师平移挪位；更换实际上课学员（1v1）；指派或撤销临时代课', entry: 'M3A 课格动作抽屉；M3A 日调度同屏找代课' },
+          { edge: 'SCHEDULED -> PENDING_SCHEDULE', actor: '家长(>=24h或老师请假时) / 班长 / 管理员 / 系统', scene: '1v1 固定位/临时课请假退期待排、撤排退回为绑定原持有人的待排 TS；老师请假后家长/班长退回重排，或原定课程结束仍未处理由系统自动释放退回待排；小班【暂停待排】退回小班池', entry: 'M3A 课格动作抽屉；M3A 日调度抽屉；M3B 应急代办包；课程结束超时释放任务' },
+          { edge: 'SCHEDULED -> SCHEDULED', actor: '家长(挪位>=3h) / 班长 / 管理员', scene: '同师平移挪位；更换实际上课学员（1v1）；指派或撤销临时代课', entry: 'M3A 课格动作抽屉；M3A 日调度同屏找代课' },
           { edge: 'SCHEDULED -> COMPLETED', actor: '系统自动跑批', scene: '每日凌晨 02点 自动将前一日已排且未取消的 TS 结课（含学员旷课）', entry: '每日自动结课批处理' },
           { edge: 'COMPLETED -> CANCELLED', actor: '班长 / 管理员', scene: '已结课但实际未上课（且未进已完成周转账单），作废原 TS 并补生新 TS', entry: 'M3A 已结课课格抽屉【异常未上课回退补生】' }
         ],
-        audit: '① 状态流转历史：每次状态跃迁及同师挪位、换上课学员、指派代课等同状态流转均记录前后时段/老师/学员；② 【经办记录】：班长/管理员人工执行的约课排课、代课、代请假挪位、考勤标记与异常回退全部记入 Tab 3【经办记录】（只读流水）；③ 《出勤异常记录》：请假、<24h 直接代课、旷课及异常回退记入《出勤异常记录》（M5B 透出）。'
+        audit: '① 状态流转历史：每次状态跃迁及同师挪位、换上课学员、指派代课等同状态流转均记录前后时段/老师/学员；② 【经办记录】：班长/管理员人工执行的约课排课、代课、代请假挪位、考勤标记与异常回退全部记入 Tab 3【经办记录】（只读流水）；③ 《出勤异常记录》：请假、<24h 直接代课、旷课及异常回退记入《出勤异常记录》（M5B 透出）。（注：家长自助约课/请假/挪位与系统自动结课不记入【经办记录】）'
       },
       {
         id: 'slot-override',
@@ -430,29 +438,7 @@
           { edge: 'DRAFT -> PENDING_PAYOUT', actor: '老师本人 / 管理员 / 系统', scene: '老师核对考勤节数无误，或周二 20点 前无异议/管理员批量放行，进入待发薪池', entry: '老师端 Tab 4【周课酬对账】；管理员 Tab 3【课酬发薪】' },
           { edge: 'PENDING_PAYOUT -> PAID', actor: '平台管理员', scene: '周三线下打款后点击【标记为已打款】（凭证与备注选填），永久冻结关联 TS 并通知老师', entry: 'Tab 3【课酬发薪】看板/详情页【标记为已打款】' }
         ],
-        audit: '① 每次状态跃迁均追加只读流转记录，详情页展示【状态流转历史】时间轴（老师端仅展示状态变更节点与时间，隐藏管理员内部试算与惩罚备注）；② 发薪前新增【差额调整项】强制录入 1-200 字原因并独立单行留痕。'
-      },
-      {
-        id: 'tool-fee-report',
-        seq: 15,
-        group: 'M5',
-        module: 'M5B',
-        name: '平台工具费周报',
-        code: 'PlatformToolFeeReport',
-        retention: 'permanent',
-        states: [
-          { name: 'GENERATED', label: '已跑批生成', tone: 'indigo' },
-          { name: 'AUDITED', label: '已审核归档', tone: 'emerald' }
-        ],
-        mermaid: `stateDiagram-v2
-    [*] --> GENERATED: 每周一 03点 自动聚合上周全平台工具费
-    GENERATED --> AUDITED: 管理员核对导出财务底稿并标记归档
-    AUDITED --> [*]`,
-        transitions: [
-          { edge: '[*] -> GENERATED', actor: '系统自动跑批', scene: '每周一凌晨 03点 自动聚合上周全平台 1v1 工具费（2 积分/节）、小班固定工具费与小班其他结余', entry: 'Tab 3【工具费单】' },
-          { edge: 'GENERATED -> AUDITED', actor: '平台管理员', scene: '管理员完成周度对账并导出财务底稿后标记归档，数据永久封存', entry: 'Tab 3【工具费单】详情页【导出 / 标记归档】' }
-        ],
-        audit: '无多级修改流水。仅记录周报自动生成时间与管理员对账归档操作，作为不可篡改的周度利润核算报表永久留存。'
+        audit: '① 每次状态跃迁均追加只读流转记录，详情页展示【状态流转历史】时间轴（老师端仅展示状态变更节点与时间，隐藏管理员内部课酬单价、试算与惩罚备注）；② 发薪前新增【差额调整项】强制录入 1-200 字原因并独立单行留痕。'
       }
     ];
 
@@ -464,7 +450,7 @@
       slate: 'border-slate-200 bg-slate-100 text-slate-700'
     };
 
-    const state = { group: 'all' };
+    const state = { group: 'all', query: '' };
     const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     if (window.mermaid) {
@@ -489,9 +475,27 @@
       `;
     }
 
+    function matchesQuery(item, q) {
+      if (!q) return true;
+      const haystack = [
+        item.module,
+        item.name,
+        item.code,
+        item.audit,
+        ...item.states.map((s) => `${s.name} ${s.label}`),
+        ...item.transitions.map((t) => `${t.edge} ${t.actor} ${t.scene} ${t.entry}`)
+      ].join(' ').toLowerCase();
+      return haystack.includes(q);
+    }
+
     async function renderCards() {
-      const list = ENTITIES.filter((item) => state.group === 'all' || item.group === state.group);
+      const q = state.query.trim().toLowerCase();
+      const list = ENTITIES.filter((item) => (state.group === 'all' || item.group === state.group) && matchesQuery(item, q));
       const container = document.getElementById('cardsContainer');
+      if (!list.length) {
+        container.innerHTML = `<div class="rounded-2xl border border-slate-300 bg-slate-50/70 p-8 text-center text-sm font-medium text-slate-600">未找到匹配的实体状态机，请尝试更换筛选模块或搜索关键词。</div>`;
+        return;
+      }
       container.innerHTML = list.map((item) => {
         const ret = RETENTION_BADGE[item.retention];
         return `<article id="${item.id}" class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-6">
@@ -560,6 +564,11 @@
       if (!btn) return;
       state.group = btn.dataset.group;
       renderFilters();
+      renderCards();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      state.query = e.target.value;
       renderCards();
     });
 
