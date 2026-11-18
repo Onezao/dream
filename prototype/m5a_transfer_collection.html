@@ -113,113 +113,144 @@
 
     const INIT_TS = [
       { id: 'ts_alice0001', date: '11-09', weekday: '周日', time: '16:00-16:25', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', kind: '1v1', points: 220, status: 'FINISHED_PENDING_SETTLEMENT' },
-      { id: 'ts_charl0001', date: '11-09', weekday: '周日', time: '17:00-17:50', student: 'CharlieZ08', parent: 'Amy', teacher: 'Lily Chen', kind: '小班课', points: 160, status: 'FINISHED_PENDING_SETTLEMENT' },
-      { id: 'ts_bob000001', date: '11-03', weekday: '周一', time: '18:00-18:25', student: 'BobZ10', parent: 'Ben', teacher: 'Lily Chen', kind: '1v1', points: 180, status: 'COLLECTED' },
-      { id: 'ts_tom000001', date: '11-04', weekday: '周二', time: '19:00-19:25', student: 'TomZ11', parent: 'Helen', teacher: 'David Miller', kind: '1v1', points: 220, status: 'TRANSFER_LOCKED' },
-      { id: 'ts_daisy0001', date: '11-04', weekday: '周二', time: '20:00-20:50', student: 'DaisyL09', parent: 'Ivy', teacher: 'Kevin Zhou', kind: '小班课', points: 150, status: 'FINISHED_PENDING_SETTLEMENT' },
+      { id: 'ts_charl0001', date: '11-09', weekday: '周日', time: '17:00-17:50', student: 'CharlieZ08', parent: 'Amy', teacher: 'Lily Chen', kind: '小班课', className: 'KET 冲刺班', points: 160, status: 'FINISHED_PENDING_SETTLEMENT' },
+      { id: 'ts_bob000001', date: '10-26', weekday: '周一', time: '19:00-19:25', student: 'BobZ10', parent: 'Ben', teacher: 'Lily Chen', kind: '1v1', points: 260, status: 'TRANSFER_LOCKED', orderId: 'tro_leo00002' },
+      { id: 'ts_tom000001', date: '10-19', weekday: '周一', time: '18:00-18:25', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', kind: '1v1', points: 260, status: 'COLLECTED', orderId: 'tro_leo00003' },
+      { id: 'ts_daisy0001', date: '11-04', weekday: '周二', time: '20:00-20:50', student: 'DaisyL09', parent: 'Ivy', teacher: 'Kevin Zhou', kind: '小班课', className: 'Daisy 口语班', points: 150, status: 'FINISHED_PENDING_SETTLEMENT' },
       { id: 'ts_ethan0001', date: '11-05', weekday: '周三', time: '18:30-18:55', student: 'EthanW12', parent: 'Nina', teacher: 'David Miller', kind: '1v1', points: 200, status: 'FINISHED_PENDING_SETTLEMENT' }
+    ];
+
+    /* 班长名下尚未结课的有效托管 TS（仅含待排期 + 已排期未结，严禁包含已结课/已作废/已入账） */
+    const INIT_CUSTODY_TS = [
+      { id: 'ts_cus000001', holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '1v1', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', points: 220, date: '待排期', time: '购买包剩余' },
+      { id: 'ts_cus000002', holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '1v1', student: 'BobZ10', parent: 'Ben', teacher: 'Lily Chen', points: 180, date: '待排期', time: '购买包剩余' },
+      { id: 'ts_cus000003', holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '小班课', student: null, className: 'KET 冲刺班', parent: '小班待排池', teacher: 'David Miller', points: 160, date: '待排期', time: '50 分钟双网格' },
+      { id: 'ts_cus000004', holderId: 'leo', status: 'SCHEDULED', kind: '1v1', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', points: 220, date: '11-11 周三', time: '18:00-18:25' },
+      { id: 'ts_cus000005', holderId: 'leo', status: 'SCHEDULED', kind: '1v1', student: 'TomZ11', parent: 'Helen', teacher: 'Kevin Zhou', points: 220, date: '11-12 周四', time: '19:00-19:25' },
+      { id: 'ts_cus000006', holderId: 'leo', status: 'SCHEDULED', kind: '小班课', student: 'CharlieZ08', className: 'KET 冲刺班', parent: 'Amy', teacher: 'David Miller', points: 160, date: '11-12 周四', time: '17:00-17:50' }
     ];
 
     const INIT_ORDERS = [
       {
         id: 'tro_leo00001', code: 'TR-20261109-001', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W45', period: '11.02 - 11.08',
-        status: 'DRAFT', time: '11-09 03:30', generatedAt: '11-09 03:30', voucher: false,
+        status: 'DRAFT', time: '11-09 03:30', generatedAt: '11-09 03:30', vouchers: [],
+        reject: '打款回单金额模糊，请补充清晰转账截图后重新提交', rejectTime: '11-09 18:20',
+        history: [
+          { status: 'DRAFT', label: '系统跑批生成草稿 (DRAFT)', by: 'dream-worker', time: '11-09 03:30', tone: 'done' },
+          { status: 'PENDING_CONFIRMATION', label: '班长提交审核 (PENDING_CONFIRMATION)', by: 'Leo', time: '11-09 10:15', tone: 'done' },
+          { status: 'DRAFT', label: '管理员驳回退回草稿 (DRAFT)：打款回单金额模糊，请补充清晰转账截图后重新提交', by: 'Sarah', time: '11-09 18:20', tone: 'failed' }
+        ],
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '11-02', '周一', '18:00-18:25', 220),
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '11-04', '周三', '18:00-18:25', 220),
-          LN('AliceZ12', 'Amy', 'Lily Chen', 'L3 中教', '1v1', '11-06', '周五', '19:00-19:25', 220),
-          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '11-02', '周一', '19:00-19:25', 180),
-          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '11-04', '周三', '19:00-19:25', 180),
-          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '11-07', '周六', '10:00-10:25', 180),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '11-03', '周二', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '11-05', '周四', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '11-07', '周六', '14:00-14:50', 160),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '11-03', '周二', '20:00-20:50', 150),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '11-05', '周四', '20:00-20:50', 150),
-          LN('EthanW12', 'Nina', 'David Miller', 'L4 母语老师', '1v1', '11-03', '周二', '18:30-18:55', 200),
-          LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '11-06', '周五', '18:30-18:55', 200),
-          LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '11-08', '周日', '10:00-10:25', 220),
-          LN('WendyY07', 'Nina', 'Lily Chen', 'L3 中教', '小班课', '11-08', '周日', '11:00-11:50', 140),
-          LN('BobZ10', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '11-04', '周三', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller' }),
-          LN('BobZ10', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '11-06', '周五', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller' })
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '11-02', '周一', '18:00-18:25', 220),
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '11-04', '周三', '18:00-18:25', 220),
+          LN('AliceZ12', 'Amy', 'Lily Chen', '18积分', '1v1', '11-06', '周五', '19:00-19:25', 220),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '11-02', '周一', '19:00-19:25', 180),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '11-04', '周三', '19:00-19:25', 180),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '11-07', '周六', '10:00-10:25', 180),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-03', '周二', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-05', '周四', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-07', '周六', '14:00-14:50', 160),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '11-03', '周二', '20:00-20:50', 150),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '11-05', '周四', '20:00-20:50', 150),
+          LN('EthanW12', 'Nina', 'David Miller', '21积分', '1v1', '11-03', '周二', '18:30-18:55', 200),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '11-06', '周五', '18:30-18:55', 200),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '11-08', '周日', '10:00-10:25', 220),
+          LN('WendyY07', 'Nina', 'Lily Chen', '18积分', '小班课', '11-08', '周日', '11:00-11:50', 140),
+          LN('BobZ10', 'Amy', 'Kevin Zhou', '16积分', '1v1', '11-04', '周三', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller' }),
+          LN('BobZ10', 'Amy', 'Kevin Zhou', '16积分', '1v1', '11-06', '周五', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller' })
         ],
         groupClasses: [
-          { name: 'KET 冲刺班', max: 6, count: 3, unit: 160, salary: 96, toolFee: 36, other: 28 },
-          { name: 'Daisy 口语班', max: 4, count: 2, unit: 150, salary: 120, toolFee: 24, other: 6, terminated: true, terminatedAt: '11-05' },
-          { name: 'Starter 启蒙班', max: 6, count: 1, unit: 140, salary: 96, toolFee: 36, other: 8 }
+          { name: 'KET 冲刺班', max: 6, count: 3, unit: 160, salary: 96 },
+          { name: 'Daisy 口语班', max: 4, count: 2, unit: 150, salary: 120, terminated: true, terminatedAt: '11-05' },
+          { name: 'Starter 启蒙班', max: 6, count: 1, unit: 140, salary: 96 }
         ]
       },
       {
         id: 'tro_leo00002', code: 'TR-20261102-002', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W44', period: '10.26 - 11.01',
-        status: 'PENDING_CONFIRMATION', time: '11-02 09:42', generatedAt: '11-02 03:30', voucher: true,
+        status: 'PENDING_CONFIRMATION', time: '11-02 09:42', generatedAt: '11-02 03:30', vouchers: [{ name: 'cmb-1102-0942.jpg', size: '1.4MB' }],
+        history: [
+          { status: 'DRAFT', label: '系统跑批生成草稿 (DRAFT)', by: 'dream-worker', time: '11-02 03:30', tone: 'done' },
+          { status: 'PENDING_CONFIRMATION', label: '班长上传凭证并提交审核 (PENDING_CONFIRMATION)', by: 'Leo', time: '11-02 09:42', tone: 'done' }
+        ],
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-26', '周一', '18:00-18:25', 300),
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-28', '周三', '18:00-18:25', 300),
-          LN('AliceZ12', 'Amy', 'Lily Chen', 'L3 中教', '1v1', '10-30', '周五', '18:00-18:25', 300),
-          LN('AliceZ12', 'Amy', 'Lily Chen', 'L3 中教', '1v1', '11-01', '周日', '10:00-10:25', 270),
-          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-26', '周一', '19:00-19:25', 260),
-          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-28', '周三', '19:00-19:25', 260),
-          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-31', '周六', '10:00-10:25', 260),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-27', '周二', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-29', '周四', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-31', '周六', '14:00-14:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '11-01', '周日', '14:00-14:50', 160),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-27', '周二', '20:00-20:50', 150),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-29', '周四', '20:00-20:50', 150),
-          LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '10-28', '周三', '18:30-18:55', 240),
-          LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '10-30', '周五', '18:30-18:55', 240),
-          LN('WendyY07', 'Nina', 'Kevin Zhou', 'L2 中教', '小班课', '10-27', '周二', '16:00-16:50', 155),
-          LN('WendyY07', 'Nina', 'Kevin Zhou', 'L2 中教', '小班课', '10-29', '周四', '16:00-16:50', 155),
-          LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '11-01', '周日', '11:00-11:25', 240, { subFor: 'David Miller' })
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-26', '周一', '18:00-18:25', 300),
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-28', '周三', '18:00-18:25', 300),
+          LN('AliceZ12', 'Amy', 'Lily Chen', '18积分', '1v1', '10-30', '周五', '18:00-18:25', 300),
+          LN('AliceZ12', 'Amy', 'Lily Chen', '18积分', '1v1', '11-01', '周日', '10:00-10:25', 270),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-26', '周一', '19:00-19:25', 260),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-28', '周三', '19:00-19:25', 260),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-31', '周六', '10:00-10:25', 260),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-27', '周二', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-29', '周四', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-31', '周六', '14:00-14:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-01', '周日', '14:00-14:50', 160),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-27', '周二', '20:00-20:50', 150),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-29', '周四', '20:00-20:50', 150),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '10-28', '周三', '18:30-18:55', 240),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '10-30', '周五', '18:30-18:55', 240),
+          LN('WendyY07', 'Nina', 'Kevin Zhou', '16积分', '小班课', '10-27', '周二', '16:00-16:50', 155),
+          LN('WendyY07', 'Nina', 'Kevin Zhou', '16积分', '小班课', '10-29', '周四', '16:00-16:50', 155),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '11-01', '周日', '11:00-11:25', 240, { subFor: 'David Miller' })
         ],
         groupClasses: [
-          { name: 'KET 冲刺班', max: 6, count: 4, unit: 160, salary: 96, toolFee: 36, other: 28 },
-          { name: '口语进阶班', max: 4, count: 2, unit: 150, salary: 120, toolFee: 24, other: 6 },
-          { name: '读写精讲班', max: 4, count: 2, unit: 155, salary: 120, toolFee: 24, other: 11 }
+          { name: 'KET 冲刺班', max: 6, count: 4, unit: 160, salary: 96 },
+          { name: '口语进阶班', max: 4, count: 2, unit: 150, salary: 120 },
+          { name: '读写精讲班', max: 4, count: 2, unit: 155, salary: 120 }
         ]
       },
       {
         id: 'tro_leo00003', code: 'TR-20261026-003', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W43', period: '10.19 - 10.25',
-        status: 'COMPLETED', time: '10-26 09:20', generatedAt: '10-26 03:30', voucher: true,
+        status: 'COMPLETED', time: '10-26 09:20', generatedAt: '10-26 03:30', vouchers: [{ name: 'cmb-1026-0920.jpg', size: '1.1MB' }],
         confirmTime: '10-27 10:30', confirmBy: 'Sarah',
+        history: [
+          { status: 'DRAFT', label: '系统跑批生成草稿 (DRAFT)', by: 'dream-worker', time: '10-26 03:30', tone: 'done' },
+          { status: 'PENDING_CONFIRMATION', label: '班长上传凭证并提交审核 (PENDING_CONFIRMATION)', by: 'Leo', time: '10-26 09:20', tone: 'done' },
+          { status: 'COMPLETED', label: '平台确认收款入账 (COMPLETED)', by: 'Sarah', time: '10-27 10:30', tone: 'done' }
+        ],
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-19', '周一', '18:00-18:25', 260),
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-21', '周三', '18:00-18:25', 260),
-          LN('AliceZ12', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '10-24', '周六', '10:00-10:25', 260),
-          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-19', '周一', '19:00-19:25', 240),
-          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-22', '周四', '19:00-19:25', 240),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-20', '周二', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-23', '周五', '17:00-17:50', 160),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-21', '周三', '20:00-20:50', 150),
-          LN('EthanW12', 'Nina', 'Lily Chen', 'L3 中教', '1v1', '10-20', '周二', '18:30-18:55', 250),
-          LN('EthanW12', 'Nina', 'Kevin Zhou', 'L2 中教', '1v1', '10-23', '周五', '18:30-18:55', 250),
-          LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '10-25', '周日', '11:00-11:25', 250, { subFor: 'Lily Chen' })
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-19', '周一', '18:00-18:25', 260),
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-21', '周三', '18:00-18:25', 260),
+          LN('AliceZ12', 'Amy', 'Kevin Zhou', '16积分', '1v1', '10-24', '周六', '10:00-10:25', 260),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-19', '周一', '19:00-19:25', 240),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-22', '周四', '19:00-19:25', 240),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-20', '周二', '17:00-17:50', 160),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-23', '周五', '17:00-17:50', 160),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-21', '周三', '20:00-20:50', 150),
+          LN('EthanW12', 'Nina', 'Lily Chen', '18积分', '1v1', '10-20', '周二', '18:30-18:55', 250),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '10-23', '周五', '18:30-18:55', 250),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '10-25', '周日', '11:00-11:25', 250, { subFor: 'Lily Chen' })
         ],
         groupClasses: [
-          { name: 'KET 冲刺班', max: 6, count: 2, unit: 160, salary: 100, toolFee: 36, other: 24 },
-          { name: '口语表达班', max: 4, count: 1, unit: 150, salary: 120, toolFee: 24, other: 6 }
+          { name: 'KET 冲刺班', max: 6, count: 2, unit: 160, salary: 100 },
+          { name: '口语表达班', max: 4, count: 1, unit: 150, salary: 120 }
         ]
       },
       {
         id: 'tro_leo00004', code: 'TR-20261019-004', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W42', period: '10.12 - 10.18',
-        status: 'CANCELLED', time: '10-19 09:15', generatedAt: '10-19 03:30', voucher: true,
-        reject: '到账 1,570 元，与单据差 200 元 · 存疑课次 TR-20261019 中 10-14 18:30 课次金额不符',
+        status: 'CANCELLED', time: '10-19 09:15', generatedAt: '10-19 03:30', vouchers: [{ name: 'cmb-1019-0915.jpg', size: '0.9MB' }],
+        reject: '到账 1,570 元，与单据差 200 元 · 存疑课次 10-14 18:30 金额核对后重打包，本草稿已作废',
         rejectTime: '10-20 11:05',
+        history: [
+          { status: 'DRAFT', label: '系统跑批生成草稿 (DRAFT)', by: 'dream-worker', time: '10-19 03:30', tone: 'done' },
+          { status: 'PENDING_CONFIRMATION', label: '班长提交审核 (PENDING_CONFIRMATION)', by: 'Leo', time: '10-19 09:15', tone: 'done' },
+          { status: 'DRAFT', label: '管理员驳回退回草稿 (DRAFT)：到账 1,570 元，与单据差 200 元', by: 'Sarah', time: '10-20 11:05', tone: 'failed' },
+          { status: 'CANCELLED', label: '经办人作废草稿 (CANCELLED)，释放课次明细', by: 'Leo', time: '10-20 14:10', tone: 'failed' }
+        ],
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', 'L4 母语老师', '1v1', '10-12', '周一', '18:00-18:25', 240),
-          LN('AliceZ12', 'Amy', 'Kevin Zhou', 'L2 中教', '1v1', '10-15', '周四', '18:00-18:25', 240),
-          LN('BobZ10', 'Ben', 'Lily Chen', 'L3 中教', '1v1', '10-12', '周一', '19:00-19:25', 240),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-13', '周二', '20:00-20:50', 150),
-          LN('CharlieZ08', 'Amy', 'David Miller', 'L4 母语老师', '小班课', '10-16', '周五', '20:00-20:50', 150),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', 'L3 中教', '小班课', '10-14', '周三', '17:00-17:50', 160),
-          LN('WendyY07', 'Nina', 'Lily Chen', 'L3 中教', '小班课', '10-17', '周六', '16:00-16:50', 140),
-          LN('EthanW12', 'Nina', 'David Miller', 'L4 母语老师', '1v1', '10-14', '周三', '18:30-18:55', 240),
-          LN('TomZ11', 'Helen', 'Kevin Zhou', 'L2 中教', '1v1', '10-18', '周日', '11:00-11:25', 240, { subFor: 'David Miller' })
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-12', '周一', '18:00-18:25', 240),
+          LN('AliceZ12', 'Amy', 'Kevin Zhou', '16积分', '1v1', '10-15', '周四', '18:00-18:25', 240),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-12', '周一', '19:00-19:25', 240),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-13', '周二', '20:00-20:50', 150),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-16', '周五', '20:00-20:50', 150),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-14', '周三', '17:00-17:50', 160),
+          LN('WendyY07', 'Nina', 'Lily Chen', '18积分', '小班课', '10-17', '周六', '16:00-16:50', 140),
+          LN('EthanW12', 'Nina', 'David Miller', '21积分', '1v1', '10-14', '周三', '18:30-18:55', 240),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '10-18', '周日', '11:00-11:25', 240, { subFor: 'David Miller' })
         ],
         groupClasses: [
-          { name: '口语进阶班', max: 4, count: 2, unit: 150, salary: 120, toolFee: 24, other: 6 },
-          { name: 'KET 冲刺班', max: 6, count: 1, unit: 160, salary: 105, toolFee: 36, other: 19 },
-          { name: '读写精讲班', max: 5, count: 1, unit: 140, salary: 105, toolFee: 30, other: 5 }
+          { name: '口语进阶班', max: 4, count: 2, unit: 150, salary: 120 },
+          { name: 'KET 冲刺班', max: 6, count: 1, unit: 160, salary: 105 },
+          { name: '读写精讲班', max: 5, count: 1, unit: 140, salary: 105 }
         ]
       }
     ];
@@ -233,6 +264,7 @@
       order.count = order.lines.length;
       order.gross = sumBy(order.lines, (l) => l.points);
       order.transfer = order.gross;
+      order.voucher = (order.vouchers || []).length > 0;
       return order;
     }
 
@@ -330,12 +362,12 @@
 
     function initialState() {
       return {
-        role: 'leo', view: 'overview', device: 'phone', page: 'workspace', navTab: 'me', online: 'on',
-        filter: 'ALL', adminFilter: 'PENDING_CONFIRMATION',
-        detailId: null, detailMode: 'view', voucher: false, tomVoucher: false,
+        role: 'leo', view: 'overview', leoTab: 'orders', device: 'phone', page: 'workspace', navTab: 'me', online: 'on',
+        filter: 'ALL', adminFilter: 'PENDING_CONFIRMATION', custodyFilter: 'ALL', custodySearch: '',
+        detailId: null, detailMode: 'view', vouchers: [], tomVoucher: false,
         handover: 'draft', modal: null, detailTab: 'student',
         rollId: null, rollReason: '', rejectId: null, rejectReason: '',
-        tsSeq: 1, ts: clone(INIT_TS), orders: clone(INIT_ORDERS)
+        tsSeq: 1, ts: clone(INIT_TS), custodyTs: clone(INIT_CUSTODY_TS), orders: clone(INIT_ORDERS)
       };
     }
 
@@ -376,7 +408,7 @@
 
     function statusMeta(status) {
       const map = {
-        DRAFT: { tone: 'slate', label: '待上交' },
+        DRAFT: { tone: 'slate', label: '草稿待上交' },
         PENDING_CONFIRMATION: { tone: 'amber', label: '待平台确认' },
         COMPLETED: { tone: 'slate', label: '已完成' },
         CANCELLED: { tone: 'rose', label: '已作废' }
@@ -387,7 +419,7 @@
     function tsMeta(status) {
       const map = {
         FINISHED_PENDING_SETTLEMENT: { tone: 'amber', label: '已结课待结算' },
-        TRANSFER_LOCKED: { tone: 'slate', label: '转账锁定' },
+        TRANSFER_LOCKED: { tone: 'amber', label: '待审单据内' },
         COLLECTED: { tone: 'emerald', label: '已归集' },
         CANCELLED: { tone: 'slate', label: '已取消' },
         PENDING_SCHEDULE: { tone: 'indigo', label: '已补生待排期' }
@@ -660,35 +692,53 @@
     }
 
     /* ------------------------------------------------------------------
-     * 班长：交割总览
+     * 班长：周转账单 & 托管资产看板
      * ------------------------------------------------------------------ */
     function renderLeoOverview() {
+      const topSwitch = `<div class="flex rounded-xl bg-slate-200/70 p-1">
+        <button data-action="leo-tab" data-tab="orders" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.leoTab === 'orders' ? 'bg-white text-indigo-700' : 'text-slate-600'}">周转账单</button>
+        <button data-action="leo-tab" data-tab="custody" class="flex-1 rounded-lg py-1.5 text-[12px] font-bold transition ${state.leoTab === 'custody' ? 'bg-white text-indigo-700' : 'text-slate-600'}">托管资产</button>
+      </div>`;
+
+      if (state.leoTab === 'custody') {
+        return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
+          ${pageHeader('托管资产', '仅汇总 holder_id == 本人 且尚未结课的有效 TS')}
+          ${topSwitch}
+          ${renderLeoCustody()}
+        </div>`;
+      }
+
       const mine = state.orders.filter((o) => o.monitor === 'Leo' && o.type === 'WEEKLY_SETTLEMENT');
-      const list = state.filter === 'ALL' ? mine : mine.filter((o) => o.status === state.filter);
+      const list = state.filter === 'ALL'
+        ? mine
+        : state.filter === 'REJECTED'
+          ? mine.filter((o) => (o.status === 'DRAFT' && !!o.reject) || o.status === 'CANCELLED')
+          : mine.filter((o) => o.status === state.filter);
       const draft = draftOrder();
       const pendingCount = mine.filter((o) => o.status === 'PENDING_CONFIRMATION').length;
       const period = draft ? draft.period : '11.02 - 11.08';
-      const filters = [['ALL', '全部'], ['PENDING_CONFIRMATION', '待平台确认'], ['COMPLETED', '已完成'], ['CANCELLED', '已驳回']]
+      const filters = [['ALL', '全部'], ['PENDING_CONFIRMATION', '待平台确认'], ['COMPLETED', '已完成'], ['REJECTED', '已驳回[退回草稿]']]
         .map(([key, label]) => `<button data-action="filter" data-filter="${key}" class="h-8 shrink-0 rounded-lg border px-2.5 text-[12px] font-bold transition ${state.filter === key ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">${label}</button>`).join('');
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
 
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         ${pageHeader('转账交割', `${period} · 1 积分 = 1 元`)}
+        ${topSwitch}
 
-        <section class="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3.5 py-2.5">
+        <section class="flex items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-slate-50/70 px-3.5 py-2.5">
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 text-[14px] font-bold text-slate-900">
               <span class="h-2 w-2 shrink-0 rounded-full bg-amber-500"></span>
               <span class="truncate">待平台审核 ${pendingCount} 单</span>
             </div>
-            <div class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${draft ? '草稿待上交 · 请完成打款' : '本周已提交，等待确认'}</div>
+            <div class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${draft ? (draft.reject ? '草稿被驳回 · 请重传凭证后提交' : '草稿待上交 · 请完成打款') : '本周已提交，等待确认'}</div>
           </div>
           <button data-action="open-create" ${!draft || state.online === 'off' ? 'disabled' : ''} class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 text-[14px] font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-600">
             ${icon('plus', 'h-4 w-4')}发起周度资金上交
           </button>
         </section>
 
-        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-1.5 text-[12px] font-bold text-slate-700">${icon('workflow', 'h-4 w-4 text-indigo-600')}周结节奏</div>
             <span class="font-mono text-[12px] font-medium text-slate-600">2026-W45</span>
@@ -705,11 +755,87 @@
 
         <div class="flex items-center justify-between px-1 pt-1">
           <h2 class="text-[16px] font-bold text-slate-900">历史转账单</h2>
-          <button data-action="view" data-view="ts" class="text-[12px] font-bold text-indigo-600 hover:text-indigo-800">待结算课次 · ${state.ts.filter((t) => t.status === 'FINISHED_PENDING_SETTLEMENT').length} 节</button>
+          <button data-action="view" data-view="ts" class="text-[12px] font-bold text-indigo-600 hover:text-indigo-800">待结算课次 · ${state.ts.filter((t) => t.status === 'FINISHED_PENDING_SETTLEMENT' || t.status === 'TRANSFER_LOCKED').length} 节</button>
         </div>
 
         <div class="flex gap-1.5 overflow-x-auto pb-0.5">${filters}</div>
         <div class="${grid}">${list.length ? list.map(orderCard).join('') : emptyState('暂无转账单', '当前筛选条件下没有记录')}</div>
+      </div>`;
+    }
+
+    function renderLeoCustody() {
+      const valid = state.custodyTs.filter((t) => t.holderId === 'leo' && (t.status === 'PENDING_SCHEDULE' || t.status === 'SCHEDULED'));
+      const pendingList = valid.filter((t) => t.status === 'PENDING_SCHEDULE');
+      const scheduledList = valid.filter((t) => t.status === 'SCHEDULED');
+      const pendingPts = sumBy(pendingList, (t) => t.points);
+      const scheduledPts = sumBy(scheduledList, (t) => t.points);
+      const totalPts = pendingPts + scheduledPts;
+
+      const q = state.custodySearch.trim().toLowerCase();
+      const filtered = valid.filter((t) => {
+        if (state.custodyFilter !== 'ALL' && t.status !== state.custodyFilter) return false;
+        if (!q) return true;
+        return [t.student, t.parent, t.className, t.teacher].some((v) => String(v || '').toLowerCase().includes(q));
+      });
+
+      const pills = [['ALL', '全部'], ['PENDING_SCHEDULE', '仅待排TS'], ['SCHEDULED', '仅已排TS']]
+        .map(([k, label]) => `<button data-action="custody-filter" data-filter="${k}" class="h-8 shrink-0 rounded-lg border px-2.5 text-[12px] font-bold transition ${state.custodyFilter === k ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">${label}</button>`).join('');
+
+      const cards = filtered.map((t) => {
+        const isPending = t.status === 'PENDING_SCHEDULE';
+        const badge = isPending ? chip('待排期 TS', 'indigo') : chip('已排期未结', 'amber');
+        const title = t.student ? `${esc(t.student)} · ${esc(t.parent)}` : `${esc(t.className)} · ${esc(t.parent)}`;
+        return `<article class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="truncate text-[14px] font-bold text-slate-900">${title}</span>
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${esc(t.kind)}</span>
+              </div>
+              <div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(t.date)} · ${esc(t.time)} · 老师 ${esc(t.teacher)}</div>
+            </div>
+            ${badge}
+          </div>
+          <div class="mt-2.5 flex items-center justify-between gap-2 border-t border-slate-200 pt-2">
+            <div class="font-mono text-[16px] font-bold text-slate-900">${fmt(t.points)} <span class="text-[12px] font-medium text-slate-600">积分</span></div>
+            <div class="flex shrink-0 items-center gap-1.5">
+              <button data-action="custody-refund" data-id="${t.id}" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">清退/扣减</button>
+              <button data-action="custody-schedule" data-id="${t.id}" class="h-8 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white hover:bg-indigo-700">去排课</button>
+            </div>
+          </div>
+        </article>`;
+      }).join('');
+
+      return `<div class="space-y-3">
+        <section class="grid grid-cols-3 gap-2 rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
+          <div class="rounded-xl bg-white p-2.5">
+            <div class="text-[12px] font-semibold text-slate-600">待排期 TS</div>
+            <div class="mt-1 font-mono text-[16px] font-bold text-slate-900">${pendingList.length} 节</div>
+            <div class="font-mono text-[12px] font-medium text-slate-600">${fmt(pendingPts)} 积分</div>
+          </div>
+          <div class="rounded-xl bg-white p-2.5">
+            <div class="text-[12px] font-semibold text-slate-600">已排未结 TS</div>
+            <div class="mt-1 font-mono text-[16px] font-bold text-slate-900">${scheduledList.length} 节</div>
+            <div class="font-mono text-[12px] font-medium text-slate-600">${fmt(scheduledPts)} 积分</div>
+          </div>
+          <div class="rounded-xl border border-indigo-200 bg-indigo-50/80 p-2.5">
+            <div class="text-[12px] font-semibold text-indigo-700">未结托管总计</div>
+            <div class="mt-1 font-mono text-[16px] font-bold text-indigo-700">${valid.length} 节</div>
+            <div class="font-mono text-[12px] font-bold text-indigo-700">${fmt(totalPts)} 积分</div>
+          </div>
+        </section>
+
+        <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600">仅汇总尚未结课的待排期与已排期未结 TS，严禁包含已结课、已作废或已入账课次。</div>
+
+        <div class="space-y-2">
+          <div class="relative">
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
+            <input id="custodySearch" type="search" value="${esc(state.custodySearch)}" placeholder="搜索家长 / 学员 / 小班" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none focus:border-indigo-500" />
+          </div>
+          <div class="flex gap-1.5 overflow-x-auto pb-0.5">${pills}</div>
+        </div>
+
+        <div class="${state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">${cards || emptyState('暂无匹配的未结托管课次', '可调整搜索词或筛选条件')}</div>
       </div>`;
     }
 
@@ -721,10 +847,10 @@
       const surface = isPending
         ? 'border-amber-300 bg-amber-50/50'
         : isMuted
-          ? 'border-dashed border-slate-300 bg-slate-50/60 opacity-60'
-          : 'border-slate-200/80 bg-slate-50/70';
+          ? 'border-dashed border-slate-400 bg-slate-50/60 opacity-60'
+          : 'border-slate-300 bg-slate-50/70';
       const action = isDraft
-        ? `<button data-action="open-reconcile" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white hover:bg-indigo-700 disabled:opacity-50">去上交</button>`
+        ? `<button data-action="open-reconcile" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white hover:bg-indigo-700 disabled:opacity-50">${o.reject ? '重传凭证' : '去上交'}</button>`
         : isPending
           ? `<button data-action="open-detail" data-id="${o.id}" class="h-8 shrink-0 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white hover:bg-indigo-700">查看详情</button>`
           : `<button data-action="open-detail" data-id="${o.id}" class="h-8 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">查看明细</button>`;
@@ -746,10 +872,10 @@
             <div>录入即上交</div>
           </div>
         </div>
-        ${o.status === 'CANCELLED' && o.reject ? `<div class="mt-2 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-[12px] font-medium text-rose-800">${esc(o.reject)}</div>` : ''}
+        ${o.reject ? `<div class="mt-2 rounded-lg border border-rose-200 bg-rose-50/80 px-2.5 py-1.5 text-[12px] font-semibold text-rose-800">驳回原因：${esc(o.reject)}</div>` : ''}
         <div class="mt-2.5 flex items-center justify-between gap-2 border-t border-slate-200 pt-2 text-[12px] font-medium text-slate-600">
           <span class="flex min-w-0 items-center gap-1.5">
-            ${o.voucher ? `<button data-action="voucher" data-id="${o.id}" class="block h-6 w-5 shrink-0 overflow-hidden rounded-sm border border-slate-200 bg-white">${miniReceipt()}</button>` : `<span>凭证：待上传</span>`}
+            ${(o.vouchers || []).length ? `<button data-action="voucher" data-id="${o.id}" class="block h-6 w-5 shrink-0 overflow-hidden rounded-sm border border-slate-200 bg-white">${miniReceipt()}</button>` : `<span>凭证：待上传</span>`}
             <span class="truncate">${esc(o.time)}</span>
           </span>
           ${action}
@@ -764,13 +890,13 @@
       const rows = state.ts.map(tsCard).join('');
       const wrapper = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
       const cancelled = state.ts.filter((t) => t.status === 'CANCELLED').length;
-      const pending = state.ts.filter((t) => t.status === 'FINISHED_PENDING_SETTLEMENT').length;
+      const pending = state.ts.filter((t) => t.status === 'FINISHED_PENDING_SETTLEMENT' || t.status === 'TRANSFER_LOCKED').length;
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         ${pageHeader('待结算课次', `最近 ${state.ts.length} 节 · 可回退 ${pending} 节 · 已取消 ${cancelled} 节`)}
-        <button data-action="view" data-view="overview" class="flex items-center gap-1 text-[14px] font-semibold text-slate-500">${icon('chevron-left', 'h-4 w-4')}返回交割总览</button>
+        <button data-action="view" data-view="overview" class="flex items-center gap-1 text-[14px] font-semibold text-slate-600">${icon('chevron-left', 'h-4 w-4')}返回交割总览</button>
         <div class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">
           ${icon('triangle-alert', 'h-4 w-4 shrink-0 text-amber-700')}
-          <span>每节已结课课次可回退 1 次。回退后原购课单自动补生 1 节待排期 TS，并物理剔除课酬与工具费。</span>
+          <span>已结课 TS（含 DRAFT / PENDING_CONFIRMATION 单内课次）可回退并补生 1 节待排期 TS，同时物理剔除老师课酬并重算单据总额；已入账 COMPLETED 单据物理阻断回退。</span>
         </div>
         <div class="${wrapper}">${rows}</div>
       </div>`;
@@ -778,31 +904,28 @@
 
     function tsCard(t) {
       const meta = tsMeta(t.status);
-      const T = TONES[meta.tone];
       let action = '';
-      if (t.status === 'FINISHED_PENDING_SETTLEMENT') {
+      if (t.status === 'FINISHED_PENDING_SETTLEMENT' || t.status === 'TRANSFER_LOCKED') {
         action = `<button data-action="rollback" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-8 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-[12px] font-bold text-rose-700 hover:bg-rose-100 disabled:opacity-40">未上课回退</button>`;
-      } else if (t.status === 'TRANSFER_LOCKED') {
-        action = `<span class="inline-flex items-center gap-1 text-[12px] font-medium text-slate-600">${icon('lock', 'h-3.5 w-3.5')}转账锁定，暂不可回退</span>`;
       } else if (t.status === 'COLLECTED') {
-        action = `<span class="inline-flex items-center gap-1 text-[12px] font-medium text-emerald-700">${icon('lock', 'h-3.5 w-3.5')}已归集，禁止回退</span>`;
+        action = `<button disabled title="409 TIMESLOT_ALREADY_SETTLED" class="inline-flex h-8 cursor-not-allowed items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 px-2.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}已归集，禁止回退</button>`;
       } else if (t.status === 'CANCELLED') {
-        action = `<span class="text-[12px] font-medium text-slate-600">已补生 1 节待排期</span>`;
+        action = `<span class="text-[12px] font-medium text-slate-600">${t.kind === '小班课' ? '已退回小班待排池' : '已补生 1 节待排期'}</span>`;
       } else {
         action = `<span class="text-[12px] font-medium text-indigo-700">待排期 · 可重新约课</span>`;
       }
-      return `<article class="rounded-2xl border p-3.5 ${t.status === 'CANCELLED' ? 'border-dashed border-slate-300 bg-slate-50/60 opacity-60' : 'border-slate-200/80 bg-slate-50/70'}">
+      return `<article class="rounded-2xl border p-3.5 ${t.status === 'CANCELLED' ? 'border-dashed border-slate-400 bg-slate-50/60 opacity-60' : 'border-slate-300 bg-slate-50/70'}">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-1.5">
               <span class="truncate text-[16px] font-bold text-slate-900">${esc(t.date)} ${esc(t.weekday)} ${esc(t.time)}</span>
             </div>
-            <div class="mt-1 text-[14px] font-medium text-slate-600">${esc(t.student)} · ${esc(t.teacher)}</div>
+            <div class="mt-1 text-[14px] font-medium text-slate-700">${t.student ? `${esc(t.student)} · ` : ''}${esc(t.className || t.teacher)}</div>
             <div class="text-[12px] font-medium text-slate-600">${esc(t.kind)} · ${t.points} 积分</div>
           </div>
           ${chip(meta.label, meta.tone)}
         </div>
-        <div class="mt-2.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
+        <div class="mt-2.5 flex items-center justify-between gap-2 border-t border-slate-200 pt-2">
           <span class="font-mono text-[12px] text-slate-600">${esc(t.id)}</span>
           ${action}
         </div>
@@ -1061,7 +1184,7 @@
       const entering = state.page !== 'detail' || state.detailId !== id;
       if (entering) {
         state.detailTab = 'student';
-        state.voucher = false;
+        state.vouchers = clone(order.vouchers || []);
       }
       state.detailId = id;
       state.detailMode = nextMode;
@@ -1077,7 +1200,7 @@
       state.page = 'workspace';
       state.detailId = null;
       state.detailMode = 'view';
-      state.voucher = false;
+      state.vouchers = [];
       state.modal = null;
       renderAll();
       resetScroll();
@@ -1123,20 +1246,21 @@
     }
 
     function voucherSection(o) {
-      return `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+      const list = o.vouchers || [];
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
         <div class="flex items-center justify-between gap-2">
           <h3 class="text-[14px] font-bold text-slate-900">打款凭证与审核反馈</h3>
-          <span class="text-[12px] font-medium text-slate-600">1 积分 = 1 元</span>
+          <span class="text-[12px] font-medium text-slate-600">${list.length ? `已传 ${list.length} / 5 张 · ` : ''}1 积分 = 1 元</span>
         </div>
-        ${o.voucher
-          ? `<button data-action="voucher" data-id="${o.id}" class="mt-2.5 flex w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5 text-left transition hover:bg-slate-50">
+        ${list.length
+          ? `<div class="mt-2.5 space-y-1.5">${list.map((v, idx) => `<button data-action="voucher" data-id="${o.id}" class="flex w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2.5 text-left transition hover:bg-slate-50">
               <span class="h-11 w-9 shrink-0 overflow-hidden rounded border border-slate-200 bg-white">${miniReceipt()}</span>
               <span class="min-w-0 flex-1">
-                <span class="block truncate text-[12px] font-bold text-slate-700">cmb-${esc((o.code || o.id).replace(/[^0-9]/g, '').slice(-4))}-voucher.jpg</span>
+                <span class="block truncate text-[12px] font-bold text-slate-700">${esc(v.name || `voucher-${idx + 1}.jpg`)}</span>
                 <span class="block text-[12px] text-slate-600">打款 ¥${fmt(o.transfer)}.00 · 点击查看大图</span>
               </span>
               ${icon('maximize-2', 'h-4 w-4 shrink-0 text-slate-600')}
-            </button>`
+            </button>`).join('')}</div>`
           : `<div class="mt-2.5 flex items-center gap-2.5 rounded-xl border border-dashed border-slate-300 px-3 py-3 text-slate-600">${icon('image-off', 'h-4 w-4')}<span class="text-[12px] font-medium">暂无打款凭证</span></div>`}
         ${voucherFeedback(o)}
       </section>`;
@@ -1217,7 +1341,8 @@
         <div class="space-y-3 px-4 py-3">
           ${detailSummaryCard(o)}
           ${reconcile
-            ? `<div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">单向归集平台 · 严禁班长之间横向转账。提交后关联课次进入转账锁定。</div>
+            ? `${o.reject ? `<div class="rounded-xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 px-3 py-2.5 text-[12px] font-medium text-rose-900"><div class="font-bold text-rose-950">驳回原因（${esc(o.rejectTime || '')}）</div><div class="mt-0.5">${esc(o.reject)}</div></div>` : ''}
+               <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">单向归集平台 · 严禁班长之间横向转账。提交后关联课次进入审核待确认。</div>
                ${platformAccountCard()}
                ${breakdownSection(o)}
                ${groupClassSection(o)}
@@ -1240,10 +1365,14 @@
       let inner = '';
 
       if (state.detailMode === 'reconcile' && o.status === 'DRAFT') {
-        const ready = state.voucher && !off;
+        const hasVoucher = state.vouchers.length > 0;
+        const ready = hasVoucher && !off;
         inner = `<div class="space-y-2">
-          <div class="text-center text-[12px] font-medium ${state.voucher ? 'text-emerald-700' : 'text-slate-600'}">${state.voucher ? '凭证已上传，确认后单据将进入平台审核' : '请先上传打款凭证，未上传不可提交'}</div>
-          <button data-action="submit-order" ${ready ? '' : 'disabled'} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-600">确认并提交转账单</button>
+          <div class="text-center text-[12px] font-medium ${hasVoucher ? 'text-emerald-700' : 'text-slate-600'}">${hasVoucher ? `已上传 ${state.vouchers.length} / 5 张凭证，确认后单据将进入平台审核` : '请先上传 1~5 张打款凭证，未上传不可提交'}</div>
+          <div class="flex gap-2">
+            <button data-action="cancel-draft" data-id="${o.id}" ${off ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">作废草稿</button>
+            <button data-action="submit-order" ${ready ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-600">确认并提交转账单</button>
+          </div>
         </div>`;
       } else if (state.role === 'sarah') {
         if (o.status === 'PENDING_CONFIRMATION') {
@@ -1255,14 +1384,14 @@
           const note = o.status === 'COMPLETED'
             ? '款项已确认入账，单据归档不可更改'
             : o.status === 'CANCELLED'
-              ? '单据已驳回归档，仅供查阅历史快照'
+              ? '单据已作废归档，仅供查阅历史快照'
               : '草稿阶段由班长提交后再行审批';
           inner = `<div class="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-3 text-[14px] font-semibold text-slate-500">${icon('lock', 'h-4 w-4')}${note}</div>`;
         }
       } else if (o.status === 'DRAFT') {
         inner = `<div class="space-y-2">
-          <div class="text-center text-[12px] font-medium text-slate-600">草稿尚未提交，请完成线下打款并上传凭证</div>
-          <button data-action="open-reconcile" data-id="${o.id}" ${off ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-600">去上交并打款</button>
+          <div class="text-center text-[12px] font-medium text-slate-600">${o.reject ? '单据已被驳回退回草稿，请重传凭证或剔除异常课次' : '草稿尚未提交，请完成线下打款并上传凭证'}</div>
+          <button data-action="open-reconcile" data-id="${o.id}" ${off ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-600">${o.reject ? '重传凭证并提交' : '去上交并打款'}</button>
         </div>`;
       } else if (o.status === 'PENDING_CONFIRMATION') {
         inner = `<div class="flex items-center justify-center gap-2 rounded-xl border border-amber-200/70 bg-amber-50 px-3 py-3 text-[14px] font-semibold text-amber-800">${icon('clock', 'h-4 w-4')}已提交平台审核，请耐心等待</div>`;
@@ -1319,21 +1448,23 @@
     function smallSummary(order) {
       const rows = order.groupClasses || [];
       const gross = sumBy(rows, (g) => g.unit * g.count);
-      const other = sumBy(rows, (g) => (g.other ?? (g.unit - g.salary - g.toolFee)) * g.count);
-      return { rows, gross, other };
+      return { rows, gross };
     }
 
     function uploadInner() {
-      if (!state.voucher) {
-        return `<button data-action="add-voucher" ${state.online === 'off' ? 'disabled' : ''} class="flex h-16 w-full flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-dashed border-slate-300 text-slate-600 transition hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-40">
-          ${icon('upload', 'h-4 w-4')}<span class="text-[12px] font-medium">上传打款凭证</span><span class="text-[12px]">JPG PNG PDF · ≤10MB · 最多 5 张</span>
-        </button>`;
-      }
-      return `<div class="flex h-16 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5">
-        <button data-action="voucher" data-id="v-leo" class="h-12 w-10 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-50">${miniReceipt()}</button>
-        <div class="min-w-0 flex-1"><div class="truncate text-[12px] font-semibold text-slate-800">cmb-1110-0938.jpg</div><div class="text-[12px] text-slate-600">已上传 1 / 5 · 1.2MB</div></div>
-        <button data-action="remove-voucher" class="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-rose-600">${icon('trash-2', 'h-4 w-4')}</button>
-      </div>`;
+      const list = state.vouchers || [];
+      const items = list.map((v, idx) => `<div class="flex h-14 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5">
+        <button data-action="voucher" data-id="${state.detailId || 'v-leo'}" class="h-10 w-8 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-50">${miniReceipt()}</button>
+        <div class="min-w-0 flex-1"><div class="truncate text-[12px] font-semibold text-slate-800">${esc(v.name)}</div><div class="text-[12px] text-slate-600">第 ${idx + 1} / 5 张 · ${esc(v.size)}</div></div>
+        <button data-action="remove-voucher" data-idx="${idx}" class="grid h-7 w-7 place-items-center rounded-lg text-slate-600 hover:bg-slate-100 hover:text-rose-600">${icon('trash-2', 'h-4 w-4')}</button>
+      </div>`).join('');
+      const addBtn = list.length < 5
+        ? `<button data-action="add-voucher" ${state.online === 'off' ? 'disabled' : ''} class="flex h-14 w-full flex-col items-center justify-center gap-0.5 rounded-xl border-2 border-dashed border-slate-300 text-slate-600 transition hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-40">
+            <span class="flex items-center gap-1 text-[12px] font-medium">${icon('upload', 'h-4 w-4')}上传打款凭证 (${list.length}/5)</span>
+            <span class="text-[12px]">JPG PNG PDF · ≤10MB · 最多 5 张</span>
+          </button>`
+        : '';
+      return `<div class="space-y-2">${items}${addBtn}</div>`;
     }
 
     function tomUploadInner() {
@@ -1380,7 +1511,7 @@
           </div>
           <div class="flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3">
             ${icon('triangle-alert', 'mt-0.5 h-4 w-4 shrink-0 text-rose-700')}
-            <p class="text-[12px] font-medium leading-relaxed text-rose-900">该课次将改为已取消，原购课单下自动补生 1 节待排期 TS，并从课酬与工具费中剔除。不可撤销。</p>
+            <p class="text-[12px] font-medium leading-relaxed text-rose-900">该课次将改为已取消，${t.kind === '小班课' ? '退回 1 节待排期至小班待排池（不关联学员档案）' : '原购课单下自动补生 1 节待排期 TS'}，并从老师课酬中剔除。不可撤销。</p>
           </div>
           <div>
             <label for="rollReason" class="mb-1 block text-[14px] font-semibold text-slate-700">未上课原因及补课说明 <span class="text-rose-500">*</span></label>
@@ -1431,7 +1562,7 @@
             <textarea id="rejectReason" rows="3" maxlength="200" class="h-24 w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500" placeholder="请注明存疑课次，如 TR-20261019 中 11-04 18:00 课次金额不符">${esc(state.rejectReason)}</textarea>
             <div class="mt-1 flex justify-between text-[12px] text-slate-600"><span>必填 1-200 字</span><span id="rejectCount">${state.rejectReason.length}/200</span></div>
           </div>
-          <p class="text-[12px] font-medium leading-relaxed text-slate-600">驳回后单据作废，关联课次解除锁定并恢复为已结课待结算。</p>
+          <p class="text-[12px] font-medium leading-relaxed text-slate-600">驳回后单据退回草稿（DRAFT），保留原明细与驳回原因，支持班长重传凭证或异常回退剔除 TS 后重交。</p>
         </div>
         <div class="flex gap-2 px-4 pb-4">
           <button data-action="close-modal" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-100 text-[16px] font-semibold text-slate-700 hover:bg-slate-200">取消</button>
@@ -1468,26 +1599,17 @@
     }
 
     function orderTimeline(o) {
-      const rows = [{ text: '系统自动结课并生成转账草稿', time: o.generatedAt || o.time, done: true }];
-      if (o.status === 'DRAFT') {
-        rows.push({ text: '周一 08:00 推送催办消息与邮件', time: '', done: true });
+      const rows = (o.history && o.history.length)
+        ? o.history.map((h) => ({ text: `${h.label}${h.by ? ` · ${h.by}` : ''}`, time: h.time || '', failed: h.tone === 'failed', done: h.tone !== 'failed' }))
+        : [{ text: '系统自动结课并生成转账草稿 (DRAFT)', time: o.generatedAt || o.time, done: true }];
+      if (o.status === 'DRAFT' && !(o.history && o.history.length)) {
         rows.push({ text: '待班长线下打款、上传凭证并提交', time: '', current: true });
       } else if (o.status === 'PENDING_CONFIRMATION') {
-        rows.push({ text: '班长上传凭证并提交转账单', time: o.time, done: true });
-        rows.push({ text: '平台核验银行流水到账', time: '', current: true });
-        rows.push({ text: '确认收款后办理资金归集', time: '', pending: true });
-      } else if (o.status === 'COMPLETED') {
-        rows.push({ text: '班长上传凭证并提交转账单', time: o.time, done: true });
-        rows.push({ text: `平台确认收款 · 经办人 ${o.confirmBy || 'Sarah'}`, time: o.confirmTime || '', done: true });
-        rows.push({ text: `${o.count} 节课次流转为已归集，进入发薪池`, time: '', done: true });
-      } else {
-        rows.push({ text: '班长上传凭证并提交转账单', time: o.time, done: true });
-        rows.push({ text: `平台驳回：${o.reject || ''}`, time: o.rejectTime || '', failed: true });
-        rows.push({ text: `${o.count} 节课次解除转账锁定`, time: '', done: true });
+        rows.push({ text: '待平台管理员核验银行流水并确认收款', time: '', current: true });
       }
       return rows.map((r) => `<div class="flex gap-2.5">
         <div class="flex flex-col items-center"><span class="mt-0.5 h-2 w-2 rounded-full ${r.failed ? 'bg-rose-500' : r.current ? 'bg-amber-500' : r.pending ? 'bg-slate-300' : 'bg-emerald-600'}"></span><span class="mt-1 w-px flex-1 bg-slate-200"></span></div>
-        <div class="pb-2"><div class="text-[14px] ${r.failed ? 'text-rose-700' : r.pending ? 'text-slate-600' : 'text-slate-700'}">${esc(r.text)}</div>${r.time ? `<div class="mt-0.5 text-[12px] text-slate-600">${esc(r.time)}</div>` : ''}</div>
+        <div class="pb-2"><div class="text-[14px] ${r.failed ? 'font-semibold text-rose-700' : r.pending ? 'text-slate-600' : 'text-slate-700'}">${esc(r.text)}</div>${r.time ? `<div class="mt-0.5 text-[12px] text-slate-600">${esc(r.time)}</div>` : ''}</div>
       </div>`).join('');
     }
 
@@ -1498,32 +1620,32 @@
           <span class="font-mono text-[12px] font-bold text-slate-700">${l.points}</span>
         </div>
         <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-600">
-          <span>${esc(l.kind)}</span><span>·</span><span>${esc(l.teacher)}</span>
+          <span>${esc(l.kind)}</span><span>·</span><span>${esc(l.teacher)} (${esc(l.teacherLevel)})</span>
           ${l.subFor ? `<span class="font-semibold text-purple-700">· 🟣 代 ${esc(l.subFor)} 授课</span>` : ''}
         </div>
-        ${l.funderStudent ? `<div class="mt-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-1 text-[12px] font-semibold text-amber-800">更换实际上课学员 · 费用归属 ${esc(l.funderStudent)}</div>` : ''}
+        ${l.funderStudent ? `<div class="mt-1 rounded border border-amber-200 bg-amber-50 px-1.5 py-1 text-[12px] font-semibold text-amber-800">(原出资人: ${esc(l.parent)} / ${esc(l.funderStudent)}，实际授课学员: ${esc(l.student)})</div>` : ''}
       </div>`;
     }
 
     function studentDetailGroups(o) {
       return `<div class="space-y-2">${studentGroupsOf(o).map((g) => `
-        <details class="overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70">
+        <details class="overflow-hidden rounded-xl border border-slate-300 bg-slate-50/70">
           <summary class="cursor-pointer list-none px-3 py-2.5 [&::-webkit-details-marker]:hidden">
             <div class="flex items-center justify-between gap-2">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-1.5">
                   <span class="text-[14px] font-bold text-slate-900">${esc(g.name)}</span>
                   <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${esc(g.kind)}</span>
-                  ${g.changedStudent ? `<span class="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">更换实际上课学员</span>` : ''}
+                  ${g.changedStudent ? `<span class="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">含换人上课</span>` : ''}
                 </div>
-                <div class="mt-0.5 text-[12px] text-slate-600">出资家长 ${esc(g.parent)} · ${g.count} 节${g.changedStudent ? ' · 费用归属原出资学员' : ''}</div>
+                <div class="mt-0.5 text-[12px] text-slate-600">出资家长 ${esc(g.parent)} · ${g.count} 节${g.changedStudent ? ` · (原出资人: ${esc(g.parent)} / ${esc(g.name)})` : ''}</div>
               </div>
               <div class="flex shrink-0 items-center gap-1.5">
                 <div class="text-right">
                   <div class="font-mono text-[16px] font-bold text-slate-900">${fmt(g.total)}</div>
                   <div class="text-[12px] text-slate-600">${g.unit ? `单节 ${g.unit}` : '按课次计价'}</div>
                 </div>
-                ${icon('chevron-down', 'h-4 w-4 text-slate-400')}
+                ${icon('chevron-down', 'h-4 w-4 text-slate-500')}
               </div>
             </div>
           </summary>
@@ -1533,22 +1655,22 @@
 
     function teacherDetailGroups(o) {
       return `<div class="space-y-2">${teacherGroupsOf(o).map((g) => `
-        <details class="overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50/70">
+        <details class="overflow-hidden rounded-xl border border-slate-300 bg-slate-50/70">
           <summary class="cursor-pointer list-none px-3 py-2.5 [&::-webkit-details-marker]:hidden">
             <div class="flex items-center justify-between gap-2">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-1.5">
                   <span class="text-[14px] font-bold text-slate-900">${esc(g.name)}</span>
-                  ${g.sub ? `<span class="rounded border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[12px] font-bold text-purple-700">🟣 代课 ${g.sub} 节</span>` : ''}
+                  ${g.sub ? `<span class="rounded border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[12px] font-bold text-purple-700">🟣 代上课 ${g.sub} 节</span>` : ''}
                 </div>
-                <div class="mt-0.5 text-[12px] text-slate-600">定级 ${esc(g.level)} · 带课 ${g.count} 节</div>
+                <div class="mt-0.5 text-[12px] text-slate-600">价位 ${esc(g.level)} · 带课 ${g.count} 节</div>
               </div>
               <div class="flex shrink-0 items-center gap-1.5">
                 <div class="text-right">
                   <div class="font-mono text-[16px] font-bold text-slate-900">${fmt(g.amount)}</div>
                   <div class="text-[12px] text-slate-600">课次实付</div>
                 </div>
-                ${icon('chevron-down', 'h-4 w-4 text-slate-400')}
+                ${icon('chevron-down', 'h-4 w-4 text-slate-500')}
               </div>
             </div>
           </summary>
@@ -1560,7 +1682,7 @@
               </div>
               <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-slate-600">
                 <span>${esc(l.student)}</span><span>·</span><span>${esc(l.kind)}</span>
-                ${l.subFor ? `<span class="font-semibold text-purple-700">· 代 ${esc(l.subFor)} 授课</span>` : `<span>· 正课</span>`}
+                ${l.subFor ? `<span class="font-semibold text-purple-700">· 🟣 代 ${esc(l.subFor)} 授课</span>` : `<span>· 正课</span>`}
               </div>
             </div>`).join('')}
           </div>
@@ -1569,25 +1691,21 @@
 
     function groupClassCard(g) {
       const gross = g.unit * g.count;
-      const otherUnit = g.other ?? (g.unit - g.salary - g.toolFee);
-      const other = otherUnit * g.count;
       const badge = g.terminated
-        ? `<span title="该小班已于 ${g.terminatedAt || '11-05'} 提前解散，本周结课 ${g.count} 节已结算，未来未上课次已作废释放" class="shrink-0 rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">已提前解散</span>`
+        ? `<span title="该班级已于 ${g.terminatedAt || '11-05'} 提前解散，本周完课 ${g.count} 节已结算，未来未上课次已作废释放" class="shrink-0 rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">[已提前解散]</span>`
         : '';
-      return `<div class="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3">
+      return `<div class="rounded-xl border border-slate-300 bg-slate-50/70 p-3">
         <div class="flex items-center justify-between gap-2">
           <span class="flex min-w-0 items-center gap-1.5"><span class="truncate text-[14px] font-bold text-slate-900">${esc(g.name)}</span>${badge}</span>
           <span class="shrink-0 text-[12px] font-medium text-slate-600">Max ${g.max} · ${g.count} 节</span>
         </div>
         <div class="mt-2 grid grid-cols-2 gap-x-2 gap-y-1.5 text-[12px]">
-          <div><div class="text-slate-600">单节待上交</div><div class="font-mono font-semibold text-slate-800">${g.unit}</div></div>
-          <div><div class="text-slate-600">老师课酬</div><div class="font-mono font-semibold text-slate-800">${g.salary}</div></div>
-          <div><div class="text-slate-600">工具费 Max×6</div><div class="font-mono font-semibold text-slate-800">${g.toolFee}</div></div>
-          <div><div class="text-slate-600">其他结余</div><div class="font-mono font-semibold ${otherUnit < 0 ? 'text-rose-700' : 'text-slate-800'}">${otherUnit}</div></div>
+          <div><div class="text-slate-600">单节待上交</div><div class="font-mono font-semibold text-slate-900">${g.unit} 积分</div></div>
+          <div><div class="text-slate-600">老师单节课酬</div><div class="font-mono font-semibold text-slate-900">${g.salary} 积分</div></div>
         </div>
-        <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-2 text-[12px]">
-          <span class="font-medium text-slate-600">小班待上交 ${fmt(gross)}</span>
-          <span class="font-semibold text-slate-700">其他结余 ${fmt(other)}</span>
+        <div class="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 text-[12px]">
+          <span class="font-medium text-slate-600">小班待上交 ${fmt(gross)} 积分</span>
+          <span class="font-semibold text-slate-700">录入即上交</span>
         </div>
       </div>`;
     }
@@ -1601,11 +1719,11 @@
           <span class="text-[12px] font-medium text-slate-600">${s.rows.length} 个小班 · 录入即上交</span>
         </div>
         <div class="space-y-2">${s.rows.map(groupClassCard).join('')}</div>
-        <div class="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5">
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
           <div class="flex items-center justify-between gap-2 font-mono text-[12px] font-bold text-slate-900">
-            <span>小班待上交合计</span><span class="text-indigo-700">${fmt(s.gross)}</span>
+            <span>小班待上交合计</span><span class="text-indigo-700">${fmt(s.gross)} 积分</span>
           </div>
-          <div class="mt-0.5 text-center text-[12px] font-medium text-slate-600">Σ(单节待上交 × 节数) · 其他结余 ${fmt(s.other)}</div>
+          <div class="mt-0.5 text-center text-[12px] font-medium text-slate-600">Σ(单节待上交 × 节数) · 录入多少即上交多少</div>
         </div>`;
     }
 
@@ -1620,21 +1738,28 @@
         </div>`;
       }
       if (o.status === 'CANCELLED') {
-        return `<div class="mt-2.5 rounded-xl border border-rose-200/70 bg-rose-50/80 px-3 py-2.5">
-          <div class="flex items-center gap-1.5 text-[12px] font-bold text-rose-950">${icon('circle-x', 'h-4 w-4')}平台已驳回</div>
-          <div class="mt-1 text-[12px] leading-relaxed text-rose-900/85">${esc(o.reject || '')}</div>
-          <div class="mt-1 font-mono text-[12px] text-rose-700">${esc(o.rejectTime || '')} · 关联课次已解除锁定</div>
+        return `<div class="mt-2.5 rounded-xl border border-rose-200 bg-rose-50/80 px-3 py-2.5">
+          <div class="flex items-center gap-1.5 text-[12px] font-bold text-rose-950">${icon('circle-x', 'h-4 w-4')}单据已作废</div>
+          <div class="mt-1 text-[12px] leading-relaxed text-rose-900">${esc(o.reject || '草稿已作废，关联课次明细已释放')}</div>
+          <div class="mt-1 font-mono text-[12px] text-rose-700">${esc(o.rejectTime || o.time || '')}</div>
         </div>`;
       }
       if (o.status === 'PENDING_CONFIRMATION') {
         return `<div class="mt-2.5 rounded-xl border border-amber-200/70 bg-amber-50/80 px-3 py-2.5">
           <div class="flex items-center gap-1.5 text-[12px] font-bold text-amber-950">${icon('clock', 'h-4 w-4')}凭证已上传，等待平台核验</div>
-          <div class="mt-1 text-[12px] text-amber-900/85">提交时间 <span class="font-mono">${esc(o.time)}</span> · 平台将在周二核算日确认到账</div>
+          <div class="mt-1 text-[12px] text-amber-900">提交时间 <span class="font-mono">${esc(o.time)}</span> · 平台将在周二核算日确认到账</div>
+        </div>`;
+      }
+      if (o.reject) {
+        return `<div class="mt-2.5 rounded-xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 px-3 py-2.5">
+          <div class="flex items-center gap-1.5 text-[12px] font-bold text-rose-950">${icon('circle-alert', 'h-4 w-4')}管理员审核驳回 · 已退回草稿</div>
+          <div class="mt-1 text-[12px] font-medium leading-relaxed text-rose-900">${esc(o.reject)}</div>
+          <div class="mt-1 font-mono text-[12px] text-rose-700">驳回时间 ${esc(o.rejectTime || '')} · 请重传凭证或剔除异常课次后重交</div>
         </div>`;
       }
       return `<div class="mt-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
         <div class="flex items-center gap-1.5 text-[12px] font-bold text-slate-700">${icon('upload', 'h-4 w-4')}待上传打款凭证</div>
-        <div class="mt-1 text-[12px] text-slate-500">请于周一内完成线下打款并上传截图，提交后生成财务归档快照。</div>
+        <div class="mt-1 text-[12px] text-slate-600">请于周一内完成线下打款并上传 1~5 张截图，提交后生成财务归档快照。</div>
       </div>`;
     }
 
@@ -1676,18 +1801,23 @@
     function submitOrder() {
       if (!requireOnline('离线模式不可提交转账单')) return;
       const d = draftOrder();
-      if (!d || !state.voucher) return toast('请先上传打款凭证');
+      if (!d || !(state.vouchers || []).length) return toast('请先上传 1~5 张打款凭证');
       d.status = 'PENDING_CONFIRMATION';
+      d.vouchers = clone(state.vouchers);
       d.voucher = true;
       d.time = '11-10 09:42';
+      d.reject = '';
+      d.history = d.history || [];
+      d.history.push({ status: 'PENDING_CONFIRMATION', label: '班长上传凭证并提交审核 (PENDING_CONFIRMATION)', by: 'Leo', time: d.time, tone: 'done' });
       let locked = 0;
       state.ts.forEach((t) => {
         if (t.status === 'FINISHED_PENDING_SETTLEMENT' && locked < 2) {
           t.status = 'TRANSFER_LOCKED';
+          t.orderId = d.id;
           locked++;
         }
       });
-      state.voucher = false;
+      state.vouchers = [];
       state.filter = 'ALL';
       state.detailTab = 'student';
       state.detailId = d.id;
@@ -1700,15 +1830,34 @@
       toast('转账单已提交，等待平台确认');
     }
 
+    function cancelDraft(id) {
+      if (!requireOnline('离线模式不可作废草稿')) return;
+      const o = state.orders.find((x) => x.id === id);
+      if (!o || o.status !== 'DRAFT') return;
+      o.status = 'CANCELLED';
+      o.rejectTime = '11-10 10:05';
+      o.history = o.history || [];
+      o.history.push({ status: 'CANCELLED', label: '经办人作废草稿 (CANCELLED)，释放课次明细', by: 'Leo', time: o.rejectTime, tone: 'failed' });
+      state.ts.forEach((t) => {
+        if (t.orderId === o.id && t.status === 'TRANSFER_LOCKED') {
+          t.status = 'FINISHED_PENDING_SETTLEMENT';
+          delete t.orderId;
+        }
+      });
+      state.detailMode = 'view';
+      state.vouchers = [];
+      renderAll();
+      toast('草稿已作废，关联课次已释放回待打包池');
+    }
+
     function openRollback(id) {
       if (!requireOnline('离线模式不可回退课次')) return;
       const t = state.ts.find((x) => x.id === id);
       if (!t) return;
-      if (t.status !== 'FINISHED_PENDING_SETTLEMENT') {
-        if (t.status === 'TRANSFER_LOCKED') return toast('该课次已转账锁定，暂不可回退');
+      if (t.status !== 'FINISHED_PENDING_SETTLEMENT' && t.status !== 'TRANSFER_LOCKED') {
         if (t.status === 'COLLECTED') {
           console.warn('409 TIMESLOT_ALREADY_SETTLED');
-          return toast('该课次已完成资金归集，不可回退');
+          return toast('409 TIMESLOT_ALREADY_SETTLED · 已入账课次物理阻断回退');
         }
         return toast('该课次当前不可回退');
       }
@@ -1725,14 +1874,45 @@
       t.status = 'CANCELLED';
       t.reborn = true;
       const newId = `ts_new${String(state.tsSeq++).padStart(6, '0')}`;
-      state.ts.unshift({
-        id: newId, date: '—', weekday: '待排期', time: '—', student: t.student, parent: t.parent,
-        teacher: t.teacher, kind: t.kind, points: t.points, status: 'PENDING_SCHEDULE'
-      });
+      if (t.kind === '小班课') {
+        state.custodyTs.unshift({
+          id: newId, holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '小班课',
+          student: null, className: t.className || 'KET 冲刺班', parent: '小班待排池',
+          teacher: t.teacher, points: t.points, date: '待排期', time: '50 分钟双网格'
+        });
+      } else {
+        state.ts.unshift({
+          id: newId, date: '—', weekday: '待排期', time: '—', student: t.student, parent: t.parent,
+          teacher: t.teacher, kind: t.kind, points: t.points, status: 'PENDING_SCHEDULE'
+        });
+        state.custodyTs.unshift({
+          id: newId, holderId: 'leo', status: 'PENDING_SCHEDULE', kind: t.kind,
+          student: t.student, parent: t.parent, teacher: t.teacher, points: t.points,
+          date: '待排期', time: '异常回退补生'
+        });
+      }
+      if (t.orderId) {
+        const order = state.orders.find((o) => o.id === t.orderId && (o.status === 'DRAFT' || o.status === 'PENDING_CONFIRMATION'));
+        if (order) {
+          const idx = order.lines.findIndex((l) => l.student === t.student && l.date === t.date);
+          if (idx >= 0) {
+            order.lines.splice(idx, 1);
+            finalizeOrder(order);
+            order.history = order.history || [];
+            order.history.push({ status: order.status, label: `异常未上课回退剔除 TS (${t.id}) 并重算总额`, by: 'Leo', time: '11-10 10:20', tone: 'done' });
+            if (order.lines.length === 0) {
+              order.status = 'CANCELLED';
+              order.history.push({ status: 'CANCELLED', label: '异常剔除致明细归零，系统自动作废 (CANCELLED)', by: 'system', time: '11-10 10:20', tone: 'failed' });
+            }
+          }
+        }
+      }
       state.modal = null;
       state.rollReason = '';
       renderAll();
-      toast(`已回退，原购课单补生 1 节待排期 TS（${newId}）`);
+      toast(t.kind === '小班课'
+        ? `已回退，1 节待排期已退回小班待排池（不关联学员档案）`
+        : `已回退，原购课单补生 1 节待排期 TS（${newId}）`);
     }
 
     function confirmCollect(id) {
@@ -1742,6 +1922,8 @@
       o.status = 'COMPLETED';
       o.confirmTime = '11-10 10:40';
       o.confirmBy = 'Sarah';
+      o.history = o.history || [];
+      o.history.push({ status: 'COMPLETED', label: '平台确认收款入账 (COMPLETED)', by: 'Sarah', time: o.confirmTime, tone: 'done' });
       state.ts.forEach((t) => { if (t.status === 'TRANSFER_LOCKED') t.status = 'COLLECTED'; });
       state.modal = null;
       renderAll();
@@ -1752,15 +1934,21 @@
       if (!requireOnline('离线模式不可驳回转账单')) return;
       const o = state.orders.find((x) => x.id === state.rejectId);
       if (!o || !state.rejectReason.trim()) return;
-      o.status = 'CANCELLED';
-      o.reject = state.rejectReason;
+      o.status = 'DRAFT';
+      o.reject = state.rejectReason.trim();
       o.rejectTime = '11-10 10:42';
-      state.ts.forEach((t) => { if (t.status === 'TRANSFER_LOCKED') t.status = 'FINISHED_PENDING_SETTLEMENT'; });
+      o.history = o.history || [];
+      o.history.push({ status: 'DRAFT', label: `管理员驳回退回草稿 (DRAFT)：${o.reject}`, by: 'Sarah', time: o.rejectTime, tone: 'failed' });
+      state.ts.forEach((t) => {
+        if (t.status === 'TRANSFER_LOCKED' && (!t.orderId || t.orderId === o.id)) {
+          t.status = 'FINISHED_PENDING_SETTLEMENT';
+        }
+      });
       if (o.type === 'RESIGNATION_HANDOVER') state.handover = 'draft';
       state.modal = null;
       state.rejectReason = '';
       renderAll();
-      toast('转账单已驳回，关联课次解除锁定');
+      toast('已驳回并退回草稿（保留明细与驳回原因）');
     }
 
     function confirmHandover() {
@@ -1800,6 +1988,10 @@
       if (action === 'toast') return toast(el.dataset.message || '');
       if (action === 'nav') return navTo(el.dataset.tab);
       if (action === 'filter') { state.filter = el.dataset.filter || 'ALL'; renderAll(); resetScroll(); return; }
+      if (action === 'leo-tab') { state.leoTab = el.dataset.tab === 'custody' ? 'custody' : 'orders'; renderAll(); resetScroll(); return; }
+      if (action === 'custody-filter') { state.custodyFilter = el.dataset.filter || 'ALL'; renderAll(); resetScroll(); return; }
+      if (action === 'custody-refund') { return toast('快捷穿透至 M2B 退费清退模块 · 仅扣减未结待排课时'); }
+      if (action === 'custody-schedule') { return toast('快捷穿透至 M3D 排课日历 · 选择时段完成排课'); }
       if (action === 'admin-filter') { state.adminFilter = el.dataset.filter || 'ALL'; renderAll(); resetScroll(); return; }
       if (action === 'open-create') return openCreate();
       if (action === 'open-reconcile') return openDetail(el.dataset.id, 'reconcile');
@@ -1807,9 +1999,20 @@
       if (action === 'back-detail') return backFromDetail();
       if (action === 'add-voucher') {
         if (!requireOnline('离线模式不可上传凭证')) return;
-        state.voucher = true; renderAll(); return;
+        if ((state.vouchers || []).length >= 5) return toast('最多上传 5 张打款凭证');
+        const seq = (state.vouchers || []).length + 1;
+        state.vouchers.push({ name: `cmb-1110-0938-${seq}.jpg`, size: `${(1.0 + seq * 0.2).toFixed(1)}MB` });
+        renderAll();
+        return;
       }
-      if (action === 'remove-voucher') { state.voucher = false; renderAll(); return; }
+      if (action === 'remove-voucher') {
+        const idx = Number(el.dataset.idx);
+        if (!Number.isNaN(idx)) state.vouchers.splice(idx, 1);
+        else state.vouchers = [];
+        renderAll();
+        return;
+      }
+      if (action === 'cancel-draft') return cancelDraft(el.dataset.id);
       if (action === 'add-tom-voucher') {
         if (!requireOnline('离线模式不可上传凭证')) return;
         state.tomVoucher = true; renderAll(); return;
@@ -1866,7 +2069,7 @@
         state.page = 'workspace';
         state.detailId = null;
         state.detailMode = 'view';
-        state.voucher = false;
+        state.vouchers = [];
         state.modal = null;
       } else {
         return;
@@ -1886,6 +2089,16 @@
     });
 
     document.getElementById('frame').addEventListener('input', (event) => {
+      if (event.target.id === 'custodySearch') {
+        const pos = event.target.selectionStart;
+        state.custodySearch = event.target.value;
+        renderAll();
+        const el = $('custodySearch');
+        if (el) {
+          el.focus();
+          if (typeof pos === 'number') el.setSelectionRange(pos, pos);
+        }
+      }
       if (event.target.id === 'rollReason') {
         state.rollReason = event.target.value;
         const count = $('rollCount');

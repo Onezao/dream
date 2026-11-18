@@ -84,7 +84,6 @@
   <script>
     const TODAY = '2026-11-10';
     const SAMPLE_VIDEO = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
-    const COURSE_TYPES = ['少儿英语', '生活口语', '旅游口语', '自然拼读', 'KET', 'PET', '雅思', '托福'];
     const PARENT_CHILDREN = [{ name: 'AliceZ12', age: 12 }, { name: 'BobZ10', age: 10 }];
 
     function demoPhoto(label, from, to, w = 800, h = 600) {
@@ -137,35 +136,35 @@
     const TEACHERS = [
       {
         id: 'tc_david0001', name: 'David Miller', level: '21', monitor: 'Leo',
-        skills: ['少儿英语', 'KET', '自然拼读'], videoDuration: '01:45', videoUrl: SAMPLE_VIDEO,
+        videoDuration: '01:45', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.david, avatarPhotoId: DEMO.david[0].id, avatarDataUrl: demoPhoto('David', '#6366f1', '#0ea5e9', 600, 600),
         introZh: 'David 老师来自英国伦敦，拥有牛津大学教育学背景与 8 年少儿一线教学经验（CELTA 认证）。擅长通过高频游戏化互动与自然拼读教学法激发孩子语言潜能，累计辅导超 200 名学员高分通过 KET/PET 剑桥五级考试。',
         introEn: 'Teacher David comes from London, UK, holding a degree in Education and CELTA certification with over 8 years of ESL teaching experience. He specializes in gamified phonics and Cambridge KET exam preparation.'
       },
       {
         id: 'tc_sarah0002', name: 'Sarah Jenkins', level: '18', monitor: 'Leo',
-        skills: ['生活口语', '旅游口语'], videoDuration: '01:15', videoUrl: SAMPLE_VIDEO,
+        videoDuration: '01:15', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.sarah, avatarPhotoId: DEMO.sarah[0].id, avatarDataUrl: demoPhoto('Sarah', '#0ea5e9', '#14b8a6', 600, 600),
         introZh: 'Sarah 老师拥有 6 年在线少儿英语教学经验，课堂节奏轻快，擅长生活口语与旅游情境表达训练，善于用绘本和角色扮演帮助孩子建立开口自信。',
         introEn: 'Sarah has six years of online ESL teaching experience. Her lively classes focus on everyday conversation and travel English, using picture books and role-play to build children\'s speaking confidence.'
       },
       {
         id: 'tc_micha0006', name: 'Michael Chen', level: '21', monitor: 'Amy',
-        skills: ['KET', '自然拼读'], videoDuration: '01:32', videoUrl: SAMPLE_VIDEO,
+        videoDuration: '01:32', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.michael, avatarPhotoId: DEMO.michael[0].id, avatarDataUrl: demoPhoto('Michael', '#6366f1', '#4338ca', 600, 600),
         introZh: 'Michael 老师拥有 7 年英语语法与剑桥 KET 备考执教经历，教学逻辑严密，擅长用词根记忆网打牢语法词汇基本功。',
         introEn: 'Michael has seven years of grammar and Cambridge KET preparation experience, using systematic word-root maps to build solid foundations.'
       },
       {
         id: 'tc_emma00001', name: 'Emma Stone', level: '18', monitor: 'Amy',
-        skills: ['生活口语'], videoDuration: '01:08', videoUrl: SAMPLE_VIDEO,
+        videoDuration: '01:08', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.emma, avatarPhotoId: DEMO.emma[0].id, avatarDataUrl: demoPhoto('Emma', '#ec4899', '#8b5cf6', 600, 600),
         introZh: 'Emma 老师擅长低龄学员口语启蒙与日常对话训练，课堂亲和力强，善于用生活情境带孩子自然开口。',
         introEn: 'Emma specializes in early-years speaking and everyday conversation. Her classes are warm and highly interactive.'
       },
       {
         id: 'tc_kevin0005', name: 'Kevin Lin', level: '16', monitor: 'Amy',
-        skills: ['少儿英语', '自然拼读'], videoDuration: '01:02', videoUrl: SAMPLE_VIDEO,
+        videoDuration: '01:02', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.kevin, avatarPhotoId: DEMO.kevin[0].id, avatarDataUrl: demoPhoto('Kevin', '#14b8a6', '#6366f1', 600, 600),
         introZh: 'Kevin 老师专注少儿英语启蒙，擅长游戏化课堂与自然拼读，注重孩子的课堂参与感。',
         introEn: 'Kevin focuses on early-years English and gamified phonics lessons with strong classroom participation.'
@@ -187,7 +186,6 @@
       teachers: JSON.parse(JSON.stringify(TEACHERS)),
       activeTeacherId: 'tc_david0001',
       child: 'AliceZ12',
-      filter: 'all',
       lang: 'zh',
       playingVideo: false,
       overlay: null,
@@ -199,7 +197,6 @@
     const params = new URLSearchParams(location.search);
     if (params.get('teacher_id')) state.activeTeacherId = params.get('teacher_id');
     if (params.get('child')) state.child = params.get('child');
-    if (params.get('filter')) state.filter = params.get('filter');
     if (params.get('device') === 'tablet') state.device = 'tablet';
     if (params.get('embed') === '1') {
       state.embed = true;
@@ -386,20 +383,17 @@
      * 选课大厅
      * ------------------------------------------------------------------ */
     function renderHall() {
-      const list = state.filter === 'all' ? state.teachers : state.teachers.filter((t) => t.skills.includes(state.filter));
+      const list = state.teachers;
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         ${pageHeader('选老师', `为 ${state.child} 挑选合适的老师`)}
         ${childSelector()}
-        <div class="flex items-center gap-1.5 overflow-x-auto py-0.5 [&::-webkit-scrollbar]:hidden">
-          ${['all', ...COURSE_TYPES].map((c) => `<button data-action="set-filter" data-value="${esc(c)}" class="h-8 shrink-0 whitespace-nowrap rounded-full border-0 px-3 text-[12px] transition ${state.filter === c ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${c === 'all' ? '全部科目' : esc(c)}</button>`).join('')}
-        </div>
         <div class="flex items-center justify-between px-1">
           <span class="text-[14px] font-semibold text-slate-700">老师团队</span>
           <span class="text-[12px] font-medium text-slate-500">共 ${list.length} 位</span>
         </div>
         <div class="${grid}">
-          ${list.length ? list.map(teacherCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">暂无符合该科目的教师</div>`}
+          ${list.length ? list.map(teacherCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">暂无可约老师</div>`}
         </div>
       </div>`;
     }
@@ -433,9 +427,6 @@
             <div class="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
               <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">可约</span>
               <span class="truncate">负责班长 ${esc(t.monitor)}</span>
-            </div>
-            <div class="mt-1 flex flex-wrap gap-1.5">
-              ${t.skills.map((s) => `<span class="rounded-md border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">${esc(s)}</span>`).join('')}
             </div>
           </div>
           ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
@@ -477,9 +468,6 @@
                 <span class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">可约</span>
               </div>
               <div class="mt-1 text-[12px] font-medium text-slate-500">负责班长 ${esc(t.monitor)}</div>
-              <div class="mt-1.5 flex flex-wrap gap-1.5">
-                ${t.skills.map((s) => `<span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-semibold text-indigo-700">${esc(s)}</span>`).join('')}
-              </div>
             </div>
           </div>
         </section>
@@ -691,7 +679,6 @@
       if (action === 'toast') return showToast(el.dataset.message || '');
       if (action === 'teacher-back') { window.location.href = state.returnTo; return; }
       if (action === 'go-back') { state.page = 'hall'; state.navTab = 'hall'; state.playingVideo = false; state.overlay = null; return renderAll(); }
-      if (action === 'set-filter') { state.filter = el.dataset.value; return renderContentOnly(); }
       if (action === 'select-child') { state.child = el.dataset.child; return renderContentOnly(); }
       if (action === 'open-teacher') return openTeacher(el.dataset.id);
       if (action === 'open-qr') {
@@ -756,7 +743,7 @@
       state.device = 'mobile'; state.online = 'on';
       state.teachers = clone(TEACHERS);
       state.activeTeacherId = 'tc_david0001';
-      state.child = 'AliceZ12'; state.filter = 'all'; state.lang = 'zh';
+      state.child = 'AliceZ12'; state.lang = 'zh';
       state.playingVideo = false; state.overlay = null;
       renderAll();
       showToast('演示数据已重置');
