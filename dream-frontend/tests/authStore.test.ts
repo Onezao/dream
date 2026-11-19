@@ -4,32 +4,43 @@ import { setActivePinia, createPinia } from 'pinia';
 import { useAuthStore } from '../src/stores/auth';
 import * as authApi from '../src/api/auth';
 
-jest.mock('../src/api/auth', () => ({
-  login: jest.fn(),
-  refreshToken: jest.fn(),
-  getAuthUser: jest.fn(),
-  getConfig: jest.fn(),
-  sendCode: jest.fn(),
-  signup: jest.fn(),
-  resetPassword: jest.fn(),
-  getCaptcha: jest.fn(),
-  updateUser: jest.fn(),
-  logout: jest.fn(),
-}));
+jest.mock('../src/api/auth', () => {
+  const actual = jest.requireActual('../src/api/auth');
+  return {
+    login: jest.fn(),
+    refreshToken: jest.fn(),
+    getAuthUser: jest.fn(),
+    getConfig: jest.fn(),
+    sendCode: jest.fn(),
+    signup: jest.fn(),
+    resetPassword: jest.fn(),
+    getCaptcha: jest.fn(),
+    updateUser: jest.fn(),
+    logout: jest.fn(),
+    getMeContext: jest.fn(),
+    updateMePreferences: jest.fn(),
+    verifyCurrentEmail: jest.fn(),
+    changeEmail: jest.fn(),
+    clearAuthStorage: actual.clearAuthStorage,
+    clearAuthAndRedirect: actual.clearAuthAndRedirect,
+  };
+});
 
-describe('Auth Store Controls & Lifecycle (Ported from topee-read)', () => {
+describe('Auth Store Controls & Lifecycle (M0A Context & Role Aggregation)', () => {
+  let mockStorage: Record<string, string>;
+
   beforeEach(() => {
     setActivePinia(createPinia());
     jest.clearAllMocks();
 
-    const mockStorage: Record<string, string> = {};
+    mockStorage = {};
     Object.defineProperty(global, 'localStorage', {
       value: {
-        getItem: jest.fn((key) => mockStorage[key] || null),
-        setItem: jest.fn((key, value) => {
+        getItem: jest.fn((key: string) => mockStorage[key] || null),
+        setItem: jest.fn((key: string, value: string) => {
           mockStorage[key] = value.toString();
         }),
-        removeItem: jest.fn((key) => {
+        removeItem: jest.fn((key: string) => {
           delete mockStorage[key];
         }),
         clear: jest.fn(() => {
@@ -55,7 +66,9 @@ describe('Auth Store Controls & Lifecycle (Ported from topee-read)', () => {
   });
 
   it('2. should properly handle login throwing CAPTCHA_REQUIRED', async () => {
-    const error: any = new Error('CAPTCHA_REQUIRED');
+    const error: Error & { response?: { data: { code: string; message: string } } } = new Error(
+      'CAPTCHA_REQUIRED'
+    );
     error.response = { data: { code: 'CAPTCHA_REQUIRED', message: 'CAPTCHA_REQUIRED' } };
     (authApi.login as jest.Mock).mockRejectedValue(error);
 
@@ -109,14 +122,113 @@ describe('Auth Store Controls & Lifecycle (Ported from topee-read)', () => {
     expect(store.userInfo?.avatar).toBe('https://img.topee.top/avatar.png');
   });
 
-  it('6. should clear token and user state on logout', async () => {
+  it('6. should clear token, user state, dreamContext & auth storage while preserving dream_locale on logout', async () => {
     (authApi.logout as jest.Mock).mockResolvedValue({ success: true });
-    const store = useAuthStore();
-    store.token = 'active-token';
-    store.userInfo = { id: 'u123', nickname: 'Alice' };
+    mockStorage['access_token'] = 'active-token';
+    mockStorage['refresh_token'] = 'active-refresh';
+    mockStorage['user_info'] = JSON.stringify({ id: 'u123', nickname: 'Alice' });
+    mockStorage['dream_context'] = JSON.stringify({
+      primaryRole: 'monitor',
+      effectiveRoles: ['monitor', 'parent'],
+      adminAccount: null,
+      monitorProfile: { id: 'mon1', displayName: 'Alice Monitor' },
+      teacherProfile: null,
+      studentProfiles: [],
+      preferences: { locale: 'en-US', timezone: 'Asia/Shanghai' },
+    });
+    mockStorage['dream_locale'] = 'en-US';
 
+    const store = useAuthStore();
     await store.logout();
+
+    expect(authApi.logout).toHaveBeenCalledTimes(1);
     expect(store.token).toBe('');
     expect(store.userInfo).toBeNull();
+    expect(store.dreamContext).toBeNull();
+    expect(mockStorage['access_token']).toBeUndefined();
+    expect(mockStorage['refresh_token']).toBeUndefined();
+    expect(mockStorage['user_info']).toBeUndefined();
+    expect(mockStorage['dream_context']).toBeUndefined();
+    expect(mockStorage['dream_locale']).toBe('en-US');
+  });
+
+  it('7. should default effectiveRoles & primaryRole to parent when dreamContext is null', () => {
+    const store = useAuthStore();
+    expect(store.dreamContext).toBeNull();
+    expect(store.effectiveRoles).toEqual(['parent']);
+    expect(store.primaryRole).toBe('parent');
+    expect(store.hasAnyRole(['parent'])).toBe(true);
+    expect(store.hasAnyRole(['admin', 'monitor'])).toBe(false);
+  });
+
+  it('8. should fetchDreamContext, persist dream_context, compute roles, and sync dream_locale', async () => {
+    const mockContext: authApi.DreamContext = {
+      accountId: 'acc_001',
+      email: 'monitor@topee.top',
+      primaryRole: 'monitor',
+      effectiveRoles: ['monitor', 'teacher', 'parent'],
+      adminAccount: null,
+      monitorProfile: { id: 'mon_001', displayName: 'Ms. Wang' },
+      teacherProfile: { id: 'tch_001', displayName: 'Teacher Wang' },
+      studentProfiles: [{ id: 'stu_001', nickname: 'AliceZ10', avatarKey: null }],
+      preferences: { locale: 'en-US', timezone: 'Asia/Shanghai' },
+    };
+    (authApi.getMeContext as jest.Mock).mockResolvedValue({ data: mockContext });
+
+    const store = useAuthStore();
+    store.token = 'valid-token';
+
+    const result = await store.fetchDreamContext();
+    expect(authApi.getMeContext).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(mockContext);
+    expect(store.dreamContext).toEqual(mockContext);
+    expect(store.primaryRole).toBe('monitor');
+    expect(store.effectiveRoles).toEqual(['monitor', 'teacher', 'parent']);
+    expect(store.hasAnyRole(['admin', 'monitor'])).toBe(true);
+    expect(store.hasAnyRole(['admin'])).toBe(false);
+    expect(JSON.parse(mockStorage['dream_context'])).toEqual(mockContext);
+    expect(mockStorage['dream_locale']).toBe('en-US');
+  });
+
+  it('9. should fetchDreamContext automatically after login succeeds', async () => {
+    const mockContext: authApi.DreamContext = {
+      primaryRole: 'admin',
+      effectiveRoles: ['admin', 'parent'],
+      adminAccount: { id: 'adm_001' },
+      monitorProfile: null,
+      teacherProfile: null,
+      studentProfiles: [],
+      preferences: { locale: 'zh-CN', timezone: 'Asia/Shanghai' },
+    };
+    (authApi.login as jest.Mock).mockResolvedValue({
+      access_token: 'new-access',
+      refresh_token: 'new-refresh',
+      user: { id: 'acc_admin', email: 'admin@topee.top' },
+    });
+    (authApi.getMeContext as jest.Mock).mockResolvedValue({ data: mockContext });
+
+    const store = useAuthStore();
+    const ok = await store.login({ account: 'admin@topee.top', password: 'Password123!' });
+
+    expect(ok).toBe(true);
+    expect(store.token).toBe('new-access');
+    expect(mockStorage['refresh_token']).toBe('new-refresh');
+    expect(authApi.getMeContext).toHaveBeenCalledTimes(1);
+    expect(store.primaryRole).toBe('admin');
+    expect(store.hasAnyRole(['admin'])).toBe(true);
+  });
+
+  it('10. should still clear local auth state even if apiLogout rejects', async () => {
+    (authApi.logout as jest.Mock).mockRejectedValue(new Error('Network down'));
+    mockStorage['access_token'] = 't1';
+    mockStorage['dream_locale'] = 'zh-CN';
+
+    const store = useAuthStore();
+    await store.logout();
+
+    expect(store.token).toBe('');
+    expect(store.dreamContext).toBeNull();
+    expect(mockStorage['access_token']).toBeUndefined();
+    expect(mockStorage['dream_locale']).toBe('zh-CN');
   });
 });

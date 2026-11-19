@@ -37,6 +37,7 @@
   - **修改 `docs/prd/` 目录的 `.md` 文件（执行模式 2 · 敏捷内联 + 显式声明）**：在主会话内执行以保障高响应速度，执行时必须显式声明“【已激活 write-prd 规范】”并严格遵循 PRD 编写规范（验收标准 AC 必须量化可测、严禁技术框架/SQL/代码侵入、业务规则闭环）；
   - **修改 `prototype/` 目录的 `.html` 文件（执行模式 1 · 物理子代理派发）**：**必须通过 `invoke_subagent` 派发名为 `Prototype-Designer` 的独立子代理**物理隔离执行。严格遵循高质感原则、100% Tailwind CSS（严禁手写 CSS）、真实逼真业务 Mock 数据、移动端 390×812 适配及 [DESIGN.md](./DESIGN.md) 视觉规范，完成修改后子代理必须通过 Node.js VM 语法校验并向主会话交付；
   - **修改 `docs/guides/` 目录的用户手册（`.md` / `.html`）**：**必须自动读取并严格遵循 [用户手册编写规范 (docs/USER_GUIDE_STANDARDS.md)](./docs/USER_GUIDE_STANDARDS.md)** 与 `writing-documentation-with-diataxis`（`write-guide`）技能（读者视角组织结构、零研发编号/状态机/技术词汇、通俗流程图 + `[角色]处理要点`/`联动影响与协作提示`；生成 `.html` 时**必须同步激活 `frontend-design` 技能**，并保持单文件零服务器 100% Tailwind CSS）；
+  - **修改 `docs/tdd/` 目录的技术设计文档（`.md`）**：**必须自动读取并严格遵循 [技术设计文档编写与技术选型规范 (docs/TDD_STANDARDS.md)](./docs/TDD_STANDARDS.md)** 与 `technical-design-doc-creator` 技能（统一 DB/服务端整点分钟缓存/端侧 PWA 缓存/配置/定时与异步任务/i18n/安全设计选型，禁止私自引入替代库，文末附本地架构规范自检表）；
   - **双向联动与工作流次序**：若单一需求同时涉及 PRD 规约与原型页面，必须严格遵循 **“Docs First（主会话先 PRD 业务封板，后派发子代理 Prototype 视觉对齐）”** 的两阶段工作流，严禁脱离 PRD 擅自在原型中发明业务逻辑。
 - **实体生命周期归口管辖铁律 (Entity Lifecycle SSOT · 统一各子模块 PRD 唯一定义)**：
   - **唯一定义源与统一归口**：全域所有业务实体（学员/教师档案、班级、课件、留言、购课单、退费单、排课预占锁、代课/请假工单、课次转让单、通知/邮件任务、转账单、教师周结单）的生命周期状态机与跃迁守卫规则，**100% 统一且唯一由其对应专属模块的子 PRD (`docs/prd/m*.md`) 负责定义与管辖**。
@@ -76,6 +77,7 @@
   - 构建第一步必须配置私有库认证：`npx google-artifactregistry-auth`。
   - 所有 `.ts`, `.js`, `.vue` 文件顶部必须包含标准版权声明头：
     `/** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */`
+- **构建与测试命令格式约定**：执行单包构建或单元测试时，**必须把 `npm run build` 或 `npm test` 放在最前面**（如 `npm run build --workspace=@topeetop/dream-core`、`npm test --workspace=@topeetop/dream-core`），避免写成 `npm --workspace=... run build`，以命中 `npm run build*` / `npm test*` 免确认前缀规则。
 
 ---
 
@@ -114,5 +116,6 @@
 | **术语基准** | **[全局统一术语表 (docs/GLOSSARY.md)](./docs/GLOSSARY.md)** | 全站唯一标准中文词汇、英文 UI (`vue-i18n`) 对照、底层 DB 只读映射与禁用词约束 |
 | **视觉与交互** | **[UI 视觉与设计系统 (DESIGN.md)](./DESIGN.md)** | 工作台物理隔离、7 色日历 Design Tokens（浅底+深字+语义边框，代课双视角）、单屏 7 列 Excel 冻结网格、100% Tailwind CSS、PWA 4 级缓存策略、全站中英双语 (`vue-i18n`) |
 | **架构与编码** | **[工程与编码规范 (docs/CODING_STANDARDS.md)](./docs/CODING_STANDARDS.md)** | Monorepo 边界与依赖红线、Controller-Service-Mapper 三层架构与 DI 规范、PostgreSQL 单 Schema `dream` 与 12 位短 ID、REST API 契约与两道防线 Zod 校验、ApiError 英文诊断 + ErrorCode 双语拦截、S3 预签名直传、云原生 stdout 遥测与 TaskRelay 异步任务生命周期、生产构建混淆与 Docker 零安装 |
+| **TDD 选型基线** | **[TDD 编写与选型规范 (docs/TDD_STANDARDS.md)](./docs/TDD_STANDARDS.md)** | 管辖 `docs/tdd/*.md` 全量技术设计：DB、服务端整点分钟缓存、端侧 PWA 四级缓存、静态/动态配置、异步与定时任务、`auth-core` 解耦、i18n 与安全设计强制检查清单 |
 | **业务与财务** | **[核心业务规则与财务分账规约 (docs/BUSINESS_RULES.md)](./docs/BUSINESS_RULES.md)** | 资金持有人锁定、财课分离与转让、账号与档案解耦、五大核心单据体系、尾差吸收算法、12.5% 请假配额与 3h 阶梯时间熔断矩阵、小班自负盈亏公式与班长预留盈余、固定位到期提前 7 天续费预排与预占 HOLD、异常未上课回退补生、双周结单、`dream-worker` 后台批处理调度边界、三级通知矩阵与留言板双权限 |
 | **用户手册** | **[用户手册编写规范 (docs/USER_GUIDE_STANDARDS.md)](./docs/USER_GUIDE_STANDARDS.md)** | 管辖 `docs/guides/` 全量用户手册：读者视角结构、零研发编号与技术词、通俗业务流程图与协作提示规范、单文件离线 HTML 交付标准 |

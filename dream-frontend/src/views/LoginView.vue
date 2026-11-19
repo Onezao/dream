@@ -1,78 +1,117 @@
 <!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
 <template>
-  <div class="flex min-h-screen flex-col bg-slate-900 text-white px-6 pt-12 pb-8">
+  <div class="flex min-h-screen flex-col bg-slate-900 text-white px-6 pt-8 pb-8">
+    <!-- Top Language Toggle -->
+    <div class="flex justify-end mb-4">
+      <button
+        type="button"
+        @click="toggleLanguage"
+        class="h-10 px-3 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-xs font-semibold text-slate-200 transition flex items-center gap-1.5 min-h-[44px]"
+      >
+        <span>{{ currentLocale === 'zh-CN' ? 'English' : '简体中文' }}</span>
+      </button>
+    </div>
+
     <!-- Header Section -->
-    <div class="mb-8">
+    <div class="mb-8 max-w-md w-full mx-auto">
       <div class="w-12 h-12 bg-indigo-500/20 border border-indigo-400/30 rounded-2xl flex items-center justify-center mb-4 text-indigo-400 font-black text-xl shadow-lg">
         D
       </div>
-      <h1 class="text-3xl font-bold tracking-tight text-white">欢迎登录</h1>
-      <p class="mt-2 text-sm text-slate-400">Dream 教务排班与分账管理系统</p>
+      <h1 class="text-3xl font-bold tracking-tight text-white">{{ t('auth.login.title') }}</h1>
+      <p class="mt-2 text-sm text-slate-300">{{ t('auth.login.subtitle') }}</p>
     </div>
 
     <!-- Form Section -->
-    <div class="flex flex-col gap-5">
+    <form class="flex flex-col gap-5 max-w-md w-full mx-auto" @submit.prevent="onSubmit">
+      <!-- Error Banner -->
+      <div
+        v-if="errorBanner"
+        role="alert"
+        class="rounded-2xl border border-rose-500/40 bg-rose-950/60 px-4 py-3 text-xs text-rose-200 space-y-1"
+      >
+        <p class="font-semibold text-rose-100">{{ errorBanner.title }}</p>
+        <p v-if="errorBanner.guidance" class="text-rose-200/90 leading-relaxed">{{ errorBanner.guidance }}</p>
+        <div v-if="errorBanner.showForgotLink" class="pt-1">
+          <router-link to="/forgot-password" class="font-semibold text-indigo-300 underline hover:text-indigo-200">
+            {{ t('auth.login.forgotLink') }}
+          </router-link>
+        </div>
+      </div>
+
+      <!-- Email -->
       <div class="space-y-1.5">
-        <label class="px-1 text-xs font-semibold text-slate-400">账号 (手机号或邮箱)</label>
+        <label class="px-1 text-xs font-semibold text-slate-300">{{ t('auth.common.email') }}</label>
         <t-input
-          v-model="formData.account"
-          placeholder="请输入手机号或邮箱"
-          :status="accountError ? 'error' : 'default'"
-          @blur="validateAccount"
-          @focus="accountError = ''"
+          v-model="formData.email"
+          type="text"
+          autocomplete="email"
+          :placeholder="t('auth.common.emailPlaceholder')"
+          :status="emailError ? 'error' : 'default'"
+          @blur="validateEmail"
+          @focus="emailError = ''"
           class="!bg-slate-800/80 !rounded-xl border border-slate-700/80 focus-within:border-indigo-500 transition-colors !text-white"
         >
           <template #suffix>
-            <t-icon name="user" class="text-slate-500" size="18px" />
+            <t-icon name="mail" class="text-slate-400" size="18px" />
           </template>
         </t-input>
-        <div v-if="accountError" class="text-red-400 text-xs px-1">{{ accountError }}</div>
+        <div v-if="emailError" class="text-rose-400 text-xs px-1">{{ emailError }}</div>
       </div>
 
+      <!-- Password -->
       <div class="space-y-1.5">
-        <label class="px-1 text-xs font-semibold text-slate-400">登录密码</label>
+        <label class="px-1 text-xs font-semibold text-slate-300">{{ t('auth.common.password') }}</label>
         <t-input
           v-model="formData.password"
           type="password"
-          placeholder="请输入密码"
+          autocomplete="current-password"
+          :placeholder="t('auth.common.passwordPlaceholder')"
           :status="passwordError ? 'error' : 'default'"
+          @focus="passwordError = ''"
           class="!bg-slate-800/80 !rounded-xl border border-slate-700/80 focus-within:border-indigo-500 transition-colors !text-white"
         >
           <template #suffix>
-            <t-icon name="lock-on" class="text-slate-500" size="18px" />
+            <t-icon name="lock-on" class="text-slate-400" size="18px" />
           </template>
         </t-input>
-        <div v-if="passwordError" class="text-red-400 text-xs px-1">{{ passwordError }}</div>
+        <div v-if="passwordError" class="text-rose-400 text-xs px-1">{{ passwordError }}</div>
       </div>
 
       <!-- Security Captcha Check (Triggered dynamically on CAPTCHA_REQUIRED) -->
       <div v-if="showCaptcha" class="space-y-1.5">
-        <label class="px-1 text-xs font-semibold text-slate-400">安全图形验证码</label>
+        <label class="px-1 text-xs font-semibold text-slate-300">{{ t('auth.common.captcha') }}</label>
         <div class="flex gap-2">
           <t-input
             v-model="formData.captchaText"
-            placeholder="输入验证码"
+            :placeholder="t('auth.common.captchaPlaceholder')"
             class="!bg-slate-800/80 !rounded-xl border border-slate-700/80 focus-within:border-indigo-500 transition-colors !text-white flex-1"
           />
-          <div
-            class="w-24 h-12 rounded-xl overflow-hidden cursor-pointer bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 active:scale-95 transition-transform"
+          <button
+            type="button"
+            class="w-28 h-12 rounded-xl overflow-hidden cursor-pointer bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700 active:scale-95 transition-transform"
+            :title="t('auth.common.captchaRefresh')"
             @click="fetchCaptcha"
           >
-            <div v-if="captchaImage" v-html="captchaImage" class="w-full h-full [&>svg]:w-full [&>svg]:h-full"></div>
-            <span v-else class="text-xs text-slate-400">加载中...</span>
-          </div>
+            <div
+              v-if="isSvgCaptcha"
+              v-html="captchaImage"
+              class="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+            ></div>
+            <img
+              v-else-if="captchaImageSrc"
+              :src="captchaImageSrc"
+              alt="Captcha"
+              class="w-full h-full object-contain"
+            />
+            <span v-else class="text-xs text-slate-300">{{ t('auth.common.captchaLoading') }}</span>
+          </button>
         </div>
       </div>
 
-      <!-- Agreement Checkbox -->
-      <div class="mt-1 text-left">
-        <t-checkbox v-model="formData.agreement" class="!bg-transparent !p-0">
-          <span class="text-xs text-slate-400 leading-relaxed">
-            我已阅读并同意
-            <span class="text-indigo-400 hover:text-indigo-300" @click.stop.prevent="openDocument('user_agreement', '用户服务协议')">《用户协议》</span>
-            <span> 与 </span>
-            <span class="text-indigo-400 hover:text-indigo-300" @click.stop.prevent="openDocument('privacy_policy', '隐私政策')">《隐私声明》</span>
-          </span>
+      <!-- Remember Me -->
+      <div class="mt-1 flex items-center justify-between">
+        <t-checkbox v-model="formData.rememberMe" class="!bg-transparent !p-0">
+          <span class="text-xs text-slate-300">{{ t('auth.login.rememberMe') }}</span>
         </t-checkbox>
       </div>
 
@@ -80,71 +119,62 @@
         theme="primary"
         size="large"
         block
+        type="submit"
         :loading="loading"
         class="!h-13 !rounded-xl !text-base !font-bold shadow-lg shadow-indigo-600/30 mt-2 bg-indigo-600 border-none"
         @click="onSubmit"
       >
-        立即登录
+        {{ loading ? t('auth.login.submitting') : t('auth.login.submit') }}
       </t-button>
-    </div>
-
-    <!-- Document Modal -->
-    <t-dialog
-      v-model:visible="showDocumentModal"
-      confirm-btn=""
-      cancel-btn=""
-      :close-btn="false"
-      class="!bg-transparent !w-full !max-w-none !p-0 !border-none"
-    >
-      <div class="bg-slate-900 rounded-3xl border border-slate-700 shadow-2xl overflow-hidden w-[94%] mx-auto relative p-6">
-        <div class="flex justify-between items-center pb-3 border-b border-slate-800">
-          <h2 class="text-base font-bold text-white">{{ currentDocumentTitle }}</h2>
-          <button @click="showDocumentModal = false" class="text-slate-400 hover:text-white p-1">
-            <t-icon name="close" size="18px" />
-          </button>
-        </div>
-        <div class="text-xs text-slate-300 max-h-[60vh] overflow-y-auto mt-4 leading-relaxed whitespace-pre-wrap">
-          {{ currentDocumentContent }}
-        </div>
-      </div>
-    </t-dialog>
+    </form>
 
     <!-- Footer Links -->
-    <div class="mt-auto pt-10 text-center">
-      <div class="flex items-center justify-center gap-4 text-xs text-slate-400">
-        <router-link to="/register" class="font-bold text-indigo-400 hover:text-indigo-300">注册新账号</router-link>
+    <div class="mt-auto pt-10 text-center max-w-md w-full mx-auto">
+      <div class="flex items-center justify-center gap-4 text-xs text-slate-300">
+        <router-link to="/register" class="font-bold text-indigo-400 hover:text-indigo-300">
+          {{ t('auth.login.registerLink') }}
+        </router-link>
         <span class="text-slate-600">|</span>
-        <router-link to="/forgot-password" class="text-slate-400 hover:text-white transition-colors">找回密码</router-link>
+        <router-link to="/forgot-password" class="text-slate-300 hover:text-white transition-colors">
+          {{ t('auth.login.forgotLink') }}
+        </router-link>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, reactive, ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import {
   Toast,
   Input as TInput,
   Button as TButton,
   Checkbox as TCheckbox,
   Icon as TIcon,
-  Dialog as TDialog,
 } from 'tdesign-mobile-vue';
 import { useAuthStore } from '../stores/auth';
-import { getCaptcha, getPolicy } from '../api/auth';
+import { getCaptcha } from '../api/auth';
+import { setLocale } from '../i18n';
+import { extractApiErrorCode, resolveApiErrorMessage } from '../utils/apiError';
+import { isSafeInternalRedirect, isValidEmail } from '../utils/password';
 
+const route = useRoute();
 const router = useRouter();
+const { t, locale } = useI18n();
 const authStore = useAuthStore();
 
+const currentLocale = computed(() => locale.value);
+
 const formData = reactive({
-  account: '',
+  email: '',
   password: '',
   captchaText: '',
-  agreement: true,
+  rememberMe: true,
 });
 
-const accountError = ref('');
+const emailError = ref('');
 const passwordError = ref('');
 const loading = ref(false);
 
@@ -152,21 +182,34 @@ const showCaptcha = ref(false);
 const captchaImage = ref('');
 const captchaId = ref('');
 
-const showDocumentModal = ref(false);
-const currentDocumentTitle = ref('');
-const currentDocumentContent = ref('');
+const errorBanner = ref<{
+  title: string;
+  guidance?: string;
+  showForgotLink?: boolean;
+} | null>(null);
 
-function validateAccount(): boolean {
-  accountError.value = '';
-  const val = formData.account.trim();
+const isSvgCaptcha = computed(() => captchaImage.value.trim().startsWith('<svg'));
+const captchaImageSrc = computed(() => {
+  const val = captchaImage.value.trim();
+  if (!val || isSvgCaptcha.value) return '';
+  if (val.startsWith('data:')) return val;
+  return `data:image/png;base64,${val}`;
+});
+
+function toggleLanguage() {
+  const next = currentLocale.value === 'zh-CN' ? 'en-US' : 'zh-CN';
+  setLocale(next);
+}
+
+function validateEmail(): boolean {
+  emailError.value = '';
+  const val = formData.email.trim();
   if (!val) {
-    accountError.value = '请输入手机号或邮箱';
+    emailError.value = t('auth.common.emailRequired');
     return false;
   }
-  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-  const isPhone = /^1[3-9]\d{9}$/.test(val);
-  if (!isEmail && !isPhone) {
-    accountError.value = '手机号或邮箱格式不正确';
+  if (!isValidEmail(val)) {
+    emailError.value = t('auth.common.emailInvalid');
     return false;
   }
   return true;
@@ -182,57 +225,94 @@ async function fetchCaptcha() {
   }
 }
 
-async function openDocument(key: string, defaultTitle: string) {
-  currentDocumentTitle.value = defaultTitle;
-  currentDocumentContent.value = '加载中...';
-  showDocumentModal.value = true;
-  try {
-    const res = await getPolicy(key);
-    currentDocumentTitle.value = res.title || defaultTitle;
-    currentDocumentContent.value = res.content || '暂无内容';
-  } catch {
-    currentDocumentContent.value = '未能获取协议内容，请稍后再试。';
+function buildErrorBanner(error: unknown): {
+  title: string;
+  guidance?: string;
+  showForgotLink?: boolean;
+} {
+  const errCode = extractApiErrorCode(error);
+  const errData = (error as { response?: { data?: unknown } })?.response?.data;
+
+  switch (errCode) {
+    case 'ACCOUNT_LOCKED':
+      return {
+        title: t('errors.ACCOUNT_LOCKED'),
+        guidance: t('auth.login.lockedGuidance'),
+        showForgotLink: true,
+      };
+    case 'ACCOUNT_BANNED':
+      return {
+        title: t('errors.ACCOUNT_BANNED'),
+        guidance: t('auth.login.bannedGuidance'),
+      };
+    case 'ACCOUNT_NOT_CONFIRMED':
+      return {
+        title: t('errors.ACCOUNT_NOT_CONFIRMED'),
+        guidance: t('auth.login.notConfirmedGuidance'),
+      };
+    case 'INVALID_CREDENTIALS':
+      formData.password = '';
+      return {
+        title: t('errors.INVALID_CREDENTIALS'),
+      };
+    default: {
+      const fallbackMsg =
+        error instanceof Error ? error.message : t('auth.login.failed');
+      return {
+        title: resolveApiErrorMessage(errData, undefined, fallbackMsg),
+      };
+    }
   }
 }
 
 async function onSubmit() {
-  accountError.value = '';
+  if (loading.value) return;
+  emailError.value = '';
   passwordError.value = '';
+  errorBanner.value = null;
 
-  if (!validateAccount()) return;
+  if (!validateEmail()) return;
   if (!formData.password) {
-    passwordError.value = '请输入密码';
+    passwordError.value = t('auth.common.passwordRequired');
     return;
   }
-  if (!formData.agreement) {
-    Toast({ message: '请勾选同意用户协议与隐私声明', theme: 'error' });
-    return;
-  }
-  if (showCaptcha.value && !formData.captchaText) {
-    Toast({ message: '请输入图形验证码', theme: 'error' });
+  if (showCaptcha.value && !formData.captchaText.trim()) {
+    Toast({ message: t('auth.common.captchaRequired'), theme: 'error' });
     return;
   }
 
   loading.value = true;
   try {
     await authStore.login({
-      account: formData.account,
+      account: formData.email.trim(),
       password: formData.password,
+      rememberMe: formData.rememberMe,
       captchaId: showCaptcha.value ? captchaId.value : undefined,
-      captchaText: showCaptcha.value ? formData.captchaText : undefined,
+      captchaText: showCaptcha.value ? formData.captchaText.trim() : undefined,
     });
-    Toast({ message: '登录成功', theme: 'success' });
-    router.push('/');
-  } catch (error: any) {
-    const errData = error.response?.data || {};
-    const errCode = errData.code || errData.error || error.message;
-
+    Toast({ message: t('auth.login.success'), theme: 'success' });
+    const rawRedirect =
+      typeof route.query.redirect === 'string' ? route.query.redirect : '';
+    const targetPath = isSafeInternalRedirect(rawRedirect) ? rawRedirect : '/';
+    await router.push(targetPath);
+  } catch (error: unknown) {
+    const errCode = extractApiErrorCode(error);
     if (errCode === 'CAPTCHA_REQUIRED' || errCode === 'INVALID_CAPTCHA') {
-      Toast({ message: '请输入安全验证码', theme: 'warning' });
       showCaptcha.value = true;
+      formData.captchaText = '';
+      const promptBanner = {
+        title:
+          errCode === 'INVALID_CAPTCHA'
+            ? t('errors.INVALID_CAPTCHA')
+            : t('auth.login.captchaPrompt'),
+      };
+      errorBanner.value = promptBanner;
+      Toast({ message: promptBanner.title, theme: 'warning' });
       await fetchCaptcha();
     } else {
-      Toast({ message: errData.message || error.message || '登录失败', theme: 'error' });
+      const nextBanner = buildErrorBanner(error);
+      errorBanner.value = nextBanner;
+      Toast({ message: nextBanner.title, theme: 'error' });
     }
   } finally {
     loading.value = false;

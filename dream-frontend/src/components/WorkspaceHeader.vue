@@ -21,11 +21,6 @@
     </div>
 
     <div class="flex items-center flex-wrap gap-2 sm:gap-3">
-      <!-- Child Profile Switcher (When parent workspace) -->
-      <div v-if="workspaceStore.currentWorkspace === 'parent'" class="flex items-center">
-        <ProfileSwitcher />
-      </div>
-
       <!-- Language Toggle Button (中 / EN) -->
       <button
         type="button"
@@ -59,7 +54,6 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useWorkspaceStore } from '../stores/workspace';
 import { setLocale } from '../i18n';
-import ProfileSwitcher from './ProfileSwitcher.vue';
 import type { WorkspaceMode } from '../types';
 
 const { t, locale } = useI18n();

@@ -3,9 +3,13 @@
   <div class="max-w-2xl mx-auto px-4 py-6 space-y-6">
     <!-- Header -->
     <header class="flex justify-between items-center pb-2 border-b border-gray-200">
-      <h1 class="text-xl font-bold text-gray-900">个人资料与设置</h1>
-      <button @click="router.push('/')" class="text-xs text-indigo-600 font-medium">
-        返回工作台
+      <h1 class="text-xl font-bold text-gray-900">{{ t('auth.profile.title') }}</h1>
+      <button
+        type="button"
+        @click="router.push('/')"
+        class="text-xs text-indigo-600 font-semibold min-h-[44px] px-2 flex items-center"
+      >
+        {{ t('auth.profile.backToHome') }}
       </button>
     </header>
 
@@ -18,18 +22,19 @@
           alt="Avatar"
         />
         <button
+          type="button"
           @click="openEdit('avatar')"
           class="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] py-0.5 text-center font-medium"
         >
-          修改
+          {{ t('auth.profile.modify') }}
         </button>
       </div>
       <div class="flex-1 min-w-0">
         <h2 class="text-lg font-bold text-gray-900 truncate">
-          {{ authStore.userInfo?.nickname || authStore.userInfo?.username || '用户' }}
+          {{ authStore.userInfo?.nickname || authStore.userInfo?.username || t('auth.profile.defaultUser') }}
         </h2>
-        <p class="text-xs text-gray-500 truncate">
-          {{ authStore.userInfo?.email || authStore.userInfo?.phone || '未绑定' }}
+        <p class="text-xs text-gray-600 truncate">
+          {{ authStore.userInfo?.email || authStore.dreamContext?.email || t('auth.profile.unbound') }}
         </p>
       </div>
     </div>
@@ -41,7 +46,7 @@
           <h2 class="text-base font-bold text-gray-900">
             {{ t('profile.switcher.title') }}
           </h2>
-          <span class="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+          <span class="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
             {{ profileStore.profileCount }}/10
           </span>
         </div>
@@ -49,7 +54,7 @@
           type="button"
           :disabled="profileStore.isMaxProfiles"
           @click="openAddStudentModal"
-          class="h-9 px-3 rounded-xl bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 active:bg-teal-800 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition flex items-center gap-1.5 min-h-[44px]"
+          class="h-9 px-3 rounded-xl bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 active:bg-teal-800 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed transition flex items-center gap-1.5 min-h-[44px]"
         >
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -61,7 +66,7 @@
       <!-- Empty Profiles Warning -->
       <div
         v-if="profileStore.profileCount === 0"
-        class="py-8 text-center text-gray-400 text-xs space-y-3"
+        class="py-8 text-center text-gray-500 text-xs space-y-3"
       >
         <p>{{ t('profile.switcher.noChild') }}</p>
         <button
@@ -98,15 +103,15 @@
                 <span class="font-bold text-sm sm:text-base text-gray-900">{{ student.nickname }}</span>
                 <span
                   v-if="student.id === profileStore.activeProfileId"
-                  class="text-[10px] font-semibold bg-teal-600 text-white px-2 py-0.5 rounded-full"
+                  class="text-[11px] font-semibold bg-teal-600 text-white px-2 py-0.5 rounded-full"
                 >
                   {{ t('common.current') }}
                 </span>
-                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                <span class="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
                   {{ student.age }}{{ t('profile.switcher.ageSuffix') }} · {{ formatGender(student.gender) }}
                 </span>
               </div>
-              <div class="text-xs text-gray-400 mt-1">
+              <div class="text-xs text-gray-600 mt-1">
                 {{ student.realName }} · ID: <span class="font-mono">{{ student.id }}</span>
               </div>
             </div>
@@ -120,14 +125,14 @@
               @click="profileStore.selectProfile(student.id)"
               class="h-9 px-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition min-h-[44px]"
             >
-              设为当前
+              {{ t('auth.profile.setAsCurrent') }}
             </button>
             <button
               type="button"
               @click="copyTransferCode(student.nickname)"
-              class="h-9 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-medium transition flex items-center gap-1 min-h-[44px]"
+              class="h-9 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-medium transition flex items-center gap-1 min-h-[44px]"
             >
-              <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg class="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
               <span>{{ t('common.transferCode') }}</span>
@@ -151,52 +156,110 @@
       </div>
     </div>
 
-    <!-- Preferences & Security Items -->
+    <!-- Preferences & Security Items (V1: Email only, NO phone binding/changing) -->
     <div class="bg-white rounded-2xl border border-gray-200/80 shadow-sm divide-y divide-gray-100 overflow-hidden">
       <!-- Nickname Edit -->
-      <div
-        class="px-5 py-4 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors"
+      <button
+        type="button"
+        class="w-full px-5 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors text-left min-h-[52px]"
         @click="openEdit('nickname')"
       >
-        <span class="text-sm font-medium text-gray-800">修改昵称</span>
-        <div class="flex items-center text-gray-400 space-x-1">
-          <span class="text-xs text-gray-600">{{ authStore.userInfo?.nickname || '未设置' }}</span>
+        <span class="text-sm font-medium text-gray-800">{{ t('auth.profile.editNickname') }}</span>
+        <div class="flex items-center text-gray-500 space-x-1">
+          <span class="text-xs text-gray-600">{{ authStore.userInfo?.nickname || t('auth.profile.notSet') }}</span>
           <t-icon name="chevron-right" size="16px" />
         </div>
-      </div>
+      </button>
 
       <!-- Avatar URL Edit -->
-      <div
-        class="px-5 py-4 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors"
+      <button
+        type="button"
+        class="w-full px-5 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors text-left min-h-[52px]"
         @click="openEdit('avatar')"
       >
-        <span class="text-sm font-medium text-gray-800">修改头像</span>
-        <div class="flex items-center text-gray-400 space-x-1">
-          <span class="text-xs text-gray-400">更新图片</span>
+        <span class="text-sm font-medium text-gray-800">{{ t('auth.profile.editAvatar') }}</span>
+        <div class="flex items-center text-gray-500 space-x-1">
+          <span class="text-xs text-gray-600">{{ t('auth.profile.updateAvatar') }}</span>
           <t-icon name="chevron-right" size="16px" />
+        </div>
+      </button>
+
+      <!-- Email Edit (Two-Step Verification) -->
+      <button
+        type="button"
+        class="w-full px-5 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors text-left min-h-[52px]"
+        @click="openEdit('email')"
+      >
+        <span class="text-sm font-medium text-gray-800">{{ t('auth.profile.changeEmail') }}</span>
+        <div class="flex items-center text-gray-500 space-x-1">
+          <span class="text-xs text-gray-600">{{ currentAccountEmail || t('auth.profile.unbound') }}</span>
+          <t-icon name="chevron-right" size="16px" />
+        </div>
+      </button>
+
+      <!-- Change Password -->
+      <button
+        type="button"
+        class="w-full px-5 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors text-left min-h-[52px]"
+        @click="openEdit('password')"
+      >
+        <span class="text-sm font-medium text-gray-800">{{ t('auth.profile.changePassword') }}</span>
+        <div class="flex items-center text-gray-500 space-x-1">
+          <span class="text-xs text-gray-600">{{ t('auth.profile.passwordHint') }}</span>
+          <t-icon name="chevron-right" size="16px" />
+        </div>
+      </button>
+
+      <!-- Language Preference -->
+      <div class="px-5 py-4 flex justify-between items-center gap-3 min-h-[52px]">
+        <span class="text-sm font-medium text-gray-800">{{ t('auth.profile.language') }}</span>
+        <div class="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1">
+          <button
+            type="button"
+            :disabled="updatingLocale"
+            @click="switchLanguage('zh-CN')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition min-h-[36px]"
+            :class="currentLocale === 'zh-CN' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+          >
+            {{ t('auth.profile.languageZh') }}
+          </button>
+          <button
+            type="button"
+            :disabled="updatingLocale"
+            @click="switchLanguage('en-US')"
+            class="px-3 py-1.5 rounded-lg text-xs font-semibold transition min-h-[36px]"
+            :class="currentLocale === 'en-US' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+          >
+            {{ t('auth.profile.languageEn') }}
+          </button>
         </div>
       </div>
 
-      <!-- Email Edit (Two-Step Verification) -->
-      <div
-        class="px-5 py-4 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors"
-        @click="openEdit('email')"
-      >
-        <span class="text-sm font-medium text-gray-800">换绑邮箱</span>
-        <div class="flex items-center text-gray-400 space-x-1">
-          <span class="text-xs text-gray-600">{{ authStore.userInfo?.email || '未绑定' }}</span>
-          <t-icon name="chevron-right" size="16px" />
+      <!-- Clear Local Cache (Preserves Auth Tokens) -->
+      <div class="px-5 py-4 flex justify-between items-center gap-3 min-h-[52px]">
+        <div>
+          <p class="text-sm font-medium text-gray-800">{{ t('auth.profile.clearCache') }}</p>
+          <p class="text-xs text-gray-500 mt-0.5">{{ t('auth.profile.clearCacheDesc') }}</p>
         </div>
+        <button
+          type="button"
+          :disabled="clearingCache"
+          @click="handleClearCache"
+          class="px-3 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 transition min-h-[44px] shrink-0 disabled:opacity-50"
+        >
+          {{ t('auth.profile.clearCacheAction') }}
+        </button>
       </div>
 
       <!-- Logout -->
-      <div
-        class="px-5 py-4 flex justify-between items-center hover:bg-red-50 cursor-pointer transition-colors"
+      <button
+        type="button"
+        class="w-full px-5 py-4 flex justify-between items-center hover:bg-rose-50 transition-colors text-left min-h-[52px]"
         @click="handleLogout"
       >
-        <span class="text-sm font-medium text-red-600">退出登录</span>
-        <t-icon name="logout" size="18px" class="text-red-400" />
-      </div>
+        <span class="text-sm font-medium text-rose-600">{{ t('auth.profile.logout') }}</span>
+        <t-icon name="logout" size="18px" class="text-rose-500" />
+      </button>
     </div>
 
     <!-- Edit Popup Sheet -->
@@ -208,81 +271,145 @@
       <div class="bg-white p-6 pb-10 space-y-5">
         <div class="flex justify-between items-center">
           <h3 class="text-base font-bold text-gray-900">{{ editPopup.title }}</h3>
-          <button @click="editPopup.visible = false" class="text-gray-400 hover:text-gray-600">
+          <button
+            type="button"
+            @click="editPopup.visible = false"
+            class="text-gray-500 hover:text-gray-700 min-h-[44px] min-w-[44px] flex items-center justify-end"
+          >
             <t-icon name="close" size="18px" />
           </button>
         </div>
 
         <!-- Nickname Edit -->
         <div v-if="editPopup.type === 'nickname'" class="space-y-3">
-          <label class="text-xs text-gray-500 font-medium">新昵称</label>
+          <label class="text-xs text-gray-600 font-medium">{{ t('auth.profile.editNickname') }}</label>
           <input
             v-model="editForm.nickname"
-            placeholder="请输入新昵称"
-            class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            :placeholder="t('auth.profile.editNicknamePlaceholder')"
+            class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
         <!-- Avatar Edit -->
         <div v-if="editPopup.type === 'avatar'" class="space-y-3">
-          <label class="text-xs text-gray-500 font-medium">头像图片地址 (URL)</label>
+          <label class="text-xs text-gray-600 font-medium">{{ t('auth.profile.avatarUrlLabel') }}</label>
           <input
             v-model="editForm.avatar"
             placeholder="https://example.com/avatar.png"
-            class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
         <!-- Email Change Flow (Step 1 & 2) -->
         <div v-if="editPopup.type === 'email'" class="space-y-3">
-          <div v-if="emailFlow.step === 1" class="space-y-2">
-            <p class="text-xs text-gray-500">
-              第 1 步：我们将向原邮箱 <span class="font-bold text-gray-800">{{ authStore.userInfo?.email }}</span> 发送验证码。
+          <div v-if="emailFlow.step === 1" class="space-y-3">
+            <p class="text-xs text-gray-600 leading-relaxed">
+              {{ t('auth.profile.emailStep1Desc', { email: maskedCurrentEmail }) }}
             </p>
             <div class="flex gap-2">
               <input
                 v-model="emailFlow.oldCode"
-                placeholder="原邮箱验证码"
-                class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm"
+                :placeholder="t('auth.profile.oldCodePlaceholder')"
+                class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button
+                type="button"
+                :disabled="oldCodeCooldown > 0 || sendingOldCode"
                 @click="sendEmailVerifyCode('change_email_verify_old')"
-                class="px-3 py-2 text-xs font-medium rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200"
+                class="px-3 py-2 text-xs font-semibold rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 min-h-[44px] shrink-0 disabled:opacity-50"
               >
-                发送验证码
+                {{ oldCodeCooldown > 0 ? t('auth.common.resendIn', { seconds: oldCodeCooldown }) : t('auth.profile.sendCode') }}
               </button>
             </div>
           </div>
 
-          <div v-if="emailFlow.step === 2" class="space-y-2">
-            <p class="text-xs text-gray-500">第 2 步：输入新邮箱并完成验证。</p>
+          <div v-if="emailFlow.step === 2" class="space-y-3">
+            <p class="text-xs text-gray-600 leading-relaxed">{{ t('auth.profile.emailStep2Desc') }}</p>
             <input
               v-model="emailFlow.newEmail"
-              placeholder="新邮箱地址"
-              class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm mb-2"
+              type="email"
+              :placeholder="t('auth.profile.newEmailPlaceholder')"
+              class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <div class="flex gap-2">
               <input
                 v-model="emailFlow.newCode"
-                placeholder="新邮箱验证码"
-                class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm"
+                :placeholder="t('auth.profile.newCodePlaceholder')"
+                class="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button
+                type="button"
+                :disabled="newCodeCooldown > 0 || sendingNewCode"
                 @click="sendEmailVerifyCode('change_email_verify_new')"
-                class="px-3 py-2 text-xs font-medium rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200"
+                class="px-3 py-2 text-xs font-semibold rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 min-h-[44px] shrink-0 disabled:opacity-50"
               >
-                发送验证码
+                {{ newCodeCooldown > 0 ? t('auth.common.resendIn', { seconds: newCodeCooldown }) : t('auth.profile.sendCode') }}
               </button>
             </div>
           </div>
         </div>
 
+        <!-- Password Change Flow -->
+        <div v-if="editPopup.type === 'password'" class="space-y-3">
+          <div class="space-y-1">
+            <label class="text-xs text-gray-600 font-medium">{{ t('auth.profile.oldPassword') }}</label>
+            <input
+              v-model="passwordForm.oldPassword"
+              type="password"
+              autocomplete="current-password"
+              :placeholder="t('auth.profile.oldPasswordPlaceholder')"
+              class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs text-gray-600 font-medium">{{ t('auth.profile.newPassword') }}</label>
+            <input
+              v-model="passwordForm.newPassword"
+              type="password"
+              autocomplete="new-password"
+              :placeholder="t('auth.profile.newPasswordPlaceholder')"
+              class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div class="rounded-xl bg-gray-50 border border-gray-200 p-3 space-y-1 text-xs">
+            <p class="font-semibold text-gray-700">{{ t('auth.passwordRules.title') }}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+              <span :class="passwordStrength.minLength ? 'text-emerald-700 font-medium' : 'text-gray-600'">
+                {{ passwordStrength.minLength ? '✓' : '○' }} {{ t('auth.passwordRules.minLength') }}
+              </span>
+              <span :class="passwordStrength.hasUppercase ? 'text-emerald-700 font-medium' : 'text-gray-600'">
+                {{ passwordStrength.hasUppercase ? '✓' : '○' }} {{ t('auth.passwordRules.uppercase') }}
+              </span>
+              <span :class="passwordStrength.hasLowercase ? 'text-emerald-700 font-medium' : 'text-gray-600'">
+                {{ passwordStrength.hasLowercase ? '✓' : '○' }} {{ t('auth.passwordRules.lowercase') }}
+              </span>
+              <span :class="passwordStrength.hasDigit ? 'text-emerald-700 font-medium' : 'text-gray-600'">
+                {{ passwordStrength.hasDigit ? '✓' : '○' }} {{ t('auth.passwordRules.digit') }}
+              </span>
+              <span :class="passwordStrength.hasSpecial ? 'text-emerald-700 font-medium' : 'text-gray-600'" class="sm:col-span-2">
+                {{ passwordStrength.hasSpecial ? '✓' : '○' }} {{ t('auth.passwordRules.special') }}
+              </span>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs text-gray-600 font-medium">{{ t('auth.profile.confirmNewPassword') }}</label>
+            <input
+              v-model="passwordForm.confirmPassword"
+              type="password"
+              autocomplete="new-password"
+              :placeholder="t('auth.profile.confirmNewPasswordPlaceholder')"
+              class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
         <button
+          type="button"
           @click="handleSave"
           :disabled="saving"
-          class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-indigo-700 transition-colors disabled:opacity-50 text-sm"
+          class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-indigo-700 transition-colors disabled:opacity-50 text-sm min-h-[48px]"
         >
-          {{ saving ? '保存中...' : '确认保存' }}
+          {{ saving ? t('auth.profile.saving') : t('auth.profile.confirmSave') }}
         </button>
       </div>
     </t-popup>
@@ -303,7 +430,7 @@
           <h3 class="text-base font-bold text-gray-900">
             {{ t('profile.modal.deleteConfirmTitle') }}
           </h3>
-          <p class="text-xs text-gray-500 mt-1">
+          <p class="text-xs text-gray-600 mt-1">
             {{ t('profile.modal.deleteConfirmMsg', { name: studentToDelete?.nickname || '' }) }}
           </p>
         </div>
@@ -337,25 +464,46 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue';
+import { computed, reactive, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { Toast, Icon as TIcon, Popup as TPopup } from 'tdesign-mobile-vue';
 import { useAuthStore } from '../stores/auth';
 import { useProfileStore } from '../stores/profile';
-import { sendCode, changeEmail } from '../api/auth';
+import {
+  sendCode,
+  verifyCurrentEmail,
+  changeEmail,
+  updateUser,
+  updateMePreferences,
+} from '../api/auth';
+import { setLocale, type SupportedLocale } from '../i18n';
+import { extractApiErrorCode, resolveApiErrorMessage } from '../utils/apiError';
+import { clearL3Snapshots } from '../utils/l3Cache';
+import { isValidEmail, maskEmail, validatePasswordStrength } from '../utils/password';
 import StudentCreateModal from '../components/StudentCreateModal.vue';
 import type { StudentProfileDto, StudentGender } from '../types';
 
 const router = useRouter();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const authStore = useAuthStore();
 const profileStore = useProfileStore();
 
+const currentLocale = computed(() => locale.value);
+const currentAccountEmail = computed(
+  () => authStore.userInfo?.email || authStore.dreamContext?.email || ''
+);
+const maskedCurrentEmail = computed(() =>
+  currentAccountEmail.value ? maskEmail(currentAccountEmail.value) : t('auth.profile.unbound')
+);
+
 const saving = ref(false);
+const updatingLocale = ref(false);
+const clearingCache = ref(false);
+
 const editPopup = reactive({
   visible: false,
-  type: '' as 'nickname' | 'avatar' | 'email',
+  type: '' as 'nickname' | 'avatar' | 'email' | 'password',
   title: '',
 });
 
@@ -372,6 +520,21 @@ const emailFlow = reactive({
   newCode: '',
 });
 
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+});
+
+const passwordStrength = computed(() => validatePasswordStrength(passwordForm.newPassword));
+
+const oldCodeCooldown = ref(0);
+const newCodeCooldown = ref(0);
+const sendingOldCode = ref(false);
+const sendingNewCode = ref(false);
+let oldCodeTimer: ReturnType<typeof setInterval> | null = null;
+let newCodeTimer: ReturnType<typeof setInterval> | null = null;
+
 // Student Profile Management State
 const studentModalVisible = ref(false);
 const selectedEditProfile = ref<StudentProfileDto | null>(null);
@@ -384,6 +547,11 @@ onMounted(() => {
   profileStore.fetchProfiles().catch(() => {
     // Ignore initial profile fetch error
   });
+});
+
+onUnmounted(() => {
+  if (oldCodeTimer) clearInterval(oldCodeTimer);
+  if (newCodeTimer) clearInterval(newCodeTimer);
 });
 
 function formatGender(gender: StudentGender): string {
@@ -425,8 +593,13 @@ async function handleDeleteStudent() {
     deleteConfirmVisible.value = false;
     studentToDelete.value = null;
   } catch (err: unknown) {
-    const errorObj = err as { message?: string };
-    Toast({ message: errorObj.message || t('common.failed'), theme: 'error' });
+    const errData = (err as { response?: { data?: unknown } })?.response?.data;
+    const msg = resolveApiErrorMessage(
+      errData,
+      undefined,
+      err instanceof Error ? err.message : t('common.failed')
+    );
+    Toast({ message: msg, theme: 'error' });
   } finally {
     deletingStudent.value = false;
   }
@@ -438,109 +611,242 @@ function handleStudentSuccess(_profile: StudentProfileDto) {
 
 function copyTransferCode(nickname: string) {
   if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    navigator.clipboard.writeText(nickname).then(() => {
-      Toast({ message: `${t('common.copied')}: ${nickname}`, theme: 'success' });
-    }).catch(() => {
-      Toast({ message: nickname, theme: 'success' });
-    });
+    navigator.clipboard
+      .writeText(nickname)
+      .then(() => {
+        Toast({ message: `${t('common.copied')}: ${nickname}`, theme: 'success' });
+      })
+      .catch(() => {
+        Toast({ message: nickname, theme: 'success' });
+      });
   } else {
     Toast({ message: nickname, theme: 'success' });
   }
 }
 
-function openEdit(type: 'nickname' | 'avatar' | 'email') {
+function openEdit(type: 'nickname' | 'avatar' | 'email' | 'password') {
   editPopup.type = type;
   editPopup.visible = true;
   if (type === 'nickname') {
-    editPopup.title = '修改昵称';
+    editPopup.title = t('auth.profile.editNickname');
     editForm.nickname = authStore.userInfo?.nickname || '';
   } else if (type === 'avatar') {
-    editPopup.title = '更新头像';
+    editPopup.title = t('auth.profile.updateAvatar');
     editForm.avatar = authStore.userInfo?.avatar || authStore.userInfo?.avatar_url || '';
   } else if (type === 'email') {
-    editPopup.title = '换绑邮箱';
+    editPopup.title = t('auth.profile.changeEmail');
     emailFlow.step = 1;
     emailFlow.oldCode = '';
+    emailFlow.securityToken = '';
     emailFlow.newEmail = '';
     emailFlow.newCode = '';
+  } else if (type === 'password') {
+    editPopup.title = t('auth.profile.changePassword');
+    passwordForm.oldPassword = '';
+    passwordForm.newPassword = '';
+    passwordForm.confirmPassword = '';
+  }
+}
+
+function startEmailCooldown(which: 'old' | 'new') {
+  if (which === 'old') {
+    if (oldCodeTimer) clearInterval(oldCodeTimer);
+    oldCodeCooldown.value = 60;
+    oldCodeTimer = setInterval(() => {
+      oldCodeCooldown.value--;
+      if (oldCodeCooldown.value <= 0 && oldCodeTimer) {
+        clearInterval(oldCodeTimer);
+        oldCodeTimer = null;
+      }
+    }, 1000);
+  } else {
+    if (newCodeTimer) clearInterval(newCodeTimer);
+    newCodeCooldown.value = 60;
+    newCodeTimer = setInterval(() => {
+      newCodeCooldown.value--;
+      if (newCodeCooldown.value <= 0 && newCodeTimer) {
+        clearInterval(newCodeTimer);
+        newCodeTimer = null;
+      }
+    }, 1000);
   }
 }
 
 async function sendEmailVerifyCode(scenario: 'change_email_verify_old' | 'change_email_verify_new') {
-  const receiver = scenario === 'change_email_verify_old' ? authStore.userInfo?.email : emailFlow.newEmail;
-  if (!receiver) {
-    Toast({ message: '请输入有效邮箱', theme: 'error' });
+  const isOld = scenario === 'change_email_verify_old';
+  const receiver = isOld ? currentAccountEmail.value : emailFlow.newEmail.trim();
+
+  if (!receiver || !isValidEmail(receiver)) {
+    Toast({
+      message: isOld ? t('auth.profile.unbound') : t('auth.profile.newEmailInvalid'),
+      theme: 'error',
+    });
     return;
   }
+
+  if (isOld) {
+    if (sendingOldCode.value || oldCodeCooldown.value > 0) return;
+    sendingOldCode.value = true;
+  } else {
+    if (sendingNewCode.value || newCodeCooldown.value > 0) return;
+    sendingNewCode.value = true;
+  }
+
   try {
     await sendCode({
       receiver,
       channel: 'email',
       scenario,
     });
-    Toast({ message: '验证码已发送至邮箱', theme: 'success' });
+    Toast({ message: t('auth.common.codeSent'), theme: 'success' });
+    startEmailCooldown(isOld ? 'old' : 'new');
   } catch (err: unknown) {
-    const errorObj = err as { message?: string };
-    Toast({ message: errorObj.message || '发送失败', theme: 'error' });
+    const errData = (err as { response?: { data?: unknown } })?.response?.data;
+    const msg = resolveApiErrorMessage(
+      errData,
+      undefined,
+      err instanceof Error ? err.message : t('common.failed')
+    );
+    Toast({ message: msg, theme: 'error' });
+  } finally {
+    if (isOld) sendingOldCode.value = false;
+    else sendingNewCode.value = false;
   }
 }
 
 async function handleSave() {
+  if (saving.value) return;
   saving.value = true;
   try {
     if (editPopup.type === 'nickname') {
       if (!editForm.nickname.trim()) {
-        Toast({ message: '昵称不能为空', theme: 'error' });
+        Toast({ message: t('auth.profile.nicknameEmpty'), theme: 'error' });
         return;
       }
       await authStore.updateProfile({ nickname: editForm.nickname.trim() });
-      Toast({ message: '昵称修改成功', theme: 'success' });
+      Toast({ message: t('auth.profile.nicknameSuccess'), theme: 'success' });
       editPopup.visible = false;
     } else if (editPopup.type === 'avatar') {
       if (!editForm.avatar.trim()) {
-        Toast({ message: '头像地址不能为空', theme: 'error' });
+        Toast({ message: t('auth.profile.avatarEmpty'), theme: 'error' });
         return;
       }
       await authStore.updateProfile({ avatar: editForm.avatar.trim() });
-      Toast({ message: '头像修改成功', theme: 'success' });
+      Toast({ message: t('auth.profile.avatarSuccess'), theme: 'success' });
       editPopup.visible = false;
     } else if (editPopup.type === 'email') {
       if (emailFlow.step === 1) {
-        if (!emailFlow.oldCode) {
-          Toast({ message: '请输入原邮箱验证码', theme: 'error' });
+        if (!emailFlow.oldCode.trim()) {
+          Toast({ message: t('auth.profile.oldCodeRequired'), theme: 'error' });
           return;
         }
-        const res = await changeEmail({ step: 1, code: emailFlow.oldCode });
-        emailFlow.securityToken = res.securityToken || res.data?.securityToken;
+        const res = await verifyCurrentEmail({ code: emailFlow.oldCode.trim() });
+        const token =
+          res.securityToken ||
+          (res as { data?: { securityToken?: string } }).data?.securityToken ||
+          '';
+        emailFlow.securityToken = token;
         emailFlow.step = 2;
-        Toast({ message: '原邮箱验证通过，请验证新邮箱', theme: 'success' });
+        Toast({ message: t('auth.profile.step1Verified'), theme: 'success' });
       } else {
-        if (!emailFlow.newEmail || !emailFlow.newCode) {
-          Toast({ message: '请完整填写新邮箱及验证码', theme: 'error' });
+        if (!isValidEmail(emailFlow.newEmail)) {
+          Toast({ message: t('auth.profile.newEmailInvalid'), theme: 'error' });
+          return;
+        }
+        if (!emailFlow.newCode.trim()) {
+          Toast({ message: t('auth.profile.newCodeRequired'), theme: 'error' });
           return;
         }
         await changeEmail({
-          step: 2,
-          code: emailFlow.newCode,
-          newEmail: emailFlow.newEmail,
+          code: emailFlow.newCode.trim(),
+          newEmail: emailFlow.newEmail.trim(),
           securityToken: emailFlow.securityToken,
         });
-        Toast({ message: '邮箱换绑成功', theme: 'success' });
+        Toast({ message: t('auth.profile.emailChanged'), theme: 'success' });
         await authStore.fetchAuthUser();
+        await authStore.fetchDreamContext().catch(() => {});
         editPopup.visible = false;
       }
+    } else if (editPopup.type === 'password') {
+      if (!passwordForm.oldPassword) {
+        Toast({ message: t('auth.profile.oldPasswordRequired'), theme: 'error' });
+        return;
+      }
+      if (!passwordStrength.value.valid) {
+        Toast({ message: t('auth.passwordRules.invalid'), theme: 'error' });
+        return;
+      }
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        Toast({ message: t('auth.passwordRules.mismatch'), theme: 'error' });
+        return;
+      }
+      await updateUser({
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      editPopup.visible = false;
+      Toast({ message: t('auth.profile.passwordChangedRelogin'), theme: 'success' });
+      await authStore.logout();
+      await router.push('/login');
     }
   } catch (error: unknown) {
-    const errorObj = error as { response?: { data?: { message?: string } }; message?: string };
-    Toast({ message: errorObj.response?.data?.message || errorObj.message || '操作失败', theme: 'error' });
+    const errCode = extractApiErrorCode(error);
+    if (editPopup.type === 'email' && emailFlow.step === 2 && errCode === 'SECURITY_TOKEN_INVALID') {
+      emailFlow.step = 1;
+      emailFlow.securityToken = '';
+      emailFlow.oldCode = '';
+      emailFlow.newCode = '';
+      Toast({ message: t('auth.profile.securityTokenExpired'), theme: 'warning' });
+      return;
+    }
+
+    const errData = (error as { response?: { data?: unknown } })?.response?.data;
+    const msg = resolveApiErrorMessage(
+      errData,
+      undefined,
+      error instanceof Error ? error.message : t('common.failed')
+    );
+    Toast({ message: msg, theme: 'error' });
   } finally {
     saving.value = false;
   }
 }
 
+async function switchLanguage(nextLocale: SupportedLocale) {
+  if (currentLocale.value === nextLocale || updatingLocale.value) return;
+  setLocale(nextLocale);
+  updatingLocale.value = true;
+  try {
+    await updateMePreferences({ locale: nextLocale });
+    if (authStore.dreamContext) {
+      authStore.dreamContext.preferences = {
+        ...authStore.dreamContext.preferences,
+        locale: nextLocale,
+      };
+    }
+    Toast({ message: t('auth.profile.languageUpdated'), theme: 'success' });
+  } catch {
+    // Keep local dream_locale applied even if remote sync fails
+    Toast({ message: t('auth.profile.languageUpdated'), theme: 'success' });
+  } finally {
+    updatingLocale.value = false;
+  }
+}
+
+async function handleClearCache() {
+  if (clearingCache.value) return;
+  clearingCache.value = true;
+  try {
+    await clearL3Snapshots();
+    Toast({ message: t('auth.profile.cacheCleared'), theme: 'success' });
+  } finally {
+    clearingCache.value = false;
+  }
+}
+
 async function handleLogout() {
   await authStore.logout();
-  Toast({ message: '已安全退出', theme: 'success' });
-  router.push('/login');
+  Toast({ message: t('auth.profile.logoutSuccess'), theme: 'success' });
+  await router.push('/login');
 }
 </script>

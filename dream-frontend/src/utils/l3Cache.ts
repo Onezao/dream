@@ -106,3 +106,40 @@ export async function getL3Snapshot<T>(key: string): Promise<T | null> {
     }
   });
 }
+
+/**
+ * 清空 L3 非认证本地业务缓存（严禁删除登录凭据与语言设置）
+ */
+export async function clearL3Snapshots(): Promise<void> {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('dream_l3_')) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const key of keysToRemove) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // ignore storage access errors
+  }
+
+  const db = await openDatabase();
+  if (!db) return;
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      store.clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}

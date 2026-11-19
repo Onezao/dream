@@ -4,23 +4,19 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
 import { ApiError, initializeDatabase, closePool } from '@topeetop/shared-core';
-import {
-  StudentProfileService,
-  TeacherProfileService,
-  FileUploadService,
-  ClassService,
-} from '@topeetop/dream-core';
+import { IdentityContextService } from '@topeetop/dream-core';
 import { loadConfig } from './config/env.config.js';
-import { studentProfileRoutes } from './routes/studentProfile.routes.js';
-import { fileUploadRoutes } from './routes/fileUpload.routes.js';
-import { teacherProfileRoutes } from './routes/teacherProfile.routes.js';
-import { classRoutes } from './routes/class.routes.js';
+import { setIdentityContextService } from './middlewares/auth.middleware.js';
+import {
+  createJwtProviderFromConfig,
+  decorateJwtContainer,
+  registerAuthCorePlugin,
+} from './plugins/authCore.plugin.js';
+import { meRoutes } from './routes/me.routes.js';
 
 export interface BuildAppOptions {
-  service?: StudentProfileService;
-  teacherService?: TeacherProfileService;
-  fileUploadService?: FileUploadService;
-  classService?: ClassService;
+  identityService?: IdentityContextService;
+  mountAuthPlugin?: boolean;
   skipDbInit?: boolean;
 }
 
@@ -36,7 +32,12 @@ export async function buildApp(options?: BuildAppOptions) {
     });
   }
 
-  // 2. 初始化 Fastify 实例并挂载 Zod Type Provider
+  // 2. 初始化身份上下文服务单例 (共享 0-60s 整点分钟角色目录缓存)
+  if (options?.identityService) {
+    setIdentityContextService(options.identityService);
+  }
+
+  // 3. 初始化 Fastify 实例并挂载 Zod Type Provider
   const app = Fastify({
     logger: config.NODE_ENV !== 'test',
   }).withTypeProvider<ZodTypeProvider>();
@@ -88,25 +89,24 @@ export async function buildApp(options?: BuildAppOptions) {
     });
   });
 
-  // 6. 挂载业务路由
-  await app.register(studentProfileRoutes, {
-    prefix: '/api/dream/v1',
-    service: options?.service,
-  });
+  // 6. 挂载 @topeetop/auth-core 认证与 JWKS 插件 (或独立验签公钥容器)
+  const shouldMountAuthPlugin =
+    options?.mountAuthPlugin ??
+    (config.MOUNT_AUTH_PLUGIN && config.NODE_ENV !== 'test' && !options?.skipDbInit);
 
-  await app.register(fileUploadRoutes, {
-    prefix: '/api/dream/v1',
-    service: options?.fileUploadService,
-  });
+  if (shouldMountAuthPlugin) {
+    await registerAuthCorePlugin(app, config);
+  } else {
+    const jwtProvider = createJwtProviderFromConfig(config);
+    if (jwtProvider) {
+      decorateJwtContainer(app, jwtProvider);
+    }
+  }
 
-  await app.register(teacherProfileRoutes, {
+  // 7. 挂载业务路由
+  await app.register(meRoutes, {
     prefix: '/api/dream/v1',
-    service: options?.teacherService,
-  });
-
-  await app.register(classRoutes, {
-    prefix: '/api/dream/v1',
-    service: options?.classService,
+    service: options?.identityService,
   });
 
   return app;

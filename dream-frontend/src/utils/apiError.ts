@@ -27,3 +27,29 @@ export function resolveApiErrorMessage(
     (fallbackStatus ? `Request failed with ${fallbackStatus}` : defaultMessage)
   );
 }
+
+/**
+ * 从异常对象中提取标准化错误码
+ */
+export function extractApiErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') {
+    return undefined;
+  }
+  const errObj = error as {
+    response?: {
+      data?: {
+        code?: string;
+        errorCode?: string;
+        error?: string;
+      };
+    };
+    code?: string;
+    message?: string;
+  };
+  const data = errObj.response?.data;
+  if (data?.code) return data.code;
+  if (data?.errorCode) return data.errorCode;
+  if (errObj.code) return errObj.code;
+  if (errObj.message === 'CAPTCHA_REQUIRED') return 'CAPTCHA_REQUIRED';
+  return undefined;
+}
