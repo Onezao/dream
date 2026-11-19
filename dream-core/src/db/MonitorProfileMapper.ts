@@ -1,6 +1,6 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
-import type { PoolClient } from 'pg';
+import type { PoolClient, QueryResultRow } from 'pg';
 import { generateShortUuid, DatabaseService } from '@topeetop/shared-core';
 import { BaseMapper } from './BaseMapper.js';
 import {
@@ -10,6 +10,20 @@ import {
   UpdateMonitorProfileDbInput,
   mapRowToMonitorProfileRecord,
 } from '../types/teacherProfile.types.js';
+
+export interface MonitorProfileMinimal {
+  id: string;
+  accountId: string;
+  displayName: string;
+  status: string;
+}
+
+interface MonitorProfileMinimalRow extends QueryResultRow {
+  id: string;
+  account_id: string;
+  display_name: string;
+  status: string;
+}
 
 export class MonitorProfileMapper extends BaseMapper<MonitorProfileRow> {
   protected readonly tableName = 'monitor_profiles';
@@ -79,6 +93,44 @@ export class MonitorProfileMapper extends BaseMapper<MonitorProfileRow> {
 
     const row = await this.executeQuerySingle<MonitorProfileRow>(sql, [accountId], client);
     return row ? mapRowToMonitorProfileRecord(row) : null;
+  }
+
+  /**
+   * 按账号 ID 查询处于 ACTIVE 状态且未软删除的班长档案
+   */
+  async findActiveByAccountId(
+    accountId: string,
+    client?: PoolClient
+  ): Promise<MonitorProfileRecord | null> {
+    const sql = `
+      SELECT *
+      FROM ${this.fullTableName}
+      WHERE account_id = $1 AND status = 'ACTIVE' AND deleted_at IS NULL
+      LIMIT 1;
+    `;
+
+    const row = await this.executeQuerySingle<MonitorProfileRow>(sql, [accountId], client);
+    return row ? mapRowToMonitorProfileRecord(row) : null;
+  }
+
+  /**
+   * 查询所有处于 ACTIVE 状态且未软删除的班长最小身份列表
+   */
+  async findAllActiveMinimal(client?: PoolClient): Promise<MonitorProfileMinimal[]> {
+    const sql = `
+      SELECT id, account_id, display_name, status
+      FROM ${this.fullTableName}
+      WHERE status = 'ACTIVE' AND deleted_at IS NULL
+      ORDER BY created_at ASC;
+    `;
+
+    const rows = await this.executeQuery<MonitorProfileMinimalRow>(sql, [], client);
+    return rows.map((row) => ({
+      id: row.id,
+      accountId: row.account_id,
+      displayName: row.display_name,
+      status: row.status,
+    }));
   }
 
   /**

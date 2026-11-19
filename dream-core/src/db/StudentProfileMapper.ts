@@ -1,6 +1,6 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
-import type { PoolClient } from 'pg';
+import type { PoolClient, QueryResultRow } from 'pg';
 import { generateShortUuid, DatabaseService } from '@topeetop/shared-core';
 import { BaseMapper } from './BaseMapper.js';
 import {
@@ -11,6 +11,18 @@ import {
   formatBirthDate,
   mapRowToStudentProfileRecord,
 } from '../types/studentProfile.types.js';
+
+export interface StudentProfileMinimal {
+  id: string;
+  nickname: string;
+  avatarKey: string | null;
+}
+
+interface StudentProfileMinimalRow extends QueryResultRow {
+  id: string;
+  nickname: string;
+  avatar_key: string | null;
+}
 
 export class StudentProfileMapper extends BaseMapper<StudentProfileRow> {
   protected readonly tableName = 'student_profiles';
@@ -103,6 +115,47 @@ export class StudentProfileMapper extends BaseMapper<StudentProfileRow> {
 
     const rows = await this.executeQuery<StudentProfileRow>(sql, [accountId], client);
     return rows.map(mapRowToStudentProfileRecord);
+  }
+
+  /**
+   * 根据家长账号 ID 查询名下处于 ACTIVE 状态且未软删除的学员摘要列表
+   */
+  async findActiveByAccountId(
+    accountId: string,
+    client?: PoolClient
+  ): Promise<StudentProfileMinimal[]> {
+    const sql = `
+      SELECT id, nickname, avatar_key
+      FROM ${this.fullTableName}
+      WHERE account_id = $1 AND status = 'ACTIVE' AND deleted_at IS NULL
+      ORDER BY created_at ASC;
+    `;
+
+    const rows = await this.executeQuery<StudentProfileMinimalRow>(sql, [accountId], client);
+    return rows.map((row) => ({
+      id: row.id,
+      nickname: row.nickname,
+      avatarKey: row.avatar_key ?? null,
+    }));
+  }
+
+  /**
+   * 校验指定学员档案是否归属于目标家长账号 (ACTIVE 且未软删除)
+   */
+  async isOwnedByAccount(
+    profileId: string,
+    accountId: string,
+    client?: PoolClient
+  ): Promise<boolean> {
+    const sql = `
+      SELECT 1
+      FROM ${this.fullTableName}
+      WHERE id = $1 AND account_id = $2 AND status = 'ACTIVE' AND deleted_at IS NULL
+      LIMIT 1;
+    `;
+
+    const row = await this.executeQuerySingle<QueryResultRow>(sql, [profileId, accountId], client);
+    return Boolean(row);
   }
 
   /**

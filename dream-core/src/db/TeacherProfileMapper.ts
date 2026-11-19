@@ -1,6 +1,6 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
-import type { PoolClient } from 'pg';
+import type { PoolClient, QueryResultRow } from 'pg';
 import { generateShortUuid, DatabaseService } from '@topeetop/shared-core';
 import { BaseMapper } from './BaseMapper.js';
 import {
@@ -17,6 +17,20 @@ import {
 export interface PublicTeacherFilters {
   courseTypeId?: string;
   levelId?: string;
+}
+
+export interface TeacherProfileMinimal {
+  id: string;
+  accountId: string;
+  displayName: string;
+  status: string;
+}
+
+interface TeacherProfileMinimalRow extends QueryResultRow {
+  id: string;
+  account_id: string;
+  display_name: string;
+  status: string;
 }
 
 export class TeacherProfileMapper extends BaseMapper<TeacherProfileRow> {
@@ -114,6 +128,28 @@ export class TeacherProfileMapper extends BaseMapper<TeacherProfileRow> {
 
     const row = await this.executeQuerySingle<TeacherProfileRow>(sql, [accountId], client);
     return row ? mapRowToTeacherProfileRecord(row) : null;
+  }
+
+  /**
+   * 查询所有已绑定账号且处于 ACTIVE 或 ON_LEAVE 状态的教师最小身份列表
+   */
+  async findAllActiveMinimal(client?: PoolClient): Promise<TeacherProfileMinimal[]> {
+    const sql = `
+      SELECT id, account_id, display_name, status
+      FROM ${this.fullTableName}
+      WHERE account_id IS NOT NULL
+        AND status IN ('ACTIVE', 'ON_LEAVE')
+        AND deleted_at IS NULL
+      ORDER BY created_at ASC;
+    `;
+
+    const rows = await this.executeQuery<TeacherProfileMinimalRow>(sql, [], client);
+    return rows.map((row) => ({
+      id: row.id,
+      accountId: row.account_id,
+      displayName: row.display_name,
+      status: row.status,
+    }));
   }
 
   /**
