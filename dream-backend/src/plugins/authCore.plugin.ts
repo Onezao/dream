@@ -24,8 +24,18 @@ import {
 } from '@topeetop/auth-core';
 import type { AppConfig } from '../config/env.config.js';
 
+import crypto from 'crypto';
+
 function normalizePem(value: string): string {
-  return value.replace(/\\n/g, '\n').trim();
+  let pem = value.replace(/\\n/g, '\n').trim();
+  if (pem.includes('-----BEGIN RSA PUBLIC KEY-----')) {
+    try {
+      pem = crypto.createPublicKey(pem).export({ type: 'spki', format: 'pem' }).toString().trim();
+    } catch {
+      // Keep original
+    }
+  }
+  return pem;
 }
 
 function decryptSecretIfNeeded(rawValue?: string): string | undefined {
@@ -52,9 +62,11 @@ export function createJwtProviderFromConfig(config: AppConfig): JwtTokenProvider
   }
 
   const currentPublicKey = normalizePem(config.JWT_CURRENT_PUBLIC_KEY);
-  const currentPrivateKey = decryptSecretIfNeeded(config.JWT_CURRENT_PRIVATE_KEY_CIPHER);
-  const previousPublicKey = process.env.JWT_PREVIOUS_PUBLIC_KEY
-    ? normalizePem(process.env.JWT_PREVIOUS_PUBLIC_KEY)
+  const currentPrivateKey =
+    config.JWT_CURRENT_PRIVATE_KEY ||
+    decryptSecretIfNeeded(process.env.JWT_CURRENT_PRIVATE_KEY_CIPHER || process.env.JWT_PRIVATE_KEY);
+  const previousPublicKey = (config.JWT_PREVIOUS_PUBLIC_KEY || process.env.JWT_PREVIOUS_PUBLIC_KEY)
+    ? normalizePem(config.JWT_PREVIOUS_PUBLIC_KEY || process.env.JWT_PREVIOUS_PUBLIC_KEY!)
     : undefined;
 
   const jwtConfig: JwtConfig = {
@@ -67,7 +79,7 @@ export function createJwtProviderFromConfig(config: AppConfig): JwtTokenProvider
     ...(previousPublicKey
       ? {
           previous: {
-            version: process.env.JWT_PREVIOUS_VERSION || 'v0',
+            version: config.JWT_PREVIOUS_VERSION || process.env.JWT_PREVIOUS_VERSION || 'v0',
             publicKey: previousPublicKey,
           },
         }
@@ -134,15 +146,17 @@ export async function registerAuthCorePlugin(
   const systemConfigService = new SystemConfigService({ db: dbAdapter });
   const validationService = new ValidationService({ systemConfig: systemConfigService });
   const storageService = new StorageService({
-    bucket: process.env.S3_BUCKET || 'dream-avatars',
-    publicDomain: process.env.S3_PUBLIC_DOMAIN || '',
-    region: process.env.S3_REGION || 'auto',
-    endpoint: process.env.S3_ENDPOINT || 'https://s3.placeholder.local',
+    bucket: config.S3_BUCKET || 'dream-avatars',
+    publicDomain: config.S3_PUBLIC_DOMAIN || '',
+    region: config.S3_REGION || 'auto',
+    endpoint: config.S3_ENDPOINT || 'https://s3.placeholder.local',
     accessKeyId:
+      config.S3_ACCESS_KEY_ID ||
       decryptSecretIfNeeded(process.env.S3_ACCESS_KEY_ID_CIPHER) ||
       process.env.S3_ACCESS_KEY_ID ||
       'placeholder',
     secretAccessKey:
+      config.S3_SECRET_ACCESS_KEY ||
       decryptSecretIfNeeded(process.env.S3_SECRET_ACCESS_KEY_CIPHER) ||
       process.env.S3_SECRET_ACCESS_KEY ||
       'placeholder',
