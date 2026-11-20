@@ -323,7 +323,7 @@
       }
     ];
 
-    /* 平台课件库字典与资产层审计（仅管理员可见 · 只读） */
+    /* 平台课件库变更记录（仅管理员可见 · 只读） */
     const LIBRARY_AUDIT = [
       {
         id: 'aud_00000001', cwId: 'cw_wonders01', cwNameCn: 'Wonders 精读', cwNameEn: 'Wonders',
@@ -389,7 +389,7 @@
 
     const AUDIT_ACTIONS = {
       CREATE: { label: '新建课件', cls: 'border-indigo-200 bg-indigo-50 text-indigo-700', icon: 'plus' },
-      EDIT_META: { label: '编辑元数据', cls: 'border-amber-200 bg-amber-50 text-amber-800', icon: 'pen-line' },
+      EDIT_META: { label: '编辑课件信息', cls: 'border-amber-200 bg-amber-50 text-amber-800', icon: 'pen-line' },
       LEVEL_CHANGE: { label: '级别调整', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700', icon: 'layers' },
       TOGGLE_ACTIVE: { label: '启停切换', cls: 'border-slate-200 bg-slate-100 text-slate-700', icon: 'power' }
     };
@@ -406,14 +406,16 @@
             progressText: 'Unit 3 · Page 24',
             lastUpdatedAt: '2026-11-07 18:20', lastUpdatedBy: 'David', lastUpdatedRole: 'teacher',
             boundAt: '2026-08-15',
-            teacherUpdateCounts: { David: 12, Elena: 4 }
+            teacherUpdateCounts: { David: 12, Elena: 4 },
+            teacherUpdateLog: { David: '2026-11-07 18:20', Elena: '2026-10-12 16:40' }
           },
           {
             cwId: 'cw_wonders01', levelId: 'lvl_won00002',
             progressText: 'Unit 5 · Lesson 2',
             lastUpdatedAt: '2026-11-02 10:15', lastUpdatedBy: 'Leo', lastUpdatedRole: 'monitor',
             boundAt: '2026-09-01',
-            teacherUpdateCounts: { Elena: 7, David: 3 }
+            teacherUpdateCounts: { Elena: 7, David: 3 },
+            teacherUpdateLog: { Elena: '2026-11-02 10:15', David: '2026-10-08 09:00' }
           },
           {
             cwId: 'cw_raz000001', levelId: 'lvl_raz00002',
@@ -438,7 +440,8 @@
             progressText: 'Unit 2 · Long A',
             lastUpdatedAt: '2026-11-08 19:40', lastUpdatedBy: 'David', lastUpdatedRole: 'teacher',
             boundAt: '2026-09-10',
-            teacherUpdateCounts: { David: 5 }
+            teacherUpdateCounts: { David: 5 },
+            teacherUpdateLog: { David: '2026-11-08 19:40' }
           },
           {
             cwId: 'cw_ket000001', levelId: 'lvl_ket00001',
@@ -632,13 +635,18 @@
 
     function topTeacherInfo(item) {
       const counts = item.teacherUpdateCounts || {};
+      const logs = item.teacherUpdateLog || {};
       const entries = Object.entries(counts).filter(([, c]) => c > 0);
       if (!entries.length) return { name: '', count: 0, text: '暂无老师更新记录' };
+      const logOf = (name) => {
+        if (logs[name]) return logs[name];
+        if (item.lastUpdatedRole === 'teacher' && item.lastUpdatedBy === name) return item.lastUpdatedAt || '';
+        return '';
+      };
       entries.sort((a, b) => {
         if (b[1] !== a[1]) return b[1] - a[1];
-        if (item.lastUpdatedRole === 'teacher' && item.lastUpdatedBy === a[0]) return -1;
-        if (item.lastUpdatedRole === 'teacher' && item.lastUpdatedBy === b[0]) return 1;
-        return 0;
+        /* 次数相同时，取最近一次更新该门课件的老师 */
+        return String(logOf(b[0])).localeCompare(String(logOf(a[0])));
       });
       const [name, count] = entries[0];
       return { name, count, text: `主力更新老师：${name} (${count}次)` };
@@ -745,8 +753,8 @@
       const list = libraryAuditRecords();
       const shown = state.auditShowAll ? list : list.slice(0, AUDIT_PREVIEW);
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10" data-audit-scope="library" data-readonly="true">
-        ${pageHeader('变更日志', '平台课件库 · 字典与资产层审计', `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`)}
-        <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">仅管理员可见 · 记录新建课件、元数据编辑、级别调整与启停切换；不含学员在学课件的绑定与升阶记录。</div>
+        ${pageHeader('变更日志', '平台课件库 · 新建、编辑与启停记录', `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`)}
+        <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">仅管理员可见 · 记录新建课件、课件信息编辑、级别调整与启停切换；不含学员在学课件的绑定与升阶记录。</div>
         <div class="grid grid-cols-3 gap-2">
           ${miniStat('审计记录', all.length, 'indigo')}
           ${miniStat('涉及课件', new Set(all.map((r) => r.cwId)).size, 'slate')}
@@ -762,11 +770,11 @@
         <div class="space-y-2">
           ${shown.length ? shown.map(auditCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center">
             <div class="text-[14px] font-bold text-slate-700">暂无变更记录</div>
-            <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">该课件尚未产生新建、元数据编辑、级别调整或启停切换记录。</p>
+            <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">该课件尚未产生新建、信息编辑、级别调整或启停切换记录。</p>
           </div>`}
         </div>
         ${list.length > AUDIT_PREVIEW ? `<button data-action="toggle-audit-all" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">${state.auditShowAll ? '收起记录' : `展开最近记录（共 ${list.length} 条）`}</button>` : ''}
-        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">日志为只读审计记录，按操作时间倒序展示；每条记录保留操作人、时间与变更前后快照，不可编辑或删除。</div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">日志为只读记录，按操作时间倒序展示；每条记录保留操作人、时间与修改前后内容，不可编辑或删除。</div>
       </div>`;
     }
 
@@ -782,7 +790,7 @@
         <p class="mt-0.5 text-[12px] font-medium text-slate-600"><span class="font-mono">${esc(r.at)}</span> · 操作人 ${esc(r.by)}</p>
         <details class="group mt-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2">
           <summary class="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
-            <span class="text-[12px] font-bold text-slate-700">变更前后快照</span>
+            <span class="text-[12px] font-bold text-slate-700">修改前后内容</span>
             <span class="flex items-center gap-1 text-[12px] font-semibold text-indigo-600">
               <span class="group-open:hidden">展开</span>
               <span class="hidden group-open:inline">收起</span>
@@ -1044,10 +1052,16 @@
      * ------------------------------------------------------------------ */
     function filteredLibrary() {
       const q = state.libQuery.trim().toLowerCase();
+      /* 默认排序：启用中在前、已停用在后；同状态按英文名 A → Z */
       return state.courseware.filter((cw) => {
         const qOk = !q || cw.nameCn.toLowerCase().includes(q) || cw.nameEn.toLowerCase().includes(q);
         const statusOk = state.libStatus === 'all' || (state.libStatus === 'active' ? cw.active : !cw.active);
         return qOk && statusOk;
+      }).sort((a, b) => {
+        if (a.active !== b.active) return a.active ? -1 : 1;
+        const byEn = String(a.nameEn || '').localeCompare(String(b.nameEn || ''), 'en', { sensitivity: 'base' });
+        if (byEn !== 0) return byEn;
+        return String(a.nameCn || '').localeCompare(String(b.nameCn || ''), 'zh-Hans-CN');
       });
     }
 
@@ -1060,7 +1074,7 @@
       const canWrite = state.online === 'on';
 
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-        ${pageHeader('课件库', '平台课件资产 · 分级样课', `<div class="flex shrink-0 items-center gap-1.5">
+        ${pageHeader('课件库', '平台课件资产 · 启用中在前 · 同状态英文名 A–Z', `<div class="flex shrink-0 items-center gap-1.5">
           <button data-action="open-audit" data-admin-only="true" class="h-8 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">变更日志</button>
           <button data-action="create-courseware" ${canWrite ? '' : 'disabled'} class="h-8 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 新建课件</button>
         </div>`)}
@@ -1073,12 +1087,13 @@
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
           <input id="libSearch" value="${esc(state.libQuery)}" placeholder="搜索中文名 / 英文名" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
         </div>
-        <div class="flex items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <span class="shrink-0 pr-0.5 text-[12px] font-medium text-slate-500">状态</span>
-          ${[['all', '全部'], ['active', '启用'], ['inactive', '停用']].map(([key, label]) => {
-            const on = state.libStatus === key;
-            return `<button data-action="lib-status" data-status="${key}" class="h-8 shrink-0 whitespace-nowrap rounded-full border-0 px-3 text-[12px] transition ${on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}</button>`;
-          }).join('')}
+        <div class="flex items-center gap-2">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500">${icon('filter', 'h-4 w-4')}</span>
+          <select id="libStatus" class="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-[14px] font-semibold text-slate-700 outline-none focus:border-indigo-500">
+            <option value="all" ${state.libStatus === 'all' ? 'selected' : ''}>全部状态</option>
+            <option value="active" ${state.libStatus === 'active' ? 'selected' : ''}>启用中</option>
+            <option value="inactive" ${state.libStatus === 'inactive' ? 'selected' : ''}>已停用</option>
+          </select>
         </div>
         <div class="${grid}">
           ${list.length ? list.map(libraryCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center text-[14px] font-medium text-slate-500">没有匹配的课件</div>`}
@@ -1428,7 +1443,7 @@
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
               <h2 class="text-[16px] font-bold text-slate-900">在学课件 <span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-500">${draft.length}/6</span></h2>
-              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">管理员、负责班长、授课老师与家长均可维护；家长仅可调整本人名下在读孩子；保存后同步老师课表并提醒负责班长与授课老师</p>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">管理员、负责班长、授课老师与家长均可调整级别、更新学习进度；家长仅限本人名下在读孩子；保存后同步老师课表并提醒负责班长与授课老师</p>
             </div>
             ${canWriteRole ? `<button data-action="save-config" ${online ? '' : 'disabled'} class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">保存生效</button>` : ''}
           </div>
@@ -1447,7 +1462,7 @@
           ${auditDetails(s)}
         </section>
 
-        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${parentBlocked ? '该学员档案当前非 ACTIVE，家长仅可查看；如需调整请联系负责班长。' : canWriteRole ? '停用课件不会自动解绑；已绑定的停用课件继续展示【已停用】。保存后老师日历与家长端即时刷新；家长修改时提醒负责班长与授课老师。' : '在学课件由管理员、负责班长、授课老师与家长共同维护。'}</div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${parentBlocked ? '该学员档案当前非 ACTIVE，家长仅可查看；如需调整请联系负责班长。' : canWriteRole ? '停用课件不会自动解绑；已绑定的停用课件继续展示【已停用】。保存后老师日历与家长端即时刷新；家长修改时同步提醒负责班长与授课老师。' : '在学课件由管理员、负责班长、授课老师与家长共同维护。'}</div>
       </div>`;
     }
 
@@ -1500,7 +1515,7 @@
         <summary class="flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden">
           <span class="min-w-0">
             <span class="block text-[14px] font-bold text-slate-800">历史升阶与变更日志</span>
-            <span class="block text-[12px] font-medium text-slate-500">学员在学课件 · 绑定层记录</span>
+            <span class="block text-[12px] font-medium text-slate-500">学员在学课件 · 升阶与变更记录</span>
           </span>
           <span class="shrink-0 text-[12px] font-medium text-slate-500">${s.audit.length} 条</span>
         </summary>
@@ -1541,6 +1556,8 @@
           if (state.role === 'teacher') {
             const tName = operatorName();
             item.teacherUpdateCounts[tName] = (item.teacherUpdateCounts[tName] || 0) + 1;
+            item.teacherUpdateLog = item.teacherUpdateLog || {};
+            item.teacherUpdateLog[tName] = AUDIT_NOW;
           }
         }
       });
@@ -1584,7 +1601,11 @@
       if (state.draft.some((d) => d.cwId === cw.id)) return showToast('该课件已在在学列表中');
       const pText = (state.pickProgress || '').trim().slice(0, 64);
       const tCounts = {};
-      if (pText && state.role === 'teacher') tCounts[operatorName()] = 1;
+      const tLogs = {};
+      if (pText && state.role === 'teacher') {
+        tCounts[operatorName()] = 1;
+        tLogs[operatorName()] = AUDIT_NOW;
+      }
       state.draft.push({
         cwId: cw.id,
         levelId: state.pickLevel || '',
@@ -1593,7 +1614,8 @@
         lastUpdatedBy: pText ? operatorName() : '',
         lastUpdatedRole: pText ? state.role : '',
         boundAt: TODAY,
-        teacherUpdateCounts: tCounts
+        teacherUpdateCounts: tCounts,
+        teacherUpdateLog: tLogs
       });
       state.overlay = null;
       renderAll();
@@ -1617,7 +1639,7 @@
         <div class="${grid}">
           ${items.length ? items.map(parentCoursewareCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center text-[14px] font-medium text-slate-500">该孩子暂未配置在学课件</div>`}
         </div>
-        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">家长可自助调整本人名下在读孩子的在学课件 · 保存后同步老师课表并提醒负责班长与授课老师。点击封面可查看当前级别样课内页。</div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">家长可自助调整本人名下在读孩子的在学课件与级别、更新学习进度 · 保存后同步老师课表并提醒负责班长与授课老师。点击封面可查看当前级别样课内页。</div>
       </div>`;
     }
 
@@ -1706,14 +1728,14 @@
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <h2 class="text-[16px] font-bold text-slate-900">在学课件 <span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 align-middle font-mono text-[12px] font-bold text-slate-500">${items.length}/6</span></h2>
-              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">Current Courseware · 优先置顶主力更新为本人（David）的课件；支持预览样课与就地更新进度</p>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">优先展示本人多次更新进度的课件；可查看样课并记录学习进度</p>
             </div>
             <button data-action="open-config" class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70">编辑在学课件</button>
           </div>
           <div class="mt-2.5 space-y-2">
             ${items.length ? items.map((item, idx) => teacherCoursewareCard(item, idx)).join('') : `<span class="text-[14px] font-medium text-slate-500">该学员暂未配置在学课件</span>`}
           </div>
-          <div class="mt-2.5 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">备课参考标签 · 不与单节预约排课执行强阻断校验。</div>
+          <div class="mt-2.5 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">课件信息仅作课前备课参考，不影响正常预约上课。</div>
         </section>
       </div>`;
     }
@@ -1993,10 +2015,11 @@
             </div>
 
             <div>
-              <div class="mb-1 flex items-center justify-between gap-2">
-                <label for="progressDrawerInput" class="text-[12px] font-bold text-slate-700">当前学习进度</label>
+              <div class="mb-0.5 flex items-center justify-between gap-2">
+                <label for="progressDrawerInput" class="text-[12px] font-bold text-slate-700">当前学习进度 <span class="font-medium text-slate-500">（选填）</span></label>
                 <span id="progressDrawerCount" class="font-mono text-[12px] font-semibold text-slate-500">${currentVal.length}/64</span>
               </div>
+              <p class="mb-1.5 text-[12px] font-medium leading-relaxed text-slate-500">记录当前上到的单元或页码，最多 64 字。</p>
               <div class="flex items-center gap-2">
                 <input id="progressDrawerInput" value="${esc(currentVal)}" maxlength="64" placeholder="如 Unit 3 · Page 24 / 第4单元第12页" class="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-[14px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white">
                 <button type="button" data-action="clear-progress-input" class="h-11 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-600 hover:bg-slate-50">清空</button>
@@ -2009,6 +2032,8 @@
                 ${chips.map((c) => `<button type="button" data-action="fill-progress-chip" data-value="${esc(c)}" class="rounded-full border border-indigo-200 bg-indigo-50/70 px-2.5 py-1 text-[12px] font-semibold text-indigo-700 transition hover:bg-indigo-100">${esc(c)}</button>`).join('')}
               </div>
             </div>
+
+            <p class="text-[12px] font-medium leading-relaxed text-slate-500">更完整的教学备注，请前往学员档案的【备忘录】查看与维护。</p>
           </div>
 
           <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white px-4 py-3">
@@ -2054,7 +2079,6 @@
       if (action === 'switch-student') return setStudent(el.dataset.id);
       if (action === 'create-courseware') return openEditor('create');
       if (action === 'edit-cw') return openEditor('edit', el.dataset.id);
-      if (action === 'lib-status') { state.libStatus = el.dataset.status; return renderAll(); }
       if (action === 'toggle-cw') {
         if (state.online === 'off') return showToast('离线模式下不可启停课件');
         const cw = findCw(el.dataset.id);
@@ -2283,7 +2307,10 @@
           target.lastUpdatedRole = state.role;
           target.teacherUpdateCounts = target.teacherUpdateCounts || {};
           if (state.role === 'teacher') {
-            target.teacherUpdateCounts[operatorName()] = (target.teacherUpdateCounts[operatorName()] || 0) + 1;
+            const tName = operatorName();
+            target.teacherUpdateCounts[tName] = (target.teacherUpdateCounts[tName] || 0) + 1;
+            target.teacherUpdateLog = target.teacherUpdateLog || {};
+            target.teacherUpdateLog[tName] = AUDIT_NOW;
           }
         };
         applyMeta(liveItem);
@@ -2350,6 +2377,7 @@
 
     document.getElementById('frame').addEventListener('change', (e) => {
       const id = e.target.id;
+      if (id === 'libStatus') { state.libStatus = e.target.value; return renderContentOnly(); }
       if (id === 'auditCw') { state.auditCwId = e.target.value; state.auditShowAll = false; return renderContentOnly(); }
       if (id === 'fCoverInput') return handleCoverFile(e.target.files && e.target.files[0]);
       if (id && id.startsWith('fLevelImg-')) return handleLevelImages(Number(id.split('-')[1]), e.target.files);

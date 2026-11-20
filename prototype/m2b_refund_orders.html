@@ -32,7 +32,7 @@
       <div class="flex items-center gap-2">
         <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-amber-300"><i data-lucide="undo-2" class="h-3.5 w-3.5"></i></span>
         <span class="text-[14px] font-bold text-slate-900">课次清退</span>
-        <span class="hidden text-[12px] font-medium text-slate-500 lg:inline">剩余待排课次扣减 · 财务备注留痕 · 周转账单零耦合</span>
+        <span class="hidden text-[12px] font-medium text-slate-500 lg:inline">多价位联合清退 · 财务备注留痕 · 周转账单零耦合</span>
       </div>
 
       <div class="flex items-center gap-2">
@@ -88,47 +88,116 @@
   <!-- Tailwind CDN 动态类安全垫 -->
   <div class="hidden">
     <span class="bg-gradient-to-br from-slate-800 via-blue-900 to-slate-700 from-slate-900 via-fuchsia-950 to-slate-800 from-slate-900 via-violet-950 to-slate-800"></span>
-    <span class="bg-amber-50/80 border-amber-200/70 bg-amber-100 text-amber-800 text-amber-700 text-amber-950 text-amber-900/85 bg-amber-600 hover:bg-amber-700 border-amber-300 bg-white/70 bg-amber-50/50 bg-amber-50 text-amber-900 ring-1 ring-amber-300"></span>
+    <span class="bg-amber-50/80 border-amber-200/70 bg-amber-50/50 bg-amber-100 text-amber-800 text-amber-700 text-amber-950 text-amber-900/85 bg-amber-600 hover:bg-amber-700 border-amber-300 bg-white/70 bg-amber-50 text-amber-900 ring-1 ring-amber-300"></span>
     <span class="bg-emerald-50/80 border-emerald-200/70 bg-emerald-100 text-emerald-800 text-emerald-700 text-emerald-950 text-emerald-900/85 bg-emerald-600 hover:bg-emerald-700 border-emerald-300 bg-white/70 bg-emerald-50"></span>
     <span class="bg-rose-50/80 border-rose-200/70 border-rose-200 border-l-4 border-l-rose-600 box-border bg-rose-100 text-rose-800 text-rose-700 text-rose-950 text-rose-900/85 bg-rose-600 hover:bg-rose-700 border-rose-300 bg-white/70 bg-rose-50"></span>
-    <span class="bg-slate-50 border-slate-200/80 bg-slate-100 text-slate-700 text-slate-600 text-slate-500 bg-slate-400 bg-slate-900 hover:bg-slate-800 border-slate-300 bg-white/70 text-slate-300 bg-slate-50/80 opacity-65"></span>
-    <span class="bg-indigo-50/80 border-indigo-200/70 bg-indigo-100 text-indigo-800 text-indigo-700 text-indigo-950 text-indigo-900/85 bg-indigo-600 hover:bg-indigo-700 border-indigo-300 bg-white/70"></span>
-    <span class="bg-white/60 bg-white/70 bg-white/20 bg-white/15 ring-white/30 bg-slate-900/40 backdrop-blur-[1px]"></span>
-    <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-h-[92%] max-w-[560px] max-w-[360px] grid-cols-1 grid-cols-2 grid-cols-3 line-clamp-2"></span>
+    <span class="bg-slate-50 border-slate-200/80 bg-slate-100 text-slate-700 text-slate-600 text-slate-500 bg-slate-400 bg-slate-900 hover:bg-slate-800 border-slate-300 bg-white/70 text-slate-300 bg-slate-50/80 bg-slate-50/70 border-slate-400 opacity-65 opacity-60"></span>
+    <span class="bg-indigo-50/80 border-indigo-200/70 bg-indigo-100 text-indigo-800 text-indigo-700 text-indigo-950 text-indigo-900/85 bg-indigo-600 hover:bg-indigo-700 border-indigo-300 bg-white/70 border-indigo-100"></span>
+    <span class="bg-white/60 bg-white/70 bg-white/20 bg-white/15 ring-white/30 bg-slate-900/40 backdrop-blur-[1px] border-dashed"></span>
+    <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-h-[92%] max-w-[560px] max-w-[360px] grid-cols-1 grid-cols-2 grid-cols-3 line-clamp-2 w-12 w-9 h-9 h-10 w-11"></span>
   </div>
 
   <script>
     /* ------------------------------------------------------------------
      * 演示数据
      * ------------------------------------------------------------------ */
+    const TODAY = new Date('2026-11-20T12:00:00');
+
     const STUDENTS = [
-      { key: 'alice', name: 'AliceZ12', nickname: '跳跳', age: '10岁', holder: 'Leo' },
-      { key: 'bob', name: 'BobZ10', nickname: '豆豆', age: '8岁', holder: 'Leo' },
-      { key: 'emma', name: 'EmmaZ10', nickname: '果果', age: '10岁', holder: 'Mia' },
-      { key: 'noah', name: 'NoahZ08', nickname: '诺诺', age: '9岁', holder: '平台' }
+      { key: 'alice', name: 'AliceZ12', nickname: '跳跳', age: '10岁' },
+      { key: 'bob', name: 'BobZ10', nickname: '豆豆', age: '8岁' },
+      { key: 'emma', name: 'EmmaZ10', nickname: '果果', age: '10岁' },
+      { key: 'noah', name: 'NoahZ08', nickname: '诺诺', age: '9岁' }
     ];
     const PARENT_CHILDREN = ['alice', 'bob'];
 
+    // 资产按“价位档位 + 资金持有人”建模：1v1 待排 TS 不分固定/临时。
     const INITIAL_ORDERS = [
-      { id: 'CO-20261110-01', studentKey: 'alice', type: '1v1 固定位', assetDetail: '固定位待排期：6 节', holder: 'Leo', status: 'PAID', total: 14, pending: 6, scheduled: 2, finished: 6 },
-      { id: 'CO-20261012-02', studentKey: 'alice', type: '1v1 临时课', assetDetail: '临时课待排期：0 节', holder: 'Leo', status: 'REFUNDED', total: 8, pending: 0, scheduled: 0, finished: 6 },
-      { id: 'CO-20261025-01', studentKey: 'bob', type: '1v1 临时课', assetDetail: '临时课待排期：18积分×1 节、21积分×1 节', holder: 'Leo', status: 'PAID', total: 4, pending: 2, scheduled: 0, finished: 2 },
-      { id: 'CO-20261002-09', studentKey: 'emma', type: '1v1 固定位', assetDetail: '固定位待排期：4 节', holder: 'Mia', status: 'PARTIALLY_REFUNDED', total: 13, pending: 4, scheduled: 1, finished: 8 },
-      { id: 'CO-20261112-03', studentKey: 'noah', type: '1v1 临时课', assetDetail: '临时课待排期：20积分×3 节', holder: '平台', status: 'PAID', total: 6, pending: 3, scheduled: 1, finished: 2 }
+      {
+        id: 'CO-20261110-01', studentKey: 'alice', type: '1v1 课次', holder: 'Leo', status: 'PARTIALLY_REFUNDED', scheduled: 2, finished: 5,
+        tiers: [{ kind: '1v1', price: 16, remaining: 4 }, { kind: '1v1', price: 18, remaining: 1 }]
+      },
+      {
+        id: 'CO-20260928-06', studentKey: 'alice', type: '1v1 课次', holder: 'Mia', status: 'PAID', scheduled: 0, finished: 2,
+        tiers: [{ kind: '1v1', price: 21, remaining: 1 }]
+      },
+      {
+        id: 'CO-20261025-01', studentKey: 'bob', type: '1v1 课次', holder: 'Leo', status: 'PARTIALLY_REFUNDED', scheduled: 0, finished: 2,
+        tiers: [{ kind: '1v1', price: 18, remaining: 1 }, { kind: '1v1', price: 21, remaining: 1 }]
+      },
+      {
+        id: 'CO-20261002-09', studentKey: 'emma', type: '1v1 课次', holder: 'Mia', status: 'PARTIALLY_REFUNDED', scheduled: 1, finished: 8,
+        tiers: [{ kind: '1v1', price: 16, remaining: 4 }]
+      },
+      {
+        id: 'CO-20261030-05', studentKey: 'emma', type: '小班课', holder: 'Mia', status: 'PARTIALLY_REFUNDED', scheduled: 0, finished: 2,
+        tiers: [{ kind: '小班', price: 22, remaining: 2, className: 'KET1' }]
+      },
+      {
+        id: 'CO-20261112-03', studentKey: 'noah', type: '1v1 课次', holder: '平台', status: 'PARTIALLY_REFUNDED', scheduled: 1, finished: 2,
+        tiers: [{ kind: '1v1', price: 20, remaining: 3 }]
+      }
     ];
 
     const INITIAL_RECORDS = [
       {
-        id: 'CD-20261108-02', studentKey: 'alice', at: '2026-11-08 20:15', n: 2, by: 'Leo', holder: 'Leo', isFallback: false,
-        note: '家长调整课业安排，线下微信退费 ¥200，退回 2 节临时课。',
-        orderId: 'CO-20261012-02', after: 6, prevStatus: 'PAID', newStatus: 'REFUNDED',
-        proofs: [{ name: '微信打款凭证_20261108.png', size: 245 * 1024 }]
+        id: 'CD-20261119-05', studentKey: 'alice', at: '2026-11-19 19:05', by: 'Leo', isFallback: false,
+        note: '家长临时调整课业安排，线下微信退费 ¥160，退回 1 节 16 积分课次。',
+        items: [{ kind: '1v1', price: 16, n: 1, holder: 'Leo' }],
+        n: 1, totalPoints: 16, orderIds: ['CO-20261110-01'], after: 6,
+        proofs: [{ name: '微信转账_20261119.png', size: 268 * 1024 }],
+        statusChanges: [{ orderId: 'CO-20261110-01', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
       },
       {
-        id: 'CD-20261105-01', studentKey: 'emma', at: '2026-11-05 16:40', n: 3, by: 'Mia', holder: 'Mia', isFallback: false,
-        note: '家长移居停课，线下支付宝退费 ¥450，已与家长核对剩余课次。',
-        orderId: 'CO-20261002-09', after: 4, prevStatus: 'PAID', newStatus: 'PARTIALLY_REFUNDED',
-        proofs: []
+        id: 'CD-20261116-04', studentKey: 'alice', at: '2026-11-16 18:42', by: 'Leo', isFallback: false,
+        note: '家长工作调整，线下微信退费 ¥320，退回 2 节 16 积分课次。',
+        items: [{ kind: '1v1', price: 16, n: 2, holder: 'Leo' }],
+        n: 2, totalPoints: 32, orderIds: ['CO-20261110-01'], after: 6,
+        proofs: [{ name: '微信转账_20261116.png', size: 236 * 1024 }],
+        statusChanges: [{ orderId: 'CO-20261110-01', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+      },
+      {
+        id: 'CD-20261112-03', studentKey: 'bob', at: '2026-11-12 20:16', by: 'Leo', isFallback: false,
+        note: '家长调整周末安排，线下支付宝退费 ¥210，退回 1 节 21 积分课次。',
+        items: [{ kind: '1v1', price: 21, n: 1, holder: 'Leo' }],
+        n: 1, totalPoints: 21, orderIds: ['CO-20261025-01'], after: 2,
+        proofs: [],
+        statusChanges: [{ orderId: 'CO-20261025-01', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+      },
+      {
+        id: 'CD-20261105-02', studentKey: 'emma', at: '2026-11-05 16:40', by: 'Sarah', isFallback: true,
+        note: '管理员兜底：家长移居停课，线下微信退费 ¥900；已与持有人 Mia 与家长三方确认，退回 1v1 16 积分 2 节及小班待排 1 节。',
+        items: [{ kind: '1v1', price: 16, n: 2, holder: 'Mia' }, { kind: '小班', price: 22, n: 1, holder: 'Mia', className: 'KET1' }],
+        n: 3, totalPoints: 54, orderIds: ['CO-20261002-09', 'CO-20261030-05'], after: 6,
+        proofs: [{ name: '微信转账凭证_20261105.png', size: 312 * 1024 }, { name: '家长确认截图_20261105.png', size: 188 * 1024 }],
+        statusChanges: [
+          { orderId: 'CO-20261002-09', from: 'PARTIALLY_REFUNDED', to: 'PARTIALLY_REFUNDED' },
+          { orderId: 'CO-20261030-05', from: 'PAID', to: 'PARTIALLY_REFUNDED' }
+        ]
+      },
+      {
+        id: 'CD-20261028-01', studentKey: 'noah', at: '2026-10-28 11:08', by: 'Sarah', isFallback: false,
+        note: '平台直管课次，家长转学停课，线下微信退费 ¥400，退回 2 节 20 积分课次。',
+        items: [{ kind: '1v1', price: 20, n: 2, holder: '平台' }],
+        n: 2, totalPoints: 40, orderIds: ['CO-20261112-03'], after: 3,
+        proofs: [],
+        statusChanges: [{ orderId: 'CO-20261112-03', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+      },
+      {
+        id: 'CD-20260915-09', studentKey: 'alice', at: '2026-09-15 10:22', by: 'Leo', isFallback: false,
+        note: '暑期课程调整，线下微信退费 ¥390，退回 18 积分 1 节与 21 积分 1 节。',
+        items: [{ kind: '1v1', price: 18, n: 1, holder: 'Leo' }, { kind: '1v1', price: 21, n: 1, holder: 'Mia' }],
+        n: 2, totalPoints: 39, orderIds: ['CO-20260902-01'], after: 8,
+        proofs: [{ name: '微信转账_20260915.png', size: 221 * 1024 }],
+        statusChanges: [{ orderId: 'CO-20260902-01', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+      },
+      {
+        id: 'CD-20260801-08', studentKey: 'noah', at: '2026-08-01 09:35', by: 'Sarah', isFallback: false,
+        note: '平台课次清退，家长线下现金退费 ¥200，退回 1 节 20 积分课次。',
+        items: [{ kind: '1v1', price: 20, n: 1, holder: '平台' }],
+        n: 1, totalPoints: 20, orderIds: ['CO-20260725-02'], after: 4,
+        proofs: [],
+        statusChanges: [{ orderId: 'CO-20260725-02', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
       }
     ];
 
@@ -177,23 +246,28 @@
      * 状态与工具
      * ------------------------------------------------------------------ */
     function clone(v) { return JSON.parse(JSON.stringify(v)); }
+    function emptyDeduct() { return { studentKey: null, inputs: {}, note: '', proofs: [], errors: {} }; }
 
     const state = {
       role: 'monitor',
-      page: 'list',
+      page: 'records',
       navTab: 'ops',
       device: 'mobile',
       online: 'on',
-      activeStudent: 'alice',
       activeRecordId: null,
-      holderFilter: 'all',
+      activeStudentKey: null,
+      activeOrderId: null,
+      back: null,
       query: '',
+      range: '30',
+      adminHolder: 'all',
+      method: 'all',
       overlay: null,
-      deduct: { orderId: null, count: '1', note: '', proofs: [], errorCount: '', errorNote: '', errorProof: '' },
+      deduct: emptyDeduct(),
       orders: clone(INITIAL_ORDERS),
       records: clone(INITIAL_RECORDS)
     };
-    let lastViewKey = null;
+    let lastPageKey = null;
 
     const params = new URLSearchParams(location.search);
     if (['monitor', 'other_monitor', 'parent', 'admin'].includes(params.get('role'))) {
@@ -202,18 +276,28 @@
     }
     if (params.get('device') === 'tablet') state.device = 'tablet';
     if (params.get('online') === 'off') state.online = 'off';
-    if (params.get('student')) state.activeStudent = params.get('student');
-    if (['all', 'Leo', 'Mia', '平台'].includes(params.get('holder'))) state.holderFilter = params.get('holder');
-    if (params.get('page') === 'detail') {
-      state.page = 'detail';
-      state.activeRecordId = params.get('record') || null;
-    }
+    if (['student', 'record', 'order'].includes(params.get('page'))) state.page = params.get('page');
+    if (params.get('student')) state.activeStudentKey = params.get('student');
+    if (params.get('record')) state.activeRecordId = params.get('record');
+    if (params.get('order')) state.activeOrderId = params.get('order');
+    if (['30', '90', 'all'].includes(params.get('range'))) state.range = params.get('range');
+    if (['all', 'self', 'Leo', 'Mia', '平台'].includes(params.get('holder'))) state.adminHolder = params.get('holder');
+    if (['all', 'self', 'fallback'].includes(params.get('method'))) state.method = params.get('method');
+    if (params.get('q')) state.query = params.get('q');
     const bootOverlay = params.get('overlay');
+    const bootPreset = params.get('preset');
+    const bootScroll = params.get('scroll');
 
     const $ = (id) => document.getElementById(id);
     const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
     const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const fmtSize = (n) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(n / 1024))}KB`);
+    const pad2 = (n) => String(n).padStart(2, '0');
+
+    if (params.get('embed') === '1') {
+      $('console').classList.add('hidden');
+      document.querySelector('main').className = 'flex justify-center';
+    }
 
     function roleMeta() { return ROLE_META[state.role]; }
     function navItems() { return NAVS[state.role]; }
@@ -231,37 +315,131 @@
     function orderById(id) { return state.orders.find((o) => o.id === id) || null; }
     function recordById(id) { return state.records.find((r) => r.id === id) || null; }
     function ordersForStudent(key) { return state.orders.filter((o) => o.studentKey === key); }
-    function recordsFor(key) { return state.records.filter((r) => r.studentKey === key); }
+    function recordHolders(r) { return [...new Set((r.items || []).map((i) => i.holder))]; }
+    function recordPoints(r) {
+      if (typeof r.totalPoints === 'number') return r.totalPoints;
+      return (r.items || []).reduce((a, i) => a + i.price * i.n, 0);
+    }
+    function itemKindLabel(item) {
+      if (item.kind === '小班') return `小班待排${item.className ? ' · ' + item.className : ''}`;
+      return '1v1 待排';
+    }
+    function orderRemaining(o) { return (o.tiers || []).reduce((a, t) => a + t.remaining, 0); }
+    function orderPoints(o) { return (o.tiers || []).reduce((a, t) => a + t.remaining * t.price, 0); }
+    function assetDetailText(o) {
+      const parts = (o.tiers || []).filter((t) => t.remaining > 0)
+        .map((t) => `${t.price}积分×${t.remaining}节`);
+      return parts.length ? parts.join(' · ') : '无剩余待排期';
+    }
+    function sortedRecords(list) { return list.slice().sort((a, b) => b.at.localeCompare(a.at)); }
+    function formatDateTime(d) {
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }
+    function parseQty(raw) {
+      const s = String(raw ?? '').trim();
+      if (s === '') return 0;
+      const n = Number(s);
+      return Number.isFinite(n) && Number.isInteger(n) && n >= 0 ? n : null;
+    }
 
-    function assetOf(key) {
-      const list = ordersForStudent(key);
+    function pendingTierRows(studentKey) {
+      const rows = [];
+      ordersForStudent(studentKey).forEach((o) => {
+        (o.tiers || []).forEach((t, idx) => {
+          if (t.remaining <= 0) return;
+          rows.push({
+            key: `${o.id}#${idx}`, orderId: o.id, idx, studentKey,
+            kind: t.kind, price: t.price, remaining: t.remaining, holder: o.holder,
+            className: t.className || ''
+          });
+        });
+      });
+      const monitor = isMonitorRole();
+      const holderRank = (h) => (monitor ? (h === actor() ? 0 : 1) : (h === '平台' ? 0 : 1));
+      const kindRank = (k) => (k === '小班' ? 1 : 0);
+      rows.sort((a, b) => holderRank(a.holder) - holderRank(b.holder)
+        || a.holder.localeCompare(b.holder, 'zh-CN')
+        || kindRank(a.kind) - kindRank(b.kind)
+        || a.price - b.price
+        || a.orderId.localeCompare(b.orderId));
+      return rows;
+    }
+
+    function groupRowsByHolder(rows) {
+      const map = new Map();
+      rows.forEach((r) => {
+        if (!map.has(r.holder)) map.set(r.holder, []);
+        map.get(r.holder).push(r);
+      });
+      return Array.from(map.entries()).map(([holder, list]) => ({ holder, list }));
+    }
+
+    function studentTotals(key) {
+      const rows = pendingTierRows(key);
+      const orders = ordersForStudent(key);
       return {
-        pending: list.reduce((a, o) => a + o.pending, 0),
-        scheduled: list.reduce((a, o) => a + o.scheduled, 0),
-        finished: list.reduce((a, o) => a + o.finished, 0)
+        pending: rows.reduce((a, r) => a + r.remaining, 0),
+        points: rows.reduce((a, r) => a + r.remaining * r.price, 0),
+        scheduled: orders.reduce((a, o) => a + (o.scheduled || 0), 0),
+        finished: orders.reduce((a, o) => a + (o.finished || 0), 0),
+        holders: [...new Set(orders.map((o) => o.holder))]
       };
     }
 
-    function primaryOrderFor(key) {
-      return ordersForStudent(key).find((o) => o.pending > 0) || null;
+    function rowEditable(row) {
+      if (state.role === 'parent') return false;
+      if (state.role === 'admin') return true;
+      return row.holder === actor();
     }
 
-    function visibleStudents() {
-      let list;
-      if (state.role === 'parent') list = STUDENTS.filter((s) => PARENT_CHILDREN.includes(s.key));
-      else if (isMonitorRole()) list = STUDENTS;
-      else list = STUDENTS.filter((s) => state.holderFilter === 'all' || s.holder === state.holderFilter);
+    function canViewRecord(r) {
+      if (!r) return false;
+      if (state.role === 'admin') return true;
+      if (isMonitorRole()) return r.by === actor() || recordHolders(r).includes(actor());
+      return PARENT_CHILDREN.includes(r.studentKey);
+    }
+
+    function scopedRecords() {
+      if (state.role === 'admin') return state.records.slice();
+      if (isMonitorRole()) return state.records.filter(canViewRecord);
+      return state.records.filter((r) => PARENT_CHILDREN.includes(r.studentKey));
+    }
+
+    function filteredRecords() {
       const q = state.query.trim().toLowerCase();
-      if (state.role === 'admin' && q) {
-        list = list.filter((s) => `${s.name} ${s.nickname}`.toLowerCase().includes(q)
-          || state.orders.some((o) => o.studentKey === s.key && o.id.toLowerCase().includes(q)));
-      }
-      return list;
+      const days = state.range === '30' ? 30 : state.range === '90' ? 90 : Infinity;
+      const list = scopedRecords().filter((r) => {
+        const date = new Date(r.at.replace(' ', 'T'));
+        if (days !== Infinity && (TODAY - date) / 86400000 > days) return false;
+        if (state.role === 'admin') {
+          if (state.adminHolder === 'self') {
+            if (!(r.by === actor() || recordHolders(r).includes('平台'))) return false;
+          } else if (state.adminHolder !== 'all' && !recordHolders(r).includes(state.adminHolder)) {
+            return false;
+          }
+          if (state.method === 'self' && r.isFallback) return false;
+          if (state.method === 'fallback' && !r.isFallback) return false;
+        }
+        if (q) {
+          const s = studentByKey(r.studentKey);
+          const hay = [
+            s ? s.name : '', s ? s.nickname : '', r.note, r.by,
+            ...(r.orderIds || []),
+            ...(r.items || []).map((i) => `${i.price}积分 ${i.holder} ${i.kind}`)
+          ].join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+      return sortedRecords(list);
     }
 
-    function ensureActiveStudent() {
-      const list = visibleStudents();
-      if (list.length && !list.some((s) => s.key === state.activeStudent)) state.activeStudent = list[0].key;
+    function visibleRecordsForStudent(key) {
+      return sortedRecords(state.records.filter((r) => r.studentKey === key && canViewRecord(r)));
+    }
+
+    function visibleRecordsForOrder(orderId) {
+      return sortedRecords(state.records.filter((r) => (r.orderIds || []).includes(orderId) && canViewRecord(r)));
     }
 
     function orderStatusMeta(s) {
@@ -269,31 +447,17 @@
       if (s === 'REFUNDED') return { label: 'REFUNDED', cls: 'border-emerald-200 bg-emerald-50 text-emerald-800' };
       return { label: 'PAID', cls: 'border-slate-300 bg-slate-100 text-slate-700' };
     }
-
     function orderStatusLabel(s) { return orderStatusMeta(s).label; }
-
     function statusPill(status) {
       const m = orderStatusMeta(status);
-      return `<span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-bold ${m.cls}">${m.label}</span>`;
+      return `<span class="inline-flex whitespace-nowrap shrink-0 items-center rounded-full border px-2 py-0.5 text-[12px] font-bold ${m.cls}">${m.label}</span>`;
     }
-
     function statusChips(from, to) {
       return `${statusPill(from)}<span class="text-[12px] font-bold text-slate-500">→</span>${statusPill(to)}`;
     }
-
-    function canOperateOnHolder(holder) {
-      if (state.role === 'parent') return { ok: false, reason: 'parent', holder };
-      if (isMonitorRole() && holder !== actor()) return { ok: false, reason: 'cross_holder', holder };
-      if (state.role === 'admin') return { ok: true, isFallback: holder !== '平台', holder };
-      return { ok: true, isFallback: false, holder };
-    }
-
-    function canOperate() { return state.role !== 'parent'; }
-
-    function canViewRecord(r) {
-      if (!r) return false;
-      if (state.role === 'admin' || isMonitorRole()) return true;
-      return PARENT_CHILDREN.includes(r.studentKey) && r.studentKey === state.activeStudent;
+    function proofStatusText(r) {
+      const n = (r.proofs || []).length;
+      return n ? `已上传 ${n} 张` : '未上传';
     }
 
     /* ------------------------------------------------------------------
@@ -317,14 +481,17 @@
 
     function setRole(role) {
       state.role = role;
-      state.page = 'list';
+      state.page = 'records';
       state.navTab = boardTab();
-      state.holderFilter = 'all';
+      state.adminHolder = 'all';
+      state.method = 'all';
       state.query = '';
       state.overlay = null;
+      state.back = null;
       state.activeRecordId = null;
-      if (role === 'parent' && !PARENT_CHILDREN.includes(state.activeStudent)) state.activeStudent = PARENT_CHILDREN[0];
-      ensureActiveStudent();
+      state.activeOrderId = null;
+      state.activeStudentKey = null;
+      state.deduct = emptyDeduct();
       renderAll();
     }
 
@@ -332,8 +499,11 @@
       const item = navItems().find((n) => n.id === tab);
       if (!item) return;
       state.navTab = tab;
-      state.page = item.board ? 'list' : 'placeholder';
+      state.page = item.board ? 'records' : 'placeholder';
       state.activeRecordId = null;
+      state.activeOrderId = null;
+      state.activeStudentKey = null;
+      state.back = null;
       state.overlay = null;
       renderAll();
     }
@@ -349,16 +519,20 @@
       state.orders = clone(INITIAL_ORDERS);
       state.records = clone(INITIAL_RECORDS);
       state.role = 'monitor';
-      state.page = 'list';
+      state.page = 'records';
       state.navTab = 'ops';
       state.device = 'mobile';
       state.online = 'on';
-      state.activeStudent = 'alice';
       state.activeRecordId = null;
-      state.holderFilter = 'all';
+      state.activeStudentKey = null;
+      state.activeOrderId = null;
+      state.back = null;
       state.query = '';
+      state.range = '30';
+      state.adminHolder = 'all';
+      state.method = 'all';
       state.overlay = null;
-      state.deduct = { orderId: null, count: '1', note: '', proofs: [], errorCount: '', errorNote: '', errorProof: '' };
+      state.deduct = emptyDeduct();
       renderAll();
       showToast('演示数据已重置');
     }
@@ -383,24 +557,20 @@
       $('bottomnav').innerHTML = renderNav();
       renderOverlay();
       syncConsole();
-      const viewKey = [state.role, state.page, state.activeRecordId, state.activeStudent, state.navTab, state.online, state.overlay ? state.overlay.type : 'none'].join('|');
-      if (viewKey !== lastViewKey) {
-        lastViewKey = viewKey;
+      const pageKey = [state.role, state.page, state.activeRecordId, state.activeStudentKey, state.activeOrderId, state.navTab, state.online, state.device].join('|');
+      if (pageKey !== lastPageKey) {
+        lastPageKey = pageKey;
         $('content').scrollTop = 0;
-        const sheet = $('overlay').querySelector('[data-scroll]');
-        if (sheet) sheet.scrollTop = 0;
       }
       if (window.lucide) lucide.createIcons();
     }
 
     function renderContent() {
       if (state.page === 'placeholder') return renderPlaceholder();
-      if (state.page === 'detail') {
-        const r = recordById(state.activeRecordId);
-        if (!r || !canViewRecord(r)) return renderList();
-        return renderRecordDetail(r);
-      }
-      return renderList();
+      if (state.page === 'student') return renderStudentPage();
+      if (state.page === 'record') return renderRecordPage();
+      if (state.page === 'order') return renderOrderPage();
+      return renderRecordsPage();
     }
 
     function unreadCount() {
@@ -411,20 +581,23 @@
 
     function bannerTitle() {
       if (state.overlay) {
+        if (state.overlay.type === 'pick') return '发起课次清退';
         if (state.overlay.type === 'deduct') return '课次清退/扣减';
         if (state.overlay.type === 'confirm') return '确认清退课次';
       }
-      if (state.page === 'detail') return '清退记录详情';
+      if (state.page === 'student') return '学员课次资产';
+      if (state.page === 'record') return '清退记录详情';
+      if (state.page === 'order') return '购课单详情';
       if (state.page === 'placeholder') {
         const item = navItems().find((n) => n.id === state.navTab);
         return item ? item.label : '课次清退';
       }
-      return state.role === 'parent' ? '课次清退记录' : '课次清退';
+      return '课次清退记录';
     }
 
     function renderBanner() {
       const m = roleMeta();
-      const hasBack = state.page === 'detail';
+      const hasBack = state.page !== 'records' && state.page !== 'placeholder';
       const unread = unreadCount();
       const left = hasBack
         ? `<button data-action="banner-back" class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="返回">${icon('chevron-left', 'h-5 w-5')}</button>
@@ -469,99 +642,143 @@
     }
 
     /* ------------------------------------------------------------------
-     * 课次清退首页
+     * 独立清退记录列表页
      * ------------------------------------------------------------------ */
-    function renderList() {
+    function filterChip(label, active, action, attr, value) {
+      return `<button data-action="${action}" ${attr}="${value}" class="rounded-full px-2.5 py-1 text-[12px] font-bold transition ${active ? 'bg-slate-900 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}">${label}</button>`;
+    }
+
+    function renderRecordsPage() {
       const isParent = state.role === 'parent';
       const isAdmin = state.role === 'admin';
-      const list = visibleStudents();
-      const student = studentByKey(state.activeStudent);
-      const asset = assetOf(state.activeStudent);
-      const records = recordsFor(state.activeStudent);
+      const list = filteredRecords();
+      const canCreate = !isParent && state.online === 'on';
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
 
-      const filterRow = isAdmin
-        ? `<div class="flex items-center gap-2">
-            <div class="relative shrink-0">
-              <select id="holderFilter" class="h-10 appearance-none rounded-full border border-slate-300 bg-white pl-3 pr-8 text-[14px] font-medium text-slate-700 outline-none transition focus:border-indigo-500">
-                <option value="all" ${state.holderFilter === 'all' ? 'selected' : ''}>全部持有人</option>
-                <option value="Leo" ${state.holderFilter === 'Leo' ? 'selected' : ''}>Leo</option>
-                <option value="Mia" ${state.holderFilter === 'Mia' ? 'selected' : ''}>Mia</option>
-                <option value="平台" ${state.holderFilter === '平台' ? 'selected' : ''}>平台</option>
-              </select>
-              <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">${icon('chevron-down', 'h-4 w-4')}</span>
+      const ranges = [['30', '近 30 天'], ['90', '近 90 天'], ['all', '全部']];
+      const adminFilters = isAdmin
+        ? `<div class="mt-2 grid grid-cols-2 gap-2">
+            <div class="min-w-0">
+              <div class="mb-1 text-[12px] font-semibold text-slate-600">持有人</div>
+              <div class="relative">
+                <select id="adminHolderFilter" class="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-3 pr-8 text-[14px] font-medium text-slate-700 outline-none transition focus:border-indigo-500">
+                  <option value="all" ${state.adminHolder === 'all' ? 'selected' : ''}>全部持有人</option>
+                  <option value="self" ${state.adminHolder === 'self' ? 'selected' : ''}>⭐ 我经办/直管</option>
+                  <option value="Leo" ${state.adminHolder === 'Leo' ? 'selected' : ''}>Leo</option>
+                  <option value="Mia" ${state.adminHolder === 'Mia' ? 'selected' : ''}>Mia</option>
+                  <option value="平台" ${state.adminHolder === '平台' ? 'selected' : ''}>平台</option>
+                </select>
+                <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">${icon('chevron-down', 'h-4 w-4')}</span>
+              </div>
             </div>
-            <div class="relative min-w-0 flex-1">
-              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-              <input id="studentSearch" value="${esc(state.query)}" placeholder="搜索学员或购课单号" class="h-10 w-full rounded-full border border-slate-300 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
+            <div class="min-w-0">
+              <div class="mb-1 text-[12px] font-semibold text-slate-600">清退方式</div>
+              <div class="relative">
+                <select id="methodFilter" class="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-3 pr-8 text-[14px] font-medium text-slate-700 outline-none transition focus:border-indigo-500">
+                  <option value="all" ${state.method === 'all' ? 'selected' : ''}>全部</option>
+                  <option value="self" ${state.method === 'self' ? 'selected' : ''}>持有人自清退</option>
+                  <option value="fallback" ${state.method === 'fallback' ? 'selected' : ''}>管理员兜底代清退</option>
+                </select>
+                <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">${icon('chevron-down', 'h-4 w-4')}</span>
+              </div>
             </div>
           </div>`
         : '';
 
-      if (!list.length) {
-        return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-          ${filterRow}
-          <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-10 text-center">
-            <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-slate-600 ring-1 ring-slate-200">${icon('users', 'h-5 w-5')}</div>
-            <p class="mt-3 text-[14px] font-semibold text-slate-700">没有匹配的学员或购课单</p>
-            <p class="mt-0.5 text-[12px] font-medium text-slate-600">请调整班长筛选或搜索关键词。</p>
-          </div>
-        </div>`;
-      }
+      const createButton = isParent
+        ? `<span class="shrink-0 rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-[12px] font-bold text-slate-600">只读</span>`
+        : `<button data-action="open-picker" ${canCreate ? '' : 'disabled'} class="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl bg-indigo-600 px-3 text-[12px] font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">
+            ${icon('plus', 'h-3.5 w-3.5')} 发起课次清退
+          </button>`;
 
-      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-        ${filterRow}
-        ${renderStudentSelector()}
-        ${renderStudentCard(student, asset)}
-        ${isParent ? '' : renderOrders(student, asset)}
-        <section>
-          <div class="flex items-center justify-between px-1">
-            <h2 class="text-[16px] font-bold text-slate-900">课次清退记录</h2>
-            <span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-600">${records.length} 条</span>
+      return `<div class="pb-10">
+        <div class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-2.5 backdrop-blur">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <h1 class="text-[16px] font-bold text-slate-900">清退流水</h1>
+              <p class="truncate text-[12px] font-medium text-slate-600">共 ${list.length} 条 · 按清退时间倒序</p>
+            </div>
+            ${createButton}
           </div>
-          <div id="recordList" class="mt-2 ${grid}">
-            ${records.length ? records.map(renderRecordCard).join('') : renderEmptyRecords(isParent)}
+        </div>
+
+        <div class="space-y-3 px-4 pt-3">
+          <div class="relative">
+            <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
+            <input id="recordSearch" value="${esc(state.query)}" placeholder="搜索学员昵称/小名、购课单号或备注" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-9 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
+            ${state.query ? `<button data-action="clear-search" class="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="清除搜索">${icon('x', 'h-4 w-4')}</button>` : ''}
           </div>
-        </section>
-        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">
-          ${isParent
-            ? '仅展示当前宝贝名下课次清退记录，只读；如有疑问请联系负责班长。'
-            : isAdmin
-              ? '管理员可查看全平台学员课次清退记录；清退即时生效，记录不可编辑或删除。'
-              : '清退仅扣减待排期课次并记录财务备注，已排期课次需先在课表请假退回；周转账单仍按实际结课结算。'}
+
+          <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-2.5">
+            <div class="flex items-center gap-2">
+              <span class="shrink-0 text-[12px] font-semibold text-slate-600">时间</span>
+              <div class="flex flex-1 flex-wrap gap-1.5">
+                ${ranges.map(([value, label]) => filterChip(label, state.range === value, 'set-range', 'data-range', value)).join('')}
+              </div>
+            </div>
+            ${adminFilters}
+          </div>
+
+          <div id="recordList" class="${grid}">
+            ${list.length ? list.map((r) => renderRecordCard(r, { showStudent: true })).join('') : renderEmptyRecords()}
+          </div>
+
+          <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">
+            ${isParent
+              ? '仅展示本人孩子名下的课次清退记录，只读；如有疑问请联系负责班长。'
+              : isAdmin
+                ? '管理员展示全校清退记录，可按持有人与清退方式筛选；记录一经生成不可编辑或删除。'
+                : '班长仅展示本人作为资金持有人或本人经办的清退记录；已清退 TS 不进入周转账单与老师周课酬单。'}
+          </div>
         </div>
       </div>`;
     }
 
-    function renderStudentSelector() {
-      if (state.role === 'parent') {
-        return `<div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-[12px] font-medium text-slate-600">当前宝贝档案</span>
-            <span class="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">只读</span>
-          </div>
-          <div class="mt-2 grid grid-cols-2 gap-2">
-            ${PARENT_CHILDREN.map((key) => {
-              const s = studentByKey(key);
-              const on = key === state.activeStudent;
-              return `<button data-action="select-student" data-key="${key}" class="flex h-10 items-center justify-center gap-1.5 rounded-xl text-[14px] font-semibold transition ${on ? 'bg-indigo-600 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}">
-                <span class="grid h-6 w-6 place-items-center rounded-full text-[12px] font-bold ${on ? 'bg-white/15 text-white' : 'bg-white text-indigo-700'}">${esc(s.name.charAt(0))}</span>${esc(s.name)}
-              </button>`;
-            }).join('')}
-          </div>
-        </div>`;
-      }
-
-      const list = visibleStudents();
-      return `<div class="flex flex-wrap items-center gap-1.5">
-        <span class="text-[12px] font-medium text-slate-600">学员</span>
-        ${list.map((s) => {
-          const on = s.key === state.activeStudent;
-          return `<button data-action="select-student" data-key="${s.key}" class="rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${on ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">${esc(s.name)} · ${esc(s.nickname)}</button>`;
-        }).join('')}
+    function renderEmptyRecords() {
+      return `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-10 text-center">
+        <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-slate-600 ring-1 ring-slate-200">${icon('history', 'h-5 w-5')}</div>
+        <p class="mt-3 text-[14px] font-semibold text-slate-700">没有匹配的清退记录</p>
+        <p class="mt-0.5 text-[12px] font-medium text-slate-600">试试调整时间范围、持有人或搜索关键词。</p>
+        <button data-action="reset-filters" class="mt-3 inline-flex h-9 items-center rounded-xl border border-slate-300 bg-white px-3 text-[12px] font-bold text-slate-700 hover:bg-slate-50">重置筛选</button>
       </div>`;
     }
 
+    function renderRecordCard(r, opts = {}) {
+      const showStudent = opts.showStudent !== false;
+      const holders = recordHolders(r);
+      const points = recordPoints(r);
+      return `<article data-action="open-record" data-id="${r.id}" role="button" tabindex="0" class="cursor-pointer rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5 transition active:scale-[0.995]">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            ${showStudent
+              ? `<button data-action="open-student" data-key="${esc(r.studentKey)}" class="block max-w-full truncate text-left text-[14px] font-bold text-slate-900">
+                  ${esc(studentName(r.studentKey))} <span class="ml-1 rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(studentNickname(r.studentKey))}</span>
+                </button>
+                <div class="mt-1 font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`
+              : `<div class="font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`}
+          </div>
+          <div class="flex shrink-0 flex-wrap justify-end gap-1">
+            ${r.isFallback ? `<span class="rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">兜底代清退</span>` : ''}
+            <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-800">清退 ${r.n} 节</span>
+          </div>
+        </div>
+        <p class="mt-1.5 line-clamp-2 text-[12px] font-medium leading-relaxed text-slate-700">${esc(r.note)}</p>
+        <div class="mt-2 space-y-1 border-t border-slate-200/70 pt-2 text-[12px] font-medium text-slate-600">
+          <div class="flex items-center justify-between gap-2">
+            <span class="min-w-0 truncate">经办人 ${esc(r.by)} · 持有人 ${esc(holders.join(' / '))} · 退款总积分 <span class="font-bold text-slate-900">${points}</span></span>
+            <span class="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-indigo-600">详情 ${icon('chevron-right', 'h-3.5 w-3.5')}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="min-w-0 truncate font-mono">${esc((r.orderIds || []).join(' · '))}</span>
+            <span class="shrink-0 ${(r.proofs || []).length ? 'text-slate-600' : 'text-slate-500'}">凭证 ${proofStatusText(r)}</span>
+          </div>
+        </div>
+      </article>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 学员资产卡（内嵌倒序历史）
+     * ------------------------------------------------------------------ */
     function assetTile(label, value) {
       return `<div class="rounded-xl border border-slate-200/60 bg-white px-2 py-2 text-center">
         <div class="text-[12px] font-semibold text-slate-600">${label}</div>
@@ -569,415 +786,260 @@
       </div>`;
     }
 
-    function renderStudentCard(s, asset) {
+    function renderStudentPage() {
+      const s = studentByKey(state.activeStudentKey);
+      if (!s) return renderNotFound('学员档案不存在', '请返回清退记录列表重新选择学员。');
+      if (state.role === 'parent' && !PARENT_CHILDREN.includes(s.key)) {
+        return renderNotFound('学员档案不可见', '家长端仅可查看本人孩子的档案与清退记录。');
+      }
+      const totals = studentTotals(s.key);
+      const rows = pendingTierRows(s.key);
+      const groups = groupRowsByHolder(rows);
+      const orders = ordersForStudent(s.key);
+      const history = visibleRecordsForStudent(s.key);
       const isParent = state.role === 'parent';
-      const perm = canOperateOnHolder(s.holder);
-      const canDeduct = state.online === 'on' && perm.ok && asset.pending > 0;
-      const pendingDetails = ordersForStudent(s.key).filter((o) => o.pending > 0).map((o) => o.assetDetail);
+      const editable = rows.filter(rowEditable);
+      const blockedHolders = [...new Set(rows.filter((r) => !rowEditable(r)).map((r) => r.holder))];
+      const canDeduct = state.online === 'on' && !isParent && editable.length > 0 && totals.pending > 0;
       const actionTitle = state.online === 'off'
         ? '离线模式下不可用'
-        : !perm.ok
-          ? `该课次资金当前由 ${s.holder} 持有，请由资金持有人操作清退`
-          : (asset.pending > 0 ? '清退或扣减剩余待排期课次' : '当前没有可清退的待排期课次');
+        : isParent
+          ? '家长端只读'
+          : !editable.length
+            ? `该课次资金当前由 ${blockedHolders.join(' / ') || '他人'} 持有，请由资金持有人操作清退`
+            : '发起多价位联合清退';
       const action = isParent
         ? `<span class="shrink-0 rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">只读</span>`
-        : `<button data-action="open-deduct" ${canDeduct ? '' : 'disabled'} title="${esc(actionTitle)}" class="h-8 shrink-0 rounded-lg px-2.5 text-[12px] font-bold ${canDeduct ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-slate-200 text-slate-500'} disabled:cursor-not-allowed">课次清退/扣减</button>`;
+        : `<button data-action="open-deduct-student" ${canDeduct ? '' : 'disabled'} title="${esc(actionTitle)}" class="h-9 shrink-0 rounded-lg px-2.5 text-[12px] font-bold ${canDeduct ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-slate-200 text-slate-500'} disabled:cursor-not-allowed">课时清退/扣减</button>`;
 
-      const crossHolderAlert = !isParent && !perm.ok && perm.reason === 'cross_holder'
-        ? `<div class="box-border mt-3 w-full rounded-2xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 p-3">
-            <div class="flex items-start gap-2">
-              <span class="mt-0.5 shrink-0 text-rose-700">${icon('shield-alert', 'h-4 w-4')}</span>
-              <p class="text-[12px] font-semibold leading-relaxed text-rose-800">该课次资金当前由 ${esc(s.holder)} 持有，请由资金持有人操作清退</p>
-            </div>
-          </div>`
-        : '';
-
-      const fallbackHint = !isParent && perm.ok && perm.isFallback
-        ? `<div class="mt-3 rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
-            <p class="text-[12px] font-semibold leading-relaxed text-amber-900">管理员紧急兜底权限：当前资金由 ${esc(s.holder)} 持有，代清退时须强制上传 1～5 张线下退款/转账截图凭证并填写原因。</p>
-          </div>`
-        : '';
-
-      const scheduledNotice = !isParent && asset.pending === 0 && asset.scheduled > 0
-        ? `<div class="mt-3 rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
-            <p class="text-[12px] font-semibold leading-relaxed text-amber-900">当前无待排期课次，但名下仍有 ${asset.scheduled} 节未来已排期（SCHEDULED）课次；请先在课表释放回待排期池，不得强行作废已排课格。</p>
-          </div>`
-        : '';
-
-      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
-        <div class="flex items-start gap-2.5">
-          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-indigo-100 bg-indigo-50 text-[16px] font-bold text-indigo-700">${esc(s.name.charAt(0))}</span>
-          <div class="min-w-0 flex-1">
-            <div class="flex flex-wrap items-center gap-1.5">
-              <h2 class="truncate text-[16px] font-bold text-slate-900">${esc(s.name)}</h2>
-              <span class="shrink-0 rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">小名 ${esc(s.nickname)}</span>
-            </div>
-            <div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(s.age)} · 资金持有人：<span class="font-bold text-slate-900">${esc(s.holder)}</span></div>
-          </div>
-          ${action}
-        </div>
-        <div class="mt-3 grid grid-cols-3 gap-1.5">
-          ${assetTile('待排期', asset.pending)}
-          ${assetTile('未来已排期', asset.scheduled)}
-          ${assetTile('历史结课', asset.finished)}
-        </div>
-        ${pendingDetails.length ? `<div class="mt-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-700"><span class="font-semibold text-slate-600">可清退明细：</span>${pendingDetails.map(esc).join(' ｜ ')}</div>` : ''}
-        ${crossHolderAlert}
-        ${fallbackHint}
-        ${scheduledNotice}
-      </section>`;
-    }
-
-    function renderOrders(s, asset) {
-      const list = ordersForStudent(s.key);
-      const perm = canOperateOnHolder(s.holder);
-      const canDeduct = state.online === 'on' && perm.ok && asset.pending > 0;
-      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
-        <div class="flex items-center justify-between">
-          <h2 class="text-[16px] font-bold text-slate-900">关联购课单</h2>
-          <span class="text-[12px] font-semibold text-slate-600">${list.length} 张</span>
-        </div>
-        <div class="mt-2 space-y-1.5">
-          ${list.map((o) => {
-            const m = orderStatusMeta(o.status);
-            const orderCanDeduct = state.online === 'on' && perm.ok && o.pending > 0;
-            return `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
-              <div class="flex items-center justify-between gap-2">
-                <span class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(o.id)}</span>
-                <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${m.cls}">${m.label}</span>
-              </div>
-              <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-medium text-slate-600">
-                <span class="rounded bg-slate-100 px-1.5 py-0.5 font-bold text-slate-700">${esc(o.type)}</span>
-                <span>资金持有人：${esc(o.holder)}</span>
-              </div>
-              <div class="mt-1 flex items-center justify-between gap-2 text-[12px] font-medium text-slate-700">
-                <span>${esc(o.assetDetail)} · 已排期 ${o.scheduled} 节 · 结课 ${o.finished} 节</span>
-                ${o.pending > 0 ? `<button data-action="open-deduct" data-order="${esc(o.id)}" ${orderCanDeduct ? '' : 'disabled'} class="shrink-0 rounded-lg border px-2 py-0.5 text-[12px] font-bold ${orderCanDeduct ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'border-slate-200 bg-slate-100 text-slate-500'} disabled:cursor-not-allowed">清退</button>` : ''}
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
-        <button data-action="open-deduct" ${canDeduct ? '' : 'disabled'} title="${state.online === 'off' ? '离线模式下不可用' : !perm.ok ? `该课次资金当前由 ${s.holder} 持有，请由资金持有人操作清退` : (asset.pending > 0 ? '清退或扣减剩余待排期课次' : '当前没有可清退的待排期课次')}" class="mt-2 flex h-9 w-full items-center justify-center gap-1 rounded-lg border text-[12px] font-bold ${canDeduct ? 'border-indigo-200 bg-white text-indigo-700 hover:bg-indigo-50' : 'border-slate-200 bg-slate-100 text-slate-500'} disabled:cursor-not-allowed">
-          ${icon('minus-circle', 'h-3.5 w-3.5')} 课次清退/扣减
-        </button>
-      </section>`;
-    }
-
-    function renderEmptyRecords(isParent) {
-      return `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-10 text-center">
-        <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-slate-600 ring-1 ring-slate-200">${icon('history', 'h-5 w-5')}</div>
-        <p class="mt-3 text-[14px] font-semibold text-slate-700">暂无课次清退记录</p>
-        <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isParent ? '当前宝贝暂无课次清退留痕。' : '该学员当前没有课次清退留痕。'}</p>
-      </div>`;
-    }
-
-    function renderRecordCard(r) {
-      return `<article data-action="open-record" data-id="${r.id}" role="button" tabindex="0" class="cursor-pointer rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5 transition active:scale-[0.995]">
-        <div class="flex items-center justify-between gap-2">
-          <span class="font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</span>
-          <div class="flex items-center gap-1">
-            ${r.isFallback ? `<span class="shrink-0 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">兜底代清退</span>` : ''}
-            <span class="shrink-0 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-800">清退 ${r.n} 节</span>
-          </div>
-        </div>
-        <p class="mt-1.5 line-clamp-2 text-[12px] font-medium leading-relaxed text-slate-700">${esc(r.note)}</p>
-        <div class="mt-2 flex items-center justify-between gap-2 border-t border-slate-200/70 pt-2">
-          <span class="min-w-0 truncate text-[12px] font-medium text-slate-600">经办人 ${esc(r.by)} · <span class="font-mono">${esc(r.orderId)}</span></span>
-          <span class="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-indigo-600">查看详情 ${icon('chevron-right', 'h-3.5 w-3.5')}</span>
-        </div>
-      </article>`;
-    }
-
-    /* ------------------------------------------------------------------
-     * 清退抽屉
-     * ------------------------------------------------------------------ */
-    function proofChip(p, idx) {
-      return `<div class="mt-1.5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2">
-        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">${icon('image', 'h-5 w-5')}</span>
-        <span class="min-w-0 flex-1">
-          <span class="block truncate text-[14px] font-semibold text-slate-800">${esc(p.name)}</span>
-          <span class="block text-[12px] font-medium text-slate-600">${fmtSize(p.size)} · 已选择</span>
-        </span>
-        <button data-action="remove-proof" data-idx="${idx}" class="shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">移除</button>
-      </div>`;
-    }
-
-    function renderDeductSheet() {
-      const d = state.deduct;
-      const order = orderById(d.orderId);
-      if (!order) return '';
-      const student = studentByKey(order.studentKey);
-      const asset = assetOf(order.studentKey);
-      const perm = canOperateOnHolder(order.holder);
-      const isFallback = perm.ok && perm.isFallback;
-      const pendingOrders = ordersForStudent(order.studentKey).filter((o) => o.pending > 0);
-      const max = order.pending;
-      const n = Number(d.count);
-      const validN = Number.isInteger(n) && n >= 1 && n <= max;
-      const after = validN ? Math.max(0, asset.pending - n) : asset.pending;
-      const nextStatus = validN ? ((order.pending - n + order.scheduled) === 0 ? 'REFUNDED' : 'PARTIALLY_REFUNDED') : null;
-      const offline = state.online === 'off';
-
-      const reminder = asset.scheduled > 0
-        ? `<div class="rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
-            <div class="flex items-start gap-2">
-              <span class="mt-0.5 shrink-0 text-amber-700">${icon('alert-triangle', 'h-4 w-4')}</span>
-              <div class="min-w-0">
-                <p class="text-[14px] font-semibold leading-relaxed text-amber-900">存在未来已排期 ${asset.scheduled} 节，请先在课表释放回待排期池再清退</p>
-                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">不得强行作废已排课格；本操作仅扣减待排期课次。</p>
-              </div>
-            </div>
-            <button data-action="go-schedule" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-amber-800 hover:text-amber-900">${icon('calendar-days', 'h-3.5 w-3.5')} 前往课表</button>
-          </div>`
-        : '';
-
-      const fallbackNotice = isFallback
-        ? `<div class="rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
-            <div class="flex items-start gap-2">
-              <span class="mt-0.5 shrink-0 text-amber-700">${icon('shield-alert', 'h-4 w-4')}</span>
-              <div class="min-w-0">
-                <p class="text-[12px] font-bold text-amber-900">管理员紧急兜底代清退（资金持有人：${esc(order.holder)}）</p>
-                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">必须强制上传 1～5 张线下退款/转账截图凭证并填写原因；提交后将向原持有人班长发送只读通知。</p>
-              </div>
-            </div>
-          </div>`
-        : '';
-
-      const orderSelector = pendingOrders.length > 1
-        ? `<div>
-            <span class="text-[14px] font-semibold text-slate-700">选择待清退资产 / 购课单</span>
-            <div class="mt-1.5 space-y-1.5">
-              ${pendingOrders.map((po) => {
-                const on = po.id === order.id;
-                return `<button data-action="select-deduct-order" data-order="${esc(po.id)}" class="flex w-full items-center justify-between gap-2 rounded-xl border p-2.5 text-left transition ${on ? 'border-indigo-500 bg-indigo-50/60' : 'border-slate-200 bg-white hover:bg-slate-50'}">
-                  <div class="min-w-0">
-                    <div class="font-mono text-[12px] font-bold text-slate-900">${esc(po.id)} · ${esc(po.type)}</div>
-                    <div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(po.assetDetail)}</div>
-                  </div>
-                  <span class="shrink-0 text-[12px] font-bold ${on ? 'text-indigo-700' : 'text-slate-600'}">待排 ${po.pending} 节</span>
-                </button>`;
-              }).join('')}
-            </div>
-          </div>`
-        : '';
-
-      return `<div class="absolute inset-x-0 bottom-0 top-16 z-50">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
-        <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92%] w-full max-w-[560px] flex-col rounded-t-3xl bg-white shadow-2xl">
-          <div class="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-200"></div>
-          <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 pb-2.5">
-            <div class="min-w-0">
-              <h2 class="text-[16px] font-bold text-slate-900">课次清退/扣减</h2>
-              <p class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${esc(student.name)} · 资金持有人 ${esc(order.holder)} · <span class="font-mono">${esc(order.id)}</span></p>
-            </div>
-            <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
-          </div>
-          <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3" data-scroll>
-            <div class="space-y-3">
-              ${offline ? `<div class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">离线模式：课次清退不可提交，仅可查看。</div>` : ''}
-              ${fallbackNotice}
-              ${orderSelector}
-              <div class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
-                <div class="flex items-end justify-between gap-2">
-                  <div>
-                    <div class="text-[12px] font-semibold text-slate-600">当前购课单剩余待排期</div>
-                    <div class="mt-0.5 text-[18px] font-bold leading-none text-slate-900">${max} <span class="text-[12px] font-semibold text-slate-600">节</span></div>
-                  </div>
-                  <div class="min-w-0 text-right">
-                    <div class="text-[12px] font-semibold text-slate-600">资金持有人</div>
-                    <div class="mt-0.5 truncate text-[12px] font-bold text-slate-900">${esc(order.holder)}</div>
-                  </div>
-                </div>
-                <div class="mt-2 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700">${esc(order.assetDetail)}</div>
-              </div>
-              ${reminder}
-              <div>
-                <div class="flex items-center justify-between">
-                  <label for="deductCount" class="text-[14px] font-semibold text-slate-700">清退节数</label>
-                  <button data-action="clear-all" ${offline ? 'disabled' : ''} class="text-[12px] font-bold text-indigo-600 disabled:opacity-40">[ 全部清零 ]</button>
-                </div>
-                <div class="mt-1.5 flex items-center gap-2">
-                  <button data-action="count-step" data-delta="-1" ${offline ? 'disabled' : ''} class="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-300 bg-white text-[18px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40">−</button>
-                  <input id="deductCount" type="number" inputmode="numeric" min="1" max="${max}" step="1" value="${esc(d.count)}" ${offline ? 'disabled' : ''} class="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white text-center text-[18px] font-bold text-slate-900 outline-none transition focus:border-indigo-500 disabled:bg-slate-100">
-                  <button data-action="count-step" data-delta="1" ${offline ? 'disabled' : ''} class="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-300 bg-white text-[18px] font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40">+</button>
-                </div>
-                <p id="deductHelper" class="mt-1 text-[12px] font-medium text-slate-600 ${d.errorCount === `最多可清退 ${max} 节待排期课次` ? 'hidden' : ''}">本次最多可清退 ${max} 节待排期课次</p>
-                <p id="deductCountError" class="mt-1 text-[12px] font-semibold text-rose-600 ${d.errorCount ? '' : 'hidden'}">${esc(d.errorCount)}</p>
-              </div>
-              <div>
-                <div class="flex items-center justify-between">
-                  <label for="deductNote" class="text-[14px] font-semibold text-slate-700">${isFallback ? '财务备注与兜底原因' : '财务备注'} <span class="text-rose-500">*</span></label>
-                  <span id="noteCount" class="text-[12px] font-medium text-slate-600">${d.note.length}/200</span>
-                </div>
-                <textarea id="deductNote" rows="3" maxlength="200" ${offline ? 'disabled' : ''} placeholder="例如：线下微信退费 ¥600，家长因移居停课" class="mt-1.5 h-24 w-full resize-none rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 disabled:bg-slate-100">${esc(d.note)}</textarea>
-                <p id="deductNoteError" class="mt-1 text-[12px] font-semibold text-rose-600 ${d.errorNote ? '' : 'hidden'}">${esc(d.errorNote)}</p>
-              </div>
-              <div>
-                <div class="flex items-center justify-between">
-                  <span class="text-[14px] font-semibold text-slate-700">线下退款/转账截图凭证 ${isFallback ? '<span class="text-rose-500">*</span>' : ''}</span>
-                  <span class="text-[12px] font-semibold ${isFallback ? 'text-rose-700' : 'text-slate-600'}">${isFallback ? `必填 · 1～5 张（已传 ${d.proofs.length}/5）` : `选填 · 0～5 张（已传 ${d.proofs.length}/5）`}</span>
-                </div>
-                ${d.proofs.map((p, idx) => proofChip(p, idx)).join('')}
-                ${d.proofs.length < 5
-                  ? `<label class="mt-1.5 flex h-14 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">
-                      ${icon('upload', 'h-4 w-4 text-slate-500')} 选择截图文件（可多选）
-                      <input id="proofInput" type="file" multiple accept="image/jpeg,image/png,image/webp" class="hidden">
-                    </label>`
-                  : ''}
-                <p id="deductProofError" class="mt-1 text-[12px] font-semibold text-rose-600 ${d.errorProof ? '' : 'hidden'}">${esc(d.errorProof)}</p>
-                <div class="mt-1 flex items-center justify-between gap-2">
-                  <p class="text-[12px] font-medium text-slate-600">JPG / PNG / WebP · 单张 ≤5MB</p>
-                  ${d.proofs.length < 5 ? `<button data-action="sample-proof" ${offline ? 'disabled' : ''} class="text-[12px] font-bold text-indigo-600 disabled:opacity-40">使用示例凭证</button>` : ''}
-                </div>
-              </div>
-              <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-3">
-                <div class="flex items-center justify-between gap-2 text-[12px]">
-                  <span class="font-medium text-slate-600">清退后剩余待排期</span>
-                  <span id="deductAfter" class="font-bold text-slate-900">${after} 节</span>
-                </div>
-                <div class="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 text-[12px]">
-                  <span class="font-medium text-slate-600">购课单状态</span>
-                  <span id="deductStatus" class="flex flex-wrap items-center gap-1">${nextStatus ? statusChips(order.status, nextStatus) : '<span class="font-semibold text-slate-600">待计算</span>'}</span>
-                </div>
-                <p class="mt-1.5 text-[12px] font-medium text-slate-600">已清退 TS 不进入周转账单与老师周课酬单。</p>
-              </div>
-            </div>
-          </div>
-          <div class="flex shrink-0 gap-2 border-t border-slate-100 px-4 pb-4 pt-3">
-            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
-            <button data-action="submit-deduct" ${offline ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-rose-600 text-[16px] font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认清退课时</button>
-          </div>
-        </div>
-      </div>`;
-    }
-
-    function refreshDeductPreview() {
-      const d = state.deduct;
-      const order = orderById(d.orderId);
-      if (!order) return;
-      const asset = assetOf(order.studentKey);
-      const max = order.pending;
-      const n = Number(d.count);
-      const valid = Number.isInteger(n) && n >= 1 && n <= max;
-
-      const afterEl = $('deductAfter');
-      if (afterEl) afterEl.textContent = `${valid ? Math.max(0, asset.pending - n) : asset.pending} 节`;
-
-      const statusEl = $('deductStatus');
-      if (statusEl) {
-        const next = valid ? ((order.pending - n + order.scheduled) === 0 ? 'REFUNDED' : 'PARTIALLY_REFUNDED') : null;
-        statusEl.innerHTML = next ? statusChips(order.status, next) : '<span class="font-semibold text-slate-600">待计算</span>';
-      }
-
-      const noteCount = $('noteCount');
-      if (noteCount) noteCount.textContent = `${d.note.length}/200`;
-
-      const countErr = $('deductCountError');
-      if (countErr) {
-        countErr.textContent = d.errorCount || '';
-        countErr.classList.toggle('hidden', !d.errorCount);
-      }
-      const helper = $('deductHelper');
-      if (helper) helper.classList.toggle('hidden', d.errorCount === `最多可清退 ${max} 节待排期课次`);
-      const noteErr = $('deductNoteError');
-      if (noteErr) {
-        noteErr.textContent = d.errorNote || '';
-        noteErr.classList.toggle('hidden', !d.errorNote);
-      }
-      const proofErr = $('deductProofError');
-      if (proofErr) {
-        proofErr.textContent = d.errorProof || '';
-        proofErr.classList.toggle('hidden', !d.errorProof);
-      }
-      if (window.lucide) lucide.createIcons();
-    }
-
-    /* ------------------------------------------------------------------
-     * 二次确认
-     * ------------------------------------------------------------------ */
-    function renderConfirmModal() {
-      const d = state.deduct;
-      const order = orderById(d.orderId);
-      if (!order) return '';
-      const student = studentByKey(order.studentKey);
-      const asset = assetOf(order.studentKey);
-      const perm = canOperateOnHolder(order.holder);
-      const isFallback = perm.ok && perm.isFallback;
-      const n = Number(d.count);
-      const max = order.pending;
-      const valid = Number.isInteger(n) && n >= 1 && n <= max;
-      if (!valid) return '';
-      const after = Math.max(0, asset.pending - n);
-      const nextStatus = (order.pending - n + order.scheduled) === 0 ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
-
-      return `<div class="absolute inset-x-0 bottom-0 top-16 z-50">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
-        <div class="absolute inset-x-5 top-1/2 mx-auto max-w-[360px] -translate-y-1/2 rounded-2xl bg-white p-4 shadow-2xl">
+      return `<div class="space-y-3 px-4 py-3 pb-10">
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
           <div class="flex items-start gap-2.5">
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-rose-200 bg-rose-50 text-rose-600">${icon('alert-triangle', 'h-4 w-4')}</span>
-            <div class="min-w-0">
-              <h2 class="text-[16px] font-bold text-slate-900">确认清退课次</h2>
-              <p class="mt-1 text-[14px] font-medium leading-relaxed text-slate-700">将作废 ${n} 节待排期课次，操作不可撤销，请确认已完成线下沟通与核算</p>
+            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-indigo-100 bg-indigo-50 text-[16px] font-bold text-indigo-700">${esc(s.name.charAt(0))}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <h2 class="truncate text-[16px] font-bold text-slate-900">${esc(s.name)}</h2>
+                <span class="shrink-0 rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">小名 ${esc(s.nickname)}</span>
+              </div>
+              <div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(s.age)} · 资金持有人：<span class="font-bold text-slate-900">${esc(totals.holders.join(' / '))}</span></div>
             </div>
+            ${action}
           </div>
-          <div class="mt-3 space-y-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 text-[12px]">
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">学员</span><span class="truncate font-semibold text-slate-900">${esc(student.name)} · ${esc(student.nickname)}</span></div>
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">关联购课单</span><span class="truncate font-mono font-semibold text-slate-900">${esc(order.id)}</span></div>
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">资金持有人</span><span class="truncate font-semibold text-slate-900">${esc(order.holder)}</span></div>
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">凭证张数</span><span class="truncate font-semibold text-slate-900">${d.proofs.length} 张</span></div>
-            <div class="flex justify-between gap-2"><span class="shrink-0 font-medium text-slate-600">财务备注</span><span class="truncate text-right font-medium text-slate-700">${esc(d.note.trim())}</span></div>
+          <div class="mt-3 grid grid-cols-3 gap-1.5">
+            ${assetTile('待排期', totals.pending)}
+            ${assetTile('未来已排期', totals.scheduled)}
+            ${assetTile('历史结课', totals.finished)}
           </div>
-          ${isFallback ? `<div class="mt-2 rounded-xl border border-amber-300 bg-amber-50/70 px-2.5 py-2 text-[12px] font-semibold text-amber-900">提交后将向原持有人班长 ${esc(order.holder)} 发送只读通知。</div>` : ''}
-          <div class="mt-2.5 rounded-xl border border-slate-200/80 bg-white p-2.5">
-            <div class="flex items-center justify-between gap-2 text-[12px]"><span class="font-medium text-slate-600">清退后剩余待排期</span><span class="font-bold text-slate-900">${after} 节</span></div>
-            <div class="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 text-[12px]"><span class="font-medium text-slate-600">购课单状态</span><span class="flex flex-wrap items-center gap-1">${statusChips(order.status, nextStatus)}</span></div>
-            <p class="mt-1.5 text-[12px] font-medium text-slate-600">已清退 TS 不进入周转账单与老师周课酬单。</p>
+          <div class="mt-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-700">
+            <span class="font-semibold text-slate-600">当前共剩余：</span>${totals.pending} 节未排 <span class="text-slate-600">(合计 ${totals.points} 积分)</span>
           </div>
-          <div class="mt-3 flex gap-2">
-            <button data-action="back-to-deduct" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">返回修改</button>
-            <button data-action="confirm-deduct" class="h-11 flex-[1.3] rounded-xl bg-rose-600 text-[16px] font-bold text-white hover:bg-rose-700">确认清退</button>
+        </section>
+
+        ${totals.scheduled > 0 ? `<div class="box-border w-full rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
+          <div class="flex items-start gap-2">
+            <span class="mt-0.5 shrink-0 text-amber-700">${icon('alert-triangle', 'h-4 w-4')}</span>
+            <p class="text-[12px] font-semibold leading-relaxed text-amber-900">该学员仍有 ${totals.scheduled} 节未来已排期课次，需先在课表请假退回待排期后才能清退；已排课格不得强行作废。</p>
           </div>
+        </div>` : ''}
+
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
+          <div class="flex items-center justify-between">
+            <h2 class="text-[16px] font-bold text-slate-900">可清退待排课次</h2>
+            <span class="text-[12px] font-semibold text-slate-600">按价位与持有人</span>
+          </div>
+          ${groups.length ? `<div class="mt-2 space-y-2">
+            ${groups.map((group) => `<div>
+              <div class="flex items-center justify-between px-1 pb-1">
+                <span class="text-[12px] font-bold text-slate-900">资金持有人 · ${esc(group.holder)}</span>
+                <span class="text-[12px] font-semibold text-slate-600">${group.list.reduce((a, r) => a + r.remaining, 0)} 节 · ${group.list.reduce((a, r) => a + r.remaining * r.price, 0)} 积分</span>
+              </div>
+              <div class="space-y-1.5">
+                ${group.list.map((row) => `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <span class="text-[14px] font-bold text-slate-900">${row.price}积分</span>
+                      <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(row)}</span>
+                    </div>
+                    <div class="mt-0.5 text-[12px] font-medium text-slate-600">剩余 ${row.remaining} 节未排 · ${row.orderId}</div>
+                  </div>
+                  <span class="shrink-0 text-[14px] font-bold text-slate-900">${row.remaining * row.price} <span class="text-[12px] font-semibold text-slate-600">积分</span></span>
+                </div>`).join('')}
+              </div>
+            </div>`).join('')}
+          </div>` : `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-center text-[12px] font-medium text-slate-600">当前没有可清退的待排期课次</div>`}
+        </section>
+
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
+          <div class="flex items-center justify-between">
+            <h2 class="text-[16px] font-bold text-slate-900">关联购课单</h2>
+            <span class="text-[12px] font-semibold text-slate-600">${orders.length} 张</span>
+          </div>
+          <div class="mt-2 space-y-1.5">
+            ${orders.map((o) => {
+              const m = orderStatusMeta(o.status);
+              return `<button data-action="open-order" data-id="${esc(o.id)}" class="w-full rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-left transition hover:bg-slate-50">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(o.id)}</span>
+                  <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${m.cls}">${m.label}</span>
+                </div>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-medium text-slate-600">
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 font-bold text-slate-700">${esc(o.type)}</span>
+                  <span>持有人 ${esc(o.holder)}</span>
+                  <span>待排 ${orderRemaining(o)} 节 · 已排 ${o.scheduled} 节 · 结课 ${o.finished} 节</span>
+                </div>
+                <div class="mt-1 truncate text-[12px] font-medium text-slate-700">${esc(assetDetailText(o))}</div>
+              </button>`;
+            }).join('')}
+          </div>
+        </section>
+
+        <section>
+          <div class="flex items-center justify-between px-1">
+            <h2 class="text-[16px] font-bold text-slate-900">历史清退记录</h2>
+            <span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-600">${history.length} 条 · 倒序</span>
+          </div>
+          <div class="mt-2 ${state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">
+            ${history.length ? history.map((r) => renderRecordCard(r, { showStudent: false })).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-6 text-center text-[12px] font-medium text-slate-600">该学员暂无清退记录</div>`}
+          </div>
+        </section>
+
+        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">
+          清退仅扣减待排期课次并记录财务备注；已排期课次需先在课表请假退回；已清退 TS 不进入周转账单与老师周课酬单。
         </div>
       </div>`;
     }
 
-    function renderOverlay() {
-      const el = $('overlay');
-      const prev = el.querySelector('[data-scroll]');
-      const top = prev ? prev.scrollTop : 0;
-      if (!state.overlay) el.innerHTML = '';
-      else if (state.overlay.type === 'deduct') el.innerHTML = renderDeductSheet();
-      else if (state.overlay.type === 'confirm') el.innerHTML = renderConfirmModal();
-      else el.innerHTML = '';
-      const next = el.querySelector('[data-scroll]');
-      if (next) next.scrollTop = top;
+    function renderNotFound(title, desc) {
+      return `<div class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
+        <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-slate-600 ring-1 ring-slate-200">${icon('search', 'h-6 w-6')}</div>
+        <h2 class="mt-4 text-[18px] font-bold text-slate-900">${esc(title)}</h2>
+        <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">${esc(desc)}</p>
+        <button data-action="banner-back" class="mt-4 inline-flex h-10 items-center rounded-xl bg-indigo-600 px-4 text-[14px] font-semibold text-white">返回清退记录</button>
+      </div>`;
     }
 
     /* ------------------------------------------------------------------
-     * 记录详情
+     * 购课单详情（内嵌倒序历史）
      * ------------------------------------------------------------------ */
-    function renderRecordDetail(r) {
-      const order = orderById(r.orderId);
-      const status = order ? order.status : null;
-      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3 pb-10">
+    function renderOrderPage() {
+      const o = orderById(state.activeOrderId);
+      if (!o) return renderNotFound('购课单不存在', '该购课单可能已归档，请返回清退记录列表查看。');
+      if (state.role === 'parent' && !PARENT_CHILDREN.includes(o.studentKey)) {
+        return renderNotFound('购课单不可见', '家长端仅可查看本人孩子的购课单与清退记录。');
+      }
+      const s = studentByKey(o.studentKey);
+      const history = visibleRecordsForOrder(o.id);
+      const remaining = orderRemaining(o);
+      const editable = pendingTierRows(o.studentKey).filter(rowEditable);
+      const canDeduct = state.online === 'on' && state.role !== 'parent' && remaining > 0 && editable.length > 0;
+      return `<div class="space-y-3 px-4 py-3 pb-10">
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="font-mono text-[12px] font-bold text-slate-900">${esc(o.id)}</div>
+              <button data-action="open-student" data-key="${esc(o.studentKey)}" class="mt-1 block max-w-full truncate text-left text-[16px] font-bold text-slate-900">${esc(s ? s.name : o.studentKey)} · ${esc(s ? s.nickname : '')}</button>
+              <div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(o.type)} · 资金持有人 ${esc(o.holder)}</div>
+            </div>
+            ${statusPill(o.status)}
+          </div>
+          <div class="mt-3 grid grid-cols-3 gap-1.5">
+            ${assetTile('待排期', remaining)}
+            ${assetTile('未来已排期', o.scheduled)}
+            ${assetTile('历史结课', o.finished)}
+          </div>
+          <div class="mt-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
+            <div class="flex items-center justify-between text-[12px] font-medium text-slate-600"><span>剩余待排积分</span><span class="text-[14px] font-bold text-slate-900">${orderPoints(o)} 积分</span></div>
+          </div>
+          ${canDeduct ? `<button data-action="open-deduct-order" data-id="${esc(o.id)}" class="mt-2 flex h-9 w-full items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white text-[12px] font-bold text-indigo-700 hover:bg-indigo-50">${icon('minus-circle', 'h-3.5 w-3.5')} 发起课次清退</button>` : ''}
+        </section>
+
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
+          <h2 class="text-[16px] font-bold text-slate-900">价位明细</h2>
+          <div class="mt-2 space-y-1.5">
+            ${(o.tiers || []).map((t) => `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-[14px] font-bold text-slate-900">${t.price}积分</span>
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(t)}</span>
+                </div>
+                <div class="mt-0.5 text-[12px] font-medium text-slate-600">${t.remaining > 0 ? `剩余 ${t.remaining} 节未排` : '该价位已无剩余待排期'}</div>
+              </div>
+              <span class="shrink-0 text-[12px] font-bold text-slate-900">${t.remaining * t.price} 积分</span>
+            </div>`).join('')}
+          </div>
+        </section>
+
+        <section>
+          <div class="flex items-center justify-between px-1">
+            <h2 class="text-[16px] font-bold text-slate-900">该购课单清退记录</h2>
+            <span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-600">${history.length} 条 · 倒序</span>
+          </div>
+          <div class="mt-2 ${state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">
+            ${history.length ? history.map((r) => renderRecordCard(r, { showStudent: false })).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-6 text-center text-[12px] font-medium text-slate-600">该购课单暂无清退记录</div>`}
+          </div>
+        </section>
+
+        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">
+          购课单与清退记录永久只读留痕；清退仅作废待排期 TS，已排期课次需先退回待排期池。
+        </div>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 清退记录详情
+     * ------------------------------------------------------------------ */
+    function renderRecordPage() {
+      const r = recordById(state.activeRecordId);
+      if (!r || !canViewRecord(r)) return renderNotFound('清退记录不存在', '该记录可能不在当前账号的可见范围内。');
+      const s = studentByKey(r.studentKey);
+      const holders = recordHolders(r);
+      const changes = r.statusChanges || [];
+      return `<div class="space-y-3 px-4 py-3 pb-10">
         <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>
               <h1 class="mt-1 text-[18px] font-bold tracking-tight text-slate-900">清退 ${r.n} 节课次</h1>
-              <div class="mt-0.5 text-[14px] font-semibold text-slate-700">${esc(studentName(r.studentKey))} · ${esc(studentNickname(r.studentKey))}</div>
+              <button data-action="open-student" data-key="${esc(r.studentKey)}" class="mt-0.5 block max-w-full truncate text-left text-[14px] font-semibold text-slate-700">${esc(s ? s.name : r.studentKey)} · ${esc(s ? s.nickname : '')}</button>
             </div>
-            <span class="shrink-0 rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">只读</span>
+            <div class="flex shrink-0 flex-col items-end gap-1">
+              <span class="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">只读</span>
+              ${r.isFallback ? `<span class="rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">兜底代清退</span>` : ''}
+            </div>
           </div>
           <div class="mt-3 grid grid-cols-2 gap-1.5">
+            <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+              <div class="text-[12px] font-semibold text-slate-600">退款总积分</div>
+              <div class="mt-0.5 text-[18px] font-bold text-slate-900">${recordPoints(r)} <span class="text-[12px] font-semibold text-slate-600">积分</span></div>
+            </div>
+            <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+              <div class="text-[12px] font-semibold text-slate-600">操作后剩余未排</div>
+              <div class="mt-0.5 text-[18px] font-bold text-slate-900">${r.after} <span class="text-[12px] font-semibold text-slate-600">节</span></div>
+            </div>
             <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
               <div class="text-[12px] font-semibold text-slate-600">经办人</div>
               <div class="mt-0.5 text-[14px] font-bold text-slate-900">${esc(r.by)}</div>
             </div>
             <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
-              <div class="text-[12px] font-semibold text-slate-600">操作后剩余待排期</div>
-              <div class="mt-0.5 text-[14px] font-bold text-slate-900">${r.after} 节</div>
+              <div class="text-[12px] font-semibold text-slate-600">凭证状态</div>
+              <div class="mt-0.5 text-[14px] font-bold text-slate-900">${(r.proofs || []).length ? `已上传 ${(r.proofs || []).length} 张` : '未上传'}</div>
             </div>
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+          <h2 class="text-[16px] font-bold text-slate-900">清退明细</h2>
+          <div class="mt-2 space-y-1.5">
+            ${(r.items || []).map((i) => `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-[14px] font-bold text-slate-900">${i.price}积分 × ${i.n} 节</span>
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(i)}</span>
+                </div>
+                <div class="mt-0.5 text-[12px] font-medium text-slate-600">资金持有人 ${esc(i.holder)}</div>
+              </div>
+              <span class="shrink-0 text-[12px] font-bold text-slate-900">${i.price * i.n} 积分</span>
+            </div>`).join('')}
           </div>
         </section>
 
@@ -987,13 +1049,30 @@
         </section>
 
         <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
-          <h2 class="text-[16px] font-bold text-slate-900">关联购课单与状态</h2>
-          <div class="mt-2 flex items-center justify-between gap-2 rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
-            <div class="min-w-0">
-              <div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(r.orderId)}</div>
-              <div class="mt-0.5 text-[12px] font-medium text-slate-600">${order ? esc(order.type) : '历史购课单'}</div>
-            </div>
-            ${status ? statusPill(status) : '<span class="text-[12px] font-semibold text-slate-600">历史状态</span>'}
+          <h2 class="text-[16px] font-bold text-slate-900">关联购课单</h2>
+          <div class="mt-2 space-y-1.5">
+            ${(r.orderIds || []).map((id) => {
+              const order = orderById(id);
+              return order
+                ? `<button data-action="open-order" data-id="${esc(id)}" class="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-left transition hover:bg-slate-50">
+                    <div class="min-w-0 flex-1"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(order.type)} · 持有人 ${esc(order.holder)}</div></div>
+                    ${statusPill(order.status)}
+                  </button>`
+                : `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
+                    <div class="min-w-0"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">历史购课单（只读留痕）</div></div>
+                    <span class="shrink-0 text-[12px] font-semibold text-slate-600">已归档</span>
+                  </div>`;
+            }).join('')}
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+          <h2 class="text-[16px] font-bold text-slate-900">购课单状态变化</h2>
+          <div class="mt-2 space-y-1.5">
+            ${changes.length ? changes.map((c) => `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
+              <div class="font-mono text-[12px] font-bold text-slate-900">${esc(c.orderId)}</div>
+              <div class="mt-1 flex flex-wrap items-center gap-1">${statusChips(c.from, c.to)}</div>
+            </div>`).join('') : `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-600">历史记录无状态变化快照</div>`}
           </div>
         </section>
 
@@ -1016,8 +1095,8 @@
           <div class="mt-2 space-y-1 text-[12px]">
             <div class="flex justify-between gap-2"><span class="shrink-0 font-medium text-slate-600">记录编号</span><span class="truncate font-mono font-semibold text-slate-900">${esc(r.id)}</span></div>
             <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">记录状态</span><span class="font-semibold text-emerald-700">EFFECTIVE（已生效 · 不可删除）</span></div>
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">资金持有人</span><span class="font-semibold text-slate-900">${esc(r.holder || 'Leo')}</span></div>
-            <div class="flex justify-between gap-2"><span class="shrink-0 font-medium text-slate-600">购课单变化</span><span class="truncate font-semibold text-slate-900">${esc(orderStatusLabel(r.prevStatus || 'PAID'))} → ${esc(orderStatusLabel(r.newStatus || status || 'PAID'))}</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">资金持有人</span><span class="truncate font-semibold text-slate-900">${esc(holders.join(' / '))}</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">清退节数</span><span class="font-semibold text-slate-900">${r.n} 节</span></div>
           </div>
         </section>
 
@@ -1026,143 +1105,625 @@
     }
 
     /* ------------------------------------------------------------------
+     * 学员选择（发起清退）
+     * ------------------------------------------------------------------ */
+    function renderPicker() {
+      const students = STUDENTS.filter((s) => pendingTierRows(s.key).some(rowEditable));
+      return `<div class="absolute inset-x-0 bottom-0 top-16 z-50">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92%] w-full max-w-[560px] flex-col rounded-t-3xl bg-white shadow-2xl">
+          <div class="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-200"></div>
+          <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 pb-2.5">
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">发起课次清退</h2>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-600">选择存在可清退待排课次的学员</p>
+            </div>
+            <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3" data-scroll>
+            ${students.length ? students.map((s) => {
+              const totals = studentTotals(s.key);
+              const rows = pendingTierRows(s.key);
+              const holders = [...new Set(rows.map((r) => r.holder))];
+              return `<button data-action="pick-student" data-key="${esc(s.key)}" class="w-full rounded-xl border border-slate-300 bg-slate-50/70 p-3 text-left transition hover:bg-slate-100">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <span class="text-[14px] font-bold text-slate-900">${esc(s.name)}</span>
+                      <span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">小名 ${esc(s.nickname)}</span>
+                    </div>
+                    <div class="mt-0.5 text-[12px] font-medium text-slate-600">持有人 ${esc(holders.join(' / '))}</div>
+                  </div>
+                  <span class="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-800">${totals.pending} 节 · ${totals.points} 积分</span>
+                </div>
+                <div class="mt-1.5 flex flex-wrap gap-1">
+                  ${rows.map((r) => `<span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${r.price}积分 × ${r.remaining} 节${r.kind === '小班' ? ' · 小班' : ''}</span>`).join('')}
+                </div>
+              </button>`;
+            }).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-10 text-center text-[14px] font-medium text-slate-600">当前身份下没有可清退的学员资产</div>`}
+          </div>
+          <div class="shrink-0 border-t border-slate-100 px-4 pb-4 pt-3">
+            <button data-action="close-overlay" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 清退抽屉（多价位联合清退）
+     * ------------------------------------------------------------------ */
+    function deductState() {
+      const d = state.deduct;
+      const rows = pendingTierRows(d.studentKey).map((row) => {
+        const raw = d.inputs[row.key] ?? '0';
+        const n = parseQty(raw);
+        const canEdit = rowEditable(row);
+        const over = n !== null && n > row.remaining;
+        const invalid = n === null;
+        const liveError = invalid
+          ? '请输入非负整数'
+          : over
+            ? `该价位最多可清退 ${row.remaining} 节待排期课次`
+            : '';
+        return {
+          ...row, raw, n, canEdit, over, invalid, liveError,
+          selected: canEdit && n !== null && n > 0,
+          after: n !== null ? Math.max(0, row.remaining - n) : row.remaining
+        };
+      });
+      const selected = rows.filter((r) => r.selected);
+      const pending = rows.reduce((a, r) => a + r.remaining, 0);
+      const pointsAll = rows.reduce((a, r) => a + r.remaining * r.price, 0);
+      const totalN = selected.reduce((a, r) => a + r.n, 0);
+      const totalPoints = selected.reduce((a, r) => a + r.n * r.price, 0);
+      const after = Math.max(0, pending - totalN);
+      const fallbackSelected = state.role === 'admin' && selected.some((r) => r.holder !== '平台');
+      const fallbackAvailable = state.role === 'admin' && rows.some((r) => r.holder !== '平台');
+      return {
+        rows, groups: groupRowsByHolder(rows), selected, pending, pointsAll,
+        totalN, totalPoints, after, fallbackSelected, fallbackAvailable,
+        errors: d.errors || {}
+      };
+    }
+
+    function deductHolderBadge(holder) {
+      if (state.role === 'admin') {
+        return holder === '平台'
+          ? '<span class="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">平台持有</span>'
+          : '<span class="rounded border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">兜底可操作</span>';
+      }
+      if (holder === actor()) return '<span class="rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-700">本人持有</span>';
+      return '<span class="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">非本人持有</span>';
+    }
+
+    function renderTierRow(row, offline) {
+      const disabled = !row.canEdit || offline;
+      const kindLabel = row.kind === '小班' ? `小班待排${row.className ? ' · ' + row.className : ''}` : '1v1 待排';
+      return `<div class="rounded-xl border ${row.canEdit ? 'border-slate-200/80 bg-white' : 'border-dashed border-slate-400 bg-slate-50/60 opacity-65'} p-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[14px] font-bold text-slate-900">${row.price}积分</span>
+              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${kindLabel}</span>
+              ${!row.canEdit ? `<span class="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">持有人 ${esc(row.holder)}</span>` : ''}
+            </div>
+            <div class="mt-0.5 text-[12px] font-medium text-slate-600">剩余 ${row.remaining} 节未排</div>
+            <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] font-semibold text-slate-700">
+              <span data-tier-after="${esc(row.key)}">退后余 ${row.after} 节</span>
+              ${row.over ? '<span class="text-rose-700">已超限</span>' : ''}
+            </div>
+            <p data-tier-error="${esc(row.key)}" class="mt-0.5 text-[12px] font-semibold text-rose-600 ${row.liveError ? '' : 'hidden'}">${esc(row.liveError)}</p>
+          </div>
+          <div class="flex shrink-0 items-center gap-1">
+            <button data-action="tier-step" data-key="${esc(row.key)}" data-delta="-1" ${disabled ? 'disabled' : ''} class="grid h-9 w-9 place-items-center rounded-xl border border-slate-300 bg-white text-[18px] font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">−</button>
+            <input data-tier-input="${esc(row.key)}" type="number" inputmode="numeric" min="0" max="${row.remaining}" step="1" value="${esc(row.raw)}" ${disabled ? 'disabled' : ''} class="h-10 w-12 rounded-xl border border-slate-200 bg-white text-center text-[16px] font-bold text-slate-900 outline-none transition focus:border-indigo-500 disabled:bg-slate-100">
+            <button data-action="tier-step" data-key="${esc(row.key)}" data-delta="1" ${disabled ? 'disabled' : ''} class="grid h-9 w-9 place-items-center rounded-xl border border-slate-300 bg-white text-[18px] font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">+</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function renderDeductSummary(ds) {
+      const err = ds.errors.total || '';
+      return `<div class="grid grid-cols-3 gap-2">
+          <div class="min-w-0">
+            <div class="text-[12px] font-semibold text-slate-600">本次清退</div>
+            <div class="mt-0.5 whitespace-nowrap text-[16px] font-bold leading-tight text-slate-900">共 ${ds.totalN} <span class="text-[12px] font-semibold text-slate-600">节</span></div>
+          </div>
+          <div class="min-w-0 border-l border-slate-200 pl-2">
+            <div class="text-[12px] font-semibold text-slate-600">退款总积分</div>
+            <div class="mt-0.5 whitespace-nowrap text-[16px] font-bold leading-tight text-indigo-700">${ds.totalPoints} <span class="text-[12px] font-semibold text-slate-600">积分</span></div>
+          </div>
+          <div class="min-w-0 border-l border-slate-200 pl-2">
+            <div class="text-[12px] font-semibold text-slate-600">退后剩余未排</div>
+            <div class="mt-0.5 whitespace-nowrap text-[16px] font-bold leading-tight text-slate-900">${ds.after} <span class="text-[12px] font-semibold text-slate-600">节</span></div>
+          </div>
+        </div>
+        <p id="deductTotalError" class="mt-1 text-[12px] font-semibold text-rose-600 ${err ? '' : 'hidden'}">${esc(err)}</p>`;
+    }
+
+    function renderDeductSheet() {
+      const d = state.deduct;
+      const student = studentByKey(d.studentKey);
+      if (!student) return '';
+      const ds = deductState();
+      const offline = state.online === 'off';
+      const holders = [...new Set(ds.rows.map((r) => r.holder))];
+      const fallbackHolders = [...new Set(ds.rows.filter((r) => r.holder !== '平台').map((r) => r.holder))];
+      const isFallbackFlow = state.role === 'admin' && fallbackHolders.length > 0;
+      const scheduled = studentTotals(d.studentKey).scheduled;
+
+      const fallbackNotice = isFallbackFlow
+        ? `<div class="rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
+            <div class="flex items-start gap-2">
+              <span class="mt-0.5 shrink-0 text-amber-700">${icon('shield-alert', 'h-4 w-4')}</span>
+              <div class="min-w-0">
+                <p class="text-[12px] font-bold text-amber-900">管理员紧急兜底代清退（资金持有人：${esc(fallbackHolders.join(' / '))}）</p>
+                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">代清退非平台持有的课次时，必须上传 1～5 张线下退款/转账截图凭证并填写原因；提交后向原持有人班长发送只读通知。</p>
+              </div>
+            </div>
+          </div>`
+        : '';
+
+      const scheduledReminder = scheduled > 0
+        ? `<div class="rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
+            <div class="flex items-start gap-2">
+              <span class="mt-0.5 shrink-0 text-amber-700">${icon('alert-triangle', 'h-4 w-4')}</span>
+              <div class="min-w-0">
+                <p class="text-[12px] font-semibold leading-relaxed text-amber-900">存在未来已排期 ${scheduled} 节，请先在课表请假退回待排期池再清退</p>
+                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">不得强行作废已排课格；本操作仅扣减待排期课次。</p>
+              </div>
+            </div>
+            <button data-action="go-schedule" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-amber-800 hover:text-amber-900">${icon('calendar-days', 'h-3.5 w-3.5')} 前往课表</button>
+          </div>`
+        : '';
+
+      const groups = ds.groups.map((group) => {
+        const groupPending = group.list.reduce((a, r) => a + r.remaining, 0);
+        const groupPoints = group.list.reduce((a, r) => a + r.remaining * r.price, 0);
+        const locked = group.list.every((r) => !r.canEdit);
+        return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-2.5">
+          <div class="flex items-center justify-between gap-2 px-1 pb-1.5">
+            <div class="flex min-w-0 items-center gap-1.5">
+              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700">${esc(group.holder.charAt(0))}</span>
+              <span class="truncate text-[12px] font-bold text-slate-900">资金持有人 · ${esc(group.holder)}</span>
+              ${deductHolderBadge(group.holder)}
+            </div>
+            <span class="shrink-0 text-[12px] font-semibold text-slate-600">${groupPending} 节 · ${groupPoints} 积分</span>
+          </div>
+          <div class="space-y-1.5">${group.list.map((row) => renderTierRow(row, offline)).join('')}</div>
+          ${locked ? `<p class="px-1 pt-1 text-[12px] font-medium leading-relaxed text-slate-600">该价位由 ${esc(group.holder)} 持有，需由持有人操作；管理员可经兜底流程代清退。</p>` : ''}
+        </section>`;
+      }).join('');
+
+      const proofRequired = ds.fallbackSelected;
+      const proofHint = proofRequired
+        ? `必填 · 1～5 张（已传 ${d.proofs.length}/5）`
+        : isFallbackFlow
+          ? `选填 · 选择非平台课次时必填（已传 ${d.proofs.length}/5）`
+          : `选填 · 0～5 张（已传 ${d.proofs.length}/5）`;
+
+      return `<div class="absolute inset-x-0 bottom-0 top-16 z-50">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92%] w-full max-w-[560px] flex-col rounded-t-3xl bg-white shadow-2xl">
+          <div class="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-200"></div>
+          <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 pb-2.5">
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">课次清退/扣减</h2>
+              <p class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${esc(student.name)} · ${esc(student.nickname)} · 共 ${ds.pending} 节未排</p>
+            </div>
+            <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3" data-scroll>
+            <div class="space-y-3">
+              ${offline ? `<div class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-900">离线模式：课次清退不可提交，仅可查看。</div>` : ''}
+              ${fallbackNotice}
+              ${scheduledReminder}
+
+              <div class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="text-[12px] font-semibold text-slate-600">当前可清退资产</div>
+                    <div class="mt-0.5 text-[14px] font-bold leading-snug text-slate-900">当前共剩余 ${ds.pending} 节未排 <span class="text-[12px] font-semibold text-slate-600">(合计 ${ds.pointsAll} 积分)</span></div>
+                  </div>
+                  <button data-action="clear-all" ${offline ? 'disabled' : ''} class="shrink-0 rounded-lg border border-indigo-200 bg-white px-2 py-1 text-[12px] font-bold text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40">[ 全部清零 ]</button>
+                </div>
+                <div class="mt-1 text-[12px] font-medium text-slate-600">按价位与资金持有人分组，可同时填写多个价位。</div>
+              </div>
+
+              ${groups}
+
+              <div>
+                <div class="flex items-center justify-between">
+                  <label for="deductNote" class="text-[14px] font-semibold text-slate-700"><span id="deductNoteLabel">${proofRequired ? '财务备注与兜底原因' : '财务备注'}</span> <span class="text-rose-500">*</span></label>
+                  <span id="noteCount" class="text-[12px] font-medium text-slate-600">${d.note.length}/200</span>
+                </div>
+                <textarea id="deductNote" rows="3" maxlength="200" ${offline ? 'disabled' : ''} placeholder="例如：线下微信退费 ¥600，家长因故停课" class="mt-1.5 h-24 w-full resize-none rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 disabled:bg-slate-100">${esc(d.note)}</textarea>
+                <p id="deductNoteError" class="mt-1 text-[12px] font-semibold text-rose-600 ${d.errors.note ? '' : 'hidden'}">${esc(d.errors.note || '')}</p>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[14px] font-semibold text-slate-700"><span id="proofTitle">线下退款/转账截图凭证</span> <span id="proofStar" class="text-rose-500 ${proofRequired ? '' : 'hidden'}">*</span></span>
+                  <span id="proofRequirement" class="shrink-0 text-[12px] font-semibold ${proofRequired ? 'text-rose-700' : 'text-slate-600'}">${proofHint}</span>
+                </div>
+                ${d.proofs.map((p, idx) => proofChip(p, idx)).join('')}
+                ${d.proofs.length < 5
+                  ? `<label class="mt-1.5 flex h-14 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">
+                      ${icon('upload', 'h-4 w-4 text-slate-500')} 选择截图文件（可多选）
+                      <input id="proofInput" type="file" multiple accept="image/jpeg,image/png,image/webp" class="hidden">
+                    </label>`
+                  : ''}
+                <p id="deductProofError" class="mt-1 text-[12px] font-semibold text-rose-600 ${d.errors.proof ? '' : 'hidden'}">${esc(d.errors.proof || '')}</p>
+                <div class="mt-1 flex items-center justify-between gap-2">
+                  <p class="text-[12px] font-medium text-slate-600">JPG / PNG / WebP · 单张 ≤5MB</p>
+                  ${d.proofs.length < 5 ? `<button data-action="sample-proof" ${offline ? 'disabled' : ''} class="text-[12px] font-bold text-indigo-600 disabled:opacity-40">使用示例凭证</button>` : ''}
+                </div>
+              </div>
+
+              <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-3">
+                <div class="flex items-center justify-between gap-2 text-[12px]">
+                  <span class="font-medium text-slate-600">清退后剩余未排</span>
+                  <span id="deductAfter" class="font-bold text-slate-900">${ds.after} 节</span>
+                </div>
+                <div class="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 text-[12px]">
+                  <span class="font-medium text-slate-600">资金持有人</span>
+                  <span class="font-semibold text-slate-900">${esc(holders.join(' / '))}</span>
+                </div>
+                <p class="mt-1.5 text-[12px] font-medium text-slate-600">已清退 TS 不进入周转账单与老师周课酬单。</p>
+              </div>
+            </div>
+          </div>
+          <div class="shrink-0 border-t border-slate-100 px-4 pb-4 pt-2.5">
+            <div id="deductSummary" class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2">${renderDeductSummary(ds)}</div>
+            <div class="mt-2 flex gap-2">
+              <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
+              <button data-action="submit-deduct" ${offline ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-rose-600 text-[16px] font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认清退课时</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function proofChip(p, idx) {
+      return `<div class="mt-1.5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">${icon('image', 'h-5 w-5')}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-[14px] font-semibold text-slate-800">${esc(p.name)}</span>
+          <span class="block text-[12px] font-medium text-slate-600">${fmtSize(p.size)} · 已选择</span>
+        </span>
+        <button data-action="remove-proof" data-idx="${idx}" class="shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">移除</button>
+      </div>`;
+    }
+
+    function refreshDeductPreview() {
+      const ds = deductState();
+      const d = state.deduct;
+
+      const summary = $('deductSummary');
+      if (summary) summary.innerHTML = renderDeductSummary(ds);
+
+      const afterEl = $('deductAfter');
+      if (afterEl) afterEl.textContent = `${ds.after} 节`;
+
+      ds.rows.forEach((row) => {
+        const rowAfter = document.querySelector(`[data-tier-after="${row.key}"]`);
+        if (rowAfter) rowAfter.textContent = `退后余 ${row.after} 节`;
+        const rowError = document.querySelector(`[data-tier-error="${row.key}"]`);
+        if (rowError) {
+          rowError.textContent = row.liveError || '';
+          rowError.classList.toggle('hidden', !row.liveError);
+        }
+      });
+
+      const noteCount = $('noteCount');
+      if (noteCount) noteCount.textContent = `${d.note.length}/200`;
+
+      const noteErr = $('deductNoteError');
+      if (noteErr) {
+        noteErr.textContent = d.errors.note || '';
+        noteErr.classList.toggle('hidden', !d.errors.note);
+      }
+      const proofErr = $('deductProofError');
+      if (proofErr) {
+        proofErr.textContent = d.errors.proof || '';
+        proofErr.classList.toggle('hidden', !d.errors.proof);
+      }
+      const noteLabel = $('deductNoteLabel');
+      if (noteLabel) noteLabel.textContent = ds.fallbackSelected ? '财务备注与兜底原因' : '财务备注';
+      const proofStar = $('proofStar');
+      if (proofStar) proofStar.classList.toggle('hidden', !ds.fallbackSelected);
+      const proofReq = $('proofRequirement');
+      if (proofReq) {
+        if (ds.fallbackSelected) {
+          proofReq.textContent = `必填 · 1～5 张（已传 ${d.proofs.length}/5）`;
+          proofReq.className = 'shrink-0 text-[12px] font-semibold text-rose-700';
+        } else if (ds.fallbackAvailable) {
+          proofReq.textContent = `选填 · 选择非平台课次时必填（已传 ${d.proofs.length}/5）`;
+          proofReq.className = 'shrink-0 text-[12px] font-semibold text-slate-600';
+        } else {
+          proofReq.textContent = `选填 · 0～5 张（已传 ${d.proofs.length}/5）`;
+          proofReq.className = 'shrink-0 text-[12px] font-semibold text-slate-600';
+        }
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    /* ------------------------------------------------------------------
+     * 二次确认
+     * ------------------------------------------------------------------ */
+    function renderConfirmModal() {
+      const ds = deductState();
+      if (!ds.selected.length) return '';
+      const student = studentByKey(state.deduct.studentKey);
+      if (!student) return '';
+      return `<div class="absolute inset-x-0 bottom-0 top-16 z-50">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-5 top-1/2 mx-auto max-h-[92%] max-w-[360px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl">
+          <div class="flex items-start gap-2.5">
+            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-rose-200 bg-rose-50 text-rose-600">${icon('alert-triangle', 'h-4 w-4')}</span>
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">确认清退课次</h2>
+              <p class="mt-1 text-[14px] font-medium leading-relaxed text-slate-700">将作废 ${ds.totalN} 节待排期课次，操作不可撤销，请确认已完成线下沟通与核算。</p>
+            </div>
+          </div>
+          <div class="mt-3 space-y-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 text-[12px]">
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">学员</span><span class="truncate font-semibold text-slate-900">${esc(student.name)} · ${esc(student.nickname)}</span></div>
+            ${ds.selected.map((row) => `<div class="flex justify-between gap-2"><span class="font-medium text-slate-600">${row.price}积分 × ${row.n} 节</span><span class="truncate font-semibold text-slate-900">持有人 ${esc(row.holder)}</span></div>`).join('')}
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">退款总积分</span><span class="truncate font-semibold text-slate-900">${ds.totalPoints} 积分</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">清退后剩余未排</span><span class="truncate font-semibold text-slate-900">${ds.after} 节</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">凭证张数</span><span class="truncate font-semibold text-slate-900">${state.deduct.proofs.length} 张</span></div>
+            <div class="flex justify-between gap-2"><span class="shrink-0 font-medium text-slate-600">财务备注</span><span class="truncate text-right font-medium text-slate-700">${esc(state.deduct.note.trim())}</span></div>
+          </div>
+          ${ds.fallbackSelected ? `<div class="mt-2 rounded-xl border border-amber-300 bg-amber-50/70 px-2.5 py-2 text-[12px] font-semibold text-amber-900">提交后将向原持有人班长发送只读通知。</div>` : ''}
+          <div class="mt-2.5 rounded-xl border border-slate-200/80 bg-white p-2.5">
+            <div class="flex items-center justify-between gap-2 text-[12px]"><span class="font-medium text-slate-600">关联购课单</span><span class="truncate font-mono font-semibold text-slate-900">${esc([...new Set(ds.selected.map((r) => r.orderId))].join(' · '))}</span></div>
+            <p class="mt-1.5 text-[12px] font-medium text-slate-600">已清退 TS 不进入周转账单与老师周课酬单。</p>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button data-action="back-to-deduct" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">返回修改</button>
+            <button data-action="confirm-deduct" class="h-11 flex-[1.3] rounded-xl bg-rose-600 text-[16px] font-bold text-white hover:bg-rose-700">确认清退</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function renderOverlay() {
+      const el = $('overlay');
+      if (!state.overlay) el.innerHTML = '';
+      else if (state.overlay.type === 'pick') el.innerHTML = renderPicker();
+      else if (state.overlay.type === 'deduct') el.innerHTML = renderDeductSheet();
+      else if (state.overlay.type === 'confirm') el.innerHTML = renderConfirmModal();
+      else el.innerHTML = '';
+    }
+
+    /* ------------------------------------------------------------------
      * 业务动作
      * ------------------------------------------------------------------ */
-    function openDeduct(orderId) {
+    function captureBack() {
+      state.back = {
+        page: state.page,
+        recordId: state.activeRecordId,
+        studentKey: state.activeStudentKey,
+        orderId: state.activeOrderId
+      };
+    }
+
+    function goBack() {
+      const b = state.back;
+      state.back = null;
+      state.overlay = null;
+      if (b) {
+        state.page = b.page;
+        state.activeRecordId = b.recordId;
+        state.activeStudentKey = b.studentKey;
+        state.activeOrderId = b.orderId;
+      } else {
+        state.page = 'records';
+        state.activeRecordId = null;
+        state.activeOrderId = null;
+      }
+      renderAll();
+    }
+
+    function openPicker() {
       if (state.online === 'off') return showToast('离线模式下不可执行课次清退');
-      if (!canOperate()) return;
-      ensureActiveStudent();
-      const order = orderId ? orderById(orderId) : primaryOrderFor(state.activeStudent);
-      if (!order || order.pending <= 0) return showToast('暂无待排期课次可清退');
-      const perm = canOperateOnHolder(order.holder);
-      if (!perm.ok) return showToast(`该课次资金当前由 ${order.holder} 持有，请由资金持有人操作清退`);
-      state.deduct = { orderId: order.id, count: '1', note: '', proofs: [], errorCount: '', errorNote: '', errorProof: '' };
+      if (state.role === 'parent') return;
+      state.overlay = { type: 'pick' };
+      renderAll();
+    }
+
+    function applyPreset(preset) {
+      if (!preset) return;
+      const d = state.deduct;
+      const rows = pendingTierRows(d.studentKey).filter(rowEditable);
+      const setRow = (row, n) => { if (row) d.inputs[row.key] = String(Math.max(0, Math.min(row.remaining, n))); };
+      if (preset === 'multi') {
+        setRow(rows.find((r) => r.price === 16 && r.kind === '1v1'), 2);
+        setRow(rows.find((r) => r.price === 18 && r.kind === '1v1'), 1);
+        d.note = '线下微信退费 ¥150，家长调整课业安排，已与家长确认剩余课次。';
+      }
+      if (preset === 'fallback') {
+        setRow(rows.find((r) => r.price === 16 && r.kind === '1v1'), 2);
+        setRow(rows.find((r) => r.kind === '小班'), 1);
+        d.note = '管理员兜底：家长移居停课，线下微信退费 ¥900，已与持有人及家长三方确认。';
+        d.proofs = [{ name: '微信转账凭证_示例.png', size: 286 * 1024 }];
+      }
+      if (preset === 'clear') {
+        rows.forEach((r) => { d.inputs[r.key] = String(r.remaining); });
+      }
+    }
+
+    function openDeduct(studentKey, preset) {
+      if (state.online === 'off') return showToast('离线模式下不可执行课次清退');
+      if (state.role === 'parent') return;
+      const key = studentKey || state.activeStudentKey;
+      const student = key ? studentByKey(key) : null;
+      if (!student) return showToast('请先选择学员');
+      const rows = pendingTierRows(key);
+      if (!rows.length) return showToast('该学员当前没有待排期课次可清退');
+      const editable = rows.filter(rowEditable);
+      if (!editable.length) {
+        const holders = [...new Set(rows.map((r) => r.holder))];
+        return showToast(`该课次资金当前由 ${holders.join(' / ')} 持有，请由资金持有人操作清退`);
+      }
+      state.deduct = { studentKey: key, inputs: {}, note: '', proofs: [], errors: {} };
+      rows.forEach((row) => { state.deduct.inputs[row.key] = '0'; });
+      applyPreset(preset);
       state.overlay = { type: 'deduct' };
       renderAll();
     }
 
+    function clearAllRows() {
+      if (state.online === 'off') return showToast('离线模式下不可执行课次清退');
+      const rows = pendingTierRows(state.deduct.studentKey).filter(rowEditable);
+      rows.forEach((row) => { state.deduct.inputs[row.key] = String(row.remaining); });
+      state.deduct.errors = {};
+      state.overlay = { type: 'deduct' };
+      renderAll();
+      showToast(`已填满可清退的 ${rows.reduce((a, r) => a + r.remaining, 0)} 节待排期课次`);
+    }
+
     function validateDeduct() {
       const d = state.deduct;
-      const order = orderById(d.orderId);
-      if (!order) return false;
-      const perm = canOperateOnHolder(order.holder);
-      if (!perm.ok) {
-        showToast(`该课次资金当前由 ${order.holder} 持有，请由资金持有人操作清退`);
-        return false;
-      }
-      const max = order.pending;
-      const raw = String(d.count).trim();
-      let ok = true;
-      if (raw === '') {
-        d.errorCount = '请输入清退节数';
-        ok = false;
-      } else {
-        const n = Number(raw);
-        if (!Number.isFinite(n) || !Number.isInteger(n)) {
-          d.errorCount = '请输入有效的清退节数';
-          ok = false;
-        } else if (n <= 0) {
-          d.errorCount = '清退节数必须大于 0';
-          ok = false;
-        } else if (n > max) {
-          d.errorCount = `最多可清退 ${max} 节待排期课次`;
-          ok = false;
-        } else {
-          d.errorCount = '';
-        }
-      }
+      const ds = deductState();
+      const errors = {};
+      let rowError = false;
+      ds.rows.forEach((row) => {
+        if (!row.canEdit) return;
+        if (row.invalid) { errors[row.key] = '请输入非负整数'; rowError = true; }
+        else if (row.over) { errors[row.key] = `该价位最多可清退 ${row.remaining} 节待排期课次`; rowError = true; }
+      });
+      if (ds.selected.length === 0) errors.total = '请至少输入 1 节清退课次';
+      else if (rowError) errors.total = '存在超出该价位剩余节数的输入，请调整后再提交';
       const note = d.note.trim();
-      if (!note) {
-        d.errorNote = '请填写财务备注';
-        ok = false;
-      } else if (note.length > 200) {
-        d.errorNote = '财务备注最多 200 字';
-        ok = false;
-      } else {
-        d.errorNote = '';
-      }
-      if (perm.isFallback && d.proofs.length < 1) {
-        d.errorProof = '管理员兜底清退必须上传至少 1 张线下退款/转账截图凭证';
-        ok = false;
+      if (!note) errors.note = '请填写财务备注';
+      else if (note.length > 200) errors.note = '财务备注最多 200 字';
+      if (ds.fallbackSelected && d.proofs.length < 1) {
+        errors.proof = '管理员兜底清退必须上传至少 1 张线下退款/转账截图凭证';
       } else if (d.proofs.length > 5) {
-        d.errorProof = '最多上传 5 张截图凭证';
-        ok = false;
-      } else {
-        d.errorProof = '';
+        errors.proof = '最多上传 5 张截图凭证';
       }
-      return ok;
+      d.errors = errors;
+      return Object.keys(errors).length === 0 ? ds : null;
+    }
+
+    function firstError() {
+      const e = state.deduct.errors || {};
+      return e.total || e.note || e.proof || Object.values(e)[0] || '请检查清退信息';
     }
 
     function submitDeduct() {
       if (state.online === 'off') return showToast('离线模式下不可执行课次清退');
-      if (!validateDeduct()) {
+      const ds = validateDeduct();
+      if (!ds) {
         renderOverlay();
         if (window.lucide) lucide.createIcons();
-        showToast(state.deduct.errorCount || state.deduct.errorNote || state.deduct.errorProof);
+        showToast(firstError());
         return;
       }
       state.overlay = { type: 'confirm' };
       renderAll();
     }
 
+    function nextRecordId() {
+      const now = new Date();
+      return `CD-${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}-${pad2(state.records.length + 1)}`;
+    }
+
     function confirmDeduct() {
       if (state.online === 'off') return showToast('离线模式下不可执行课次清退');
-      if (!validateDeduct()) {
+      const ds = validateDeduct();
+      if (!ds) {
         state.overlay = { type: 'deduct' };
         renderAll();
-        showToast(state.deduct.errorCount || state.deduct.errorNote || state.deduct.errorProof);
+        showToast(firstError());
         return;
       }
       const d = state.deduct;
-      const order = orderById(d.orderId);
-      if (!order || order.pending <= 0) {
-        state.overlay = null;
-        renderAll();
-        return showToast('该购课单暂无可清退课次');
-      }
-      const perm = canOperateOnHolder(order.holder);
-      const n = Number(d.count);
-      const prevStatus = order.status;
-      order.pending = Math.max(0, order.pending - n);
-      const remainingValid = order.pending + order.scheduled;
-      order.status = remainingValid === 0 ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
-      const asset = assetOf(order.studentKey);
-      state.records.unshift({
-        id: nextRecordId(),
-        studentKey: order.studentKey,
-        at: '2026-11-18 14:20',
-        n,
-        by: actor(),
-        holder: order.holder,
-        isFallback: perm.isFallback,
-        note: d.note.trim(),
-        orderId: order.id,
-        after: asset.pending,
-        prevStatus,
-        newStatus: order.status,
-        proofs: clone(d.proofs)
+      const selected = ds.selected;
+      const orderIds = [...new Set(selected.map((r) => r.orderId))];
+      const changes = [];
+      orderIds.forEach((id) => {
+        const o = orderById(id);
+        if (!o) return;
+        const from = o.status;
+        selected.filter((r) => r.orderId === id).forEach((r) => {
+          const tier = o.tiers[r.idx];
+          if (tier) tier.remaining = Math.max(0, tier.remaining - r.n);
+        });
+        const remaining = orderRemaining(o);
+        o.status = (remaining + (o.scheduled || 0)) === 0 ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
+        changes.push({ orderId: id, from, to: o.status });
       });
+      const holders = [...new Set(selected.map((r) => r.holder))];
+      const isFallback = state.role === 'admin' && holders.some((h) => h !== '平台');
+      const after = studentTotals(d.studentKey).pending;
+      const record = {
+        id: nextRecordId(),
+        studentKey: d.studentKey,
+        at: formatDateTime(new Date()),
+        by: actor(),
+        isFallback,
+        note: d.note.trim(),
+        items: selected.map((r) => ({ kind: r.kind, price: r.price, n: r.n, holder: r.holder, className: r.className })),
+        n: ds.totalN,
+        totalPoints: ds.totalPoints,
+        orderIds,
+        after,
+        proofs: clone(d.proofs),
+        statusChanges: changes
+      };
+      state.records.unshift(record);
       state.overlay = null;
-      state.page = 'list';
+      state.page = 'records';
       state.activeRecordId = null;
-      state.navTab = boardTab();
+      state.activeStudentKey = d.studentKey;
+      state.activeOrderId = null;
+      state.back = null;
       renderAll();
-      showToast(perm.isFallback
-        ? `已清退 ${n} 节课次，已向原持有人班长 ${order.holder} 发送只读通知`
-        : `已清退 ${n} 节课次，财务备注已留痕（不进入周转账单与课酬单）`);
-    }
-
-    function nextRecordId() {
-      return `CD-20261113-${String(state.records.length + 1).padStart(2, '0')}`;
+      showToast(isFallback
+        ? `已清退 ${ds.totalN} 节，退款总积分 ${ds.totalPoints} 积分，已向原持有人班长发送只读通知`
+        : `已清退 ${ds.totalN} 节，退款总积分 ${ds.totalPoints} 积分，财务备注已留痕`);
     }
 
     function openRecord(id) {
       const r = recordById(id);
-      if (!r || !canViewRecord(r)) return;
+      if (!r || !canViewRecord(r)) return showToast('该清退记录不在当前可见范围内');
+      captureBack();
       state.activeRecordId = id;
-      state.page = 'detail';
+      state.page = 'record';
       state.overlay = null;
-      state.navTab = boardTab();
+      renderAll();
+    }
+
+    function openStudent(key) {
+      const s = studentByKey(key);
+      if (!s) return;
+      if (state.role === 'parent' && !PARENT_CHILDREN.includes(key)) return showToast('家长端仅可查看本人孩子的档案');
+      captureBack();
+      state.activeStudentKey = key;
+      state.page = 'student';
+      state.overlay = null;
+      renderAll();
+    }
+
+    function openOrder(id) {
+      const order = orderById(id);
+      if (!order) return showToast('该购课单已归档，仅保留清退留痕');
+      if (state.role === 'parent' && !PARENT_CHILDREN.includes(order.studentKey)) return showToast('家长端仅可查看本人孩子的购课单');
+      captureBack();
+      state.activeOrderId = id;
+      state.page = 'order';
+      state.overlay = null;
+      renderAll();
+    }
+
+    function resetFilters() {
+      state.query = '';
+      state.range = '30';
+      state.adminHolder = 'all';
+      state.method = 'all';
       renderAll();
     }
 
@@ -1175,52 +1736,57 @@
       const action = el.dataset.action;
       if (action === 'nav') return navTo(el.dataset.tab);
       if (action === 'toast') return showToast(el.dataset.message || '');
-      if (action === 'banner-back' || action === 'go-back') {
+      if (action === 'banner-back') {
         if (state.overlay) { state.overlay = null; renderAll(); return; }
-        if (state.page === 'detail') {
-          state.page = 'list';
-          state.activeRecordId = null;
-          state.navTab = boardTab();
-          renderAll();
-          return;
-        }
+        if (state.page !== 'records' && state.page !== 'placeholder') return goBack();
         return;
       }
-      if (action === 'select-student') {
-        state.activeStudent = el.dataset.key;
-        state.page = 'list';
-        state.activeRecordId = null;
+      if (action === 'open-picker') return openPicker();
+      if (action === 'pick-student') {
         state.overlay = null;
+        return openDeduct(el.dataset.key);
+      }
+      if (action === 'open-student') return openStudent(el.dataset.key);
+      if (action === 'open-order') return openOrder(el.dataset.id);
+      if (action === 'open-record') return openRecord(el.dataset.id);
+      if (action === 'open-deduct-student') {
+        if (state.online === 'off') return showToast('离线模式下不可执行课次清退');
+        return openDeduct(state.activeStudentKey);
+      }
+      if (action === 'open-deduct-order') {
+        const order = orderById(el.dataset.id);
+        if (!order) return;
+        return openDeduct(order.studentKey);
+      }
+      if (action === 'close-overlay') { state.overlay = null; renderAll(); return; }
+      if (action === 'set-range') {
+        state.range = el.dataset.range;
         renderAll();
         return;
       }
-      if (action === 'open-record') return openRecord(el.dataset.id);
-      if (action === 'open-deduct') return openDeduct(el.dataset.order || null);
-      if (action === 'close-overlay') { state.overlay = null; renderAll(); return; }
-      if (action === 'count-step') {
-        const order = orderById(state.deduct.orderId);
-        if (!order) return;
-        const max = order.pending;
-        let n = Number(state.deduct.count);
-        if (!Number.isInteger(n)) n = 1;
-        n = Math.max(1, Math.min(max, n + Number(el.dataset.delta)));
-        state.deduct.count = String(n);
-        state.deduct.errorCount = '';
-        const input = $('deductCount');
+      if (action === 'clear-search') {
+        state.query = '';
+        renderAll();
+        const input = $('recordSearch');
+        if (input) input.focus();
+        return;
+      }
+      if (action === 'reset-filters') return resetFilters();
+      if (action === 'tier-step') {
+        const key = el.dataset.key;
+        const row = pendingTierRows(state.deduct.studentKey).find((r) => r.key === key);
+        if (!row || !rowEditable(row)) return;
+        let n = parseQty(state.deduct.inputs[key] ?? '0');
+        if (n === null) n = 0;
+        n = Math.max(0, Math.min(row.remaining, n + Number(el.dataset.delta)));
+        state.deduct.inputs[key] = String(n);
+        state.deduct.errors = {};
+        const input = document.querySelector(`[data-tier-input="${key}"]`);
         if (input) input.value = String(n);
         refreshDeductPreview();
         return;
       }
-      if (action === 'clear-all') {
-        const order = orderById(state.deduct.orderId);
-        if (!order) return;
-        state.deduct.count = String(order.pending);
-        state.deduct.errorCount = '';
-        const input = $('deductCount');
-        if (input) input.value = String(order.pending);
-        refreshDeductPreview();
-        return;
-      }
+      if (action === 'clear-all') return clearAllRows();
       if (action === 'submit-deduct') return submitDeduct();
       if (action === 'back-to-deduct') {
         state.overlay = { type: 'deduct' };
@@ -1228,20 +1794,10 @@
         return;
       }
       if (action === 'confirm-deduct') return confirmDeduct();
-      if (action === 'select-deduct-order') {
-        const nextOrder = orderById(el.dataset.order);
-        if (!nextOrder || nextOrder.pending <= 0) return;
-        state.deduct.orderId = nextOrder.id;
-        state.deduct.count = '1';
-        state.deduct.errorCount = '';
-        renderOverlay();
-        if (window.lucide) lucide.createIcons();
-        return;
-      }
       if (action === 'remove-proof') {
         const idx = Number(el.dataset.idx);
         state.deduct.proofs.splice(idx, 1);
-        state.deduct.errorProof = '';
+        state.deduct.errors = {};
         renderOverlay();
         if (window.lucide) lucide.createIcons();
         return;
@@ -1251,7 +1807,7 @@
         if (state.deduct.proofs.length >= 5) return showToast('最多上传 5 张截图凭证');
         const idx = state.deduct.proofs.length + 1;
         state.deduct.proofs.push({ name: `微信转账截图_示例${idx}.png`, size: (210 + idx * 35) * 1024 });
-        state.deduct.errorProof = '';
+        state.deduct.errors = {};
         renderOverlay();
         if (window.lucide) lucide.createIcons();
         return;
@@ -1269,25 +1825,24 @@
 
     $('frame').addEventListener('input', (e) => {
       const id = e.target.id;
-      if (id === 'deductCount') {
-        state.deduct.count = e.target.value;
-        state.deduct.errorCount = '';
+      if (e.target.matches('[data-tier-input]')) {
+        state.deduct.inputs[e.target.dataset.tierInput] = e.target.value;
+        state.deduct.errors = {};
         refreshDeductPreview();
         return;
       }
       if (id === 'deductNote') {
         state.deduct.note = e.target.value;
-        state.deduct.errorNote = '';
+        state.deduct.errors.note = '';
         refreshDeductPreview();
         return;
       }
-      if (id === 'studentSearch') {
+      if (id === 'recordSearch') {
         state.query = e.target.value;
-        ensureActiveStudent();
         const pos = e.target.selectionStart;
         $('content').innerHTML = renderContent();
         if (window.lucide) lucide.createIcons();
-        const next = $('studentSearch');
+        const next = $('recordSearch');
         if (next) {
           next.focus();
           try { next.setSelectionRange(pos, pos); } catch (_) { /* noop */ }
@@ -1297,9 +1852,13 @@
     });
 
     $('frame').addEventListener('change', (e) => {
-      if (e.target.id === 'holderFilter') {
-        state.holderFilter = e.target.value;
-        ensureActiveStudent();
+      if (e.target.id === 'adminHolderFilter') {
+        state.adminHolder = e.target.value;
+        renderAll();
+        return;
+      }
+      if (e.target.id === 'methodFilter') {
+        state.method = e.target.value;
         renderAll();
         return;
       }
@@ -1321,7 +1880,7 @@
           }
           state.deduct.proofs.push({ name: file.name, size: file.size });
         }
-        state.deduct.errorProof = '';
+        state.deduct.errors = {};
         e.target.value = '';
         renderOverlay();
         if (window.lucide) lucide.createIcons();
@@ -1341,27 +1900,40 @@
      * 启动
      * ------------------------------------------------------------------ */
     (function boot() {
-      ensureActiveStudent();
-      if (state.page === 'detail') {
+      if (state.page === 'record') {
         const target = recordById(state.activeRecordId);
-        if (state.activeRecordId && (!target || !canViewRecord(target))) {
-          state.page = 'list';
-          state.activeRecordId = null;
-        } else if (!state.activeRecordId) {
-          const first = recordsFor(state.activeStudent).find((r) => canViewRecord(r));
+        if (!target || !canViewRecord(target)) {
+          const first = sortedRecords(scopedRecords())[0];
           if (first) state.activeRecordId = first.id;
-          else state.page = 'list';
+          else state.page = 'records';
         }
       }
+      if (state.page === 'student' && !studentByKey(state.activeStudentKey)) state.page = 'records';
+      if (state.page === 'order' && !orderById(state.activeOrderId)) state.page = 'records';
+
       renderAll();
-      if (bootOverlay === 'deduct') openDeduct();
-      if (bootOverlay === 'confirm') {
-        openDeduct();
-        if (state.overlay && state.overlay.type === 'deduct') {
-          state.overlay = { type: 'confirm' };
-          renderAll();
+
+      if (bootOverlay === 'pick' && state.role !== 'parent' && state.online === 'on') {
+        state.overlay = { type: 'pick' };
+        renderAll();
+      }
+      if (bootOverlay === 'deduct' || bootOverlay === 'confirm') {
+        const key = params.get('student') || (sortedRecords(scopedRecords())[0] || {}).studentKey || 'alice';
+        openDeduct(key, bootPreset);
+        if (bootOverlay === 'confirm' && state.overlay && state.overlay.type === 'deduct') {
+          const ds = validateDeduct();
+          if (ds) {
+            state.overlay = { type: 'confirm' };
+            renderAll();
+          }
         }
       }
+      if (bootScroll === 'summary') {
+        const sheet = $('overlay').querySelector('[data-scroll]');
+        const summary = $('deductSummary');
+        if (sheet && summary) sheet.scrollTop = Math.max(0, summary.offsetTop - 80);
+      }
+      if (window.lucide) lucide.createIcons();
     })();
   </script>
 </body>

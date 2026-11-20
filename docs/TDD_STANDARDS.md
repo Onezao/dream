@@ -25,12 +25,69 @@
 | **端侧 PWA 缓存** | `vite-plugin-pwa` 四级缓存体系（见 [DESIGN.md](../DESIGN.md#5-pwa-与端侧四级数据缓存策略-pwa--caching-hierarchy)） | L1 `CacheStorage`（壳/静态资源）；L2 `LocalStorage + Pinia`（身份/字典）；L3 `IndexedDB`（`dream_pwa_l3_db` 脱敏只读快照）；L4 `NetworkOnly`（支付/清退/转账/抢位**绝对禁止离线缓存**） |
 | **静态配置与密钥** | `@topeetop/env-secure-conf` + `zod` (`env.config.ts`) | 启动时强校验环境变量；严禁在代码或注释中明文写入密钥 |
 | **动态运营配置** | `dream.system_configs` 键值表 + 整点分钟缓存 + `dream.audit_logs` | 仅收录已拍板的高频参数（见 [SYSTEM_CONFIG_PARAMETERS_CANDIDATES.md](./SYSTEM_CONFIG_PARAMETERS_CANDIDATES.md)）；变更即时对新操作/新单据生效，**严禁追溯修改已生成单据或已排课格** |
-| **异步与定时任务** | `@topeetop/task-relay-client` + `dream-worker` | 严禁在 `dream-backend` 中使用裸定时器或 `node-cron`；异步投递走 `task-relay-client`，周期性跑批统一归口 `dream-worker`（必须幂等可重入） |
+| **异步与定时任务** | **优先 `@topeetop/task-relay-client`（TaskRelay 服务）** + `dream-worker`（固定 Cron 批处理） | 严禁在 `dream-backend` 中使用裸定时器或 `node-cron`；**所有异步投递与 31 天内精确单次定时任务优先使用 TaskRelay**；仅全校周期性 Cron 扫表归口 `dream-worker`（详见 §2.2） |
+| **通知与实时推送** | `@topeetop/notification-core`（`NotificationManager` + `SseHub` / `DbPollerManager`） | 严禁自建 WebSocket 或手写 SSE 轮询骨架；邮件经 `NotificationManager`（配置 `relay` 走 TaskRelay），浏览器实时推送统一挂载 `createNotificationRouter` SSE 总线（详见 §2.3） |
 | **认证与鉴权** | `@topeetop/auth-core` + `@topeetop/shared-core` (`JwtAuthHook`) | 仅复用 `auth-core` 自然人认证与 JWKS 验签；**严禁使用 `auth-core` 角色体系**，业务身份由本地 `admin_accounts`/`monitor_profiles`/`teacher_profiles`/`student_profiles` 解析 |
-| **文件与媒体存储** | `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` | 端侧按规范压缩后拿预签名直传 S3/R2，数据库仅存相对 `key` |
+| **文件与媒体存储** | `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`（遵循 `packages/docs/s3-upload-guide.md`） | 浏览器端 S3 预签名 `PUT` 直传；**图片默认在浏览器端转为 WebP 后直传，不限制原图大小**；**PDF 或其他格式必须限制文件大小**；DB 仅存相对 `key`（详见 §2.4） |
 | **双语 (i18n) 与错误码** | 后端 `dream-core` 英文 `ApiError` + 大写 `errorCode`；前端 `vue-i18n` (`zh-CN`/`en-US`) | `dream-core` 严禁硬编码中文；前端按 `errors.<CODE>` 翻译；语言偏好存 `LocalStorage(dream_locale)` 与 `dream.user_preferences`（外教默认 `en-US`，家长/班长默认 `zh-CN`） |
 | **遥测与日志** | `@topeetop/telemetry-core`（stdout JSON + `trace_id`） | 日志禁止明文输出 `password`/`token`/`secret`/`authorization`/`cookie` |
 | **前端 UI 与样式** | Vue 3 + Pinia + Vue Router + TDesign + **100% Tailwind CSS** | 严禁手写 `<style>` 块或外部 CSS 样式表；工作台按 `effectiveRoles` 路由隔离 |
+
+---
+
+## 2.1 列表排序与搜索实现选型基线（客户端 vs 服务端）
+
+编写各模块 TDD 时，**禁止一刀切全部走服务端或全部走客户端**，必须按“数据体量上限 + 是否属于 L4 `NetworkOnly` 强实时资金域”三档分流设计：
+
+| 实现模式 | 适用条件与缓存策略 | 强制适用列表 | 技术约束 |
+|---|---|---|---|
+| **A. 端侧全量 + 客户端排序/搜索** | 权限范围内总条数有界（通常 $\le 500$ 条，JSON $< 100\text{KB}$），需高频切排序、1–2 字母前缀过滤或首字母索引；可配合服务端整点分钟缓存或端侧 L2/L3 缓存 | **M1A** 自家孩子、所辖/全校学员、试课学员；**M1B** 老师/班长列表；**M1C** 小班列表；**M1E** 课件库 | 前端在 Pinia `computed` 内完成 0ms 过滤与排序；若未来全校在读突破 1000 人阈值，再降级切换为服务端检索 |
+| **B. 周期切片 + 端侧过滤（混合）** | 按自然周/时间窗口切片拉取后单屏行数有限（几十行），但需保证首屏基准顺序与多条件即时过滤 | **M5B** 老师周课酬单看板 | 服务端按周返回并排好 `非常规标红 → 待打款 → 已打款` 基准序；前端在内存中 0ms 完成姓名搜索与“仅看非常规”过滤 |
+| **C. 服务端分页 + SQL 排序/搜索** | 随时间无限增长的历史单据/流水（数千～数万条），或属于 **L4 `NetworkOnly` 禁止离线缓存** 的资金/风控强实时域 | **M2A** 购课单；**M2B** 课次清退记录；**M5A** 周转账单与异常回退 TS；**M3B** 经办记录；**M4** 站内通知（每页 20 条） | 必须由 `dream-core` `*Mapper` 通过索引化 SQL `WHERE` + `ORDER BY` + `LIMIT/OFFSET`（或游标）实现；前端搜索输入需做 300ms 防抖 |
+
+---
+
+## 2.2 异步任务与定时调度选型基线（优先 TaskRelay 服务）
+
+在设计异步操作或延迟/定时触发方案时，**优先使用自托管 TaskRelay 服务（`@topeetop/task-relay-client`）**，避免为了单据级定时触发而高频轮询数据库：
+
+1. **优先使用 TaskRelay 的场景（异步解耦 + 31 天内精确单次延迟任务）**：
+   - **全部异步投递**：邮件发送（续费账单、临期催办、代课变动、周结发薪通知、应急调度等）、外部 Webhook 回调；
+   - **单据/课次级精确定时触发（`scheduleTime` / `delaySeconds` $\le 31$ 天）**：例如 `AUTO_RENEWAL` 续费单生成时直接预埋“开课前 48h 催办”与“开课前 24h 超时作废释放 `HOLD`”任务；老师请假时预埋“原定下课时间未处理自动退回待排期”任务（若提前付款/处理，可调用 `deleteTask` 撤销，并在回调接口做状态幂等守卫）。
+2. **归口 `dream-worker` 的场景（仅全校级固定 Cron 周期扫表）**：
+   - 每日 02:00 自动结课、每周一 03:00/03:30 周课酬单与周转账单预生成、周一 08:00/08:30 转账催办与固定位续费扫描、超 30 天试课归档及历史覆盖/通知清理等无特定单据触发源的批处理；批处理产出的下游发信动作仍通过 TaskRelay 异步投递。
+3. **TaskRelay 接入强制协议规范**：
+   - **Body 编码**：`httpRequest.body`（v2.4+）必须进行 **Base64 编码**，单任务 Payload 上限 **200 KB**；
+   - **幂等与追踪**：必须携带 **`idempotencyKey`** 防重放，并在 `httpRequest.headers` 透传 **`x-trace-id`**；
+   - **队列安全**：队列需通过 `saveQueue` 配置 **`allowed_domains`**（SSRF 白名单）与重试上限；
+   - **回调生命周期**：同步完成返回 `200 OK`；长时异步任务返回 `202 Accepted` 并必须在 **30 分钟内**调用 `completeTask` 结案（超时将被回收标记 `EXHAUSTED`）。
+
+---
+
+## 2.3 通知投递与浏览器实时推送选型基线（Notification + SSE）
+
+全项目邮件投递与浏览器端内实时推送统一使用 **`@topeetop/notification-core`**，严禁自建 WebSocket 服务或裸写前端轮询定时器：
+
+1. **邮件与外部通知**：在应用 Composition Root 通过 `createNotificationManager(config, db)` 注入 `NotificationManager` 实例，并启用 `relay` 配置（`baseUrl`、`psk`、`enabled: true`）自动委托 TaskRelay 异步投递，禁止在请求链路内同步阻塞等待第三方邮件网关。
+2. **浏览器实时推送（SSE）**：
+   - 需要向浏览器实时推送信标红点、新待办或课表变动提醒时，统一使用 `DbPollerManager` + `SseHub` + `createNotificationRouter({ sseHub, authMiddleware })` 挂载至 Fastify（路径 `/api/notification/v1`）；
+   - `DbPollerManager` 复用 `@topeetop/shared-core` 的 `db.executeQuery.bind(db)`，默认 `pollIntervalMs: 5000`，严禁额外新建数据库连接池；
+   - 必须传入已校验 JWT 的 `authMiddleware` 防止未授权订阅或跨账号事件泄露。
+
+---
+
+## 2.4 文件与媒体直传选型基线（S3 Presigned PUT + WebP 免限）
+
+全项目文件上传统一遵循 `packages/docs/s3-upload-guide.md` 采用**浏览器端 S3 预签名 `PUT` 直传**（不经业务后端中转二进制流），并按文件类型执行差异化前置处理：
+
+1. **图片上传（不限制原图大小 · 浏览器端统一转 WebP）**：
+   - 头像、老师风采相册、二维码、付款/退款/转账凭证截图等所有图片，**浏览器端不对用户选择的原图大小做拦截限制**；
+   - 选择图片后，由前端在浏览器内通过 Canvas 完成等比例缩放与压缩，统一导出为 **`image/webp`** Blob 后再向后端申请预签名 URL 并 `PUT` 直传（后端 `PutObjectCommand` 的 `ContentType` 锁定为 `image/webp`，有效期推荐 3–8 分钟）；数据库仅保存相对 `key`。
+2. **PDF 及其他非图片格式（严格限制大小）**：
+   - PDF 凭证、介绍视频等无法在浏览器端转 WebP 的非图片文件，**必须在浏览器选档阶段与预签名申请接口双端强校验文件大小上限**（例如凭证 PDF $\le 10\text{MB}$、试讲视频按 M1B 规格上限）及 `Content-Type` 白名单，超限立即阻断提示。
+3. **敏感图片与文档私有访问隔离（严禁公开域名直出）**：
+   - **公开宣传素材**（老师风采相册、试讲视频、课件样图、公开头像）可配置公开 CDN 域名；
+   - **敏感图片与文档**（付款/转账/退款凭证截图与 PDF、微信收款/联系二维码、证件或内部审计附件等）**严禁存入公开桶或通过公开域名匿名访问**；必须存入私有 S3 桶/私有前缀，仅在后端校验登录态（`JwtAuthHook`）及资源归属/角色权限通过后，动态签发短时效 `GetObject` 预签名 URL（推荐 60–300 秒）或经鉴权代理返回。
 
 ---
 
@@ -42,6 +99,8 @@
 2. **高危操作二次验活（策略 B）**：针对周转账确认（M5A）、课次清退（M2B）、班长/老师离职交接（M1B）、账号注销（M0A）等高危操作，必须在后端追加实时校验账号未被封禁（`verifyActiveAccount`）。
 3. **并发与防重放**：排课抢位、核销课次、转账归集等强一致性操作必须使用 `executeTx` 事务 + 行级排他锁（`SELECT ... FOR UPDATE`）；前端 Token 刷新必须实现 `isRefreshing` + `failedQueue` 单通道互斥队列。
 4. **测试后门严控**：任何模拟测试 Header（如 `LEGACY_TEST_MOCK_TOKENS`）仅允许在 `NODE_ENV === 'test'` 下存在，生产与预发环境物理禁用。
+5. **敏感信息 API 响应与端侧双端脱敏**：Email（如 `a***@example.com`）、手机号（如 `138****1234`）、证件号等 PII 个人敏感信息，**不仅界面展示需脱敏，后端 HTTP 响应 API 必须在 DTO/Serializer 层直接脱敏返回**（严禁靠前端截断掩码而 API 明文吐出全量敏感字段）；仅账号本人明确触发“查看/核验”且权限闭环时方可按最小必要原则返回。
+6. **敏感文件鉴权访问（禁止公开域名）**：凭证截图、PDF 文档、私域微信二维码等敏感文件必须存放在私有存储桶并绑定登录态 + 权限校验后签发短时效预签名读取链接，禁止挂在公开 CDN 域名下匿名访问。
 
 ---
 

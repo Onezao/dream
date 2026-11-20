@@ -142,6 +142,7 @@
 | 页面名称 | 原型文件 URL (纯净) | 原型跨页带参示例 (Deep Link) | 真实前端路由 URL (双轨制) | 实体参数 | 页面形态 | 归属底栏 Tab | 角色权限 | 上一步入口 (From) | 返回兜底 (Fallback) |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- | :--- |
 | **单向转账单归集看板** | `prototype/m5a_transfer_collection.html` | `?weekNumber=46` | **`/finance/transfers`** | 无 | Page | `Tab 3: ops` | `monitor`, `admin` | ① 班长/管理员 Tab 3 顶部 4 大单据<br>② 财务结课待办 | `/monitor/ops` |
+| **↳ 全校异常课次核查与回退大盘** | `prototype/m5a_transfer_collection.html` | `?role=admin&view=ts` | **`/finance/transfers/rollback`** | Query `?role=admin&view=ts` | Page | `Tab 3: ops` (或当前 Tab) | `admin` | ① 首页金刚位 `⚠️ 异常回退`<br>② Tab 3 金刚位 `⚠️ 异常回退` | 来源页 (`/admin/home` 或 `/monitor/ops`) |
 | **老师周课酬报表** | `prototype/m5b_weekly_settlement.html` | `?weekNumber=46` | **`/finance/settlements/weekly`** | 无 | Page | `Tab 3: ops` | `monitor`, `admin` | ① 班长/管理员 Tab 3 顶部 4 大单据<br>② 结算日提醒 | `/monitor/ops` |
 | **单张课酬单明细详情** | `prototype/m5b_weekly_settlement.html` | `?settlementId=stl_202646_david` | **`/finance/settlements/:settlementId`** | `settlementId` (必填) | Page | `none` (隐藏底栏) | `admin`, `teacher` | ① 周结算报表列表点击<br>② 老师首页【本周课酬卡】 | `/finance/settlements/weekly` 或 `/teacher/home` |
 

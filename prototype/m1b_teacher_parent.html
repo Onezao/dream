@@ -135,35 +135,36 @@
 
     const TEACHERS = [
       {
-        id: 'tc_david0001', name: 'David Miller', level: '21', monitor: 'Leo',
+        id: 'tc_david0001', name: 'David Miller', level: '21', monitor: 'Leo', status: 'active', taughtChildren: ['AliceZ12'],
+        pendingPrice: { level: '18', effectiveDate: '2026-12-07' },
         videoDuration: '01:45', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.david, avatarPhotoId: DEMO.david[0].id, avatarDataUrl: demoPhoto('David', '#6366f1', '#0ea5e9', 600, 600),
         introZh: 'David 老师来自英国伦敦，拥有牛津大学教育学背景与 8 年少儿一线教学经验（CELTA 认证）。擅长通过高频游戏化互动与自然拼读教学法激发孩子语言潜能，累计辅导超 200 名学员高分通过 KET/PET 剑桥五级考试。',
         introEn: 'Teacher David comes from London, UK, holding a degree in Education and CELTA certification with over 8 years of ESL teaching experience. He specializes in gamified phonics and Cambridge KET exam preparation.'
       },
       {
-        id: 'tc_sarah0002', name: 'Sarah Jenkins', level: '18', monitor: 'Leo',
+        id: 'tc_sarah0002', name: 'Sarah Jenkins', level: '18', monitor: 'Leo', status: 'active', taughtChildren: [],
         videoDuration: '01:15', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.sarah, avatarPhotoId: DEMO.sarah[0].id, avatarDataUrl: demoPhoto('Sarah', '#0ea5e9', '#14b8a6', 600, 600),
         introZh: 'Sarah 老师拥有 6 年在线少儿英语教学经验，课堂节奏轻快，擅长生活口语与旅游情境表达训练，善于用绘本和角色扮演帮助孩子建立开口自信。',
         introEn: 'Sarah has six years of online ESL teaching experience. Her lively classes focus on everyday conversation and travel English, using picture books and role-play to build children\'s speaking confidence.'
       },
       {
-        id: 'tc_micha0006', name: 'Michael Chen', level: '21', monitor: 'Amy',
+        id: 'tc_micha0006', name: 'Michael Chen', level: '21', monitor: 'Amy', status: 'active', taughtChildren: ['BobZ10'],
         videoDuration: '01:32', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.michael, avatarPhotoId: DEMO.michael[0].id, avatarDataUrl: demoPhoto('Michael', '#6366f1', '#4338ca', 600, 600),
         introZh: 'Michael 老师拥有 7 年英语语法与剑桥 KET 备考执教经历，教学逻辑严密，擅长用词根记忆网打牢语法词汇基本功。',
         introEn: 'Michael has seven years of grammar and Cambridge KET preparation experience, using systematic word-root maps to build solid foundations.'
       },
       {
-        id: 'tc_emma00001', name: 'Emma Stone', level: '18', monitor: 'Amy',
+        id: 'tc_emma00001', name: 'Emma Stone', level: '18', monitor: 'Amy', status: 'active', taughtChildren: ['AliceZ12'],
         videoDuration: '01:08', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.emma, avatarPhotoId: DEMO.emma[0].id, avatarDataUrl: demoPhoto('Emma', '#ec4899', '#8b5cf6', 600, 600),
         introZh: 'Emma 老师擅长低龄学员口语启蒙与日常对话训练，课堂亲和力强，善于用生活情境带孩子自然开口。',
         introEn: 'Emma specializes in early-years speaking and everyday conversation. Her classes are warm and highly interactive.'
       },
       {
-        id: 'tc_kevin0005', name: 'Kevin Lin', level: '16', monitor: 'Amy',
+        id: 'tc_kevin0005', name: 'Kevin Lin', level: '16', monitor: 'Amy', status: 'active', taughtChildren: ['BobZ10'],
         videoDuration: '01:02', videoUrl: SAMPLE_VIDEO,
         photos: DEMO.kevin, avatarPhotoId: DEMO.kevin[0].id, avatarDataUrl: demoPhoto('Kevin', '#14b8a6', '#6366f1', 600, 600),
         introZh: 'Kevin 老师专注少儿英语启蒙，擅长游戏化课堂与自然拼读，注重孩子的课堂参与感。',
@@ -246,6 +247,23 @@
         '16': 'border-slate-200 bg-slate-50 text-slate-600'
       };
       return `<span class="inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${map[level] || map['18']}">${esc(level)}积分</span>`;
+    }
+
+    function pendingPriceText(plan) {
+      if (!plan) return '';
+      return `${String(plan.effectiveDate).slice(5)} 起 ${plan.level}积分`;
+    }
+
+    function hallTeachers() {
+      return state.teachers
+        .filter((t) => t.status !== 'resigned')
+        .slice()
+        .sort((a, b) => {
+          const aFamiliar = (a.taughtChildren || []).includes(state.child) ? 0 : 1;
+          const bFamiliar = (b.taughtChildren || []).includes(state.child) ? 0 : 1;
+          if (aFamiliar !== bFamiliar) return aFamiliar - bFamiliar;
+          return a.name.localeCompare(b.name, 'en');
+        });
     }
 
     function qrSvg(seed) {
@@ -383,7 +401,7 @@
      * 选课大厅
      * ------------------------------------------------------------------ */
     function renderHall() {
-      const list = state.teachers;
+      const list = hallTeachers();
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         ${pageHeader('选老师', `为 ${state.child} 挑选合适的老师`)}
@@ -424,9 +442,10 @@
               <span class="truncate text-[16px] font-bold text-slate-900">${esc(t.name)}</span>
               ${levelBadge(t.level)}
             </div>
-            <div class="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
+            <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] font-medium text-slate-500">
               <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">可约</span>
               <span class="truncate">负责班长 ${esc(t.monitor)}</span>
+              ${t.pendingPrice ? `<span class="shrink-0 whitespace-nowrap font-semibold text-indigo-700">${esc(pendingPriceText(t.pendingPrice))}</span>` : ''}
             </div>
           </div>
           ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
@@ -465,6 +484,7 @@
               <div class="flex flex-wrap items-center gap-1.5">
                 <h1 class="truncate text-[18px] font-bold tracking-tight text-slate-900">${esc(t.name)}</h1>
                 ${levelBadge(t.level)}
+                ${t.pendingPrice ? `<span class="shrink-0 whitespace-nowrap text-[12px] font-semibold text-indigo-700">${esc(pendingPriceText(t.pendingPrice))}</span>` : ''}
                 <span class="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[12px] font-bold text-emerald-700">可约</span>
               </div>
               <div class="mt-1 text-[12px] font-medium text-slate-500">负责班长 ${esc(t.monitor)}</div>

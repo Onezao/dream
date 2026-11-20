@@ -956,13 +956,32 @@
     /* ------------------------------------------------------------------
      * 管理员：老师周课酬结算看板
      * ------------------------------------------------------------------ */
+    function settlementRank(t) {
+      // 默认排序：含非常规请假的标红行置顶（含已打款）→ 其余待打款 → 已打款沉底
+      if (unusualOf(t).abnormal) return 0;
+      if (t.status !== 'PAID') return 1;
+      return 2;
+    }
+
     function filteredTeachers() {
       const q = state.search.trim().toLowerCase();
-      return state.teachers.filter((t) => {
+      const order = new Map(state.teachers.map((t, i) => [t.id, i]));
+      const rows = state.teachers.filter((t) => {
         const statusOk = state.statusFilter === 'ALL' || t.status === state.statusFilter;
         const searchOk = !q || t.name.toLowerCase().includes(q);
         const anomalyOk = !state.anomalyOnly || unusualOf(t).abnormal;
         return statusOk && searchOk && anomalyOk;
+      });
+      // 当前筛选结果内全部已录内部单价时才按应发金额比较，否则统一回退为结课节数
+      const amountReady = rows.length > 0 && rows.every((t) => refOf(t) !== null);
+      return rows.sort((a, b) => {
+        const rankDiff = settlementRank(a) - settlementRank(b);
+        if (rankDiff) return rankDiff;
+        const aValue = amountReady ? refOf(a) : totalOf(a);
+        const bValue = amountReady ? refOf(b) : totalOf(b);
+        if (bValue !== aValue) return bValue - aValue;
+        // 稳定排序：数值相同保持原始录入顺序
+        return order.get(a.id) - order.get(b.id);
       });
     }
 
@@ -1010,6 +1029,8 @@
           <span class="whitespace-nowrap"><span class="mr-2 font-normal text-slate-500">·</span>已录单价试算合计 <span id="gridRefSum" class="font-mono text-[14px] font-bold text-slate-900">${fmt(refSum)}</span></span>
           <span class="whitespace-nowrap text-slate-600"><span class="mr-2 font-normal text-slate-500">·</span>仅供线下核对</span>
         </div>
+
+        <p class="px-1 text-[12px] font-semibold leading-none text-slate-600">默认排序：异常优先 → 待打款 → 已打款</p>
 
         <div id="gridBody">${gridBody()}</div>
         <p class="px-1 text-[12px] leading-relaxed text-slate-600">共 ${state.teachers.length} 位老师 · 试算总积分 = 内部课酬单价 × 节数 + 10 × 备课次数（选填，仅管理员可见，未录入时仅展示节数）。</p>

@@ -39,8 +39,8 @@
     <span class="bg-indigo-50 text-indigo-700 border-indigo-100 bg-indigo-600 text-indigo-800 bg-indigo-100 border-indigo-200 bg-indigo-50/60 bg-indigo-500"></span>
     <span class="ring-2 ring-indigo-500 ring-inset animate-pulse ring-emerald-400 ring-1 ring-slate-300 ring-white/10 ring-white/15 ring-white/20 ring-white/30"></span>
     <span class="bg-white/5 bg-white/10 bg-white/15 bg-white/20 text-white/70 bg-slate-900/40 bg-slate-900/90"></span>
-    <span class="h-7 h-[22px] h-[26px] h-[54px] h-[56px] h-8 h-9 h-10 h-14 h-16 h-[18px] h-11 w-10 w-[18px]"></span>
-    <span class="border-indigo-400 bg-indigo-50 text-indigo-700 ring-2 ring-inset ring-indigo-300 border-teal-300 bg-teal-50 text-teal-800 text-emerald-700 bg-amber-100 border-amber-200 border-indigo-200"></span>
+    <span class="h-7 h-[22px] h-[26px] h-[54px] h-[56px] h-8 h-9 h-10 h-11 h-12 h-14 h-16 h-[18px] w-10 w-[18px]"></span>
+    <span class="border-indigo-400 bg-indigo-50 text-indigo-700 ring-2 ring-inset ring-indigo-300 border-teal-300 bg-teal-50 text-teal-800 text-emerald-700 bg-emerald-50 text-amber-800 bg-amber-50 text-rose-700 bg-rose-50 border-amber-300 border-dashed border-amber-100 border-amber-200 border-indigo-200"></span>
     <span class="text-[18px] text-[16px] text-[14px] text-[12px] font-mono tracking-tight"></span>
     <span class="rounded-md rounded-lg rounded-xl rounded-2xl rounded-3xl opacity-60 opacity-70 accent-indigo-600"></span>
     <span class="z-30 z-40 z-50 z-[60] z-[100]"></span>
@@ -128,6 +128,7 @@
     };
     const SCHEDULE_CONFLICTS = {
       david: [
+        /* 第 3 周同格冲突演示：模板周选周二 15:30 后，第 3 周自动留空标「冲突待补」 */
         { day: 1, time: '15:30', weeks: [2], note: '老师请假' },
         { day: 5, time: '09:30', weeks: [1], note: '小班占用' },
         { day: 6, time: '10:00', weeks: [0, 3], note: '已有排课' },
@@ -225,7 +226,8 @@
       { value: 'asset-clearing', label: '课次清退入口' },
       { value: 'booked', label: '排课回写' },
       { value: 'schedule-empty', label: '复选态空对象' },
-      { value: 'schedule-select', label: '复选态已选时段' },
+      { value: 'schedule-select', label: '复选态模板穿透' },
+      { value: 'schedule-conflict', label: '复选态周3冲突' },
       { value: 'schedule-group', label: '复选态小班双格' },
       { value: 'parent-leave-ok', label: '家长≥24h可请假' },
       { value: 'parent-leave-blocked', label: '家长<24h请假禁用' },
@@ -423,6 +425,9 @@
       scheduleStudent: null,
       scheduleClass: null,
       scheduleSel: {},
+      scheduleWeekSel: [{}, {}, {}],
+      scheduleWeekStatus: ['template', 'follow', 'follow', 'follow'],
+      scheduleWeekConflict: [{}, {}, {}],
       selectCredits: { alice: 8, bob: 12, charlie: 2, dora: 4, ethan: 12, ket1: 20 },
       attendance: '',
       attendanceMark: '',
@@ -854,53 +859,109 @@
       if (state.scheduleStudent && STUDENTS[state.scheduleStudent]) {
         const student = STUDENTS[state.scheduleStudent];
         const credits = state.selectCredits[state.scheduleStudent] != null ? state.selectCredits[state.scheduleStudent] : student.fixedCredits;
-        return { kind: 'student', key: student.key, label: student.name, title: `${student.nick} · ${student.status}`, credits, detail: `固定位余 ${credits} 节` };
+        return { kind: 'student', key: student.key, label: student.name, title: `${student.nick} · ${student.status}`, credits, detail: `待排余 ${credits} 节` };
       }
       return null;
     }
-    function scheduleSelectedList() {
+    function scheduleTemplateList() {
       return Object.keys(state.scheduleSel).map((key) => state.scheduleSel[key]);
     }
-    function scheduleCost() {
-      return scheduleSelectedList().length * 4;
-    }
+    function scheduleSelectedList() { return scheduleTemplateList(); }
     function scheduleSlotKey(day, time) { return `${day}|${time}`; }
+    function scheduleWeekMap(week) {
+      return week === 0 ? state.scheduleSel : (state.scheduleWeekSel[week - 1] || {});
+    }
+    function scheduleWeekCount(week) { return Object.keys(scheduleWeekMap(week)).length; }
+    function scheduleTotalCount() {
+      let total = 0;
+      for (let week = 0; week < 4; week += 1) total += scheduleWeekCount(week);
+      return total;
+    }
+    function scheduleRetainedCount() {
+      let retained = 0;
+      scheduleTemplateList().forEach((slot) => {
+        const key = scheduleSlotKey(slot.day, slot.time);
+        for (let week = 1; week < 4; week += 1) {
+          if (!scheduleWeekMap(week)[key]) retained += 1;
+        }
+      });
+      return retained;
+    }
+    function scheduleUnitLabel() { return state.scheduleClass ? '组双格' : '格'; }
+    function scheduleWeekMeta(week) {
+      if (week === 0) {
+        return { label: '模板周', text: 'text-indigo-700', badge: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-500' };
+      }
+      const status = state.scheduleWeekStatus[week] || 'follow';
+      if (status === 'adjusted') {
+        return { label: '已调整', text: 'text-amber-700', badge: 'bg-amber-50 text-amber-800', dot: 'bg-amber-500' };
+      }
+      if (status === 'conflict') {
+        return { label: '冲突待补', text: 'text-rose-700', badge: 'bg-rose-50 text-rose-700', dot: 'bg-rose-500' };
+      }
+      return { label: '跟随模板', text: 'text-emerald-700', badge: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
+    }
+    function resetScheduleWeeks() {
+      state.scheduleWeekSel = [{}, {}, {}];
+      state.scheduleWeekStatus = ['template', 'follow', 'follow', 'follow'];
+      state.scheduleWeekConflict = [{}, {}, {}];
+    }
     function scheduleWeekBusy(weekIndex, day, time) {
       const key = slotKey(weekIndex, day, time);
       if (state.bookedPreview[key]) return true;
-      if (weekIndex === state.week) {
-        const override = overrides[key];
-        if (override) return override.forced ? override.forced !== 'available' : true;
-      }
+      const override = overrides[key];
+      if (override) return override.forced ? override.forced !== 'available' : true;
       return baseLessons(day, time, weekIndex).some((item) => item.teacher === state.teacher
         && item.kind !== 'leave'
         && item.kind !== 'rest');
     }
+    function scheduleConfigConflict(weekIndex, day, time) {
+      return (SCHEDULE_CONFLICTS[state.teacher] || []).find((item) => item.day === day
+        && item.time === time
+        && item.weeks.includes(weekIndex)) || null;
+    }
+    function scheduleWeekConflictNote(weekIndex, day, time, count = 1) {
+      for (let index = 0; index < count; index += 1) {
+        const point = fmtMinutes(toMin(time) + index * 30);
+        if (toMin(point) >= GRID_END) return '超出可约时段';
+        if (scheduleWeekBusy(weekIndex, day, point)) return '已有排课';
+        if (!teacherOpen(state.teacher, day, point)) return '老师未开放该时段';
+      }
+      for (let index = 0; index < count; index += 1) {
+        const point = fmtMinutes(toMin(time) + index * 30);
+        if (toMin(point) >= GRID_END) break;
+        const config = scheduleConfigConflict(weekIndex, day, point);
+        if (config) return config.note;
+      }
+      return '';
+    }
     function scheduleConflictWeeks(day, time, count = 1) {
       const conflicts = [];
       for (let week = 0; week < 4; week += 1) {
-        for (let index = 0; index < count; index += 1) {
-          const point = fmtMinutes(toMin(time) + index * 30);
-          if (toMin(point) >= GRID_END) {
-            conflicts.push({ week, note: '超出可约时段' });
-            break;
-          }
-          if (scheduleWeekBusy(week, day, point)) {
-            conflicts.push({ week, note: '已有排课' });
-            break;
-          }
-          if (!teacherOpen(state.teacher, day, point)) {
-            conflicts.push({ week, note: '未开放该时段' });
-            break;
-          }
-        }
+        const note = scheduleWeekConflictNote(week, day, time, count);
+        if (note) conflicts.push({ week, note });
       }
-      (SCHEDULE_CONFLICTS[state.teacher] || [])
-        .filter((item) => item.day === day && item.time === time)
-        .forEach((item) => item.weeks.forEach((week) => {
-          if (!conflicts.some((entry) => entry.week === week)) conflicts.push({ week, note: item.note });
-        }));
-      return conflicts.sort((a, b) => a.week - b.week);
+      return conflicts;
+    }
+    function scheduleDeriveWeek(weekIndex) {
+      if (weekIndex < 1) return;
+      const map = {};
+      const notes = {};
+      scheduleTemplateList().forEach((slot) => {
+        const key = scheduleSlotKey(slot.day, slot.time);
+        const note = scheduleWeekConflictNote(weekIndex, slot.day, slot.time, slot.pair ? 2 : 1);
+        if (note) notes[key] = note;
+        else map[key] = Object.assign({}, slot);
+      });
+      state.scheduleWeekSel[weekIndex - 1] = map;
+      state.scheduleWeekConflict[weekIndex - 1] = notes;
+      state.scheduleWeekStatus[weekIndex] = Object.keys(notes).length ? 'conflict' : 'follow';
+    }
+    function scheduleSyncDerivedWeeks() {
+      for (let week = 1; week < 4; week += 1) {
+        if (state.scheduleWeekStatus[week] === 'adjusted') continue;
+        scheduleDeriveWeek(week);
+      }
     }
     function schedulePairRenderable(day, time) {
       if (!state.scheduleClass) return false;
@@ -922,19 +983,60 @@
         showToast('请先选择学员或小班');
         return;
       }
+      const week = state.week;
       const key = scheduleSlotKey(day, time);
-      if (state.scheduleSel[key]) {
-        delete state.scheduleSel[key];
+      if (week === 0) {
+        if (state.scheduleSel[key]) {
+          delete state.scheduleSel[key];
+          scheduleSyncDerivedWeeks();
+          render(true);
+          return;
+        }
+        const templateNote = scheduleWeekConflictNote(0, day, time, isPair ? 2 : 1);
+        if (templateNote) {
+          showToast(`模板周该时段不可选：${templateNote}`);
+          return;
+        }
+        state.scheduleSel[key] = { day, time, pair: !!isPair };
+        scheduleSyncDerivedWeeks();
+        const attempted = scheduleTotalCount();
+        if (attempted > object.credits) {
+          delete state.scheduleSel[key];
+          scheduleSyncDerivedWeeks();
+          render(true);
+          showToast(`该价位待排课次不足（需 ${attempted} 节，仅剩 ${object.credits} 节）`);
+          return;
+        }
         render(true);
         return;
       }
-      const selected = scheduleSelectedList().length;
-      if ((selected + 1) * 4 > object.credits) {
-        showToast(`${object.kind === 'class' ? '小班' : '固定位'}课次不足，最多选 ${Math.floor(object.credits / 4)} 个时段`);
+
+      const note = scheduleWeekConflictNote(week, day, time, isPair ? 2 : 1);
+      if (note) {
+        showToast(`第${week + 1}周该时段不可选：${note}，已留存待排，可在本周补选其他空闲格`);
         return;
       }
-      state.scheduleSel[key] = { day, time, pair: !!isPair };
+      const map = scheduleWeekMap(week);
+      const previous = map[key] || null;
+      if (previous) delete map[key];
+      else map[key] = { day, time, pair: !!isPair };
+      if (scheduleTotalCount() > object.credits) {
+        if (previous) map[key] = previous;
+        else delete map[key];
+        render(true);
+        showToast(`该价位待排课次不足（需 ${scheduleTotalCount() + 1} 节，仅剩 ${object.credits} 节）`);
+        return;
+      }
+      state.scheduleWeekStatus[week] = 'adjusted';
+      state.scheduleWeekConflict[week - 1] = {};
       render(true);
+    }
+    function restoreScheduleWeek(week) {
+      if (week < 1 || week > 3) return;
+      state.scheduleWeekStatus[week] = 'follow';
+      scheduleDeriveWeek(week);
+      render(true);
+      showToast(`第${week + 1}周已恢复跟随第 1 周模板，并重新校验冲突`);
     }
     function clearScheduleUrl() {
       try {
@@ -954,6 +1056,7 @@
       state.scheduleStudent = null;
       state.scheduleClass = null;
       state.scheduleSel = {};
+      resetScheduleWeeks();
       state.drawer = null;
       state.panel = null;
       clearScheduleUrl();
@@ -963,47 +1066,55 @@
     function confirmScheduleSelect() {
       if (!requireOnline()) return;
       const object = scheduleObjectInfo();
-      const selected = scheduleSelectedList();
+      const total = scheduleTotalCount();
       if (!object) {
         showToast('请先选择学员或小班');
         return;
       }
-      if (!selected.length) {
-        showToast('请至少选择 1 个时段');
+      if (!total) {
+        showToast('请至少在第 1 周模板选择 1 个可排时段');
         return;
       }
-      const cost = selected.length * 4;
-      if (cost > object.credits) {
-        showToast(`课次不足，当前对象仅余 ${object.credits} 节`);
+      if (total > object.credits) {
+        showToast(`待排课次不足（需 ${total} 节，仅剩 ${object.credits} 节）`);
         return;
       }
+      const firstSelectedWeek = [0, 1, 2, 3].find((week) => scheduleWeekCount(week) > 0);
+      const flashWeek = scheduleWeekCount(state.week) ? state.week : firstSelectedWeek;
       const flashKeys = [];
-      selected.forEach((slot) => {
-        for (let week = 0; week < 4; week += 1) {
+      for (let week = 0; week < 4; week += 1) {
+        const map = scheduleWeekMap(week);
+        Object.keys(map).forEach((key) => {
+          const slot = map[key];
           state.bookedPreview[slotKey(week, slot.day, slot.time)] = slot.pair ? 'group' : 'fixed';
           if (slot.pair) {
             const next = nextTime(slot.time);
             if (next && toMin(next) < GRID_END) state.bookedPreview[slotKey(week, slot.day, next)] = 'group';
           }
-          if (week === state.week) {
+          if (week === flashWeek) {
             flashKeys.push(slotKey(week, slot.day, slot.time));
             if (slot.pair) {
               const next = nextTime(slot.time);
               if (next && toMin(next) < GRID_END) flashKeys.push(slotKey(week, slot.day, next));
             }
           }
-        }
-      });
-      state.selectCredits[object.key] = object.credits - cost;
+        });
+      }
+      const retained = scheduleRetainedCount();
+      state.selectCredits[object.key] = object.credits - total;
       state.scheduleSelect = false;
       state.scheduleStudent = null;
       state.scheduleClass = null;
       state.scheduleSel = {};
+      resetScheduleWeeks();
+      state.week = flashWeek;
       state.drawer = null;
       state.panel = null;
       state.flash = true;
       state.flashKeys = flashKeys;
-      state.toast = `已批量锁定 4 周 · ${selected.length} 个时段 · 扣减 ${cost} 节`;
+      state.toast = retained > 0
+        ? `已锁定可用周 · 实扣 ${total} 节 · ${retained} 节留存待排池`
+        : `已锁定 4 周 · 实扣 ${total} 节`;
       clearScheduleUrl();
       render(true);
       armFlashTimers();
@@ -1071,7 +1182,7 @@
       let subtitle = '';
       if (state.scheduleSelect) {
         title = '排课复选态';
-        subtitle = `${activeTeacher().name} · 连续 4 周批量 · 已选 ${scheduleSelectedList().length} 个时段`;
+        subtitle = `${activeTeacher().name} · 连续 4 周批量 · 实选 ${scheduleTotalCount()} 节`;
       } else if (state.view === 'day' && (state.role === 'monitor' || state.role === 'admin')) {
         title = '日调度';
         const abnormal = dayAbnormalTotal(state.dayKey);
@@ -1243,10 +1354,14 @@
           ${[0, 1, 2, 3].map((index) => {
             const on = index === state.week;
             const weekDate = addDays(start, index * 7);
-            return `<button data-action="set-week" data-week="${index}" class="relative h-9 rounded-lg border px-1 text-center transition ${on ? 'border-indigo-300 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">
+            const meta = state.scheduleSelect ? scheduleWeekMeta(index) : null;
+            return `<button data-action="set-week" data-week="${index}" class="relative ${state.scheduleSelect ? 'h-12' : 'h-9'} rounded-lg border px-1 text-center transition ${on ? 'border-indigo-300 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">
               <span class="block text-[12px] font-bold leading-tight">第${index + 1}周</span>
-              <span class="block font-mono text-[12px] font-medium leading-tight">${fmtSlash(weekDate)}</span>
-              <span class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${on ? 'bg-indigo-500' : (index === 2 ? 'bg-amber-500' : 'bg-emerald-500')}"></span>
+              ${state.scheduleSelect
+                ? `<span class="mt-0.5 block truncate text-[12px] font-bold leading-tight ${meta.text}">${meta.label}</span>
+                   <span class="block font-mono text-[12px] font-medium leading-tight text-slate-500">${fmtSlash(weekDate)}</span>`
+                : `<span class="block font-mono text-[12px] font-medium leading-tight">${fmtSlash(weekDate)}</span>
+                   <span class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${on ? 'bg-indigo-500' : (index === 2 ? 'bg-amber-500' : 'bg-emerald-500')}"></span>`}
             </button>`;
           }).join('')}
         </div>
@@ -1463,44 +1578,58 @@
         return renderStandardGridCell(day, time);
       }
 
-      const slot = getSlot(day, time);
-      if (slot.kind !== 'available') return renderStandardGridCell(day, time);
+      const week = state.week;
+      const map = scheduleWeekMap(week);
       const key = scheduleSlotKey(day, time);
-      const selected = !!state.scheduleSel[key];
-      const conflicts = scheduleConflictWeeks(day, time, 1);
-      if (conflicts.length) {
-        const first = conflicts[0];
+      const selected = !!map[key];
+      const slot = getSlot(day, time);
+      const conflict = week === 0 ? '' : scheduleWeekConflictNote(week, day, time, 1);
+      const future = week === 0 ? scheduleConflictWeeks(day, time, 1).filter((item) => item.week > 0) : [];
+      const futureHint = future.length ? `，第${future[0].week + 1}周将冲突（${future[0].note}）` : '';
+      if (selected) {
         return `<td class="p-px align-middle">
-          <button data-action="schedule-slot" data-day="${day}" data-time="${time}" data-conflict="${first.week}" aria-label="${esc(`${dayLabel(day)} ${time} 第${first.week + 1}周冲突 ${first.note}`)}" class="relative flex h-[26px] w-full min-w-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-100 px-0.5 text-[12px] font-bold leading-none text-slate-500">
-            ⚠${first.week + 1}周
+          <button data-action="schedule-slot" data-day="${day}" data-time="${time}" aria-label="${esc(`${dayLabel(day)} ${time} 第${week + 1}周已选${futureHint}`)}" class="relative flex h-[26px] w-full min-w-0 items-center justify-center overflow-hidden rounded-md border border-indigo-400 bg-indigo-50 px-0.5 text-[12px] font-bold leading-none text-indigo-700 ring-2 ring-inset ring-indigo-300 transition active:scale-95">
+            已选${future.length ? '<span class="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"></span>' : ''}
           </button>
         </td>`;
       }
+      if (conflict && slot.kind === 'available') {
+        const templateSlot = !!state.scheduleSel[key] && state.scheduleWeekStatus[week] !== 'adjusted';
+        return `<td class="p-px align-middle">
+          <button data-action="schedule-slot" data-day="${day}" data-time="${time}" aria-label="${esc(`${dayLabel(day)} ${time} 第${week + 1}周冲突待补：${conflict}`)}" class="relative flex h-[26px] w-full min-w-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-amber-300 bg-amber-50 px-0.5 text-[12px] font-bold leading-none text-amber-800">
+            ${templateSlot ? '待补' : '不约'}
+          </button>
+        </td>`;
+      }
+      if (slot.kind !== 'available') return renderStandardGridCell(day, time);
       return `<td class="p-px align-middle">
-        <button data-action="schedule-slot" data-day="${day}" data-time="${time}" aria-label="${esc(`${dayLabel(day)} ${time} ${selected ? '已选' : '空闲可排'}`)}" class="relative flex h-[26px] w-full min-w-0 items-center justify-center overflow-hidden rounded-md border px-0.5 text-[12px] font-bold leading-none transition active:scale-95 ${selected ? 'border-indigo-400 bg-indigo-50 text-indigo-700 ring-2 ring-inset ring-indigo-300' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}">
-          ${selected ? '已选' : '约'}
+        <button data-action="schedule-slot" data-day="${day}" data-time="${time}" aria-label="${esc(`${dayLabel(day)} ${time} 第${week + 1}周空闲可排${futureHint}`)}" class="relative flex h-[26px] w-full min-w-0 items-center justify-center overflow-hidden rounded-md border border-emerald-200 bg-emerald-50 px-0.5 text-[12px] font-bold leading-none text-emerald-800 transition active:scale-95">
+          约${future.length ? '<span class="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"></span>' : ''}
         </button>
       </td>`;
     }
 
     function renderSchedulePairCell(day, time) {
+      const week = state.week;
+      const map = scheduleWeekMap(week);
       const key = scheduleSlotKey(day, time);
-      const selected = !!state.scheduleSel[key];
-      const conflicts = scheduleConflictWeeks(day, time, 2);
-      const first = conflicts[0];
+      const selected = !!map[key];
+      const conflict = week === 0 ? '' : scheduleWeekConflictNote(week, day, time, 2);
+      const future = week === 0 ? scheduleConflictWeeks(day, time, 2).filter((item) => item.week > 0) : [];
       const style = selected
         ? 'border-indigo-400 bg-indigo-50 text-indigo-700 ring-2 ring-inset ring-indigo-300'
-        : first
-          ? 'border-slate-200 bg-slate-100 text-slate-500'
+        : conflict
+          ? 'border-dashed border-amber-300 bg-amber-50 text-amber-800'
           : 'border-2 border-teal-400 bg-teal-50 text-teal-950';
       const content = selected
-        ? `<span class="block text-[12px] font-bold leading-none">✓ 已选</span><span class="mt-1 block text-[12px] font-medium leading-none">连续双格</span>`
-        : first
-          ? `<span class="block text-[12px] font-bold leading-none">⚠ ${first.week + 1}周</span><span class="mt-1 block text-[12px] font-medium leading-none">${esc(first.note)}</span>`
+        ? `<span class="block text-[12px] font-bold leading-none">✓ 已选</span><span class="mt-1 block text-[12px] font-medium leading-none">双格</span>`
+        : conflict
+          ? `<span class="block text-[12px] font-bold leading-none">⚠ 待补</span><span class="mt-1 block max-w-full truncate text-[12px] font-medium leading-none">${esc(conflict)}</span>`
           : `<span class="rounded-sm bg-teal-600 px-1 text-[12px] font-bold leading-none text-white">[G]</span><span class="mt-1 block text-[12px] font-bold leading-none">双格可排</span>`;
-      return `<td rowspan="2" class="p-px align-middle">
-        <button data-action="schedule-slot" data-day="${day}" data-time="${time}" data-pair="1" aria-label="${esc(`${dayLabel(day)} ${time} 小班连续双格 ${selected ? '已选' : first ? `第${first.week + 1}周冲突` : '空闲可排'}`)}" class="relative flex h-[54px] w-full min-w-0 flex-col items-center justify-center overflow-hidden rounded-md border px-0.5 text-[12px] leading-none transition active:scale-95 ${style}">
+      return `<td rowspan="2" class="p-0 align-middle">
+        <button data-action="schedule-slot" data-day="${day}" data-time="${time}" data-pair="1" aria-label="${esc(`${dayLabel(day)} ${time} 第${week + 1}周小班连续双格 ${selected ? '已选' : conflict ? `冲突待补：${conflict}` : '空闲可排'}`)}" class="relative flex h-[56px] w-full min-w-0 flex-col items-center justify-center overflow-hidden rounded-md border px-0.5 text-[12px] leading-none transition active:scale-95 ${style}">
           ${content}
+          ${future.length ? `<span class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-500 ring-1 ring-white"></span>` : ''}
         </button>
       </td>`;
     }
@@ -1545,36 +1674,64 @@
     function renderScheduleSelectHint() {
       const object = scheduleObjectInfo();
       const group = !!state.scheduleClass;
+      const week = state.week;
+      const meta = scheduleWeekMeta(week);
+      const status = week === 0 ? 'template' : (state.scheduleWeekStatus[week] || 'follow');
+      let detail = '';
+      if (!object) detail = '请先在顶部选择学员或小班，未选对象不可提交。';
+      else if (week === 0) detail = '当前为模板周：点击绿色空闲格复选时段，系统自动复制到第 2~4 周；冲突周不阻断整单。';
+      else if (status === 'adjusted') detail = '当前周为可编辑副本：增删只影响本周，不再跟随模板。';
+      else if (status === 'conflict') detail = '当前周存在冲突时段，未选中的课次留存待排；可在本周补选其他空闲格。';
+      else detail = '当前周跟随模板，点击格子编辑后将转为「已调整」。';
       return `<div class="mb-2 rounded-xl border border-indigo-200 bg-indigo-50 px-2.5 py-2">
-        <p class="text-[12px] font-bold text-indigo-800">排课复选态 · ${group ? '小班连续双格 56px' : '1v1 单格'} · 自动校验未来 4 周</p>
-        <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-indigo-700">点击绿色空闲格多选，再次点击取消；冲突格置灰并标注具体周次。${object ? '' : '请先在顶部选择学员或小班。'}</p>
+        <div class="flex items-center justify-between gap-2">
+          <p class="min-w-0 truncate text-[12px] font-bold text-indigo-800">排课复选态 · ${group ? '小班连续双格 56px' : '1v1 单格'} · 模板穿透</p>
+          <span class="shrink-0 rounded-full px-1.5 py-0.5 text-[12px] font-bold ${meta.badge}">第${week + 1}周 ${meta.label}</span>
+        </div>
+        <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-indigo-700">${esc(detail)}</p>
       </div>`;
     }
 
     function renderScheduleSelectBar() {
-      const selected = scheduleSelectedList();
       const object = scheduleObjectInfo();
-      const count = selected.length;
-      const cost = count * 4;
+      const total = scheduleTotalCount();
+      const retained = scheduleRetainedCount();
+      const unit = scheduleUnitLabel();
       const credits = object ? object.credits : 0;
-      const remaining = object ? credits - cost : 0;
-      const insufficient = !!object && cost > credits;
-      const ready = !!object && count > 0 && !insufficient;
+      const remaining = object ? credits - total : 0;
+      const insufficient = !!object && total > credits;
+      const ready = !!object && total > 0 && !insufficient;
+      const conflictEntries = [];
+      [1, 2, 3].forEach((week) => {
+        const notes = state.scheduleWeekConflict[week - 1] || {};
+        Object.keys(notes).forEach((key) => {
+          const slot = state.scheduleSel[key];
+          if (slot) conflictEntries.push(`第${week + 1}周 ${dayLabel(slot.day)} ${slot.time} ${notes[key]}`);
+        });
+      });
+      const rows = [0, 1, 2, 3].map((week) => {
+        const meta = scheduleWeekMeta(week);
+        const count = scheduleWeekCount(week);
+        const adjusted = week > 0 && state.scheduleWeekStatus[week] === 'adjusted';
+        return `<div class="flex min-w-0 items-center gap-1 leading-tight">
+          <span class="w-9 shrink-0 text-[12px] font-bold text-slate-800">第${week + 1}周</span>
+          <span class="shrink-0 rounded px-1 py-px text-[12px] font-bold ${meta.badge}">${meta.label}</span>
+          <span class="min-w-0 flex-1 truncate text-[12px] font-medium text-slate-600">已选 ${count} ${unit}</span>
+          ${adjusted ? `<button data-action="restore-schedule-week" data-week="${week}" class="shrink-0 rounded border border-amber-200 bg-amber-50 px-1.5 py-px text-[12px] font-bold text-amber-800">恢复跟随第 1 周</button>` : ''}
+        </div>`;
+      }).join('');
       return `<div class="shrink-0 border-t border-slate-200 bg-white px-3 pb-2 pt-1.5">
         <div class="flex items-center justify-between gap-2">
-          <span class="text-[12px] font-semibold text-slate-600">已选 <span class="text-[16px] font-bold text-slate-900">${count}</span> 个时段</span>
-          <span class="text-[12px] font-semibold text-slate-600">共扣 <span class="text-[16px] font-bold text-indigo-700">${cost}</span> 节</span>
-          <span class="text-[12px] font-semibold text-slate-600">剩余 <span class="text-[16px] font-bold ${insufficient ? 'text-rose-700' : 'text-emerald-700'}">${object ? Math.max(0, remaining) : '—'}</span> 节</span>
+          <span class="text-[12px] font-semibold text-slate-600">实扣 <span class="text-[16px] font-bold text-indigo-700">${total}</span> 节</span>
+          <span class="text-[12px] font-semibold text-slate-600">留存待排 <span class="text-[16px] font-bold ${retained ? 'text-rose-700' : 'text-emerald-700'}">${retained}</span> 节</span>
+          <span class="text-[12px] font-semibold text-slate-600">可用余额 <span class="text-[16px] font-bold ${insufficient ? 'text-rose-700' : 'text-slate-900'}">${object ? Math.max(0, remaining) : '—'}</span> 节</span>
         </div>
-        ${count
-          ? `<div class="mt-1 flex gap-1 overflow-x-auto">
-              ${selected.map((slot) => `<button data-action="remove-schedule-slot" data-day="${slot.day}" data-time="${slot.time}" class="flex shrink-0 items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[12px] font-semibold text-indigo-700">${dayLabel(slot.day)} ${slot.time}${slot.pair ? ' [G]' : ''} ×</button>`).join('')}
-            </div>`
-          : `<p class="mt-1 text-[12px] font-medium text-slate-600">${object ? '点击绿色空闲格开始选择' : '请先选择学员或小班，未选对象不可提交'}</p>`}
-        ${insufficient ? `<p class="mt-1 text-[12px] font-semibold text-rose-700">课次不足：当前对象仅余 ${credits} 节</p>` : ''}
-        <div class="mt-1.5 grid grid-cols-2 gap-2">
-          <button data-action="exit-schedule-select" class="flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">取消</button>
-          <button data-action="confirm-schedule-select" ${ready ? '' : 'disabled'} class="flex h-10 items-center justify-center gap-1 rounded-lg text-[14px] font-bold transition ${ready ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">${icon('check', 'h-4 w-4')}确认锁定 4 周</button>
+        <div class="mt-1 space-y-0.5">${rows}</div>
+        ${conflictEntries.length ? `<p class="mt-1 truncate text-[12px] font-semibold text-rose-700">冲突复核：${esc(conflictEntries[0])}${conflictEntries.length > 1 ? ` 等 ${conflictEntries.length} 处` : ''} · 已留存待排</p>` : ''}
+        ${insufficient ? `<p class="mt-1 text-[12px] font-semibold text-rose-700">待排课次不足：需 ${total} 节，仅剩 ${credits} 节</p>` : ''}
+        <div class="mt-1.5 flex gap-2">
+          <button data-action="exit-schedule-select" class="flex h-10 w-20 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">取消</button>
+          <button data-action="confirm-schedule-select" ${ready ? '' : 'disabled'} class="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg text-[14px] font-bold transition ${ready ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">${icon('check', 'h-4 w-4 shrink-0')}<span class="truncate">${ready ? `确认锁定可用周 · 共扣 ${total} 节` : '确认锁定可用周'}</span></button>
         </div>
       </div>`;
     }
@@ -1598,7 +1755,7 @@
                     <span class="truncate text-[14px] font-bold ${on ? 'text-indigo-700' : 'text-slate-900'}">${esc(student.name)}</span>
                     <span class="shrink-0 rounded border px-1 py-0.5 text-[12px] font-bold ${student.status === '试课' ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}">${student.status}</span>
                   </span>
-                  <span class="block truncate text-[12px] font-medium text-slate-600">${esc(student.nick)} · 固定位余 ${credits} 节</span>
+                  <span class="block truncate text-[12px] font-medium text-slate-600">${esc(student.nick)} · 待排余 ${credits} 节</span>
                 </span>
                 <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white'}">${on ? icon('check', 'h-3 w-3') : ''}</span>
               </button>`;
@@ -3610,6 +3767,7 @@
       state.scheduleStudent = null;
       state.scheduleClass = null;
       state.scheduleSel = {};
+      resetScheduleWeeks();
       state.selectCredits = { alice: 8, bob: 12, charlie: 2, dora: 4, ethan: 12, ket1: 20 };
       state.attendance = '';
       state.attendanceMark = '';
@@ -3782,21 +3940,36 @@
         state.scheduleSelect = true;
         state.scheduleStudent = null;
         state.scheduleClass = null;
+        state.week = 0;
       } else if (name === 'schedule-select') {
         state.role = 'monitor';
         state.scheduleSelect = true;
         state.scheduleStudent = 'alice';
+        state.week = 0;
         state.scheduleSel = {
-          '0|17:00': { day: 0, time: '17:00', pair: false },
-          '1|15:00': { day: 1, time: '15:00', pair: false }
+          '1|15:30': { day: 1, time: '15:30', pair: false },
+          '3|17:00': { day: 3, time: '17:00', pair: false }
         };
+        scheduleSyncDerivedWeeks();
+      } else if (name === 'schedule-conflict') {
+        state.role = 'monitor';
+        state.scheduleSelect = true;
+        state.scheduleStudent = 'alice';
+        state.week = 2;
+        state.scheduleSel = {
+          '1|15:30': { day: 1, time: '15:30', pair: false },
+          '3|17:00': { day: 3, time: '17:00', pair: false }
+        };
+        scheduleSyncDerivedWeeks();
       } else if (name === 'schedule-group') {
         state.role = 'monitor';
         state.scheduleSelect = true;
         state.scheduleClass = 'ket1';
+        state.week = 0;
         state.scheduleSel = {
           '5|11:00': { day: 5, time: '11:00', pair: true }
         };
+        scheduleSyncDerivedWeeks();
       } else if (name === 'parent-leave-ok') {
         state.hours = 32;
         state.lesson = findBaseLesson(0, '18:30');
@@ -4482,6 +4655,7 @@
         state.scheduleStudent = null;
         state.scheduleClass = null;
         state.scheduleSel = {};
+        resetScheduleWeeks();
         state.pairSel = {};
         state.dayCell = null;
         state.dayIncident = null;
@@ -4657,12 +4831,14 @@
           state.scheduleStudent = null;
           state.scheduleClass = null;
           state.scheduleSel = {};
+          resetScheduleWeeks();
+          state.week = 0;
           state.drawer = null;
           state.panel = null;
           state.modal = null;
           state.batchOpen = false;
           render(true);
-          showToast('已开启排课复选态，请先选择学员或小班');
+          showToast('已开启排课复选态，已定位到第 1 周模板周');
           break;
         case 'exit-schedule-select':
           exitScheduleSelect();
@@ -4684,27 +4860,29 @@
             break;
           }
           state.scheduleSel = {};
+          resetScheduleWeeks();
+          state.week = 0;
           state.drawer = null;
           render(true);
           showToast(actionEl.dataset.kind === 'class'
-            ? `已选择小班 ${CLASSES[state.scheduleClass].code}`
-            : `已选择学员 ${STUDENTS[state.scheduleStudent].name}`);
+            ? `已选择小班 ${CLASSES[state.scheduleClass].code}，请从第 1 周模板周选格`
+            : `已选择学员 ${STUDENTS[state.scheduleStudent].name}，请从第 1 周模板周选格`);
           break;
         }
         case 'schedule-slot': {
           const day = Number(actionEl.dataset.day);
           const time = actionEl.dataset.time;
           const pair = !!actionEl.dataset.pair;
-          const conflicts = scheduleConflictWeeks(day, time, pair ? 2 : 1);
-          if (conflicts.length) {
-            showToast(`不可选：第${conflicts[0].week + 1}周 ${dayLabel(day)} ${time} ${conflicts[0].note}`);
-            break;
-          }
           toggleScheduleSlot(day, time, pair);
           break;
         }
+        case 'restore-schedule-week':
+          restoreScheduleWeek(Number(actionEl.dataset.week));
+          break;
         case 'remove-schedule-slot':
-          delete state.scheduleSel[scheduleSlotKey(Number(actionEl.dataset.day), actionEl.dataset.time)];
+          delete scheduleWeekMap(state.week)[scheduleSlotKey(Number(actionEl.dataset.day), actionEl.dataset.time)];
+          if (state.week > 0) state.scheduleWeekStatus[state.week] = 'adjusted';
+          else scheduleSyncDerivedWeeks();
           render(true);
           break;
         case 'confirm-schedule-select':
@@ -5335,6 +5513,8 @@
         state.scheduleStudent = null;
         state.scheduleClass = null;
         state.scheduleSel = {};
+        resetScheduleWeeks();
+        state.week = 0;
         if (studentIdParam) {
           const studentKey = Object.keys(STUDENTS).find((key) => STUDENTS[key].id === studentIdParam || key === studentIdParam);
           if (studentKey) state.scheduleStudent = studentKey;

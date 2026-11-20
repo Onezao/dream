@@ -121,6 +121,9 @@
       { id: '18', label: '18积分' },
       { id: '21', label: '21积分' }
     ];
+    /* 全局 4 周轮次首日（周一）。生效日必须早于该轮次前一周周一 08:30 完成设置。 */
+    const ROUND_STARTS = ['2026-11-16', '2026-11-23', '2026-11-30', '2026-12-07'];
+    const ROUND_SETTABLE_FROM = '2026-11-23';
     const ACCOUNTS = {
       'leo@example.com': { name: 'Leo', kind: 'monitor' },
       'amy@example.com': { name: 'Amy', kind: 'monitor' },
@@ -250,6 +253,10 @@
       oliver: demoAlbum('oliver', [
         ['生活口语', '#6366f1', '#0ea5e9'],
         ['旅行英语', '#f97316', '#f59e0b']
+      ]),
+      zoey: demoAlbum('zoey', [
+        ['课堂瞬间', '#64748b', '#0ea5e9'],
+        ['教学记录', '#0ea5e9', '#64748b']
       ])
     };
 
@@ -271,6 +278,7 @@
         photos: DEMO_ALBUMS.david, avatarPhotoId: DEMO_ALBUMS.david[0].id,
         media: { photo: true, qr: true, video: { name: 'David_Sample_Lesson.mp4', size: '24.6 MB', duration: '01:45', url: SAMPLE_VIDEO } },
         todayLessons: 4, upcoming: 22, completed: 38, status: 'active', createdAt: '2026-03-12',
+        pendingPrice: { level: '18', effectiveDate: '2026-12-07' },
         note: '口音清晰，教学节奏稳；建议多安排开放式提问。注意与家长同步课后练习清单。',
         resign: { temp: 3, fixed: 2, classes: 1, sub: 1 },
         resignDetails: {
@@ -347,6 +355,7 @@
         photos: DEMO_ALBUMS.kevin, avatarPhotoId: DEMO_ALBUMS.kevin[0].id,
         media: { photo: true, qr: true, video: { name: 'Kevin_Intro_MP4.mp4', size: '14.8 MB', duration: '01:02', url: SAMPLE_VIDEO } },
         todayLessons: 2, upcoming: 14, completed: 17, status: 'active', createdAt: '2026-08-15',
+        resignDate: '2026-11-25',
         resign: { temp: 1, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [{ date: '2026-11-13', time: '17:30', student: 'NoahZ11' }], fixed: [], classes: [], sub: [] }
       },
@@ -395,6 +404,19 @@
         photos: DEMO_ALBUMS.oliver, avatarPhotoId: DEMO_ALBUMS.oliver[0].id,
         media: { photo: true, qr: true, video: { name: 'Oliver_Intro_MP4.mp4', size: '15.9 MB', duration: '01:04', url: SAMPLE_VIDEO } },
         todayLessons: 2, upcoming: 8, completed: 11, status: 'pending', createdAt: '2026-09-02',
+        resign: { temp: 0, fixed: 0, classes: 0, sub: 0 },
+        resignDetails: { temp: [], fixed: [], classes: [], sub: [] }
+      },
+      {
+        id: 'tc_zoey0010', name: 'Zoey Adams', level: '16', monitorId: 'mn_leo000001',
+        weeklyCapacity: 20, availability: 'available',
+        introZh: 'Zoey 老师擅长自然拼读与低龄绘本阅读，课堂节奏稳定，已于近期结束任教。',
+        introEn: 'Zoey focused on phonics and shared reading for young learners. She has completed her teaching period with Dream.',
+        avatarDataUrl: DEMO_ALBUMS.zoey[0].dataUrl, qrDataUrl: '',
+        photos: DEMO_ALBUMS.zoey, avatarPhotoId: DEMO_ALBUMS.zoey[0].id,
+        media: { photo: true, qr: true, video: { name: 'Zoey_Intro_MP4.mp4', size: '11.4 MB', duration: '00:58', url: SAMPLE_VIDEO } },
+        todayLessons: 0, upcoming: 0, completed: 12, status: 'resigned', createdAt: '2026-01-18', resignedAt: '2026-10-20',
+        note: '历史教学备忘只读保留。',
         resign: { temp: 0, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [], fixed: [], classes: [], sub: [] }
       }
@@ -477,7 +499,8 @@
      * ------------------------------------------------------------------ */
     function emptyTeacherForm() {
       return {
-        mode: 'create', id: null, name: '', level: '18',
+        mode: 'create', id: null, name: '', level: '18', monitorId: CURRENT_MONITOR_ID,
+        pendingLevel: '', pendingDate: '',
         introZh: '', introEn: '', avatarDataUrl: '', qrDataUrl: '',
         photos: [], avatarPhotoId: null, crop: null,
         media: { photo: false, qr: false, video: null },
@@ -514,7 +537,7 @@
       form: emptyTeacherForm(),
       formReturnPage: 'teachers',
       overlay: null,
-      resignTeacher: { cleared: false },
+      resignTeacher: { cleared: false, date: TODAY },
       appoint: { mode: 'appoint', monitorId: null, email: '', name: '', phone: '', wechatQr: false, wechatQrDataUrl: '', error: '' },
       rebind: { monitorId: null, targetId: '', teacherIds: [], classIds: [], error: '' },
       dismiss: { monitorId: null, fundsCleared: false, eduCleared: false, confirmName: '', error: '' },
@@ -554,6 +577,40 @@
 
     function allTeachers() {
       return state.teachers.filter((t) => t.status !== 'resigned');
+    }
+
+    function listTeachers() {
+      return state.teachers.slice();
+    }
+
+    function isOwnTeacher(t) {
+      if (state.role === 'admin') return t.monitorId === ADMIN_MONITOR_ID || t.monitorId === PLATFORM_MONITOR_ID;
+      return t.monitorId === CURRENT_MONITOR_ID;
+    }
+
+    function sortTeacherList(list) {
+      return list.slice().sort((a, b) => {
+        const aResigned = a.status === 'resigned' ? 1 : 0;
+        const bResigned = b.status === 'resigned' ? 1 : 0;
+        if (aResigned !== bResigned) return aResigned - bResigned;
+        const aOwn = isOwnTeacher(a) ? 0 : 1;
+        const bOwn = isOwnTeacher(b) ? 0 : 1;
+        if (aOwn !== bOwn) return aOwn - bOwn;
+        return a.name.localeCompare(b.name, 'en');
+      });
+    }
+
+    function shortDate(iso) {
+      return String(iso || '').slice(5);
+    }
+
+    function pendingPriceText(plan) {
+      if (!plan) return '';
+      return `${shortDate(plan.effectiveDate)} 起 ${plan.level}积分`;
+    }
+
+    function hasPendingResign(t) {
+      return !!(t && t.resignDate && t.resignDate > TODAY && t.status !== 'resigned');
     }
 
     function teacherById(id) {
@@ -604,17 +661,18 @@
 
     function teacherStatusMeta(t) {
       if (t.status === 'resigned') return { label: '已离职', tone: 'slate' };
+      if (hasPendingResign(t)) return { label: `将于 ${shortDate(t.resignDate)} 离职`, tone: 'amber' };
       if (missingMedia(t).length) return { label: '待完善', tone: 'amber' };
-      if (t.status === 'pending') return { label: '待发布', tone: 'amber' };
+      if (t.status === 'pending') return { label: '待完善', tone: 'amber' };
       if (teacherAvailability(t) === 'leave') return { label: '请假', tone: 'rose' };
       if (teacherAvailability(t) === 'substituting') return { label: '代课中', tone: 'indigo' };
       return { label: '正常可约', tone: 'emerald' };
     }
 
     function attributionMeta(t, mode = state.role) {
-      if (t.monitorId === PLATFORM_MONITOR_ID) return { label: '平台直管', tone: 'slate' };
+      if (t.monitorId === PLATFORM_MONITOR_ID) return { label: '平台未划拨', tone: 'slate' };
       if (mode === 'monitor') {
-        if (t.monitorId === CURRENT_MONITOR_ID) return { label: '我负责', tone: 'indigo' };
+        if (t.monitorId === CURRENT_MONITOR_ID) return { label: '⭐ 我直管', tone: 'indigo' };
         const own = monitorById(t.monitorId);
         return { label: own ? `${own.name} 班` : '待划拨', tone: 'slate' };
       }
@@ -629,15 +687,13 @@
     }
 
     function monitorDisplayName(t) {
-      if (t.monitorId === PLATFORM_MONITOR_ID) return '平台';
+      if (t.monitorId === PLATFORM_MONITOR_ID) return '平台未划拨';
       const m = monitorById(t.monitorId);
       return m ? m.name : '—';
     }
 
     function attributionText(t, mode = state.role) {
-      if (t.monitorId === PLATFORM_MONITOR_ID) return '平台直管';
-      if (mode === 'admin' && t.monitorId === ADMIN_MONITOR_ID) return '⭐ 我直管';
-      return monitorDisplayName(t);
+      return attributionMeta(t, mode).label;
     }
 
     function countLabel(count) {
@@ -749,7 +805,7 @@
     }
 
     function monitorNameOf(id) {
-      if (id === PLATFORM_MONITOR_ID) return '平台直管';
+      if (id === PLATFORM_MONITOR_ID) return '平台未划拨';
       const m = monitorById(id);
       return m ? m.name : '—';
     }
@@ -883,9 +939,9 @@
     }
 
     function filteredAdminTeachers() {
-      return allTeachers().filter((t) => teacherMatchesQuery(t)
+      return sortTeacherList(listTeachers().filter((t) => teacherMatchesQuery(t)
         && adminAttributionMatch(t, state.adminTeacherMonitor)
-        && teacherStatusFilterMatch(t, state.adminTeacherFilter));
+        && teacherStatusFilterMatch(t, state.adminTeacherFilter)));
     }
 
     /* ------------------------------------------------------------------
@@ -1163,9 +1219,9 @@
     }
 
     function renderMonitorTeacherList() {
-      const base = allTeachers().filter(teacherMatchesQuery);
+      const base = listTeachers().filter(teacherMatchesQuery);
       const attrBase = base.filter((t) => monitorSliceMatch(t, state.monitorTeacherSlice));
-      const filtered = attrBase.filter((t) => teacherStatusFilterMatch(t, state.teacherFilter));
+      const filtered = sortTeacherList(attrBase.filter((t) => teacherStatusFilterMatch(t, state.teacherFilter)));
       const counts = monitorSliceCounts(base);
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
       const offline = state.online === 'off';
@@ -1176,12 +1232,12 @@
         { key: 'mine', label: '我的团队', count: counts.mine },
         { key: 'all', label: '全部老师', count: counts.all },
         ...counts.others.map((m) => ({ key: m.id, label: `${m.name} 班`, count: m.count })),
-        { key: 'platform', label: '平台直管', count: counts.platform }
+        { key: 'platform', label: '平台未划拨', count: counts.platform }
       ];
 
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-        ${pageHeader('老师团队', '', `<button data-action="create-teacher" ${offline ? 'disabled' : ''} class="h-9 shrink-0 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 代录老师</button>`)}
-        ${teacherSearchBox('搜索姓名、技能或负责班长')}
+        ${pageHeader('负责老师', '', `<button data-action="create-teacher" ${offline ? 'disabled' : ''} class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${icon('plus', 'h-3.5 w-3.5 shrink-0')}录入新老师</button>`)}
+        ${teacherSearchBox('搜索姓名或负责班长')}
         <div class="flex flex-wrap gap-1.5">
           ${pills.map((p) => `<button data-action="monitor-teacher-slice" data-slice="${p.key}" class="h-8 shrink-0 whitespace-nowrap rounded-full border-0 px-3 text-[12px] transition ${pillCls(p.key)}">${esc(p.label)}${countLabel(p.count)}</button>`).join('')}
         </div>
@@ -1190,18 +1246,18 @@
           ${filtered.length ? filtered.map((t) => teacherCard(t, 'monitor')).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-[14px] font-medium text-slate-500">${attrBase.length ? '没有符合条件的老师' : '当前筛选下暂无老师'}</div>`}
         </div>
         <button data-action="create-teacher" ${offline ? 'disabled' : ''} class="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-slate-300 bg-white py-4 text-[14px] font-semibold ${offline ? 'cursor-not-allowed text-slate-500' : 'text-indigo-700 hover:bg-indigo-50/40'}">
-          ${icon('plus', 'h-4 w-4')}代录新老师
+          ${icon('plus', 'h-4 w-4')}录入新老师
         </button>
       </div>`;
     }
 
     function renderAdminTeacherList() {
-      const all = allTeachers();
-      const base = all.filter(teacherMatchesQuery);
+      const base = listTeachers().filter(teacherMatchesQuery);
       const attrBase = base.filter((t) => adminAttributionMatch(t, state.adminTeacherMonitor));
       const filtered = filteredAdminTeachers();
       const counts = attributionCounts(base);
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
+      const offline = state.online === 'off';
       const pillCls = (key) => state.adminTeacherMonitor === key
         ? 'bg-slate-900 text-white font-semibold'
         : 'bg-slate-100 text-slate-600 font-medium hover:bg-slate-200/80';
@@ -1217,9 +1273,12 @@
             <h1 class="text-[18px] font-bold tracking-tight text-slate-900">全校老师</h1>
             <p class="mt-0.5 text-[12px] font-medium text-slate-500">跨班长归属筛选与档案治理</p>
           </div>
-          <button data-action="open-dict-audit" class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50">${icon('scroll-text', 'h-3.5 w-3.5 shrink-0')}配置审计</button>
+          <div class="flex shrink-0 items-center gap-1.5">
+            <button data-action="open-dict-audit" class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 text-[12px] font-bold text-slate-700 hover:bg-slate-50">${icon('scroll-text', 'h-3.5 w-3.5 shrink-0')}配置审计</button>
+            <button data-action="create-teacher" ${offline ? 'disabled' : ''} class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${icon('plus', 'h-3.5 w-3.5 shrink-0')}录入新老师</button>
+          </div>
         </div>
-        ${teacherSearchBox('搜索姓名、技能或负责班长')}
+        ${teacherSearchBox('搜索姓名或负责班长')}
         <div class="flex flex-wrap gap-1.5">
           ${pills.map((p) => `<button data-action="admin-teacher-monitor" data-monitor="${p.key}" class="h-8 shrink-0 whitespace-nowrap rounded-full border-0 px-3 text-[12px] transition ${pillCls(p.key)}">${esc(p.label)}${countLabel(p.count)}</button>`).join('')}
         </div>
@@ -1232,24 +1291,28 @@
 
     function teacherCard(t, mode) {
       const complete = missingMedia(t).length === 0;
-      const canManage = mode === 'monitor' && t.monitorId === CURRENT_MONITOR_ID;
-      const pendingTeacher = canManage && !complete;
+      const resigned = t.status === 'resigned';
+      const canEdit = !resigned && (mode === 'admin' || t.monitorId === CURRENT_MONITOR_ID);
+      const pendingTeacher = canEdit && !complete;
       const qrReady = !!(t.media && t.media.qr);
       const qrControl = qrReady
         ? `<button data-action="open-card-qr" data-id="${t.id}" class="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">${icon('qr-code', 'h-3 w-3 shrink-0')}ClassIn 二维码</button>`
         : `<span class="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-slate-500" aria-disabled="true">${icon('qr-code', 'h-3 w-3 shrink-0')}ClassIn 二维码待补</span>`;
-      const weekScheduleAction = `<button data-action="week-schedule" data-id="${t.id}" class="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">${icon('calendar-days', 'h-3 w-3 shrink-0')}周排期</button>`;
-      const ownerAction = canManage
-        ? (pendingTeacher
-          ? `<button data-action="edit-teacher" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="inline-flex h-7 shrink-0 items-center rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">去完善</button>`
-          : `<button data-action="edit-teacher" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="inline-flex h-7 shrink-0 items-center rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">编辑</button>`)
-        : `<button data-action="open-teacher" data-id="${t.id}" class="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">查看档案${icon('chevron-right', 'h-3.5 w-3.5 shrink-0')}</button>`;
-      return `<article data-action="open-teacher" data-id="${t.id}" role="button" tabindex="0" class="flex h-full cursor-pointer flex-col rounded-2xl border border-slate-300 bg-slate-50/70 p-3 transition active:scale-[0.995]">
+      const pendingPrice = t.pendingPrice && !resigned
+        ? `<span class="shrink-0 whitespace-nowrap text-[12px] font-semibold text-indigo-700">${esc(pendingPriceText(t.pendingPrice))}</span>`
+        : '';
+      const weekScheduleAction = `<button data-action="week-schedule" data-id="${t.id}" class="inline-flex h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg px-1 text-[12px] font-semibold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-700">${icon('calendar-days', 'h-3 w-3 shrink-0')}周排期</button>`;
+      const editAction = canEdit
+        ? `<button data-action="edit-teacher" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="inline-flex h-7 shrink-0 items-center rounded-lg border border-indigo-200 bg-indigo-50/80 px-2 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">${pendingTeacher ? '去完善' : '编辑'}</button>`
+        : '';
+      const viewAction = `<button data-action="open-teacher" data-id="${t.id}" class="inline-flex h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg px-1 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">查看档案${icon('chevron-right', 'h-3.5 w-3.5 shrink-0')}</button>`;
+      return `<article data-action="open-teacher" data-id="${t.id}" role="button" tabindex="0" class="flex h-full cursor-pointer flex-col rounded-2xl p-3 transition active:scale-[0.995] ${resigned ? 'border border-dashed border-slate-400 bg-slate-50/60 opacity-60' : 'border border-slate-300 bg-slate-50/70'}">
         <div class="flex items-center gap-2.5">
           ${avatar(t, 'h-10 w-10', 'text-[14px]')}
           <div class="flex min-w-0 flex-1 items-center gap-1.5">
             <span class="min-w-0 flex-1 truncate text-[14px] font-bold text-slate-900">${esc(t.name)}</span>
             ${priceBadge(t.level)}
+            ${pendingPrice}
           </div>
           <div class="shrink-0">${statusChip(t)}</div>
         </div>
@@ -1260,13 +1323,14 @@
           ${qrControl}
         </div>
         <div class="mt-auto pt-2">
-          <div class="flex items-center justify-between gap-2 border-t border-slate-200 pt-2">
+          <div class="flex items-center justify-between gap-1.5 border-t border-slate-200 pt-2">
             <span class="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium ${complete ? 'text-emerald-700' : 'text-amber-800'}">
               <span class="h-1.5 w-1.5 rounded-full ${complete ? 'bg-emerald-500' : 'bg-amber-500'}"></span>${complete ? '档案齐全' : '待补档案'}
             </span>
-            <div class="flex min-w-0 shrink-0 items-center gap-2">
+            <div class="flex min-w-0 shrink-0 items-center gap-0.5">
               ${weekScheduleAction}
-              ${ownerAction}
+              ${editAction}
+              ${viewAction}
             </div>
           </div>
         </div>
@@ -1383,6 +1447,16 @@
           <span class="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[12px] font-bold text-indigo-700">老师价位字典</span>
           <span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-500">只读</span>
         </div>
+        <div class="mt-2 rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
+          <div class="text-[12px] font-semibold text-slate-700">启用中价位</div>
+          <div class="mt-1.5 flex flex-wrap gap-1.5">
+            ${PRICE_TIERS.map((p) => `<span class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[12px] font-bold text-slate-700">
+              ${p.label}
+              <button data-action="attempt-disable-price" data-level="${p.id}" class="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[12px] font-bold text-rose-700">停用</button>
+            </span>`).join('')}
+          </div>
+          <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">若价位仍被老师待生效调价引用，停用将被阻断。</p>
+        </div>
         <div class="mt-3 space-y-2">
           ${state.dictAudit.map((e) => {
             const meta = actionMeta[e.action] || actionMeta.updated;
@@ -1421,9 +1495,8 @@
       if (!t) return renderTeacherList();
       const isAdmin = state.role === 'admin';
       const isOwner = t.monitorId === CURRENT_MONITOR_ID;
-      const canManageProfile = !isAdmin && isOwner;
+      const canManageProfile = isAdmin || isOwner;
       const canEditNotes = canEditTeacherProfile(t);
-      const monitor = monitorById(t.monitorId);
       const missing = missingMedia(t);
       const complete = missing.length === 0;
       const published = complete && t.status === 'active';
@@ -1441,11 +1514,11 @@
               <div class="flex flex-wrap items-center gap-1.5">
                 <h1 class="truncate text-[18px] font-bold tracking-tight text-slate-900">${esc(t.name)}</h1>
                 ${priceBadge(t.level)}
+                ${t.pendingPrice && t.status !== 'resigned' ? `<span class="shrink-0 whitespace-nowrap text-[12px] font-semibold text-indigo-700">${esc(pendingPriceText(t.pendingPrice))}</span>` : ''}
                 ${statusChip(t)}
               </div>
               <div class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-medium text-slate-500">
-                <span class="inline-flex items-center gap-1">${icon('lock', 'h-3.5 w-3.5 text-slate-500')}负责班长 <span class="font-semibold text-slate-700">${esc(monitor ? monitor.name : '—')}</span></span>
-                ${attributionBadge(t, state.role)}
+                <span class="inline-flex items-center gap-1">${icon('lock', 'h-3.5 w-3.5 text-slate-500')}负责班长 <span class="font-semibold text-slate-700">${esc(attributionText(t, state.role))}</span></span>
               </div>
             </div>
           </div>
@@ -1453,13 +1526,24 @@
             <div class="rounded-xl border border-slate-300 bg-white px-2.5 py-2">
               <div class="text-[12px] font-medium text-slate-500">老师价位</div>
               <div class="mt-0.5 truncate text-[18px] font-bold text-slate-900">${esc(priceLabel(t.level))}</div>
+              ${t.pendingPrice && t.status !== 'resigned' ? `<div class="mt-0.5 truncate text-[12px] font-semibold text-indigo-700">${esc(pendingPriceText(t.pendingPrice))}</div>` : ''}
             </div>
             <div class="rounded-xl border border-slate-300 bg-white px-2.5 py-2">
               <div class="text-[12px] font-medium text-slate-500">负责班长</div>
-              <div class="mt-0.5 truncate text-[14px] font-bold text-slate-900">${esc(monitorDisplayName(t))}</div>
+              <div class="mt-0.5 truncate text-[14px] font-bold text-slate-900">${esc(attributionText(t, state.role))}</div>
             </div>
           </div>
         </section>
+
+        ${hasPendingResign(t) ? `<section class="rounded-2xl border border-amber-300 bg-amber-50/50 px-3 py-2.5">
+          <div class="flex items-start gap-2">
+            ${icon('calendar-clock', 'h-4 w-4 shrink-0 text-amber-700')}
+            <div class="min-w-0 flex-1">
+              <div class="text-[14px] font-bold text-amber-950">将于 ${esc(shortDate(t.resignDate))} 离职</div>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">${esc(shortDate(t.resignDate))} 前既有课次正常履约；自该日起课表不可约，到期自动转为已离职并下架选课大厅。</p>
+            </div>
+          </div>
+        </section>` : ''}
 
         ${published ? `<div class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[14px] font-semibold text-emerald-700">
           ${icon('check-circle-2', 'h-4 w-4 shrink-0')}档案已就绪并上架家长端选课大厅
@@ -1555,14 +1639,16 @@
           </div>
         </section>
 
-        ${isAdmin || isOwner ? `<div class="flex gap-2">
-          ${isAdmin
-            ? `<button data-action="open-single-rebind" data-id="${t.id}" ${offline ? 'disabled' : ''} class="h-11 flex-1 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">改绑负责班长</button>`
-            : `<button data-action="edit-teacher" data-id="${t.id}" ${offline ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>`}
-          <button data-action="open-resign" ${offline ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300">办理离职</button>
-        </div>` : `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
-          <p class="text-[12px] font-medium leading-relaxed text-slate-600">仅负责班长可编辑人事档案；你可以查看教学档案、查周排期并协调临时代课。</p>
-        </div>`}
+        ${t.status === 'resigned'
+          ? `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
+              <p class="text-[12px] font-medium leading-relaxed text-slate-600">该老师已离职，档案只读可查；历史课酬正常归集，教学备忘录与变动日志永久保留。</p>
+            </div>`
+          : (isAdmin || isOwner ? `<div class="flex gap-2">
+              <button data-action="edit-teacher" data-id="${t.id}" ${offline ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>
+              <button data-action="open-resign" ${offline ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300">办理离职</button>
+            </div>` : `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
+              <p class="text-[12px] font-medium leading-relaxed text-slate-600">仅负责班长可编辑人事档案；你可以查看教学档案、查周排期并协调临时代课。</p>
+            </div>`)}
 
         <section class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
           <a href="m1b_teacher_parent.html" target="_blank" rel="noopener" class="flex items-center justify-between border-b border-slate-100 px-3.5 py-3">
@@ -1587,12 +1673,14 @@
     function renderTeacherForm() {
       const f = state.form;
       const isEdit = f.mode === 'edit';
+      const isAdmin = state.role === 'admin';
       const tablet = state.device === 'tablet';
       const inputCls = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15';
       const introGrid = tablet ? 'grid grid-cols-2 gap-3' : 'space-y-3';
       const albumGrid = tablet ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2';
       const media = f.media;
       const video = media.video;
+      const assignableMonitors = state.monitors.filter((m) => m.status === 'active' && !m.isPlatform && !m.isAdminSelf);
 
       return `<div class="flex h-full min-h-0 flex-col bg-slate-50">
         <div class="min-h-0 flex-1 overflow-y-auto">
@@ -1602,7 +1690,7 @@
                 <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${isEdit ? '编辑老师档案' : '录入老师档案'}</h1>
                 ${state.online === 'off' ? `<span class="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[12px] font-bold text-rose-700">离线不可保存</span>` : ''}
               </div>
-              <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isEdit ? '编辑后按发布状态同步至家长端选课大厅' : '新老师默认绑定当前班长 Leo；补齐档案后方可上架'}</p>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isEdit ? '编辑后按发布状态同步至家长端选课大厅' : (isAdmin ? '管理员录入默认由我直管，可指定其他在职班长或平台未划拨' : '新老师默认绑定当前班长 Leo；补齐档案后方可上架')}</p>
             </div>
 
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4">
@@ -1620,14 +1708,56 @@
                     </select>
                   </div>
                   <div>
-                    <span class="mb-1 block text-[14px] font-semibold text-slate-700">负责班长</span>
-                    <div class="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-[14px] font-medium text-slate-600">
-                      <span class="truncate">Leo (当前班长)</span>
-                      ${icon('lock', 'h-3.5 w-3.5 shrink-0 text-slate-500')}
-                    </div>
+                    <label for="fMonitorId" class="mb-1 block text-[14px] font-semibold text-slate-700">负责班长</label>
+                    ${isAdmin
+                      ? `<select id="fMonitorId" class="${inputCls} font-medium">
+                          <option value="${ADMIN_MONITOR_ID}" ${f.monitorId === ADMIN_MONITOR_ID ? 'selected' : ''}>⭐ 我直管</option>
+                          ${assignableMonitors.map((m) => `<option value="${m.id}" ${f.monitorId === m.id ? 'selected' : ''}>${esc(m.name)} 班</option>`).join('')}
+                          <option value="${PLATFORM_MONITOR_ID}" ${f.monitorId === PLATFORM_MONITOR_ID ? 'selected' : ''}>平台未划拨</option>
+                        </select>`
+                      : `<div class="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-[14px] font-medium text-slate-600">
+                          <span class="truncate">${esc(monitorById(CURRENT_MONITOR_ID)?.name || 'Leo')}（当前班长，锁定）</span>
+                          ${icon('lock', 'h-3.5 w-3.5 shrink-0 text-slate-500')}
+                        </div>`}
                   </div>
                 </div>
-                <p class="text-[12px] font-medium leading-relaxed text-slate-500">调价仅影响新生成的购课单，已购未上课次不补退差价</p>
+
+                <div class="rounded-xl border border-slate-300 bg-white p-2.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="text-[14px] font-semibold text-slate-800">待生效调价</div>
+                    <span class="shrink-0 rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">每位老师最多 1 个</span>
+                  </div>
+                  ${isAdmin
+                    ? `<div class="mt-2 grid grid-cols-2 gap-2">
+                        <div>
+                          <label for="fPendingLevel" class="mb-1 block text-[12px] font-semibold text-slate-600">新价位</label>
+                          <select id="fPendingLevel" class="${inputCls} font-medium">
+                            <option value="">不调整</option>
+                            ${PRICE_TIERS.map((l) => `<option value="${l.id}" ${f.pendingLevel === l.id ? 'selected' : ''}>${l.label}</option>`).join('')}
+                          </select>
+                        </div>
+                        <div>
+                          <label for="fPendingDate" class="mb-1 block text-[12px] font-semibold text-slate-600">生效日（轮次首日）</label>
+                          <select id="fPendingDate" ${f.pendingLevel ? '' : 'disabled'} class="${inputCls} font-medium disabled:bg-slate-100 disabled:text-slate-500">
+                            <option value="">请选择</option>
+                            ${ROUND_STARTS.map((d) => {
+                              const disabled = d < ROUND_SETTABLE_FROM;
+                              return `<option value="${d}" ${f.pendingDate === d ? 'selected' : ''} ${disabled ? 'disabled' : ''}>${d}（周一）${disabled ? ' · 已过续费窗口' : ' · 可设置'}</option>`;
+                            }).join('')}
+                          </select>
+                        </div>
+                      </div>
+                      ${isEdit && f.pendingLevel && f.pendingDate ? `<div class="mt-1.5 flex items-center justify-between gap-2 rounded-lg border border-indigo-100 bg-indigo-50/70 px-2 py-1.5">
+                        <span class="min-w-0 truncate text-[12px] font-semibold text-indigo-800">${esc(shortDate(f.pendingDate))} 起 ${esc(f.pendingLevel)}积分（保存后生效）</span>
+                        <button data-action="revoke-pending-price" class="h-7 shrink-0 rounded-md border border-indigo-200 bg-white px-2 text-[12px] font-bold text-indigo-700">撤销</button>
+                      </div>` : `<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">选择「不调整」或留空保存即可撤销原待生效计划。</p>`}`
+                    : `<div class="mt-1.5 rounded-lg border border-slate-200 bg-slate-50/70 px-2 py-1.5 text-[12px] font-medium leading-relaxed text-slate-600">
+                        ${isEdit && teacherById(f.id)?.pendingPrice
+                          ? `当前待生效：<span class="font-semibold text-indigo-700">${esc(pendingPriceText(teacherById(f.id).pendingPrice))}</span> · 由管理员统一设置`
+                          : '暂未设置待生效调价 · 由管理员统一设置'}
+                      </div>`}
+                  <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">生效日前按原价位匹配，生效日及之后按新价位匹配；已购未排期课次保持原价，已排定课次不补差。设置须早于目标轮次前一周周一 08:30，已过窗口只能选择再下一轮。</p>
+                </div>
               </div>
             </section>
 
@@ -2010,7 +2140,17 @@
       const t = teacherById(state.activeTeacherId);
       if (!t) return '';
       const cleared = state.resignTeacher.cleared;
-      const details = t.resignDetails || { temp: [], fixed: [], classes: [], sub: [] };
+      const date = state.resignTeacher.date || TODAY;
+      const future = date > TODAY;
+      const allDetails = t.resignDetails || { temp: [], fixed: [], classes: [], sub: [] };
+      const afterDate = (items) => (items || []).filter((x) => !x.date || x.date >= date);
+      const details = {
+        temp: afterDate(allDetails.temp),
+        fixed: afterDate(allDetails.fixed),
+        classes: afterDate(allDetails.classes),
+        sub: afterDate(allDetails.sub)
+      };
+      const totalLeft = details.temp.length + details.fixed.length + details.classes.length + details.sub.length;
       const category = (title, items, unitLabel, actionLabel, renderItem) => `
         <div class="rounded-xl border border-slate-200 bg-white p-2.5">
           <div class="flex items-center justify-between gap-2">
@@ -2028,9 +2168,14 @@
         </div>`;
       return modalShell(`
         ${modalHeader(`办理老师离职：${t.name}`, `${priceLabel(t.level)} · 需完成全部教务交接后方可离职`)}
-        <p class="mt-2.5 text-[14px] font-medium leading-relaxed text-slate-600">该老师尚有未来未执行教务，必须全部交接清零后方可办理离职。</p>
+        <div class="mt-2.5 rounded-xl border border-slate-300 bg-white p-2.5">
+          <label for="resignDate" class="mb-1 block text-[14px] font-semibold text-slate-700">离职生效日期</label>
+          <input id="resignDate" type="date" min="${TODAY}" value="${esc(date)}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white">
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">${future ? `将于 ${esc(date)} 进入待离职过渡态；该日及当轮剩余/后续日期全不可约，D 前既有课次正常履约。` : '今日立即生效：选课大厅即刻下架，并校验今日及之后全部未执行教务。'}</p>
+        </div>
+        <p class="mt-2.5 text-[14px] font-medium leading-relaxed text-slate-600">${future ? `需校验 ${esc(date)} 及之后的未执行教务；该日之前既有课次正常履约。` : '该老师尚有未来未执行教务，必须全部交接清零后方可办理离职。'}</p>
         <div class="mt-2.5 space-y-1.5">
-          ${category('防线 A · 未来 1-7 天临时课', details.temp, '节', '去调配代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.student)}`)}
+          ${category(`防线 A · ${future ? `${esc(date)} 及之后的` : '未来 1-7 天'}临时课`, details.temp, '节', '去调配代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.student)}`)}
           ${category('防线 B · 未来固定位 / 预占 HOLD', details.fixed, '名学员', '去协调换师', (x) => `${esc(x.student)} · ${esc(x.schedule)} · 剩余 ${x.remaining} 节`)}
           <div class="rounded-xl border border-slate-200 bg-white p-2.5">
             <div class="flex items-center justify-between gap-2">
@@ -2055,12 +2200,12 @@
         </div>
         <label class="mt-2.5 flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5">
           <input id="resignCleared" type="checkbox" ${cleared ? 'checked' : ''} class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-indigo-600">
-          <span class="text-[14px] font-medium text-slate-700">已完成全部交接确认<span class="mt-0.5 block text-[12px] font-medium text-slate-500">勾选后确认办理离职按钮可用</span></span>
+          <span class="text-[14px] font-medium text-slate-700">已完成全部交接确认<span class="mt-0.5 block text-[12px] font-medium text-slate-500">勾选后确认办理离职按钮可用${totalLeft ? '' : ' · 当前日期范围已无待交接项'}</span></span>
         </label>
-        <p class="mt-2.5 text-[12px] font-medium leading-relaxed text-slate-500">离职后档案从选课大厅下架并保留历史记录；历史已结课课酬正常纳入课酬单，历史课酬与教学备忘只读可查。</p>
+        <p class="mt-2.5 text-[12px] font-medium leading-relaxed text-slate-500">${future ? '到达离职日期后将自动转为已离职、下架选课大厅，并作废未生效调价计划；' : '离职后档案从选课大厅下架并作废未生效调价计划；'}历史已结课课酬正常纳入课酬单，历史课酬与教学备忘只读可查。</p>
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition-colors hover:bg-slate-50 active:bg-slate-100">取消</button>
-          <button id="btnResignTeacher" data-action="resign-confirm" ${cleared ? '' : 'disabled'} class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认办理离职</button>
+          <button id="btnResignTeacher" data-action="resign-confirm" ${cleared ? '' : 'disabled'} class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${future ? '确认预约离职' : '确认办理离职'}</button>
         </div>
       `);
     }
@@ -2326,13 +2471,17 @@
      * ------------------------------------------------------------------ */
     function startTeacherForm(mode, id = null) {
       if (state.online === 'off') return showToast('离线模式下不可录入或编辑档案');
-      if (state.role !== 'monitor') return showToast('仅负责班长可录入老师档案');
+      if (!['monitor', 'admin'].includes(state.role)) return showToast('当前身份不可维护老师档案');
       if (mode === 'edit') {
         const t = teacherById(id);
-        if (!t || t.monitorId !== CURRENT_MONITOR_ID || t.status === 'resigned') return showToast('该老师不在当前班长名下');
+        if (!t || t.status === 'resigned') return showToast('已离职老师档案只读可查');
+        if (state.role === 'monitor' && t.monitorId !== CURRENT_MONITOR_ID) return showToast('该老师不在当前班长名下');
         const photos = clone(t.photos || []);
         state.form = {
-          mode: 'edit', id: t.id, name: t.name, level: t.level, classinRoom: t.classinRoom || '',
+          mode: 'edit', id: t.id, name: t.name, level: t.level, monitorId: t.monitorId,
+          pendingLevel: t.pendingPrice ? t.pendingPrice.level : '',
+          pendingDate: t.pendingPrice ? t.pendingPrice.effectiveDate : '',
+          classinRoom: t.classinRoom || '',
           introZh: t.introZh, introEn: t.introEn,
           avatarDataUrl: t.avatarDataUrl || (photos[0] ? photos[0].dataUrl : ''), qrDataUrl: t.qrDataUrl || '',
           photos, avatarPhotoId: t.avatarPhotoId || (photos[0] ? photos[0].id : null), crop: null,
@@ -2341,6 +2490,7 @@
         state.formReturnPage = state.page === 'teacherDetail' ? 'teacherDetail' : 'teachers';
       } else {
         state.form = emptyTeacherForm();
+        state.form.monitorId = state.role === 'admin' ? ADMIN_MONITOR_ID : CURRENT_MONITOR_ID;
         state.formReturnPage = 'teachers';
       }
       state.page = 'teacherForm';
@@ -2509,7 +2659,7 @@
     }
 
     function saveTeacher() {
-      if (state.role !== 'monitor') return showToast('仅负责班长可保存老师档案');
+      if (!['monitor', 'admin'].includes(state.role)) return showToast('当前身份不可维护老师档案');
       const f = state.form;
       const err = teacherFormError();
       if (err) {
@@ -2519,21 +2669,50 @@
         showToast(err);
         return;
       }
+      if (state.role === 'admin' && f.pendingLevel) {
+        if (!PRICE_TIERS.some((l) => l.id === f.pendingLevel)) {
+          f.error = '请选择有效的待生效价位';
+          renderAll();
+          return showToast(f.error);
+        }
+        if (!f.pendingDate || f.pendingDate < ROUND_SETTABLE_FROM || !ROUND_STARTS.includes(f.pendingDate)) {
+          f.error = '生效日只能选择未来轮次首日，且须早于该轮次前一周周一 08:30';
+          renderAll();
+          return showToast(f.error);
+        }
+      }
       const complete = formMissing().length === 0;
       const status = f.publish && complete ? 'active' : 'pending';
       if (f.mode === 'edit') {
         const t = teacherById(f.id);
         if (!t) return;
+        if (t.status === 'resigned') return showToast('已离职老师档案只读，不可编辑');
+        if (state.role === 'monitor' && t.monitorId !== CURRENT_MONITOR_ID) return showToast('该老师不在当前班长名下');
         const beforeSnap = teacherFieldSnapshot(t);
+        const beforePending = t.pendingPrice ? pendingPriceText(t.pendingPrice) : '未设置';
         const beforeStatus = t.status;
         Object.assign(t, {
           name: f.name.trim(), level: f.level,
+          monitorId: state.role === 'admin' ? f.monitorId : t.monitorId,
           introZh: f.introZh, introEn: f.introEn,
           avatarDataUrl: f.avatarDataUrl, qrDataUrl: f.qrDataUrl,
           photos: clone(f.photos), avatarPhotoId: f.avatarPhotoId,
           media: clone(f.media), status
         });
+        if (state.role === 'admin') {
+          if (f.pendingLevel && f.pendingDate) {
+            t.pendingPrice = { level: f.pendingLevel, effectiveDate: f.pendingDate };
+          } else {
+            delete t.pendingPrice;
+          }
+        }
+        const afterPending = t.pendingPrice ? pendingPriceText(t.pendingPrice) : '未设置';
         appendTeacherChanges(beforeSnap, t);
+        if (beforePending !== afterPending) {
+          appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
+            { field: '待生效调价', before: beforePending, after: afterPending }
+          ] });
+        }
         if (beforeStatus !== status) {
           appendTeacherStatus(t, beforeStatus, status, status === 'active' ? '档案完善并上架' : '档案退回待完善');
         }
@@ -2545,9 +2724,10 @@
         showToast(status === 'active' ? '老师档案已保存并同步至家长端' : (complete ? '已保存为待发布草稿，暂未上架' : '已保存为待完善档案，暂未上架'));
         return;
       }
+      const monitorId = state.role === 'admin' ? f.monitorId : CURRENT_MONITOR_ID;
       const t = {
         id: newId('tc'),
-        name: f.name.trim(), level: f.level, monitorId: CURRENT_MONITOR_ID,
+        name: f.name.trim(), level: f.level, monitorId,
         weeklyCapacity: 30, availability: 'available',
         introZh: f.introZh, introEn: f.introEn,
         avatarDataUrl: f.avatarDataUrl, qrDataUrl: f.qrDataUrl,
@@ -2556,8 +2736,16 @@
         status, createdAt: TODAY, resign: { temp: 0, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [], fixed: [], classes: [], sub: [] }
       };
+      if (state.role === 'admin' && f.pendingLevel && f.pendingDate) {
+        t.pendingPrice = { level: f.pendingLevel, effectiveDate: f.pendingDate };
+      }
       state.teachers.push(t);
       appendTeacherStatus(t, '', status, status === 'active' ? '录入档案并上架' : '录入档案，待完善');
+      if (t.pendingPrice) {
+        appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
+          { field: '待生效调价', before: '未设置', after: pendingPriceText(t.pendingPrice) }
+        ] });
+      }
       state.activeTeacherId = t.id;
       state.page = 'teacherDetail';
       state.navTab = 'ops';
@@ -2570,10 +2758,31 @@
       if (!state.resignTeacher.cleared) return;
       const t = teacherById(state.activeTeacherId);
       if (!t) return;
+      const date = state.resignTeacher.date || TODAY;
+      if (date < TODAY) return showToast('离职生效日期不能早于今天');
       const beforeStatus = t.status;
+      const hadPendingPrice = !!t.pendingPrice;
+      delete t.pendingPrice;
+      if (date > TODAY) {
+        t.resignDate = date;
+        const changes = [{ field: '离职生效日期', before: '未设置', after: `${date}（待离职过渡态）` }];
+        if (hadPendingPrice) changes.push({ field: '待生效调价', before: '待生效计划', after: '已自动作废' });
+        appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes });
+        state.overlay = null;
+        state.page = 'teacherDetail';
+        renderAll();
+        showToast(`${t.name} 将于 ${date} 离职 · 该日前既有课次正常履约`);
+        return;
+      }
       t.status = 'resigned';
       t.resignedAt = TODAY;
-      appendTeacherStatus(t, beforeStatus, 'resigned', '教务交接清零，办理离职');
+      delete t.resignDate;
+      appendTeacherStatus(t, beforeStatus, 'resigned', '教务交接清零，办理离职（今日生效）');
+      if (hadPendingPrice) {
+        appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
+          { field: '待生效调价', before: '待生效计划', after: '已自动作废' }
+        ] });
+      }
       state.overlay = null;
       const list = allTeachers();
       state.activeTeacherId = list[0] ? list[0].id : '';
@@ -3182,9 +3391,36 @@
       }
       if (action === 'open-resign') {
         if (state.online === 'off') return showToast('离线模式下不可办理离职');
+        const t = teacherById(state.activeTeacherId);
+        if (!t || t.status === 'resigned') return showToast('该老师已离职');
         state.resignTeacher.cleared = false;
+        state.resignTeacher.date = t.resignDate && t.resignDate > TODAY ? t.resignDate : TODAY;
         state.overlay = { type: 'resignTeacher' };
         return renderAll();
+      }
+      if (action === 'revoke-pending-price') {
+        state.form.pendingLevel = '';
+        state.form.pendingDate = '';
+        if (state.form.mode === 'edit') {
+          const t = teacherById(state.form.id);
+          if (t) {
+            delete t.pendingPrice;
+            appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
+              { field: '待生效调价', before: '已设置', after: '已撤销' }
+            ] });
+          }
+        }
+        renderAll();
+        return showToast('待生效调价计划已撤销');
+      }
+      if (action === 'attempt-disable-price') {
+        const level = el.dataset.level;
+        const users = state.teachers.filter((t) => t.pendingPrice && t.pendingPrice.level === level && t.status !== 'resigned');
+        if (users.length) {
+          const u = users[0];
+          return showToast(`${level}积分仍被 ${u.name} 的待生效调价（${pendingPriceText(u.pendingPrice)}）引用，暂不可停用`);
+        }
+        return showToast(`演示：${level}积分已停用（当前无待生效调价引用）`);
       }
       if (action === 'open-appoint') return openAppoint();
       if (action === 'open-edit-monitor') return openEditMonitor(el.dataset.id);
@@ -3303,10 +3539,24 @@
     document.getElementById('frame').addEventListener('change', (e) => {
       const id = e.target.id;
       if (id === 'fLevel') { state.form.level = e.target.value; clearFormError(); }
+      if (id === 'fMonitorId') { state.form.monitorId = e.target.value; clearFormError(); }
+      if (id === 'fPendingLevel') {
+        state.form.pendingLevel = e.target.value;
+        if (!e.target.value) state.form.pendingDate = '';
+        if (e.target.value && !state.form.pendingDate) state.form.pendingDate = ROUND_SETTABLE_FROM;
+        clearFormError();
+        renderAll();
+      }
+      if (id === 'fPendingDate') { state.form.pendingDate = e.target.value; clearFormError(); }
       if (id === 'fPhotoInput') handleAlbumFiles(e.target.files);
       if (id === 'fQrInput') handleQrFile(e.target.files && e.target.files[0]);
       if (id === 'appointWechatQrInput') handleMonitorWechatQrFile(e.target.files && e.target.files[0]);
       if (id === 'fVideoInput') handleVideoFile(e.target.files && e.target.files[0]);
+      if (id === 'resignDate') {
+        state.resignTeacher.date = e.target.value || TODAY;
+        state.resignTeacher.cleared = false;
+        renderAll();
+      }
       if (id === 'resignCleared') {
         state.resignTeacher.cleared = e.target.checked;
         const btn = $('btnResignTeacher');

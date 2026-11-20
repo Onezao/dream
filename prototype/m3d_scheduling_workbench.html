@@ -87,7 +87,6 @@
         short: 'Alic',
         price: '16',
         credits: 8,
-        tempCredits: 4,
         emoji: '👧',
         preferences: ['1-22', '3-20', '3-23'] // 周二19:00, 周四18:00, 周四19:30 (row 0 = 08:00)
       },
@@ -99,7 +98,6 @@
         short: 'BobZ',
         price: '18',
         credits: 4,
-        tempCredits: 2,
         emoji: '👦',
         preferences: ['1-22', '4-22']
       },
@@ -111,7 +109,6 @@
         short: 'Char',
         price: '16',
         credits: 2,
-        tempCredits: 1,
         emoji: '🧒',
         preferences: ['1-22']
       }
@@ -233,10 +230,13 @@
       highlightDay: null,
       highlightHour: null,
       selectedTeacher: 'david',
-      calMode: 'batch',
+      calMode: 'temp',
       calWeek: 0,
       cycleOffset: 0,
       selectedSlots: [],
+      templateSlots: [],
+      weekAdjusted: { 1: false, 2: false, 3: false },
+      weekSlots: { 1: [], 2: [], 3: [] },
       holdMode: 'none',
       holdResolved: false,
       lockedOverrides: {},
@@ -258,11 +258,22 @@
       state.calWeek = 0;
       state.cycleOffset = 0;
       state.selectedSlots = [];
+      state.templateSlots = [];
+      state.weekAdjusted = { 1: false, 2: false, 3: false };
+      state.weekSlots = { 1: [], 2: [], 3: [] };
       state.holdResolved = false;
       state.lockedOverrides = {};
       state.releasedHold = false;
       state.justLockedKeys = [];
       state.tempBookingSlot = null;
+    }
+
+    function resetWeekPlan() {
+      state.templateSlots = [];
+      state.weekAdjusted = { 1: false, 2: false, 3: false };
+      state.weekSlots = { 1: [], 2: [], 3: [] };
+      state.selectedSlots = [];
+      if (state.calMode === 'batch') state.calWeek = 0;
     }
 
     function applyScenario(name) {
@@ -283,7 +294,7 @@
         state.price = '16';
         state.period = 'mid';
         state.week = 0;
-        state.calMode = 'batch';
+        state.calMode = 'temp';
       } else if (name === 'student-bob') {
         state.view = 'board';
         state.contextType = 'student';
@@ -291,7 +302,7 @@
         state.price = '18';
         state.period = 'mid';
         state.week = 0;
-        state.calMode = 'batch';
+        state.calMode = 'temp';
       } else if (name === 'class-ket') {
         state.view = 'board';
         state.contextType = 'class';
@@ -314,21 +325,30 @@
         state.price = '16';
         state.period = 'mid';
         state.week = 0;
-        state.calMode = 'batch';
+        state.calMode = 'temp';
       } else if (name === 'step2-david') {
         state.view = 'calendar';
         state.selectedTeacher = 'david';
         state.contextType = 'student';
         state.student = 'alice';
         state.price = '16';
-        state.calMode = 'batch';
+        state.calMode = 'temp';
       } else if (name === 'step2-charlie') {
         state.view = 'calendar';
         state.selectedTeacher = 'david';
         state.contextType = 'student';
         state.student = 'charlie';
         state.price = '16';
+        state.calMode = 'temp';
+      } else if (name === 'step2-batch') {
+        state.view = 'calendar';
+        state.selectedTeacher = 'david';
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.price = '16';
         state.calMode = 'batch';
+        // 模板周预设：周二 19:00 (4 周可用) + 周六 14:00 (第 2 周冲突)
+        state.templateSlots = [{ day: 1, row: 22 }, { day: 5, row: 12 }];
       } else if (name === 'step2-hold') {
         state.view = 'calendar';
         state.selectedTeacher = 'david';
@@ -495,6 +515,11 @@
     }
     if (params.get('view') === 'board') state.view = 'board';
     if (params.get('view') === 'calendar') state.view = 'calendar';
+    // 直接带参进入 Step 2 时，按对象与待排节数选择默认模式（显式 scenario 除外）
+    if (!params.get('scenario') && state.view === 'calendar' && !['group_single', 'makeup'].includes(params.get('mode'))) {
+      state.calMode = defaultCalMode();
+      resetWeekPlan();
+    }
 
     function contextStudent() {
       return state.contextType === 'student' ? STUDENTS[state.student] : null;
@@ -757,7 +782,7 @@
           ${visible.length ? renderMatrixHeader() : ''}
           ${visible.length ? `<section class="mt-1 space-y-1" aria-label="老师空档列表">${visible.map((item) => renderTeacherCard(item.teacher, item.free)).join('')}</section>` : renderEmptyState()}
           ${renderLoadMore(total, visibleCount)}
-          <p class="mt-2 text-center text-[12px] font-medium leading-relaxed text-slate-500">本页只对比空档。点“选取”进入老师当周课表，完成选时段与 4 周校验。</p>
+          <p class="mt-2 text-center text-[12px] font-medium leading-relaxed text-slate-500">本页只对比空档。点“选取”进入老师当周课表，完成选时段与确认。</p>
         </div>
       </div>`;
     }
@@ -782,7 +807,7 @@
               <span class="truncate text-[14px] font-bold text-slate-900">${esc(student.nickname)}</span>
               <span class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[12px] font-bold leading-none text-slate-700">${esc(priceLabel(student.price))}</span>
             </span>
-            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(student.name)} · 固定位可用 <span class="font-bold text-indigo-700">${student.credits}</span> 节 · 熟客优先</span>
+            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(student.name)} · 待排余 <span class="font-bold text-indigo-700">${student.credits}</span> 节 · 熟客优先</span>
           </span>
           <span class="shrink-0 text-[12px] font-semibold text-indigo-600">切换</span>
         </button>`;
@@ -994,6 +1019,20 @@
       return TEACHERS.find((t) => t.key === state.selectedTeacher) || TEACHERS[0];
     }
 
+    function defaultCalMode() {
+      if (state.contextType === 'class') {
+        const cls = contextClass();
+        return cls && cls.credits < 4 ? 'makeup' : 'batch';
+      }
+      return 'temp';
+    }
+
+    function availableCredits() {
+      if (state.contextType === 'student') return contextStudent().credits;
+      if (state.contextType === 'class') return contextClass().credits;
+      return 0;
+    }
+
     function calRowTime(row) {
       const total = CAL_START_HOUR * 60 + row * 30;
       return `${pad2(Math.floor(total / 60))}:${pad2(total % 60)}`;
@@ -1032,9 +1071,6 @@
           return { type: 'GREEN', label: '约' };
         }
       }
-      if (day === 1 && row === 23 && state.holdMode === 'conflict' && !state.holdResolved) { // 周二 19:30 候补 HOLD
-        return { type: 'ORANGE_HOLD', label: '候补', isCandidateHold: true };
-      }
 
       // 第3周老师请假冲突 (AC-3D-11)
       if (day === 2 && row === 20 && wInCycle === 2) {
@@ -1045,7 +1081,7 @@
         return { type: 'ORANGE', label: 'TimZ', conflictReason: '第2周已有 1v1 占用' };
       }
 
-      // 必绿演示格（4周全通）
+      // 必绿演示格（模板周可用，逐周校验后部分周可能冲突）
       const guaranteedGreen = [
         '1-22', '3-20', '3-23', '1-23', // 周二19:00, 周四18:00, 周四19:30, 周二19:30
         '5-4', '5-5',   // 周六 10:00-11:00 (小班双格)
@@ -1077,33 +1113,74 @@
       return { type: 'GRAY', label: '休' };
     }
 
-    function get4WeekCheck(teacherKey, day, row, isGroupDouble) {
-      const baseWeek = state.cycleOffset * 4;
-      const conflictWeeks = [];
-      let allHold = true;
-      for (let w = 0; w < 4; w += 1) {
-        const c1 = getBaseCalCell(teacherKey, baseWeek + w, day, row);
-        const c2 = isGroupDouble ? (row + 1 < CAL_ROWS ? getBaseCalCell(teacherKey, baseWeek + w, day, row + 1) : { type: 'GRAY' }) : null;
-        const ok1 = c1.type === 'GREEN' || (c1.type === 'ORANGE_HOLD' && c1.isHold && !isGroupDouble);
-        const ok2 = !isGroupDouble || (c2 && c2.type === 'GREEN');
-        if (!(c1.type === 'ORANGE_HOLD' && c1.isHold)) allHold = false;
-        if (!ok1 || !ok2) {
-          const reason = c1.conflictReason || (c2 && c2.conflictReason) || (c1.type !== 'GREEN' ? '已有安排/休息' : '下格被占');
-          conflictWeeks.push({ week: w + 1, reason });
+    function cellSelectable(teacherKey, absWeek, day, row, isClass) {
+      const c1 = getBaseCalCell(teacherKey, absWeek, day, row);
+      if (c1.type === 'ORANGE_HOLD' && c1.isHold && !isClass) {
+        return { ok: true };
+      }
+      if (c1.type !== 'GREEN') {
+        return {
+          ok: false,
+          reason: c1.conflictReason || (c1.type === 'GRAY' ? '休息 / 不可约' : c1.type === 'ORANGE_HOLD' ? '续费预占中' : '已被占用')
+        };
+      }
+      if (isClass) {
+        if (row + 1 >= CAL_ROWS) return { ok: false, reason: '下格不可用' };
+        const c2 = getBaseCalCell(teacherKey, absWeek, day, row + 1);
+        if (c2.type !== 'GREEN') {
+          return { ok: false, reason: c2.conflictReason || (c2.type === 'GRAY' ? '下格休息 / 不可约' : '下格已被占用') };
         }
       }
-      return {
-        pass: conflictWeeks.length === 0,
-        score: Math.round(((4 - conflictWeeks.length) / 4) * 100),
-        conflictWeeks,
-        isHoldSlot: allHold && !isGroupDouble
-      };
+      return { ok: true };
+    }
+
+    function computeWeekPlan(week) {
+      const teacher = currentCalTeacher();
+      const isClass = state.contextType === 'class';
+      const absWeek = state.cycleOffset * 4 + week;
+      if (week === 0) {
+        return { week: 0, status: 'template', slots: state.templateSlots.slice(), conflicts: [] };
+      }
+      if (state.weekAdjusted[week]) {
+        return { week, status: 'adjusted', slots: state.weekSlots[week].slice(), conflicts: [] };
+      }
+      const slots = [];
+      const conflicts = [];
+      state.templateSlots.forEach((slot) => {
+        const result = cellSelectable(teacher.key, absWeek, slot.day, slot.row, isClass);
+        if (result.ok) slots.push({ day: slot.day, row: slot.row });
+        else conflicts.push({ day: slot.day, row: slot.row, reason: result.reason });
+      });
+      return { week, status: conflicts.length ? 'conflict' : 'follow', slots, conflicts };
+    }
+
+    function currentWeekPlan() {
+      if (state.calMode !== 'batch') {
+        return { week: state.calWeek, status: 'single', slots: state.selectedSlots.slice(), conflicts: [] };
+      }
+      return computeWeekPlan(state.calWeek);
+    }
+
+    function planActualTotal() {
+      if (state.calMode !== 'batch') return state.selectedSlots.length;
+      return [0, 1, 2, 3].reduce((sum, week) => sum + computeWeekPlan(week).slots.length, 0);
+    }
+
+    function weekStatusMeta(week) {
+      if (state.calMode !== 'batch') {
+        return { label: '单周', tone: 'text-slate-500', dot: 'bg-slate-300' };
+      }
+      if (week === 0) return { label: '模板周', tone: 'text-indigo-700', dot: 'bg-indigo-500' };
+      if (state.weekAdjusted[week]) return { label: '已调整', tone: 'text-amber-800', dot: 'bg-amber-500' };
+      const plan = computeWeekPlan(week);
+      if (plan.conflicts.length) return { label: '冲突待补', tone: 'text-rose-700', dot: 'bg-rose-500' };
+      return { label: '跟随模板', tone: 'text-emerald-700', dot: 'bg-emerald-500' };
     }
 
     function maxSelectableSlots() {
       if (state.contextType === 'student') {
         const stu = contextStudent();
-        if (state.calMode === 'temp') return stu.tempCredits || 2;
+        if (state.calMode === 'temp') return stu.credits;
         return Math.floor(stu.credits / 4);
       }
       if (state.contextType === 'class') {
@@ -1112,6 +1189,31 @@
         return Math.floor(cls.credits / 4);
       }
       return 4;
+    }
+
+    function renderBatchWeekHint(isBatch, isClass) {
+      if (!isBatch) return '';
+      const plan = computeWeekPlan(state.calWeek);
+      if (state.calWeek === 0) {
+        return `<div class="mt-1.5 rounded-xl border border-indigo-200 bg-indigo-50/60 px-2.5 py-1.5">
+          <p class="text-[11px] font-medium leading-relaxed text-indigo-900"><span class="font-bold">模板周</span> · 选格后自动复制到第 2~4 周（${isClass ? '小班连续双格' : '1v1 单格'}）；冲突周留空标「冲突待补」，不阻断整单。</p>
+        </div>`;
+      }
+      if (plan.status === 'adjusted') {
+        return `<div class="mt-1.5 flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50/60 px-2.5 py-1.5">
+          <p class="min-w-0 text-[11px] font-medium leading-relaxed text-amber-900"><span class="font-bold">已调整</span> · 本周手工选中 ${plan.slots.length} 格，仅作用于本周。</p>
+          <button type="button" data-action="restore-week" data-week="${state.calWeek}" class="inline-flex h-6 shrink-0 items-center gap-0.5 rounded-md border border-amber-300 bg-white px-1.5 text-[10px] font-bold text-amber-900 hover:bg-amber-100">${icon('rotate-ccw', 'h-3 w-3')}恢复跟随第 1 周</button>
+        </div>`;
+      }
+      if (plan.status === 'conflict') {
+        const detail = plan.conflicts.map((c) => `${DAY_LABELS[c.day]} ${calRowTime(c.row)}`).join('、');
+        return `<div class="mt-1.5 rounded-xl border border-rose-200 bg-rose-50/60 px-2.5 py-1.5">
+          <p class="text-[11px] font-medium leading-relaxed text-rose-800"><span class="font-bold">冲突待补</span> · 本周 ${plan.conflicts.length} 节留待排池（${esc(detail)}），可在本周另选空闲格补足。</p>
+        </div>`;
+      }
+      return `<div class="mt-1.5 rounded-xl border border-emerald-200 bg-emerald-50/60 px-2.5 py-1.5">
+        <p class="text-[11px] font-medium leading-relaxed text-emerald-800"><span class="font-bold">跟随模板</span> · 本周自动选中 ${plan.slots.length} 格，模板周变动会同步更新。</p>
+      </div>`;
     }
 
     function renderCalendarView() {
@@ -1128,9 +1230,22 @@
             { key: 'makeup', label: '单节补排', disabled: false }
           ]
         : [
-            { key: 'batch', label: '连续4周批量', disabled: false },
-            { key: 'temp', label: '仅排单周/临时课', disabled: false }
+            { key: 'temp', label: '仅排单周/临时课', disabled: false },
+            { key: 'batch', label: '连续4周批量', disabled: false }
           ];
+
+      const isBatch = state.calMode === 'batch';
+      const weekPlans = isBatch ? [0, 1, 2, 3].map((week) => computeWeekPlan(week)) : [];
+      const weekCapsules = [0, 1, 2, 3].map((week) => {
+        const meta = weekStatusMeta(week);
+        const active = state.calWeek === week;
+        const label = isBatch ? meta.label : '单周';
+        const count = isBatch ? weekPlans[week].slots.length : 0;
+        return `<button type="button" data-cal-week="${week}" class="flex h-10 flex-col items-center justify-center rounded-lg px-0.5 transition ${active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-indigo-50'}">
+          <span class="text-[11px] font-bold leading-none">第${week + 1}周</span>
+          <span class="mt-1 flex items-center gap-0.5 text-[10px] font-semibold leading-none ${active ? 'text-white/85' : meta.tone}"><span class="h-1 w-1 rounded-full ${active ? 'bg-white/80' : meta.dot}"></span>${label}${count ? ` ${count}格` : ''}</span>
+        </button>`;
+      }).join('');
 
       return `<div id="content" class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white">
         <div class="mx-auto w-full max-w-[720px] px-2.5 pb-4 pt-2">
@@ -1143,30 +1258,33 @@
               ${modeButtons.map((m) => `<button type="button" data-cal-mode="${m.key}" ${m.disabled ? 'disabled' : ''} class="h-6 rounded-md px-2 text-[11px] font-semibold transition ${state.calMode === m.key ? 'bg-white text-slate-900 shadow-sm' : m.disabled ? 'cursor-not-allowed text-slate-500 opacity-50' : 'text-slate-600 hover:text-slate-900'}">${m.label}</button>`).join('')}
             </div>
             <div class="flex items-center gap-1 text-[11px] font-medium text-slate-600">
-              ${state.holdMode === 'conflict' && !state.holdResolved ? `<button type="button" data-action="open-hold-conflict" class="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-bold text-rose-700 hover:bg-rose-100">${icon('alert-triangle', 'h-3 w-3')}调解HOLD冲突</button>` : ''}
+              ${state.holdMode === 'conflict' && !state.holdResolved ? `<button type="button" data-action="open-hold-conflict" class="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-bold text-rose-700 hover:bg-rose-100">${icon('alert-triangle', 'h-3 w-3')}续费冲突</button>` : ''}
               <button type="button" data-action="open-rules" class="rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-700 hover:bg-slate-200">规则</button>
             </div>
           </div>
 
-          <!-- 4周一轮导航条 -->
-          <div class="mt-1.5 flex items-center justify-between gap-1 rounded-xl border border-slate-200 bg-slate-50/70 px-1.5 py-1">
-            <button type="button" data-cal-cycle="-1" class="inline-flex h-6 items-center gap-0.5 rounded-md px-1.5 text-[11px] font-semibold text-slate-600 hover:bg-white">
-              ${icon('chevron-left', 'h-3.5 w-3.5')}上一轮
-            </button>
-            <div class="flex items-center gap-1">
-              ${[0, 1, 2, 3].map((w) => `<button type="button" data-cal-week="${w}" class="h-6 rounded-md px-2 text-[11px] font-bold transition ${state.calWeek === w ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-indigo-50'}">第${w + 1}周</button>`).join('')}
+          <!-- 4周一轮导航条（逐周状态胶囊） -->
+          <div class="mt-1.5 rounded-xl border border-slate-200 bg-slate-50/70 px-1.5 py-1">
+            <div class="mb-1 flex items-center justify-between gap-1">
+              <button type="button" data-cal-cycle="-1" class="inline-flex h-6 items-center gap-0.5 rounded-md px-1.5 text-[11px] font-semibold text-slate-600 hover:bg-white">
+                ${icon('chevron-left', 'h-3.5 w-3.5')}上一轮
+              </button>
+              <span class="truncate text-[10px] font-medium text-slate-500">本轮 11.09 - 12.06</span>
+              <button type="button" data-cal-cycle="1" class="inline-flex h-6 items-center gap-0.5 rounded-md px-1.5 text-[11px] font-semibold text-slate-600 hover:bg-white">
+                下一轮${icon('chevron-right', 'h-3.5 w-3.5')}
+              </button>
             </div>
-            <button type="button" data-cal-cycle="1" class="inline-flex h-6 items-center gap-0.5 rounded-md px-1.5 text-[11px] font-semibold text-slate-600 hover:bg-white">
-              下一轮${icon('chevron-right', 'h-3.5 w-3.5')}
-            </button>
+            <div class="grid grid-cols-4 gap-1">${weekCapsules}</div>
           </div>
+
+          ${renderBatchWeekHint(isBatch, isClass)}
 
           ${state.holdMode === 'conflict' && !state.holdResolved ? `<div class="mt-1.5 box-border w-full rounded-xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 px-2.5 py-2">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-[12px] font-bold text-rose-800">续费时段冲突 · 已启用四级降级</p>
-              <button type="button" data-action="open-hold-conflict" class="shrink-0 rounded-lg bg-rose-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-rose-700">查看调解方案</button>
+              <p class="text-[12px] font-bold text-rose-800">续费预占冲突 · 已跳过冲突周</p>
+              <button type="button" data-action="open-hold-conflict" class="shrink-0 rounded-lg bg-rose-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-rose-700">查看方案</button>
             </div>
-            <p class="mt-0.5 text-[11px] font-medium text-rose-700">原周一 19:00 第3周休假已全周保留空闲，系统已锁候补周二 19:30。</p>
+            <p class="mt-0.5 text-[11px] font-medium text-rose-700">原周一 19:00 第3周老师休假冲突：系统跳过第3周，仅预占第1/2/4周 HOLD，余1节留存待排池并提醒班长补约。</p>
           </div>` : ''}
 
           <!-- 7色周度课表冻结网格 -->
@@ -1202,7 +1320,7 @@
           <span class="flex min-w-0 items-center gap-1.5">
             <span class="text-[14px]">${student.emoji}</span>
             <span class="truncate text-[13px] font-bold text-slate-900">${esc(student.nickname)}</span>
-            <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">${state.calMode === 'temp' ? `临时课余 ${student.tempCredits} 节` : `固定位余 ${student.credits} 节`}</span>
+            <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">待排余 ${student.credits} 节</span>
           </span>
           <span class="shrink-0 text-[12px] font-semibold text-indigo-600">切换</span>
         </button>`;
@@ -1227,7 +1345,15 @@
 
     function renderCalendarRows(teacher, absWeek, isClass) {
       const student = contextStudent();
+      const plan = currentWeekPlan();
+      const selectedMap = new Map(plan.slots.map((slot) => [slotKey(slot.day, slot.row), slot]));
+      const conflictMap = new Map(plan.conflicts.map((item) => [slotKey(item.day, item.row), item.reason]));
+      const isTemplateWeek = state.calMode === 'batch' && state.calWeek === 0;
+      const isFollowWeek = state.calMode === 'batch' && state.calWeek > 0 && !state.weekAdjusted[state.calWeek];
+      const isAdjustedWeek = state.calMode === 'batch' && state.calWeek > 0 && state.weekAdjusted[state.calWeek];
+      const selectedLabel = isTemplateWeek ? '模板' : isFollowWeek ? '跟随' : isAdjustedWeek ? '已调' : '已选';
       const rowsHtml = [];
+
       for (let row = 0; row < CAL_ROWS; row += 1) {
         const timeStr = calRowTime(row);
         const isHour = row % 2 === 0;
@@ -1235,13 +1361,17 @@
         for (let day = 0; day < 7; day += 1) {
           const cell = getBaseCalCell(teacher.key, absWeek, day, row);
           const key = slotKey(day, row);
-          const isSelected = state.selectedSlots.some((s) => s.day === day && s.row === row);
-          const isSecondOfSelectedGroup = isClass && state.selectedSlots.some((s) => s.day === day && s.row + 1 === row);
+          const isSelected = selectedMap.has(key);
+          const isSecondOfSelectedGroup = isClass && plan.slots.some((s) => s.day === day && s.row + 1 === row);
+          const conflictReason = conflictMap.get(key);
           const justLocked = state.justLockedKeys.includes(`${absWeek}-${day}-${row}`);
           const pulseCls = justLocked ? 'ring-2 ring-emerald-500 animate-pulse' : '';
+          const conflictDot = conflictReason
+            ? `<span class="absolute right-0.5 top-0.5 z-10 h-1.5 w-1.5 rounded-full bg-rose-500 ring-1 ring-white" title="模板时段本周冲突：${esc(conflictReason)}"></span>`
+            : '';
 
           if (cell.isDoubleCont) {
-            cellsHtml.push(`<div class="h-[28px] border-l border-slate-100 bg-teal-50/40"></div>`);
+            cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 bg-teal-50/40">${conflictDot}</div>`);
             continue;
           }
           if (cell.isDoubleStart) {
@@ -1249,13 +1379,13 @@
               <div class="absolute inset-x-0.5 top-0.5 z-10 flex h-[54px] flex-col justify-between rounded-md border-2 border-teal-400 bg-teal-50 p-1 text-[11px] font-bold leading-tight text-teal-950 ${pulseCls}">
                 <span class="truncate">[G] ${esc(cell.label)}</span>
                 <span class="text-[10px] font-semibold text-teal-800">${cell.enrolled || 3}/${cell.capacity || 4}人</span>
-              </div>
+              </div>${conflictDot}
             </div>`);
             continue;
           }
 
           if (isSecondOfSelectedGroup) {
-            cellsHtml.push(`<div class="h-[28px] border-l border-slate-100 bg-indigo-50/40"></div>`);
+            cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 bg-indigo-50/40">${conflictDot}</div>`);
             continue;
           }
 
@@ -1264,9 +1394,10 @@
 
           if (isSelected) {
             const boxH = isClass ? 'h-[54px] z-10' : 'h-[26px]';
+            const label = isClass ? '双格' : selectedLabel;
             cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 p-0.5">
               <button type="button" data-cal-cell="${day}-${row}" class="${isClass ? 'absolute inset-x-0.5 top-0.5' : 'w-full'} flex ${boxH} items-center justify-center rounded-md border-2 border-indigo-600 bg-indigo-600 text-[11px] font-bold text-white shadow-sm">
-                ☑ ${isClass ? '双格' : '已选'}
+                ☑ ${label}
               </button>
             </div>`);
             continue;
@@ -1274,38 +1405,29 @@
 
           if (cell.type === 'GREEN' && !tempBlocked) {
             const isPref = student && student.preferences && student.preferences.includes(key);
-            if (state.calMode === 'batch') {
-              const check = get4WeekCheck(teacher.key, day, row, isClass);
-              if (check.pass) {
-                cellsHtml.push(`<div class="h-[28px] border-l border-slate-100 p-0.5">
-                  <button type="button" data-cal-cell="${day}-${row}" class="flex h-full w-full items-center justify-center gap-0.5 rounded-md border border-emerald-200 bg-emerald-50/80 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 ${pulseCls}">
-                    ${isClass ? '🟩荐' : (isPref ? '★约' : '约')}
-                  </button>
-                </div>`);
-              } else {
-                cellsHtml.push(`<div class="h-[28px] border-l border-slate-100 p-0.5">
-                  <button type="button" data-cal-cell="${day}-${row}" class="flex h-full w-full items-center justify-center rounded-md border border-amber-300 bg-amber-50/70 text-[11px] font-bold text-amber-800 hover:bg-amber-100" title="第${check.conflictWeeks.map((c) => c.week).join(',')}周冲突">
-                    ⚠️${4 - check.conflictWeeks.length}/4
-                  </button>
-                </div>`);
-              }
+            const classBlocked = state.calMode === 'batch' && isClass && !cellSelectable(teacher.key, absWeek, day, row, true).ok;
+            if (classBlocked) {
+              cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 p-0.5">
+                <div class="flex h-[26px] w-full items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-[10px] font-medium text-slate-400">双格缺</div>${conflictDot}
+              </div>`);
             } else {
-              // temp or makeup
-              cellsHtml.push(`<div class="h-[28px] border-l border-slate-100 p-0.5">
+              const label = isClass ? '双格' : (state.calMode === 'batch' ? (isPref ? '★约' : '约') : '约');
+              cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 p-0.5">
                 <button type="button" data-cal-cell="${day}-${row}" class="flex h-full w-full items-center justify-center rounded-md border border-emerald-200 bg-emerald-50/80 text-[11px] font-bold text-emerald-700 hover:bg-emerald-100 ${pulseCls}">
-                  ${isClass ? '双格' : '约'}
-                </button>
+                  ${label}
+                </button>${conflictDot}
               </div>`);
             }
           } else if (tempBlocked) {
-            cellsHtml.push(`<div class="h-[28px] border-l border-slate-100 p-0.5">
-              <button type="button" data-cal-blocked="temp" class="flex h-full w-full items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-[11px] font-medium text-slate-500 opacity-60">限</button>
+            cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 p-0.5">
+              <button type="button" data-cal-blocked="temp" class="flex h-full w-full items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-[11px] font-medium text-slate-500 opacity-60">限</button>${conflictDot}
             </div>`);
           } else if (cell.type === 'ORANGE_HOLD') {
-            cellsHtml.push(`<div class="h-[28px] border-l border-slate-100 p-0.5">
-              <button type="button" data-cal-cell="${day}-${row}" class="flex h-full w-full items-center justify-center rounded-md border border-dashed border-amber-400 bg-amber-50/70 text-[11px] font-bold text-amber-800 ${pulseCls}">
+            const holdClickable = state.calMode === 'batch' && !isClass;
+            cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 p-0.5">
+              <button type="button" ${holdClickable ? `data-cal-cell="${day}-${row}"` : 'disabled'} class="flex h-full w-full items-center justify-center rounded-md border border-dashed border-amber-400 bg-amber-50/70 text-[11px] font-bold text-amber-800 ${holdClickable ? pulseCls : 'opacity-70'}">
                 [预]${esc(cell.label.slice(0, 2))}
-              </button>
+              </button>${conflictDot}
             </div>`);
           } else {
             const styleMap = {
@@ -1317,8 +1439,8 @@
               GRAY: 'border-slate-200 bg-slate-100 text-slate-600'
             };
             const clsStr = styleMap[cell.type] || styleMap.GRAY;
-            cellsHtml.push(`<div class="h-[28px] border-l border-slate-100 p-0.5">
-              <div class="flex h-full w-full items-center justify-center truncate rounded-md border ${clsStr} text-[11px] font-semibold ${pulseCls}">${esc(cell.label)}</div>
+            cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 p-0.5">
+              <div class="flex h-full w-full items-center justify-center truncate rounded-md border ${clsStr} text-[11px] font-semibold ${pulseCls}">${esc(cell.label)}</div>${conflictDot}
             </div>`);
           }
         }
@@ -1331,11 +1453,23 @@
     }
 
     function renderCalendarFooter() {
-      const student = contextStudent();
       const cls = contextClass();
       const isClass = state.contextType === 'class';
-      const selected = state.selectedSlots;
-      const teacher = currentCalTeacher();
+      const isBatch = state.calMode === 'batch';
+      const weekPlans = isBatch ? [0, 1, 2, 3].map((week) => computeWeekPlan(week)) : [];
+      const actualTotal = isBatch
+        ? weekPlans.reduce((sum, plan) => sum + plan.slots.length, 0)
+        : state.selectedSlots.length;
+
+      // HOLD 预占转正的格子不重复扣减
+      let holdConverted = 0;
+      if (isBatch && !isClass && state.holdMode === 'normal' && !state.releasedHold) {
+        holdConverted = weekPlans.reduce((sum, plan) => sum + plan.slots.filter((s) => s.day === 0 && s.row === 22).length, 0);
+      }
+      const billable = Math.max(0, actualTotal - holdConverted);
+      const credits = availableCredits();
+      const potential = isBatch ? state.templateSlots.length * 4 : 0;
+      const remaining = isBatch ? Math.max(0, potential - actualTotal) : 0;
 
       // 判断阻断原因
       let blockedReason = '';
@@ -1347,56 +1481,64 @@
       } else if (isClass && !cls.teacher) {
         blockedReason = '请先在小班管理中委任授课老师后再排课';
         isWarning = true;
-      } else if (isClass && state.calMode === 'batch' && cls.credits < 4) {
-        blockedReason = `小班课次不足 4 节 (仅剩 ${cls.credits} 节)`;
+      } else if (isBatch && state.templateSlots.length === 0) {
+        blockedReason = '请在第 1 周模板周点选时段';
+      } else if (isBatch && actualTotal === 0) {
+        blockedReason = '没有可落单的已选时段';
+      } else if (isBatch && billable > credits) {
+        blockedReason = `该价位待排课次不足（需 ${billable} 节，仅剩 ${credits} 节）`;
         isWarning = true;
-      } else if (!isClass && state.calMode === 'batch' && student.credits < 4) {
-        blockedReason = `固定位课次不足 4 节 (仅剩 ${student.credits} 节)`;
-        isWarning = true;
-      } else if (selected.length === 0) {
+      } else if (state.calMode === 'makeup' && state.selectedSlots.length === 0) {
         blockedReason = isClass ? '请在课表中点选连续双格' : '请在课表中点选空闲绿格';
+      } else if (state.calMode === 'temp') {
+        blockedReason = '点选空闲绿格选择连约节数后即时预约';
       }
 
-      // 计算扣减与 HOLD 智能平移提示
-      let costText = '';
       let holdHint = '';
-      let totalCost = 0;
-      if (selected.length > 0 && state.contextType !== 'none') {
-        if (state.calMode === 'makeup') {
-          totalCost = selected.length;
-          costText = `单节补排 ${selected.length} 节 · 剩余 ${cls.credits} ➔ ${Math.max(0, cls.credits - totalCost)} 节`;
-        } else if (state.calMode === 'batch') {
-          const holdSelected = !isClass && state.holdMode === 'normal' && !state.releasedHold && selected.some((s) => s.day === 0 && s.row === 22);
-          const newCount = holdSelected ? selected.length - 1 : selected.length;
-          totalCost = newCount * 4;
-          const curCredits = isClass ? cls.credits : student.credits;
-          const unitLabel = isClass ? '小班课次' : '固定位';
-          if (state.holdMode === 'normal' && !state.releasedHold) {
-            if (holdSelected) {
-              holdHint = `预占转正 1 个 + 新排 ${newCount} 个（原预占不重复扣减）`;
-            } else {
-              holdHint = '原预占位 周一 19:00 将在确认后自动释放';
-            }
-          }
-          costText = `共需 ${totalCost} 节${unitLabel} · 剩余 ${curCredits} ➔ ${Math.max(0, curCredits - totalCost)} 节`;
-        }
+      if (isBatch && !isClass && state.holdMode === 'normal' && !state.releasedHold) {
+        holdHint = holdConverted > 0
+          ? `原预占位转正 ${holdConverted} 格，不重复扣减`
+          : '原预占位 周一 19:00 将在确认后自动释放';
       }
 
-      const chips = selected.map((s) => `<button type="button" data-remove-slot="${s.day}-${s.row}" class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100">
-        ${DAY_LABELS[s.day]} ${calRowTime(s.row)}${isClass ? '~' + calRowTime(s.row + 2) : ''} ×
-      </button>`).join('');
+      const weekCards = isBatch ? weekPlans.map((plan, week) => {
+        const meta = weekStatusMeta(week);
+        return `<div data-week-card="${week}" class="flex items-center justify-between gap-1 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1">
+          <span class="flex min-w-0 items-center gap-1 text-[10px] font-bold text-slate-700"><span class="h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot}"></span>第${week + 1}周</span>
+          <span class="shrink-0 text-[10px] font-semibold ${meta.tone}">${meta.label} · ${plan.slots.length}格${plan.conflicts.length ? ` · ${plan.conflicts.length}待补` : ''}</span>
+        </div>`;
+      }).join('') : '';
 
-      const canSubmit = !blockedReason && selected.length > 0;
+      const chips = !isBatch && state.selectedSlots.length
+        ? state.selectedSlots.map((s) => `<button type="button" data-remove-slot="${s.day}-${s.row}" class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-100">
+          ${DAY_LABELS[s.day]} ${calRowTime(s.row)}${isClass ? '~' + calRowTime(s.row + 2) : ''} ×
+        </button>`).join('')
+        : '';
+
+      const totalCost = state.calMode === 'makeup' ? state.selectedSlots.length : billable;
+      const canSubmit = !blockedReason && (isBatch ? actualTotal > 0 : state.selectedSlots.length > 0);
       const btnLabel = canSubmit
         ? (state.calMode === 'makeup'
             ? `确认单节补排 (扣 ${totalCost} 节)`
-            : `确认批量锁定 4 周 (共扣 ${totalCost} 节)`)
+            : isBatch
+              ? `确认批量锁定可用周 (共扣 ${totalCost} 节)`
+              : '临时课即时预约')
         : blockedReason;
 
+      const summaryText = isBatch
+        ? `实扣 ${totalCost} 节 · ${remaining > 0 ? `${remaining} 节留存待排池` : '无剩余'}`
+        : '';
+      const makeupCost = state.calMode === 'makeup' && state.selectedSlots.length > 0
+        ? `单节补排 ${state.selectedSlots.length} 节 · 剩余 ${cls.credits} ➔ ${Math.max(0, cls.credits - state.selectedSlots.length)} 节`
+        : '';
+
       return `<footer class="shrink-0 border-t border-slate-200 bg-white px-3 py-2.5 shadow-lg">
+        ${isBatch ? `<div class="mb-1.5 grid grid-cols-2 gap-1">${weekCards}</div>` : ''}
         ${chips ? `<div class="mb-1.5 flex flex-wrap items-center gap-1">${chips}</div>` : ''}
+        ${isBatch ? `<p class="mb-1 text-[11px] font-semibold text-slate-700">${summaryText}</p>` : ''}
+        ${makeupCost ? `<p class="mb-1.5 text-[11px] font-semibold text-slate-600">${makeupCost}</p>` : ''}
         ${holdHint ? `<p class="mb-1 text-[11px] font-semibold text-amber-800">${holdHint}</p>` : ''}
-        ${isWarning ? `<p class="mb-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-700">${blockedReason}</p>` : (costText ? `<p class="mb-1.5 text-[11px] font-semibold text-slate-600">${costText}</p>` : '')}
+        ${isWarning ? `<p class="mb-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-700">${blockedReason}</p>` : ''}
         <button type="button" data-action="confirm-cal-schedule" ${canSubmit ? '' : 'disabled'} class="h-11 w-full rounded-xl text-[14px] font-bold transition ${canSubmit ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.99]' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">
           ${esc(btnLabel)}
         </button>
@@ -1406,16 +1548,16 @@
     function renderHoldConflictOverlay() {
       return `<div class="space-y-2 pt-2">
         <div class="box-border w-full rounded-xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 p-2.5">
-          <p class="text-[12px] font-bold text-rose-800">🚨 置顶紧急调解工单 · 学员 Alice</p>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">原固定位 [周一 19:00] 因第 3 周老师休假无法继承。已为您临时锁定候补时段 [周二 19:30]，请确认！</p>
+          <p class="text-[12px] font-bold text-rose-800">续费预占冲突 · 跳过第 3 周冲突</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">原固定位 [周一 19:00] 第 3 周老师休假冲突。系统已跳过冲突周，仅对第 1/2/4 周锁定续费预占（HOLD），余 1 节留存待排池。</p>
         </div>
         <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5 text-[12px] text-slate-700 space-y-1">
-          <p><span class="font-bold text-slate-900">1. 全有或全无：</span>原周一 19:00 未来 4 周 100% 保持空闲，绝不残缺排 3 弃 1。</p>
-          <p><span class="font-bold text-slate-900">2. 智能匹配候补：</span>同师就近锁定 24h 候补槽位 [周二 19:30]。</p>
-          <p><span class="font-bold text-slate-900">3. 家长端提示：</span>续费单已标明变更原因与候补时段，超时 24h 自动释放。</p>
+          <p><span class="font-bold text-slate-900">1. 跳过冲突周：</span>仅对可用周（第 1/2/4 周）预占 HOLD，第 3 周不锁位、不阻断。</p>
+          <p><span class="font-bold text-slate-900">2. 余节留存：</span>续费单仍按原 4 节生成并标注「跳过第 3 周，余 1 节待补约」；确认收款后余 1 节进入待排池。</p>
+          <p><span class="font-bold text-slate-900">3. 通知班长：</span>已发送提醒邮件与端内待办，请与家长沟通确认收款后人工补约余下 1 节。</p>
         </div>
-        <button type="button" data-action="accept-candidate-hold" class="h-11 w-full rounded-xl bg-indigo-600 text-[14px] font-bold text-white hover:bg-indigo-700">一键确认候补时段 (周二 19:30 · 锁定 4 周)</button>
-        <button type="button" data-action="release-candidate-hold" class="h-10 w-full rounded-xl border border-slate-300 bg-white text-[13px] font-semibold text-slate-700 hover:bg-slate-50">释放候补并在课表自选</button>
+        <button type="button" data-action="accept-candidate-hold" class="h-11 w-full rounded-xl bg-indigo-600 text-[14px] font-bold text-white hover:bg-indigo-700">确认收款 · 锁定可用周 HOLD (3 周)</button>
+        <button type="button" data-action="release-candidate-hold" class="h-10 w-full rounded-xl border border-slate-300 bg-white text-[13px] font-semibold text-slate-700 hover:bg-slate-50">稍后处理 · 查看待排池</button>
       </div>`;
     }
 
@@ -1425,7 +1567,7 @@
       const teacher = currentCalTeacher();
       const absWeek = state.cycleOffset * 4 + state.calWeek;
       const student = contextStudent();
-      const availCredits = student ? student.tempCredits : 4;
+      const availCredits = student ? student.credits : 0;
       const options = [1, 2, 3, 4].map((count) => {
         let consecutiveOk = true;
         for (let i = 0; i < count; i += 1) {
@@ -1440,7 +1582,7 @@
           : !consecutiveOk
             ? '后续时段已被占用'
             : !enough
-              ? '临时课余额不足'
+              ? '待排课次不足'
               : `${count * 30} 分钟 · 扣 ${count} 节`;
         return `<button type="button" data-confirm-temp="${count}" ${ok ? '' : 'disabled'} class="flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition ${ok ? 'border-slate-300 bg-slate-50/70 hover:border-indigo-300 hover:bg-indigo-50/60' : 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-60'}">
           <span class="text-[14px] font-bold text-slate-900">${count === 1 ? '单约 1 节' : `连约 ${count} 节`} (${calRowTime(slot.row)}~${calRowTime(slot.row + count)})</span>
@@ -1466,7 +1608,7 @@
           <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-indigo-100 bg-white text-[16px]">${student.emoji}</span>
           <span class="min-w-0 flex-1">
             <span class="block truncate text-[14px] font-bold text-slate-900">${esc(student.nickname)}</span>
-            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(priceLabel(student.price))} · 固定位可用 ${student.credits} 节</span>
+            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(priceLabel(student.price))} · 待排余 ${student.credits} 节</span>
           </span>
           ${active ? `<span class="shrink-0 text-[12px] font-bold text-indigo-600">已选</span>` : ''}
         </button>`;
@@ -1501,28 +1643,28 @@
             <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-indigo-600">${icon('calendar-check', 'h-3.5 w-3.5')}</span>
             <p class="text-[14px] font-bold text-slate-900">固定位与整班排课</p>
           </div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">以 4 周为一轮，每个每周时段是独立原子单元；未来 4 周全通才可落单，避免残缺预占。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">以第 1 周为模板周，选格后自动复制到第 2~4 周；冲突周留空标「冲突待补」，不阻断整单，未排节数留存待排池。</p>
         </div>
         <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
           <div class="flex items-center gap-1.5">
             <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-amber-600">${icon('refresh-cw', 'h-3.5 w-3.5')}</span>
-            <p class="text-[14px] font-bold text-slate-900">续费预占可平移</p>
+            <p class="text-[14px] font-bold text-slate-900">续费预占可跳过冲突周</p>
           </div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">家长暂不续费将立即释放未来 4 周预占；申请调整期间保底锁位，改期或换师后旧占位释放、新占位锁定。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">自动续费遇冲突周时跳过该周，仅对可用周锁定 HOLD；余节留存待排池，并发邮件与待办提醒班长人工补约。</p>
         </div>
         <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
           <div class="flex items-center gap-1.5">
             <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-teal-700">${icon('layout-grid', 'h-3.5 w-3.5')}</span>
             <p class="text-[14px] font-bold text-slate-900">小班连续双格</p>
           </div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">老师课表按连续双格选取并校验 4 周连贯度；未委任主讲老师时先完成委任。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">按连续双格选取；模板周选好后默认复制后 3 周，可逐周增删并恢复跟随。</p>
         </div>
         <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
           <div class="flex items-center gap-1.5">
             <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700">${icon('mouse-pointer-click', 'h-3.5 w-3.5')}</span>
             <p class="text-[14px] font-bold text-slate-900">本页只负责挑老师</p>
           </div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">点“选取”进入老师当周课表后，再选具体时段、查看 4 周校验并提交。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">点“选取”进入老师当周课表后，再选具体时段并提交（1v1 默认单周，小班可选 4 周批量）。</p>
         </div>
       </div>
       <button type="button" data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-bold text-white transition hover:bg-indigo-700">知道了</button>`;
@@ -1544,10 +1686,11 @@
         { value: 'class-ket', label: '小班 KET' },
         { value: 'class-unassigned', label: '小班待委任' },
         { value: 'empty', label: '仅查空档' },
-        { value: 'step2-david', label: 'Step2 课表复选' },
+        { value: 'step2-david', label: 'Step2 默认单周' },
+        { value: 'step2-batch', label: '批量 模板4周' },
         { value: 'step2-charlie', label: '资产不足 (2节)' },
         { value: 'step2-hold', label: 'HOLD 智能平移' },
-        { value: 'step2-hold-conflict', label: 'HOLD 冲突调解' },
+        { value: 'step2-hold-conflict', label: 'HOLD 冲突跳过' },
         { value: 'step2-temp', label: '临时课 (1-7天)' },
         { value: 'step2-class-batch', label: '小班整班4周' },
         { value: 'step2-class-makeup', label: '小班单节补排' },
@@ -1615,21 +1758,19 @@
       state.overlay = null;
       state.shown = 5;
       state.scenario = '';
-      state.selectedSlots = [];
       if (type === 'student' && STUDENTS[key]) {
         state.contextType = 'student';
         state.student = key;
         state.price = STUDENTS[key].price;
-        if (state.calMode === 'makeup') state.calMode = 'batch';
       } else if (type === 'class' && CLASSES[key]) {
         state.contextType = 'class';
         state.classKey = key;
         state.price = CLASSES[key].price;
-        state.calMode = CLASSES[key].credits < 4 ? 'makeup' : 'batch';
       } else {
         state.contextType = 'none';
-        if (state.calMode === 'makeup') state.calMode = 'batch';
       }
+      state.calMode = defaultCalMode();
+      resetWeekPlan();
       render(false);
       if (type === 'class' && CLASSES[key] && !CLASSES[key].teacher) {
         flashToast('该小班尚未委任主讲老师，排课前请先委任');
@@ -1682,7 +1823,7 @@
       state.highlightDay = null;
       state.highlightHour = null;
       state.selectedTeacher = 'david';
-      state.calMode = 'batch';
+      state.calMode = 'temp';
       state.holdMode = 'none';
       resetCalRuntime();
       state.toast = '';
@@ -1704,7 +1845,15 @@
       const teacher = currentCalTeacher();
       const isClass = state.contextType === 'class';
       const absWeek = state.cycleOffset * 4 + state.calWeek;
-      const cell = getBaseCalCell(teacher.key, absWeek, day, row);
+
+      if (state.contextType === 'none') {
+        flashToast('请先选择学员或小班');
+        return;
+      }
+      if (isClass && contextClass() && !contextClass().teacher) {
+        flashToast('请先在小班管理中委任授课老师后再排课');
+        return;
+      }
 
       if (state.calMode === 'temp') {
         if (isClass) {
@@ -1717,14 +1866,13 @@
         return;
       }
 
-      const idx = state.selectedSlots.findIndex((s) => s.day === day && s.row === row);
-      if (idx >= 0) {
-        state.selectedSlots.splice(idx, 1);
-        render(true);
-        return;
-      }
-
       if (state.calMode === 'makeup') {
+        const idx = state.selectedSlots.findIndex((s) => s.day === day && s.row === row);
+        if (idx >= 0) {
+          state.selectedSlots.splice(idx, 1);
+          render(true);
+          return;
+        }
         if (row + 1 >= CAL_ROWS || getBaseCalCell(teacher.key, absWeek, day, row + 1).type !== 'GREEN') {
           flashToast('小班需连续双格 (56px)，下格已被占用');
           return;
@@ -1739,37 +1887,60 @@
         return;
       }
 
-      // 连续 4 周批量模式
-      const check = get4WeekCheck(teacher.key, day, row, isClass);
-      if (!check.pass) {
-        const msg = check.conflictWeeks.map((c) => `第${c.week}周(${c.reason})`).join('、');
-        flashToast(`跨周冲突阻断：${msg}`);
+      // 连续 4 周批量：第 1 周为模板周，选格后自动穿透第 2~4 周
+      if (state.calWeek === 0) {
+        const idx = state.templateSlots.findIndex((s) => s.day === day && s.row === row);
+        if (idx >= 0) {
+          state.templateSlots.splice(idx, 1);
+          render(true);
+          return;
+        }
+        const selectable = cellSelectable(teacher.key, absWeek, day, row, isClass);
+        if (!selectable.ok) {
+          flashToast(`该时段不可选：${selectable.reason}`);
+          return;
+        }
+        const need = (state.templateSlots.length + 1) * 4;
+        if (need > availableCredits()) {
+          flashToast(`该价位待排课次不足（需 ${need} 节，仅剩 ${availableCredits()} 节）`);
+          return;
+        }
+        state.templateSlots.push({ day, row });
+        render(true);
         return;
       }
 
-      // 判断是否达到上限（HOLD 本身转正不占新增课次名额）
-      const isHoldSelf = !isClass && cell.type === 'ORANGE_HOLD' && cell.isHold;
-      const maxNew = maxSelectableSlots();
-      const currentNewCount = state.selectedSlots.filter((s) => {
-        if (isClass) return true;
-        return !(state.holdMode === 'normal' && !state.releasedHold && s.day === 0 && s.row === 22);
-      }).length;
-
-      if (!isHoldSelf && currentNewCount >= maxNew) {
-        const label = isClass ? '小班课次' : '固定位课次';
-        flashToast(`${label}不足，最多选 ${maxNew} 个时段`);
+      // 第 2~4 周：逐周手工调整，只影响当前周
+      if (!state.weekAdjusted[state.calWeek]) {
+        const followPlan = computeWeekPlan(state.calWeek);
+        state.weekSlots[state.calWeek] = followPlan.slots.map((s) => ({ day: s.day, row: s.row }));
+        state.weekAdjusted[state.calWeek] = true;
+      }
+      const list = state.weekSlots[state.calWeek];
+      const idx = list.findIndex((s) => s.day === day && s.row === row);
+      if (idx >= 0) {
+        list.splice(idx, 1);
+        render(true);
         return;
       }
-
-      state.selectedSlots.push({ day, row });
+      const selectable = cellSelectable(teacher.key, absWeek, day, row, isClass);
+      if (!selectable.ok) {
+        flashToast(`该时段不可选：${selectable.reason}`);
+        return;
+      }
+      const need = planActualTotal() + 1;
+      if (need > availableCredits()) {
+        flashToast(`该价位待排课次不足（需 ${need} 节，仅剩 ${availableCredits()} 节）`);
+        return;
+      }
+      list.push({ day, row });
       render(true);
     }
 
     function confirmCalSchedule() {
-      const teacher = currentCalTeacher();
-      const isClass = state.contextType === 'class';
       const student = contextStudent();
       const cls = contextClass();
+      const isClass = state.contextType === 'class';
       const baseWeek = state.cycleOffset * 4;
       const pulseKeys = [];
 
@@ -1792,45 +1963,61 @@
         return;
       }
 
-      // 连续 4 周批量锁定
-      let newCount = 0;
-      state.selectedSlots.forEach((s) => {
-        const isHoldSelf = !isClass && state.holdMode === 'normal' && !state.releasedHold && s.day === 0 && s.row === 22;
-        if (!isHoldSelf) newCount += 1;
-        for (let w = 0; w < 4; w += 1) {
-          const aw = baseWeek + w;
+      // 连续 4 周批量：单事务锁定各周实际选中格（冲突周留空，不阻断整单）
+      const weekPlans = [0, 1, 2, 3].map((week) => computeWeekPlan(week));
+      const actualTotal = weekPlans.reduce((sum, plan) => sum + plan.slots.length, 0);
+      if (actualTotal === 0) return;
+
+      let holdConverted = 0;
+      if (!isClass && state.holdMode === 'normal' && !state.releasedHold) {
+        holdConverted = weekPlans.reduce((sum, plan) => sum + plan.slots.filter((s) => s.day === 0 && s.row === 22).length, 0);
+      }
+      const billable = Math.max(0, actualTotal - holdConverted);
+      if (billable > availableCredits()) {
+        flashToast(`该价位待排课次不足（需 ${billable} 节，仅剩 ${availableCredits()} 节）`);
+        return;
+      }
+
+      weekPlans.forEach((plan) => {
+        const absWeek = baseWeek + plan.week;
+        plan.slots.forEach((s) => {
           if (isClass) {
-            state.lockedOverrides[`${aw}-${s.day}-${s.row}`] = {
+            state.lockedOverrides[`${absWeek}-${s.day}-${s.row}`] = {
               type: 'TEAL', label: cls.code, isDoubleStart: true, enrolled: cls.enrolled, capacity: cls.capacity
             };
-            state.lockedOverrides[`${aw}-${s.day}-${s.row + 1}`] = {
+            state.lockedOverrides[`${absWeek}-${s.day}-${s.row + 1}`] = {
               type: 'TEAL', label: cls.code, isDoubleCont: true
             };
           } else {
-            state.lockedOverrides[`${aw}-${s.day}-${s.row}`] = {
+            state.lockedOverrides[`${absWeek}-${s.day}-${s.row}`] = {
               type: 'ORANGE', label: student.short
             };
           }
-          pulseKeys.push(`${aw}-${s.day}-${s.row}`);
-        }
+          pulseKeys.push(`${absWeek}-${s.day}-${s.row}`);
+        });
       });
 
-      const holdSelected = !isClass && state.holdMode === 'normal' && !state.releasedHold && state.selectedSlots.some((s) => s.day === 0 && s.row === 22);
-      if (!isClass && state.holdMode === 'normal' && !state.releasedHold && !holdSelected) {
-        state.releasedHold = true;
+      if (!isClass && state.holdMode === 'normal' && !state.releasedHold) {
+        const holdInPlan = weekPlans.some((plan) => plan.slots.some((s) => s.day === 0 && s.row === 22));
+        if (holdInPlan) state.holdMode = 'none';
+        else state.releasedHold = true;
       }
-      if (holdSelected) state.holdMode = 'none';
 
-      const cost = newCount * 4;
       if (isClass) {
-        cls.credits = Math.max(0, cls.credits - cost);
+        cls.credits = Math.max(0, cls.credits - billable);
       } else {
-        student.credits = Math.max(0, student.credits - cost);
+        student.credits = Math.max(0, student.credits - billable);
       }
-      const totalSlots = state.selectedSlots.length;
+
+      const weekCount = weekPlans.filter((plan) => plan.slots.length > 0).length;
+      const remaining = Math.max(0, state.templateSlots.length * 4 - actualTotal);
+      state.templateSlots = [];
+      state.weekAdjusted = { 1: false, 2: false, 3: false };
+      state.weekSlots = { 1: [], 2: [], 3: [] };
       state.selectedSlots = [];
+      state.calWeek = 0;
       triggerPulse(pulseKeys);
-      flashToast(`已批量锁定 4 周 · ${totalSlots} 个时段 · 扣减 ${cost} 节`);
+      flashToast(`已锁定 ${weekCount} 周 · ${actualTotal} 格 · 实扣 ${billable} 节${holdConverted ? `（预占转正 ${holdConverted} 格）` : ''}${remaining ? ` · ${remaining} 节留存待排池` : ''}`);
     }
 
     document.addEventListener('click', (event) => {
@@ -1891,9 +2078,9 @@
       const calModeBtn = event.target.closest('[data-cal-mode]');
       if (calModeBtn) {
         const mode = calModeBtn.dataset.calMode;
-        if (['batch', 'temp', 'makeup'].includes(mode)) {
+        if (['batch', 'temp', 'makeup'].includes(mode) && state.calMode !== mode) {
           state.calMode = mode;
-          state.selectedSlots = [];
+          resetWeekPlan();
           render(true);
         }
         return;
@@ -1947,7 +2134,7 @@
             };
             keys.push(`${absWeek}-${slot.day}-${slot.row + i}`);
           }
-          student.tempCredits = Math.max(0, student.tempCredits - count);
+          student.credits = Math.max(0, student.credits - count);
           state.overlay = null;
           state.tempBookingSlot = null;
           triggerPulse(keys);
@@ -1963,10 +2150,8 @@
       if (action === 'select-teacher') {
         state.selectedTeacher = trigger.dataset.teacher || 'david';
         state.view = 'calendar';
-        state.selectedSlots = [];
-        if (state.contextType === 'class' && contextClass() && contextClass().credits < 4) {
-          state.calMode = 'makeup';
-        }
+        state.calMode = defaultCalMode();
+        resetWeekPlan();
         render(false);
       } else if (action === 'back-to-board') {
         state.view = 'board';
@@ -1974,6 +2159,14 @@
         render(false);
       } else if (action === 'confirm-cal-schedule') {
         confirmCalSchedule();
+      } else if (action === 'restore-week') {
+        const week = Number(trigger.dataset.week);
+        if (week >= 1 && week <= 3) {
+          state.weekAdjusted[week] = false;
+          state.weekSlots[week] = [];
+          render(true);
+          flashToast(`第${week + 1}周已恢复跟随第 1 周模板`);
+        }
       } else if (action === 'open-hold-conflict') {
         state.overlay = 'hold-conflict';
         render(true);
@@ -1981,19 +2174,24 @@
         const baseWeek = state.cycleOffset * 4;
         const keys = [];
         const stu = contextStudent();
+        let held = 0;
         for (let w = 0; w < 4; w += 1) {
-          state.lockedOverrides[`${baseWeek + w}-1-23`] = { type: 'ORANGE', label: stu ? stu.short : 'Alic' };
-          keys.push(`${baseWeek + w}-1-23`);
+          const absWeek = baseWeek + w;
+          // 跳过第 3 周冲突，仅对可用周（第 1/2/4 周）预占 HOLD
+          if (w === 2) continue;
+          state.lockedOverrides[`${absWeek}-0-22`] = { type: 'ORANGE_HOLD', label: stu ? stu.short : 'Alic', isHold: true };
+          keys.push(`${absWeek}-0-22`);
+          held += 1;
         }
         state.holdResolved = true;
         state.overlay = null;
         triggerPulse(keys);
-        flashToast('已确认候补时段 周二 19:30 并锁定未来 4 周');
+        flashToast(`已跳过第 3 周冲突 · 预占 ${held} 周 HOLD · 余 1 节留存待排池，已提醒班长补约`);
       } else if (action === 'release-candidate-hold') {
         state.holdResolved = true;
         state.overlay = null;
         render(true);
-        flashToast('已释放候补槽位，请在课表自选 4 周全通时段');
+        flashToast('已释放候补，请在课表按可用周自选时段');
       } else if (action === 'open-context') {
         state.overlay = 'context';
         render(true);
