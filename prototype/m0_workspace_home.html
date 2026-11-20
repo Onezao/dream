@@ -66,11 +66,17 @@
         <button id="btnManyKids" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">多孩</button>
       </div>
 
-      <a href="../docs/prd/m0_workspace_and_home.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
+      <a href="../docs/prd/m0_workspace_and_home.md" target="_blank" rel="noopener" class="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
         <i data-lucide="file-text" class="h-3.5 w-3.5"></i>需求文档
       </a>
+
+      <button type="button" data-console-collapse aria-label="收起演示导航" class="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">▲ 收起</button>
     </div>
   </header>
+
+  <div data-console-mini class="sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+    <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+  </div>
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
@@ -101,7 +107,7 @@
     <span class="text-white/90 hover:bg-white/10 active:bg-white/15 bg-white/15 text-white rounded-xl border-0 px-1.5 py-2"></span>
     <span class="border border-rose-200 bg-white text-rose-700 border-amber-300 text-amber-900 h-8 w-full h-11 rounded-xl text-[16px] text-[14px]"></span>
     <span class="bg-emerald-100 text-emerald-700 bg-amber-100 text-amber-700 bg-indigo-100 text-indigo-700 bg-rose-100 text-rose-700"></span>
-    <span class="hover:bg-slate-200 hover:bg-slate-100 active:scale-95 appearance-none pr-8 pl-3"></span>
+    <span class="hover:bg-slate-200 hover:bg-slate-100 active:scale-95"></span>
     <span class="rounded-[1px]"></span>
   </div>
 
@@ -144,18 +150,19 @@
         key: 'teacher', label: '老师', short: '老师', brand: '老师工作台', initial: 'D',
         banner: 'from-slate-800 via-emerald-900 to-slate-700',
         greeting: '晚上好，David', date: '2026-11-10 周二',
-        summary: '今天还有 5 节 · 2 节代课 · 课后反馈待补录',
-        en: { greeting: 'Good evening, David', date: 'Nov 10, 2026 · Tue', summary: '5 lessons left · 2 substitutes' },
+        summary: '今天还有 5 节 · 2 节代课 · 学生备注待补录',
+        en: { greeting: 'Good evening, David', date: 'Nov 10, 2026 · Tue', summary: '5 lessons left · 2 subs · Notes pending' },
         unread: 5,
         nav: [
           { id: 'home', icon: 'home', label: '首页', labelEn: 'Home' },
           { id: 'schedule', icon: 'calendar-days', label: '课表', labelEn: 'Schedule' },
+          { id: 'students', icon: 'users', label: '我的学员', labelEn: 'My Students' },
           { id: 'me', icon: 'user', label: '我的', labelEn: 'Me' }
         ],
         quick: { mode: 'single', items: [
           { icon: 'clock', label: '开放时段', labelEn: 'Availability', href: 'm3a_calendar_grid.html?role=teacher&teacher=david&week=0' },
-          { icon: 'users', label: '我的学员', labelEn: 'Students', href: 'm1a_student_profile.html?role=teacher' },
-          { icon: 'pen-line', label: '学员备忘', labelEn: 'Student notes', msg: '正在打开学员备忘…', msgEn: 'Opening student notes…' },
+          { icon: 'id-card', label: '我的名片', labelEn: 'My Card', href: 'm1b_teacher_parent.html?role=teacher&page=detail&teacher_id=tc_david0001' },
+          { icon: 'history', label: '授课历史', labelEn: 'Teaching History', href: 'm3b_attendance_substitution.html?role=teacher&page=history' },
           { icon: 'wallet', label: '周课酬单', labelEn: 'Pay', href: 'm5b_weekly_settlement.html?role=david&tab=teacher&view=grid' }
         ] }
       },
@@ -477,94 +484,17 @@
     }));
 
     /* ------------------------------------------------------------------
-     * 7 色周课表数据（家长 Tab 2 / 老师 Tab 2）
-     * ------------------------------------------------------------------ */
-    const SCHEDULE_DAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    const SCHEDULE_TIMES = Array.from({ length: 36 }, (_, i) => {
-      const total = 6 * 60 + i * 30;
-      return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-    });
-
-    const CHILDREN = {
-      alice: { key: 'alice', emoji: '👧', nick: '大宝', name: 'Alice', weekCount: 3 },
-      bob: { key: 'bob', emoji: '👦', nick: '二宝', name: 'Bob', weekCount: 1 }
-    };
-
-    const LESSON_TYPES = {
-      fixed: { label: '固定位', cell: 'bg-amber-50 border-amber-300 text-amber-900', dot: 'bg-amber-500', chip: 'border-amber-200 bg-amber-100 text-amber-800' },
-      temp: { label: '临时课', cell: 'bg-yellow-50 border-yellow-300 text-yellow-900', dot: 'bg-yellow-400', chip: 'border-yellow-200 bg-yellow-100 text-yellow-800' },
-      sub: { label: '代上课', cell: 'bg-purple-50 border-purple-300 text-purple-900', dot: 'bg-purple-500', chip: 'border-purple-200 bg-purple-100 text-purple-800' },
-      suspended: { label: '整班停课待补排', cell: 'bg-slate-50 border-dashed border-slate-300 text-slate-500', dot: 'bg-slate-300', chip: 'border-slate-300 bg-slate-100 text-slate-600' },
-      leave: { label: '已请假', cell: 'bg-rose-50 border-rose-200 text-rose-700', dot: 'bg-rose-500', chip: 'border-rose-200 bg-rose-100 text-rose-700' }
-    };
-
-    const WEEK_LESSONS = {
-      alice: {
-        '-1': [
-          { id: 'alice-p1', day: 0, hour: 18, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语' },
-          { id: 'alice-p2', day: 3, hour: 19, minute: 0, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语' },
-          { id: 'alice-p3', day: 6, hour: 20, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语' }
-        ],
-        '0': [
-          { id: 'alice-c1', day: 0, hour: 18, minute: 0, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语', hours: -24, past: true },
-          { id: 'alice-c2', day: 1, hour: 19, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语', hours: 0.75 },
-          { id: 'alice-c3', day: 1, hour: 19, minute: 30, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语', hours: 1.25 }
-        ],
-        '1': [
-          { id: 'alice-n1', day: 0, hour: 18, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语', hours: 168 },
-          { id: 'alice-n2', day: 1, hour: 17, minute: 30, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语', hours: 143 },
-          { id: 'alice-n3', day: 2, hour: 19, minute: 0, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语', hours: 167 },
-          { id: 'alice-n4', day: 4, hour: 18, minute: 0, type: 'sub', teacher: 'Elena Wu', account: '774-219-338', course: '少儿英语', hours: 191 },
-          { id: 'alice-n5', day: 5, hour: 20, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '少儿英语', hours: 208 }
-        ]
-      },
-      bob: {
-        '-1': [
-          { id: 'bob-p1', day: 5, hour: 20, minute: 30, type: 'suspended', teacher: '', account: '', course: 'KET 冲刺班', duration: 50 }
-        ],
-        '0': [
-          { id: 'bob-c1', day: 3, hour: 20, minute: 0, type: 'temp', teacher: 'Linda Chen', account: '883-456-789', course: '生活口语', hours: 48 }
-        ],
-        '1': [
-          { id: 'bob-n1', day: 1, hour: 20, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '生活口语', hours: 194 },
-          { id: 'bob-n2', day: 3, hour: 19, minute: 0, type: 'fixed', teacher: 'David Miller', account: '982-123-456', course: '生活口语', hours: 241 },
-          { id: 'bob-n3', day: 6, hour: 20, minute: 30, type: 'suspended', teacher: '', account: '', course: 'KET 冲刺班', duration: 50 }
-        ]
-      }
-    };
-
-    const TEACHER_GRID = [
-      { time: '17:30', cells: [{ t: 'Kevi', c: 'yellow' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }, { t: '约', c: 'green' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }, { t: '休', c: 'gray' }] },
-      { time: '18:00', cells: [{ t: 'Alic', c: 'amber' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }, { t: 'Alic', c: 'amber' }, { t: '约', c: 'green' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }] },
-      { time: '18:30', cells: [{ t: 'BobZ', c: 'purple' }, { t: '休', c: 'gray' }, { t: 'Alic', c: 'amber' }, { t: '约', c: 'green' }, { t: '约', c: 'green' }, { t: 'Kevi', c: 'yellow' }, { t: '休', c: 'gray' }] },
-      { time: '19:00', cells: [{ t: 'LeoZ', c: 'purple' }, { t: 'Cand', c: 'yellow' }, { t: '休', c: 'gray' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }, { t: '约', c: 'green' }, { t: '假', c: 'rose' }] },
-      { time: '19:30', cells: [{ t: 'Cand', c: 'amber' }, { t: '约', c: 'green' }, { t: 'BobZ', c: 'yellow' }, { t: '休', c: 'gray' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }, { t: '休', c: 'gray' }] },
-      { time: '20:00', cells: [{ t: 'Emma', c: 'amber' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }, { t: '约', c: 'green' }, { t: 'Emma', c: 'amber' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }] },
-      { time: '20:30', cells: [{ t: '休', c: 'gray' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }, { t: '约', c: 'green' }, { t: '约', c: 'green' }, { t: '休', c: 'gray' }, { t: '休', c: 'gray' }] }
-    ];
-
-    const GRID_COLORS = {
-      amber: 'bg-amber-50 border-amber-300 text-amber-900',
-      yellow: 'bg-yellow-50 border-yellow-300 text-yellow-900',
-      purple: 'bg-purple-50 border-purple-300 text-purple-900',
-      blue: 'bg-blue-50 border-blue-300 text-blue-900',
-      green: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-      gray: 'bg-slate-100 border-slate-200 text-slate-600',
-      rose: 'bg-rose-50 border-rose-200 text-rose-700'
-    };
-
-    /* ------------------------------------------------------------------
      * 状态与初始化
      * ------------------------------------------------------------------ */
     const state = {
       role: 'user', device: 'mobile', tab: 'home', lang: 'zh',
       overlay: null, legalDoc: 'terms',
       todoFilter: 'all', todoExpanded: false, todoQuery: '',
-      scheduleChild: 'alice', scheduleWeek: 0, scheduleScroll: null,
+      scheduleChild: 'alice',
       feedChild: 'all', manyKids: false,
-      selectedLesson: null, qrTeacher: null, qrReturn: null,
+      qrTeacher: null, qrReturn: null,
       teacherUpcomingLoads: 0, teacherCompletedLoads: 0, teacherNoticeRead: false,
-      progressTarget: null, progressCwIdx: 0,
+      progressTarget: null, progressCwIdx: 0, progressLevel: '',
       monitorWechatUploaded: true, monitorQrName: 'Leo'
     };
 
@@ -613,9 +543,9 @@
       state.role = 'user'; state.device = 'mobile'; state.tab = 'home'; state.lang = 'zh';
       state.overlay = null; state.legalDoc = 'terms';
       state.todoFilter = 'all'; state.todoExpanded = false; state.todoQuery = '';
-      state.scheduleChild = 'alice'; state.scheduleWeek = 0; state.scheduleScroll = null;
+      state.scheduleChild = 'alice';
       state.feedChild = 'all'; state.manyKids = false;
-      state.selectedLesson = null; state.qrTeacher = null; state.qrReturn = null;
+      state.qrTeacher = null; state.qrReturn = null;
       state.teacherUpcomingLoads = 0; state.teacherCompletedLoads = 0; state.teacherNoticeRead = false;
       renderAll();
       toast('已重置为默认视图');
@@ -631,6 +561,7 @@
         return '自家课表';
       }
       if (state.tab === 'ops') return '教务中心';
+      if (state.tab === 'students') return isTeacherEn() ? 'My Students' : '我的学员';
       if (state.tab === 'me') return isTeacherEn() ? 'Me' : '我的';
       if (state.tab === 'settings') return '管理与设置';
       if (state.tab === 'hall') return '约课大厅';
@@ -985,8 +916,8 @@
         ${item.countdown ? `<div class="text-[12px] font-bold text-amber-800">${esc(item.countdown)}</div>` : ''}
         ${renderCoursewareSummary(item)}
         <div class="mt-2 flex gap-1">
-          <button data-action="toast" data-message="${esc(t(`正在打开 ${item.student} 的学员备忘…`, `Opening notes for ${item.student}…`))}" class="flex h-7 flex-1 items-center justify-center gap-1 rounded-lg border border-amber-300 bg-amber-100 px-1 text-[12px] font-bold text-amber-900 transition hover:bg-amber-200">${icon('pen-line', 'h-3.5 w-3.5')}${t('备忘录', 'Notes')}</button>
-          <button type="button" data-action="open-progress" data-kind="upcoming" data-index="${idx}" class="flex h-7 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-1 text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">${icon('book-open', 'h-3.5 w-3.5')}${t('教材进度', 'Material Progress')}</button>
+          <button data-action="toast" data-message="${esc(t(`正在打开 ${item.student} 的学员备忘…`, `Opening notes for ${item.student}…`))}" class="flex h-7 flex-1 items-center justify-center gap-1 rounded-lg border border-amber-300 bg-amber-100 px-1 text-[12px] font-bold text-amber-900 transition hover:bg-amber-200">${icon('pen-line', 'h-3.5 w-3.5')}${t('学生备注', 'Student Note')}</button>
+          <button type="button" data-action="open-progress" data-kind="upcoming" data-index="${idx}" class="flex h-7 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-1 text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">${icon('book-open', 'h-3.5 w-3.5')}${t('进度备注', 'Process Note')}</button>
         </div>
       </article>`;
     }
@@ -1013,8 +944,8 @@
           </div>
         </div>
         <div class="mt-2 flex gap-1.5">
-          <button data-action="toast" data-message="${esc(t(`正在打开 ${item.student} 的学员备忘…`, `Opening notes for ${item.student}…`))}" class="flex h-7 flex-1 items-center justify-center gap-1 rounded-lg bg-amber-600 text-[12px] font-bold text-white transition hover:bg-amber-700">${icon('pen-line', 'h-3.5 w-3.5')}${t('记备忘', 'Write note')}</button>
-          <button type="button" data-action="open-progress" data-kind="completed" data-index="${idx}" class="flex h-7 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">${icon('book-open', 'h-3.5 w-3.5')}${t('教材进度', 'Material Progress')}</button>
+          <button data-action="toast" data-message="${esc(t(`正在打开 ${item.student} 的学员备忘…`, `Opening notes for ${item.student}…`))}" class="flex h-7 flex-1 items-center justify-center gap-1 rounded-lg bg-amber-600 text-[12px] font-bold text-white transition hover:bg-amber-700">${icon('pen-line', 'h-3.5 w-3.5')}${t('学生备注', 'Student Note')}</button>
+          <button type="button" data-action="open-progress" data-kind="completed" data-index="${idx}" class="flex h-7 flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">${icon('book-open', 'h-3.5 w-3.5')}${t('进度备注', 'Process Note')}</button>
         </div>
       </article>`;
     }
@@ -1048,185 +979,10 @@
     }
 
     /* ------------------------------------------------------------------
-     * 自家课表 / 老师课表（7 色周课表）
+     * 老师端：我的学员
      * ------------------------------------------------------------------ */
-    function weekStart(week) {
-      return new Date(2026, 10, 9 + week * 7);
-    }
-    function weekTitle(week) {
-      return `2026年第${46 + week}周`;
-    }
-    function weekRange(week) {
-      const start = weekStart(week);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 6);
-      return `${pad2(start.getMonth() + 1)}.${pad2(start.getDate())} - ${pad2(end.getMonth() + 1)}.${pad2(end.getDate())}`;
-    }
-    function dayInfo(week, day) {
-      const d = weekStart(week);
-      d.setDate(d.getDate() + day);
-      return {
-        date: `${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`,
-        full: `${d.getMonth() + 1}月${d.getDate()}日`,
-        weekday: SCHEDULE_DAYS[day]
-      };
-    }
-    function getWeekLessons(child, week) {
-      return (WEEK_LESSONS[child] && WEEK_LESSONS[child][String(week)]) || [];
-    }
-    function lessonSlot(l) {
-      return (l.hour - 6) * 2 + (l.minute >= 30 ? 1 : 0);
-    }
-    function fmtHM(hour, minute) {
-      return `${pad2(hour)}:${pad2(minute)}`;
-    }
-    function lessonEnd(l) {
-      const total = l.hour * 60 + l.minute + (l.duration || 25);
-      return fmtHM(Math.floor(total / 60), total % 60);
-    }
-
-    function renderWeekNav(count) {
-      return `
-        <div class="flex shrink-0 items-center justify-between gap-1 rounded-2xl border border-slate-300 bg-white px-2 py-1.5">
-          <button data-action="schedule-week" data-week="-1" class="flex h-8 shrink-0 items-center rounded-lg px-2 text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">‹ 上周</button>
-          <div class="min-w-0 text-center">
-            <div class="truncate text-[12px] font-bold text-slate-900">${weekTitle(state.scheduleWeek)} · ${count} 节</div>
-            <div class="truncate font-mono text-[12px] text-slate-500">${weekRange(state.scheduleWeek)}</div>
-          </div>
-          <button data-action="schedule-week" data-week="1" class="flex h-8 shrink-0 items-center rounded-lg px-2 text-[12px] font-bold text-slate-600 transition hover:bg-slate-50">下周 ›</button>
-        </div>
-        ${state.scheduleWeek !== 0 ? `<div class="flex shrink-0 justify-end"><button data-action="schedule-week" data-week="0" class="h-8 rounded-full bg-slate-100 px-3 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-200/80">回到本周</button></div>` : ''}`;
-    }
-
-    function renderChildSwitcher() {
-      return `<div class="sticky top-0 z-20 flex shrink-0 gap-1.5 rounded-2xl border border-slate-300 bg-white p-1">
-        ${Object.values(CHILDREN).map((c) => {
-          const on = state.scheduleChild === c.key;
-          return `<button data-action="schedule-child" data-child="${c.key}" class="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border-0 px-1.5 py-2 transition ${on ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'}">
-            <span class="shrink-0 text-[14px]">${c.emoji}</span>
-            <span class="truncate text-[12px] font-bold">${c.nick} ${c.name}</span>
-            <span class="shrink-0 rounded-full px-1.5 py-0.5 text-[12px] font-bold ${on ? 'bg-white/15 text-white' : 'bg-white text-slate-600'}">本周 ${c.weekCount} 节</span>
-          </button>`;
-        }).join('')}
-      </div>`;
-    }
-
-    const PARENT_LEGEND = [
-      ['固定位', 'bg-amber-400'],
-      ['临时课', 'bg-yellow-400'],
-      ['被代课', 'bg-blue-500'],
-      ['停课待补', 'bg-slate-300'],
-      ['已请假', 'bg-rose-500']
-    ];
-
-    function renderParentLegend() {
-      return `<div class="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl border border-slate-300 bg-white px-2.5 py-1.5">
-        ${PARENT_LEGEND.map(([label, dot]) => `<span class="inline-flex items-center gap-1 text-[12px] font-medium text-slate-500"><span class="h-1.5 w-1.5 shrink-0 rounded-full ${dot}"></span>${label}</span>`).join('')}
-      </div>`;
-    }
-
-    function lessonCell(l) {
-      const meta = LESSON_TYPES[l.type] || LESSON_TYPES.fixed;
-      const label = l.type === 'suspended' ? '停课' : l.teacher.split(' ')[0];
-      return `<div class="h-7 border-b border-r border-slate-100 bg-white p-[1px]">
-        <button data-action="open-lesson" data-lesson="${l.id}" class="flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-md border px-0.5 text-[12px] font-bold leading-none ${meta.cell}">
-          <span class="flex max-w-full items-center justify-center gap-0.5">
-            <span class="h-1 w-1 shrink-0 rounded-full ${meta.dot}"></span>
-            <span class="truncate">${esc(label)}</span>
-          </span>
-          <span class="mt-0.5 font-mono text-[12px] leading-none">${fmtHM(l.hour, l.minute)}</span>
-        </button>
-      </div>`;
-    }
-
-    function renderParentGrid(child, week) {
-      const lessons = getWeekLessons(child, week);
-      const cellMap = new Map(lessons.map((l) => [`${l.day}-${lessonSlot(l)}`, l]));
-      return `<div class="min-w-0">
-        <div class="sticky top-0 z-30 grid grid-cols-[38px_repeat(7,minmax(0,1fr))] border-b border-slate-200 bg-white">
-          <div class="sticky left-0 z-40 flex h-9 items-center justify-center border-r border-slate-100 bg-white text-[12px] font-bold text-slate-600">时段</div>
-          ${SCHEDULE_DAYS.map((d, i) => {
-            const info = dayInfo(week, i);
-            return `<div class="flex h-9 flex-col items-center justify-center border-r border-slate-100 bg-white text-center"><span class="text-[12px] font-bold leading-none text-slate-700">${d}</span><span class="mt-0.5 font-mono text-[12px] leading-none text-slate-500">${info.date}</span></div>`;
-          }).join('')}
-        </div>
-        ${SCHEDULE_TIMES.map((time, slot) => `<div data-grid-time="${time}" class="grid grid-cols-[38px_repeat(7,minmax(0,1fr))]">
-          <div class="sticky left-0 z-20 flex h-7 items-center justify-end border-b border-r border-slate-100 bg-white pr-1 font-mono text-[12px] font-medium text-slate-600">${time}</div>
-          ${SCHEDULE_DAYS.map((_, day) => {
-            const lesson = cellMap.get(`${day}-${slot}`);
-            return lesson ? lessonCell(lesson) : `<div class="h-7 border-b border-r border-slate-100 bg-white"></div>`;
-          }).join('')}
-        </div>`).join('')}
-      </div>`;
-    }
-
-    function renderParentSchedule() {
-      const child = CHILDREN[state.scheduleChild] || CHILDREN.alice;
-      const lessons = getWeekLessons(child.key, state.scheduleWeek);
-      return `
-        <div class="mx-auto flex h-full w-full max-w-[640px] flex-col gap-2 overflow-hidden px-3 py-3">
-          ${renderChildSwitcher()}
-          ${renderWeekNav(lessons.length)}
-          ${renderParentLegend()}
-          <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-300 bg-white">
-            <div id="scheduleGridScroll" class="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              ${renderParentGrid(child.key, state.scheduleWeek)}
-            </div>
-            <div class="flex shrink-0 items-center justify-between gap-2 border-t border-slate-100 px-2.5 py-1.5 text-[12px] font-medium text-slate-600">
-              <span>06:00 - 23:30 · 上下滚动查看</span>
-              <a href="m3a_calendar_grid.html" target="_blank" rel="noopener" class="shrink-0 font-bold text-indigo-600">查看完整课表 ↗</a>
-            </div>
-          </section>
-        </div>`;
-    }
-
-    function teacherGridForWeek(week) {
-      const grid = TEACHER_GRID.map((row) => ({ ...row, cells: row.cells.map((c) => ({ ...c })) }));
-      const set = (time, day, cell) => {
-        const row = grid.find((r) => r.time === time);
-        if (row) row.cells[day] = { ...cell };
-      };
-      if (week === -1) {
-        set('17:30', 0, { t: '约', c: 'green' });
-        set('18:30', 5, { t: '约', c: 'green' });
-      }
-      if (week === 1) {
-        set('19:00', 1, { t: 'BobZ', c: 'amber' });
-        set('18:00', 3, { t: 'Emma', c: 'purple' });
-        set('19:00', 6, { t: 'Alic', c: 'amber' });
-      }
-      return grid;
-    }
-
-    function countTeacherLessons(grid) {
-      return grid.reduce((sum, row) => sum + row.cells.filter((c) => ['amber', 'yellow', 'purple', 'blue'].includes(c.c)).length, 0);
-    }
-
-    function renderTeacherSchedule() {
-      const grid = teacherGridForWeek(state.scheduleWeek);
-      const count = countTeacherLessons(grid);
-      return `
-        <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-          ${renderWeekNav(count)}
-          <div class="flex flex-wrap gap-1.5">
-            ${[['amber', '固定位'], ['yellow', '临时课'], ['purple', '代上课'], ['blue', '被代课'], ['green', '可约'], ['gray', '休息'], ['rose', '请假']].map(([k, label]) => `<span class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[12px] font-bold ${GRID_COLORS[k]}">${label}</span>`).join('')}
-          </div>
-          <section class="overflow-hidden rounded-2xl border border-slate-300 bg-white p-2">
-            <div class="mb-1.5 flex items-center justify-between px-1">
-              <span class="text-[12px] font-bold text-slate-700">晚间排期</span>
-              <span class="font-mono text-[12px] text-slate-600">17:30 - 20:30</span>
-            </div>
-            <div class="grid min-w-0 grid-cols-[38px_repeat(7,minmax(0,1fr))]">
-              <div class="flex h-9 items-center justify-center border-b border-r border-slate-100 text-[12px] font-bold text-slate-600">时段</div>
-              ${SCHEDULE_DAYS.map((d, i) => {
-                const info = dayInfo(state.scheduleWeek, i);
-                return `<div class="flex h-9 flex-col items-center justify-center border-b border-r border-slate-100 text-center"><span class="text-[12px] font-bold leading-none text-slate-600">${d}</span><span class="mt-0.5 font-mono text-[12px] leading-none text-slate-500">${info.date}</span></div>`;
-              }).join('')}
-              ${grid.map((row) => `<div class="flex h-7 items-center justify-end border-b border-r border-slate-100 pr-1 font-mono text-[12px] font-bold text-slate-600">${row.time}</div>${row.cells.map((c) => `<div class="m-[1px] flex h-[26px] items-center justify-center rounded-md border text-[12px] font-bold ${GRID_COLORS[c.c]}">${c.t}</div>`).join('')}`).join('')}
-            </div>
-          </section>
-          <a href="m3a_calendar_grid.html" target="_blank" rel="noopener" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white shadow-sm">${icon('external-link', 'h-4 w-4')}查看完整课表</a>
-        </div>`;
+    function renderTeacherStudents() {
+      return `<div class="h-full w-full"><iframe src="m1a_student_profile.html?role=teacher&page=staffList&embed=1" title="我的学员" loading="eager" class="h-full w-full border-0"></iframe></div>`;
     }
 
     /* ------------------------------------------------------------------
@@ -1793,6 +1549,15 @@
       </div>`);
     }
 
+    function resolveProgressLevel(cw) {
+      const curLevel = cw.level || '';
+      const levelPrefix = /^Level\b/i.test(curLevel) ? 'Level' : 'Stage';
+      const options = [1, 2, 3].map((n) => `${levelPrefix} ${n}`);
+      if (curLevel && !options.includes(curLevel)) options.unshift(curLevel);
+      const selected = curLevel && options.includes(curLevel) ? curLevel : options[0];
+      return { options, selected };
+    }
+
     function progressSheet() {
       const target = state.progressTarget;
       if (!target) return '';
@@ -1804,126 +1569,39 @@
       const cw = cws[cwIdx] || { name: 'Oxford Discover 2', level: 'Level 2', progress: '', daysAgo: 0, updatedBy: 'David Miller', updatedByRole: '老师', topTeacher: 'David Miller', topCount: 1 };
       const stale = cw.daysAgo > 180;
       const curVal = cw.progress || '';
-      const curLevel = cw.level || '';
-      const levelPrefix = /^Level\b/i.test(curLevel) ? 'Level' : 'Stage';
-      const levelOptions = [1, 2, 3].map((n) => `${levelPrefix} ${n}`);
-      if (curLevel && !levelOptions.includes(curLevel)) levelOptions.unshift(curLevel);
-      return sheetShell(t('📚 教材进度', '📚 Material Progress'), `${item.student} · ${item.when}`, `<div class="space-y-3">
-        ${cws.length > 1 ? `<div class="flex flex-wrap gap-1.5">${cws.map((c, i) => `<button type="button" data-action="select-cw" data-cw-idx="${i}" class="rounded-full border px-2.5 py-1 text-[12px] font-semibold transition ${i === cwIdx ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'}">${esc(c.name)}</button>`).join('')}</div>` : ''}
+      const levelState = resolveProgressLevel(cw);
+      const selectedLevel = levelState.options.includes(state.progressLevel) ? state.progressLevel : levelState.selected;
+      return sheetShell(t('📚 进度备注', '📚 Process Note'), `${item.student} · ${item.when}`, `<div class="space-y-3">
+        ${cws.length > 1 ? `<div class="flex flex-wrap gap-1.5">${cws.map((c, i) => `<button type="button" data-action="select-cw" data-cw-idx="${i}" aria-pressed="${i === cwIdx ? 'true' : 'false'}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${i === cwIdx ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${esc(c.name)}</button>`).join('')}</div>` : ''}
         <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[12px] space-y-1">
           <div class="flex items-center justify-between gap-2">
             <span class="font-bold text-slate-900">${esc(cw.name)} <span class="font-medium text-slate-500">(${esc(cw.level || 'Standard')})</span></span>
-            ${stale ? `<span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700">${t('近 6 个月没有更新', 'Not updated in 6+ months')}</span>` : ''}
+            ${stale ? `<span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[12px] font-bold text-rose-700">${t('近 6 个月没有更新', 'Not updated in 6+ months')}</span>` : ''}
           </div>
           <div class="text-slate-600">${t('最后更新', 'Last updated')}：${esc(cw.updatedBy)} (${esc(cw.updatedByRole)}) · ${cw.daysAgo === 0 ? t('刚刚', 'Just now') : t(`${cw.daysAgo} 天前`, `${cw.daysAgo}d ago`)}</div>
           <div class="text-slate-600">${t('主力更新老师', 'Top teacher')}：${cw.topCount > 0 ? `${esc(cw.topTeacher)} (${cw.topCount}${t('次', 'x')})` : t('暂无老师更新记录', 'No teacher updates yet')}</div>
         </div>
         <div>
-          <div class="mb-1 flex items-center justify-between text-[12px]">
-            <label for="levelSelect" class="font-bold text-slate-700">${t('课件级别', 'Material level')}</label>
+          <div class="mb-1.5 flex items-center justify-between text-[12px]">
+            <span class="font-bold text-slate-700">${t('课件级别', 'Material level')}</span>
           </div>
-          <select id="levelSelect" class="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] text-slate-900 outline-none focus:border-indigo-500">
-            ${levelOptions.map((lv) => `<option value="${esc(lv)}" ${lv === curLevel ? 'selected' : ''}>${esc(lv)}</option>`).join('')}
-          </select>
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            ${levelState.options.map((lv) => {
+              const on = lv === selectedLevel;
+              return `<button type="button" data-action="select-level" data-level="${esc(lv)}" aria-pressed="${on ? 'true' : 'false'}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${esc(lv)}</button>`;
+            }).join('')}
+          </div>
         </div>
         <div>
           <div class="mb-1 flex items-center justify-between text-[12px]">
-            <label for="progressInput" class="font-bold text-slate-700">${t('学习进度 (progress_text)', 'Progress')}</label>
+            <label for="progressInput" class="font-bold text-slate-700">${t('进度备注', 'Process Note')}</label>
             <span id="progressCount" class="font-mono text-slate-500">${curVal.length}/64</span>
           </div>
-          <input id="progressInput" type="text" maxlength="64" autofocus value="${esc(curVal)}" placeholder="Unit 3 · Page 24" oninput="const c=document.getElementById('progressCount');if(c)c.textContent=this.value.length+'/64';" class="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] text-slate-900 outline-none focus:border-indigo-500">
-          <p class="mt-1 text-[11px] text-slate-500">${t('示例：Unit 3 · Page 24 / 第4单元第12页（限 64 字符）', 'Example: Unit 3 · Page 24 (max 64 chars)')}</p>
+          <input id="progressInput" type="text" maxlength="64" autofocus value="${esc(curVal)}" placeholder="Unit 3 · Page 24" oninput="const c=document.getElementById('progressCount');if(c)c.textContent=this.value.length+'/64';" class="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] text-slate-900 outline-none placeholder:text-slate-500 focus:border-indigo-500">
+          <p class="mt-1 text-[12px] text-slate-500">${t('示例：Unit 3 · Page 24 / 第4单元第12页（限 64 字符）', 'Example: Unit 3 · Page 24 (max 64 chars)')}</p>
         </div>
         <button type="button" data-action="save-progress" class="flex h-11 w-full items-center justify-center rounded-xl bg-indigo-600 text-[14px] font-semibold text-white transition hover:bg-indigo-700">${t('保存进度', 'Save Progress')}</button>
       </div>`);
-    }
-
-    function lessonSheet() {
-      const sel = state.selectedLesson;
-      if (!sel) return '';
-      const child = CHILDREN[sel.child];
-      const lesson = getWeekLessons(sel.child, sel.week).find((l) => l.id === sel.id);
-      if (!child || !lesson) return '';
-      const meta = LESSON_TYPES[lesson.type] || LESSON_TYPES.fixed;
-      const info = dayInfo(sel.week, lesson.day);
-      const start = fmtHM(lesson.hour, lesson.minute);
-      const end = lessonEnd(lesson);
-      const isSuspended = lesson.type === 'suspended';
-      const isPast = sel.week < 0 || lesson.past === true || (lesson.hours !== undefined && lesson.hours < 0);
-
-      const childCard = `<div class="rounded-xl border border-indigo-100 bg-indigo-50/70 p-3">
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex min-w-0 items-center gap-2">
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-[18px]">${child.emoji}</span>
-            <div class="min-w-0">
-              <div class="truncate text-[14px] font-bold text-indigo-950">${esc(child.nick)} ${esc(child.name)}</div>
-              <div class="truncate text-[12px] font-medium text-indigo-700">${info.full} · ${info.weekday}</div>
-            </div>
-          </div>
-          <span class="shrink-0 rounded-full border border-indigo-200 bg-indigo-100 px-2 py-0.5 text-[12px] font-bold text-indigo-800">${meta.label}</span>
-        </div>
-        <div class="mt-2 flex items-end justify-between gap-2">
-          <div class="font-mono text-[18px] font-bold text-indigo-950">${start} - ${end}</div>
-          <div class="truncate text-[12px] font-medium text-indigo-700">${esc(lesson.course)}</div>
-        </div>
-      </div>`;
-
-      const teacherCard = isSuspended ? `<div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
-        <div class="text-[14px] font-bold text-slate-700">整班停课待补排</div>
-        <p class="mt-1 text-[12px] leading-relaxed text-slate-500">班长正在协调新的上课次段，补排确认后会在通知中心与邮件中提醒。</p>
-      </div>` : `<div class="rounded-xl border border-slate-200 bg-white p-3">
-        <div class="flex items-center justify-between gap-2">
-          <div class="min-w-0">
-            <div class="text-[12px] font-medium text-slate-500">授课老师</div>
-            <div class="mt-0.5 truncate text-[14px] font-bold text-slate-900">${esc(lesson.teacher)}</div>
-          </div>
-          <span class="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[12px] font-semibold text-indigo-700">ClassIn 授课</span>
-        </div>
-      </div>`;
-
-      const classinRow = (isSuspended || isPast) ? '' : `<button data-action="qr" data-teacher="${esc(lesson.teacher)}" class="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${icon('qr-code', 'h-4 w-4')}ClassIn 二维码</button>`;
-
-      let rules;
-      if (isSuspended) {
-        rules = '';
-      } else if (isPast) {
-        rules = `<div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div class="flex items-center justify-between gap-2"><span class="text-[12px] font-bold text-slate-700">退改规则</span><span class="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-500">已结束</span></div>
-          <p class="mt-2 text-[12px] leading-relaxed text-slate-500">该周课程已结束，如需调整请联系班长。</p>
-        </div>`;
-      } else if (lesson.hours >= 24) {
-        rules = `<div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div class="flex items-center justify-between gap-2"><span class="text-[12px] font-bold text-slate-700">退改规则</span><span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[12px] font-bold text-emerald-700">时间充足</span></div>
-          <div class="mt-2 grid grid-cols-2 gap-2">
-            <button data-action="lesson-move" class="h-11 rounded-xl bg-indigo-600 text-[14px] font-semibold text-white">挪位</button>
-            <button data-action="lesson-leave" class="h-11 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">请假</button>
-          </div>
-          <p class="mt-2 text-[12px] leading-relaxed text-slate-500">请假（扣减 12.5% 配额）· 当前剩余 87.5% · 距上课 24 小时以上可免费挪位。</p>
-        </div>`;
-      } else if (lesson.hours >= 3) {
-        rules = `<div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div class="flex items-center justify-between gap-2"><span class="text-[12px] font-bold text-slate-700">退改规则</span><span class="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[12px] font-bold text-amber-800">可更换学员</span></div>
-          <button data-action="lesson-transfer" class="mt-2 h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white">更换实际上课学员</button>
-          <p class="mt-2 text-[12px] leading-relaxed text-slate-500">距上课不足 24 小时，仅支持更换为二宝或其他已建档学员。</p>
-        </div>`;
-      } else {
-        rules = `<div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div class="flex items-center justify-between gap-2"><span class="text-[12px] font-bold text-slate-700">退改规则</span><span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[12px] font-bold text-rose-700">授课准备期</span></div>
-          <div class="mt-2 grid grid-cols-2 gap-2">
-            <button data-action="lesson-locked" aria-disabled="true" class="h-11 rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-semibold text-slate-500">挪位</button>
-            <button data-action="lesson-locked" aria-disabled="true" class="h-11 rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-semibold text-slate-500">请假</button>
-          </div>
-          <div class="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-rose-700">老师已在做授课准备，暂无法变更</div>
-        </div>`;
-      }
-
-      return sheetShell('课程详情', `${child.nick} ${child.name} · ${info.full} ${info.weekday}`, `<div class="space-y-2.5">
-        ${childCard}
-        ${teacherCard}
-        ${classinRow}
-        ${rules}
-        <a href="m3a_calendar_grid.html" target="_blank" rel="noopener" class="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">${icon('calendar-days', 'h-4 w-4')}查看完整课表</a>
-      </div>`, 'max-h-[62%]');
     }
 
     function renderOverlay() {
@@ -1937,7 +1615,6 @@
       else if (state.overlay === 'my-wechat-qr') root.innerHTML = myWechatQrSheet();
       else if (state.overlay === 'assets') root.innerHTML = assetsSheet();
       else if (state.overlay === 'progress') root.innerHTML = progressSheet();
-      else if (state.overlay === 'lesson') root.innerHTML = lessonSheet();
       else if (state.overlay === 'children') root.innerHTML = childrenSheet();
       else if (state.overlay === 'activity') root.innerHTML = activitySheet();
       else root.innerHTML = '';
@@ -1950,6 +1627,7 @@
       if (state.tab === 'home') return renderHome();
       if (state.tab === 'schedule') return renderScheduleEmbed();
       if (state.tab === 'ops') return (state.role === 'monitor' || state.role === 'admin') ? renderOps() : renderPlaceholder();
+      if (state.tab === 'students') return state.role === 'teacher' ? renderTeacherStudents() : renderPlaceholder();
       if (state.tab === 'me') return renderMe();
       if (state.tab === 'settings') return state.role === 'admin' ? renderAdminSettings() : renderPlaceholder();
       if (state.tab === 'hall') return renderHall();
@@ -1968,26 +1646,6 @@
       syncConsole();
       contentEl.scrollTop = top;
       if (window.lucide) window.lucide.createIcons();
-      initScheduleScroll();
-    }
-
-    function initScheduleScroll() {
-      const scroller = $('scheduleGridScroll');
-      if (!scroller) return;
-      requestAnimationFrame(() => {
-        if (!document.body.contains(scroller)) return;
-        if (state.scheduleScroll == null) {
-          const target = scroller.querySelector('[data-grid-time="16:30"]');
-          if (target) {
-            const offset = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
-            scroller.scrollTop = Math.max(0, offset - 36);
-          }
-        } else {
-          scroller.scrollTop = state.scheduleScroll;
-        }
-        state.scheduleScroll = scroller.scrollTop;
-        scroller.addEventListener('scroll', () => { state.scheduleScroll = scroller.scrollTop; }, { passive: true });
-      });
     }
 
     function syncConsole() {
@@ -2007,6 +1665,24 @@
       if (manyBtn) manyBtn.className = `rounded-lg border px-2.5 py-1.5 font-semibold transition ${state.manyKids ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`;
     }
 
+    function readConsoleCollapsed() {
+      try { return localStorage.getItem('dream_proto_nav_collapsed') === '1'; } catch (e) { return false; }
+    }
+
+    function writeConsoleCollapsed(collapsed) {
+      try { localStorage.setItem('dream_proto_nav_collapsed', collapsed ? '1' : '0'); } catch (e) { /* 本地存储不可用时静默降级 */ }
+    }
+
+    function applyConsoleCollapsed(collapsed) {
+      const consoleEl = $('console');
+      if (consoleEl) consoleEl.classList.toggle('hidden', collapsed);
+      const mini = document.querySelector('[data-console-mini]');
+      if (mini) {
+        mini.classList.toggle('hidden', !collapsed);
+        mini.classList.toggle('flex', collapsed);
+      }
+    }
+
     function updateTodoQuery(value) {
       state.todoQuery = String(value || '');
       const body = $('todoSectionBody');
@@ -2024,9 +1700,9 @@
       state.tab = 'home';
       state.overlay = null;
       state.todoFilter = 'all'; state.todoExpanded = false; state.todoQuery = '';
-      state.scheduleChild = 'alice'; state.scheduleWeek = 0; state.scheduleScroll = null;
+      state.scheduleChild = 'alice';
       state.feedChild = 'all'; state.manyKids = false;
-      state.selectedLesson = null; state.qrTeacher = null; state.qrReturn = null;
+      state.qrTeacher = null; state.qrReturn = null;
       state.teacherUpcomingLoads = 0; state.teacherCompletedLoads = 0; state.teacherNoticeRead = false;
       state.lang = role === 'teacher' ? 'en' : 'zh';
       renderAll();
@@ -2039,13 +1715,10 @@
       const enteringSchedule = tab === 'schedule' && state.tab !== 'schedule';
       state.tab = tab;
       state.overlay = null;
-      state.selectedLesson = null;
       state.qrTeacher = null;
       state.qrReturn = null;
       if (enteringSchedule) {
         state.scheduleChild = 'alice';
-        state.scheduleWeek = 0;
-        state.scheduleScroll = null;
       }
       renderAll();
       $('content').scrollTop = 0;
@@ -2062,6 +1735,11 @@
     }
 
     document.getElementById('console').addEventListener('click', (event) => {
+      if (event.target.closest('[data-console-collapse]')) {
+        applyConsoleCollapsed(true);
+        writeConsoleCollapsed(true);
+        return;
+      }
       const roleBtn = event.target.closest('[data-role]');
       if (roleBtn) return setRole(roleBtn.dataset.role);
       const deviceBtn = event.target.closest('[data-device]');
@@ -2117,17 +1795,13 @@
       if (action === 'notifications') { state.overlay = 'notifications'; renderOverlay(); if (window.lucide) window.lucide.createIcons(); return; }
       if (action === 'legal') { state.legalDoc = el.dataset.message || 'terms'; state.overlay = 'legal'; renderOverlay(); if (window.lucide) window.lucide.createIcons(); return; }
       if (action === 'close-overlay') {
-        if (state.overlay === 'qr' && state.qrReturn === 'lesson') {
-          state.overlay = 'lesson'; state.qrReturn = null;
-        } else {
-          state.overlay = null; state.qrReturn = null; state.selectedLesson = null;
-        }
+        state.overlay = null; state.qrReturn = null;
         renderOverlay();
         if (window.lucide) window.lucide.createIcons();
         return;
       }
       if (action === 'qr') {
-        state.qrReturn = state.overlay === 'lesson' ? 'lesson' : null;
+        state.qrReturn = null;
         state.qrTeacher = el.dataset.teacher ? { name: el.dataset.teacher } : null;
         state.overlay = 'qr';
         renderOverlay();
@@ -2170,6 +1844,7 @@
         const cwIdx = (item.coursewares || []).findIndex((c) => c.topTeacher === targetTeacher);
         state.progressTarget = { kind, index };
         state.progressCwIdx = cwIdx >= 0 ? cwIdx : 0;
+        state.progressLevel = '';
         state.overlay = 'progress';
         renderOverlay();
         if (window.lucide) window.lucide.createIcons();
@@ -2179,23 +1854,34 @@
       }
       if (action === 'select-cw') {
         state.progressCwIdx = Number(el.dataset.cwIdx) || 0;
+        state.progressLevel = '';
         renderOverlay();
         if (window.lucide) window.lucide.createIcons();
         const inp = $('progressInput');
         if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
         return;
       }
+      if (action === 'select-level') {
+        state.progressLevel = el.dataset.level || '';
+        document.querySelectorAll('[data-action="select-level"]').forEach((pill) => {
+          const on = pill.dataset.level === state.progressLevel;
+          pill.className = `h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}`;
+          pill.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        return;
+      }
       if (action === 'save-progress') {
         const target = state.progressTarget;
         const inp = $('progressInput');
-        const levelSel = $('levelSelect');
         if (target && inp) {
           const list = target.kind === 'upcoming' ? TEACHER_UPCOMING : TEACHER_COMPLETED;
           const item = list[target.index];
           const cw = item && item.coursewares && item.coursewares[state.progressCwIdx || 0];
           if (cw) {
+            const lv = resolveProgressLevel(cw);
+            const levelValue = lv.options.includes(state.progressLevel) ? state.progressLevel : lv.selected;
             cw.progress = inp.value.trim().slice(0, 64) || cw.progress;
-            if (levelSel && levelSel.value) cw.level = levelSel.value;
+            cw.level = levelValue;
             cw.daysAgo = 0;
             cw.updatedBy = 'David Miller';
             cw.updatedByRole = '老师';
@@ -2205,38 +1891,12 @@
         }
         state.overlay = null;
         state.progressTarget = null;
+        state.progressLevel = '';
         renderAll();
-        toast(t('课件级别与进度已保存', 'Material level and progress saved'));
+        toast(t('课件级别与进度备注已保存', 'Material level and process note saved'));
         return;
       }
       if (action === 'set-role') return setRole(el.dataset.role);
-      if (action === 'schedule-child') {
-        const grid = $('scheduleGridScroll');
-        if (grid) state.scheduleScroll = grid.scrollTop;
-        state.scheduleChild = el.dataset.child || 'alice';
-        state.overlay = null; state.selectedLesson = null;
-        renderAll();
-        return;
-      }
-      if (action === 'schedule-week') {
-        const grid = $('scheduleGridScroll');
-        if (grid) state.scheduleScroll = grid.scrollTop;
-        state.scheduleWeek = Math.max(-1, Math.min(1, Number(el.dataset.week) || 0));
-        state.overlay = null; state.selectedLesson = null;
-        renderAll();
-        return;
-      }
-      if (action === 'open-lesson') {
-        state.selectedLesson = { child: state.scheduleChild, week: state.scheduleWeek, id: el.dataset.lesson };
-        state.overlay = 'lesson';
-        renderOverlay();
-        if (window.lucide) window.lucide.createIcons();
-        return;
-      }
-      if (action === 'lesson-move') return toast('已进入挪位，正在查询该老师其他空闲时段');
-      if (action === 'lesson-leave') return toast('已提交请假申请，将扣减 12.5% 配额');
-      if (action === 'lesson-transfer') return toast('已更换实际上课学员，请选择接收人');
-      if (action === 'lesson-locked') return toast('老师已在做授课准备，暂无法变更');
       if (action === 'set-lang') return setLang(el.dataset.lang);
       if (action === 'copy-id') {
         const text = el.dataset.account || (state.qrTeacher && state.qrTeacher.account) || '982-123-456';
@@ -2245,7 +1905,17 @@
       }
     });
 
+    const consoleMini = document.querySelector('[data-console-mini]');
+    if (consoleMini) {
+      consoleMini.addEventListener('click', (event) => {
+        if (!event.target.closest('[data-console-expand]')) return;
+        applyConsoleCollapsed(false);
+        writeConsoleCollapsed(false);
+      });
+    }
+
     renderAll();
+    applyConsoleCollapsed(readConsoleCollapsed());
   </script>
 </body>
 </html>

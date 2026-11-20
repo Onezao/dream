@@ -71,7 +71,7 @@
 
       <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
 
-      <div class="ml-auto hidden items-center gap-1.5 lg:flex">
+      <div class="hidden items-center gap-1.5 lg:flex">
         <a href="../docs/prd/m1b_teacher_profile.md" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">
           <i data-lucide="file-text" class="h-3.5 w-3.5"></i>需求文档
         </a>
@@ -79,8 +79,13 @@
           <i data-lucide="external-link" class="h-3.5 w-3.5"></i>家长端
         </a>
       </div>
+
+      <button type="button" data-console-collapse class="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50" aria-label="收起演示导航">▲ 收起</button>
     </div>
   </header>
+  <div data-console-mini class="sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+    <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+  </div>
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
@@ -279,7 +284,6 @@
         media: { photo: true, qr: true, video: { name: 'David_Sample_Lesson.mp4', size: '24.6 MB', duration: '01:45', url: SAMPLE_VIDEO } },
         todayLessons: 4, upcoming: 22, completed: 38, status: 'active', createdAt: '2026-03-12',
         pendingPrice: { level: '18', effectiveDate: '2026-12-07' },
-        note: '口音清晰，教学节奏稳；建议多安排开放式提问。注意与家长同步课后练习清单。',
         resign: { temp: 3, fixed: 2, classes: 1, sub: 1 },
         resignDetails: {
           temp: [
@@ -416,7 +420,6 @@
         photos: DEMO_ALBUMS.zoey, avatarPhotoId: DEMO_ALBUMS.zoey[0].id,
         media: { photo: true, qr: true, video: { name: 'Zoey_Intro_MP4.mp4', size: '11.4 MB', duration: '00:58', url: SAMPLE_VIDEO } },
         todayLessons: 0, upcoming: 0, completed: 12, status: 'resigned', createdAt: '2026-01-18', resignedAt: '2026-10-20',
-        note: '历史教学备忘只读保留。',
         resign: { temp: 0, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [], fixed: [], classes: [], sub: [] }
       }
@@ -530,13 +533,14 @@
       adminTeacherFilter: 'all',
       adminTeacherMonitor: 'all',
       monitorTeacherSlice: 'mine',
-      noteDraft: '',
       introLang: 'zh',
       monitorFilter: 'all',
       monitorQuery: '',
       form: emptyTeacherForm(),
       formReturnPage: 'teachers',
       overlay: null,
+      picker: null,
+      pickerQuery: '',
       resignTeacher: { cleared: false, date: TODAY },
       appoint: { mode: 'appoint', monitorId: null, email: '', name: '', phone: '', wechatQr: false, wechatQrDataUrl: '', error: '' },
       rebind: { monitorId: null, targetId: '', teacherIds: [], classIds: [], error: '' },
@@ -619,6 +623,13 @@
 
     function monitorById(id) {
       return state.monitors.find((m) => m.id === id) || null;
+    }
+
+    function formMonitorLabel(id) {
+      if (id === ADMIN_MONITOR_ID) return '⭐ 我直管';
+      if (id === PLATFORM_MONITOR_ID) return '平台未划拨';
+      const m = monitorById(id);
+      return m ? `${m.name} 班` : '请选择负责班长';
     }
 
     function monitorMetrics(m) {
@@ -742,16 +753,6 @@
         platform: base.filter((t) => monitorSliceMatch(t, 'platform')).length,
         others: others.map((m) => ({ id: m.id, name: m.name, count: base.filter((t) => t.monitorId === m.id).length }))
       };
-    }
-
-    function canEditTeacherProfile(t) {
-      return state.role === 'admin' || t.monitorId === CURRENT_MONITOR_ID;
-    }
-
-    function teacherNote(t) {
-      return t.note && t.note.trim()
-        ? t.note
-        : '暂无教学备忘。课后可记录课上观察、家长沟通要点与下一步教学建议。';
     }
 
     function statusCounts(base) {
@@ -998,13 +999,13 @@
       state.page = role === 'admin' ? 'monitors' : 'teachers';
       state.navTab = role === 'admin' ? 'settings' : 'ops';
       state.overlay = null;
+      state.picker = null;
       state.playingVideo = false;
       state.teacherQuery = '';
       state.teacherFilter = 'all';
       state.adminTeacherFilter = 'all';
       state.adminTeacherMonitor = 'all';
       state.monitorTeacherSlice = 'mine';
-      state.noteDraft = '';
       state.monitorFilter = 'all';
       state.monitorQuery = '';
       state.teacherLogCollapsed = false;
@@ -1037,6 +1038,7 @@
         state.navTab = 'settings';
       }
       state.overlay = null;
+      state.picker = null;
       state.playingVideo = false;
       renderAll();
     }
@@ -1069,13 +1071,14 @@
       state.adminTeacherFilter = 'all';
       state.adminTeacherMonitor = 'all';
       state.monitorTeacherSlice = 'mine';
-      state.noteDraft = '';
       state.introLang = 'zh';
       state.monitorFilter = 'all';
       state.monitorQuery = '';
       state.form = emptyTeacherForm();
       state.formReturnPage = 'teachers';
       state.overlay = null;
+      state.picker = null;
+      state.pickerQuery = '';
       state.playingVideo = false;
       state.resignTeacher = { cleared: false };
       state.appoint = { email: '', name: '', phone: '', error: '' };
@@ -1496,7 +1499,6 @@
       const isAdmin = state.role === 'admin';
       const isOwner = t.monitorId === CURRENT_MONITOR_ID;
       const canManageProfile = isAdmin || isOwner;
-      const canEditNotes = canEditTeacherProfile(t);
       const missing = missingMedia(t);
       const complete = missing.length === 0;
       const published = complete && t.status === 'active';
@@ -1572,21 +1574,6 @@
           <p class="mt-2 text-[12px] font-medium text-slate-500">最多 2000 字符 · 中英双语均为必填</p>
         </section>
 
-        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
-          <div class="flex items-center justify-between gap-2">
-            <div class="flex min-w-0 items-center gap-2">
-              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-indigo-600">${icon('notebook-pen', 'h-4 w-4')}</span>
-              <h2 class="truncate text-[16px] font-bold text-slate-900">教学备忘录</h2>
-              <span class="shrink-0 rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-600">Notes</span>
-            </div>
-            ${canEditNotes
-              ? `<button data-action="edit-note" ${offline ? 'disabled' : ''} class="inline-flex h-7 shrink-0 items-center rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-40">编辑备忘录</button>`
-              : `<span class="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-500">只读</span>`}
-          </div>
-          <p class="mt-2.5 whitespace-pre-line rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[14px] font-medium leading-relaxed text-slate-700">${esc(teacherNote(t))}</p>
-          ${canEditNotes ? '' : `<p class="mt-2 text-[12px] font-medium text-slate-500">仅负责班长可编辑教学备忘录</p>`}
-        </section>
-
         ${renderTeacherChangeLog(t)}
 
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
@@ -1641,7 +1628,7 @@
 
         ${t.status === 'resigned'
           ? `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
-              <p class="text-[12px] font-medium leading-relaxed text-slate-600">该老师已离职，档案只读可查；历史课酬正常归集，教学备忘录与变动日志永久保留。</p>
+              <p class="text-[12px] font-medium leading-relaxed text-slate-600">该老师已离职，档案只读可查；历史课酬正常归集，变动日志永久保留。</p>
             </div>`
           : (isAdmin || isOwner ? `<div class="flex gap-2">
               <button data-action="edit-teacher" data-id="${t.id}" ${offline ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>
@@ -1680,7 +1667,6 @@
       const albumGrid = tablet ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2';
       const media = f.media;
       const video = media.video;
-      const assignableMonitors = state.monitors.filter((m) => m.status === 'active' && !m.isPlatform && !m.isAdminSelf);
 
       return `<div class="flex h-full min-h-0 flex-col bg-slate-50">
         <div class="min-h-0 flex-1 overflow-y-auto">
@@ -1702,19 +1688,18 @@
                 </div>
                 <div class="${tablet ? 'grid grid-cols-2 gap-2' : 'space-y-3'}">
                   <div>
-                    <label for="fLevel" class="mb-1 block text-[14px] font-semibold text-slate-700">老师价位 <span class="text-rose-500">*</span></label>
-                    <select id="fLevel" class="${inputCls} font-medium">
-                      ${PRICE_TIERS.map((l) => `<option value="${l.id}" ${f.level === l.id ? 'selected' : ''}>${l.label}</option>`).join('')}
-                    </select>
+                    <div class="mb-1 block text-[14px] font-semibold text-slate-700">老师价位 <span class="text-rose-500">*</span></div>
+                    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="group" aria-label="老师价位">
+                      ${PRICE_TIERS.map((l) => `<button type="button" data-action="pick-form-level" data-level="${l.id}" aria-pressed="${f.level === l.id}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${f.level === l.id ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${l.label}</button>`).join('')}
+                    </div>
                   </div>
                   <div>
-                    <label for="fMonitorId" class="mb-1 block text-[14px] font-semibold text-slate-700">负责班长</label>
+                    <div class="mb-1 block text-[14px] font-semibold text-slate-700">负责班长</div>
                     ${isAdmin
-                      ? `<select id="fMonitorId" class="${inputCls} font-medium">
-                          <option value="${ADMIN_MONITOR_ID}" ${f.monitorId === ADMIN_MONITOR_ID ? 'selected' : ''}>⭐ 我直管</option>
-                          ${assignableMonitors.map((m) => `<option value="${m.id}" ${f.monitorId === m.id ? 'selected' : ''}>${esc(m.name)} 班</option>`).join('')}
-                          <option value="${PLATFORM_MONITOR_ID}" ${f.monitorId === PLATFORM_MONITOR_ID ? 'selected' : ''}>平台未划拨</option>
-                        </select>`
+                      ? `<button type="button" data-action="open-picker" data-kind="formMonitor" aria-label="选择负责班长" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 outline-none transition hover:bg-slate-50">
+                          <span class="truncate">${esc(formMonitorLabel(f.monitorId))}</span>
+                          ${icon('chevron-down', 'h-4 w-4 shrink-0 text-slate-500')}
+                        </button>`
                       : `<div class="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-[14px] font-medium text-slate-600">
                           <span class="truncate">${esc(monitorById(CURRENT_MONITOR_ID)?.name || 'Leo')}（当前班长，锁定）</span>
                           ${icon('lock', 'h-3.5 w-3.5 shrink-0 text-slate-500')}
@@ -1728,23 +1713,22 @@
                     <span class="shrink-0 rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">每位老师最多 1 个</span>
                   </div>
                   ${isAdmin
-                    ? `<div class="mt-2 grid grid-cols-2 gap-2">
+                    ? `<div class="mt-2 space-y-2">
                         <div>
-                          <label for="fPendingLevel" class="mb-1 block text-[12px] font-semibold text-slate-600">新价位</label>
-                          <select id="fPendingLevel" class="${inputCls} font-medium">
-                            <option value="">不调整</option>
-                            ${PRICE_TIERS.map((l) => `<option value="${l.id}" ${f.pendingLevel === l.id ? 'selected' : ''}>${l.label}</option>`).join('')}
-                          </select>
+                          <div class="mb-1 block text-[12px] font-semibold text-slate-600">新价位</div>
+                          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="group" aria-label="新价位">
+                            ${[{ id: '', label: '不调整' }, ...PRICE_TIERS].map((l) => `<button type="button" data-action="pick-form-pending-level" data-level="${l.id}" aria-pressed="${f.pendingLevel === l.id}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${f.pendingLevel === l.id ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${l.label}</button>`).join('')}
+                          </div>
                         </div>
                         <div>
-                          <label for="fPendingDate" class="mb-1 block text-[12px] font-semibold text-slate-600">生效日（轮次首日）</label>
-                          <select id="fPendingDate" ${f.pendingLevel ? '' : 'disabled'} class="${inputCls} font-medium disabled:bg-slate-100 disabled:text-slate-500">
-                            <option value="">请选择</option>
+                          <div class="mb-1 block text-[12px] font-semibold text-slate-600">生效日（轮次首日）</div>
+                          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 ${f.pendingLevel ? '' : 'opacity-60'}" role="group" aria-label="生效日">
                             ${ROUND_STARTS.map((d) => {
-                              const disabled = d < ROUND_SETTABLE_FROM;
-                              return `<option value="${d}" ${f.pendingDate === d ? 'selected' : ''} ${disabled ? 'disabled' : ''}>${d}（周一）${disabled ? ' · 已过续费窗口' : ' · 可设置'}</option>`;
+                              const locked = !f.pendingLevel || d < ROUND_SETTABLE_FROM;
+                              const active = f.pendingDate === d;
+                              return `<button type="button" data-action="pick-form-pending-date" data-date="${d}" ${locked ? 'disabled' : ''} title="${d}（周一）${d < ROUND_SETTABLE_FROM ? ' · 已过续费窗口' : ' · 可设置'}" aria-pressed="${active}" class="h-6 shrink-0 whitespace-nowrap rounded-full px-2 text-[11px] transition ${active ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'} disabled:cursor-not-allowed ${!active && locked ? 'disabled:bg-slate-100 disabled:text-slate-500' : ''}">${shortDate(d)} 周一</button>`;
                             }).join('')}
-                          </select>
+                          </div>
                         </div>
                       </div>
                       ${isEdit && f.pendingLevel && f.pendingDate ? `<div class="mt-1.5 flex items-center justify-between gap-2 rounded-lg border border-indigo-100 bg-indigo-50/70 px-2 py-1.5">
@@ -1995,13 +1979,16 @@
      * 弹层
      * ------------------------------------------------------------------ */
     function renderOverlay() {
+      return renderBaseOverlay() + renderPickerSheet();
+    }
+
+    function renderBaseOverlay() {
       if (!state.overlay) return '';
       if (state.overlay.type === 'qr') return renderQrModal();
       if (state.overlay.type === 'monitorWechatQr') return renderMonitorWechatQrModal();
       if (state.overlay.type === 'photo') return renderPhotoLightbox();
       if (state.overlay.type === 'avatarCrop') return renderAvatarCropModal();
       if (state.overlay.type === 'resignTeacher') return renderResignTeacherModal();
-      if (state.overlay.type === 'note') return renderNoteModal();
       if (state.overlay.type === 'appoint') return renderAppointModal();
       if (state.overlay.type === 'rebind') return renderRebindModal();
       if (state.overlay.type === 'dismiss') return renderDismissModal();
@@ -2009,6 +1996,74 @@
       if (state.overlay.type === 'singleRebind') return renderSingleRebindModal();
       if (state.overlay.type === 'dictAudit') return renderDictAuditModal();
       return '';
+    }
+
+    /* ------------------------------------------------------------------
+     * 底部抽屉选择器（替代原生 select · §8.1.2）
+     * ------------------------------------------------------------------ */
+    function pickerConfig() {
+      if (!state.picker) return null;
+      const kind = state.picker.kind;
+      if (kind === 'formMonitor') {
+        const options = [
+          { id: ADMIN_MONITOR_ID, label: '⭐ 我直管', meta: '管理员自管' },
+          ...state.monitors
+            .filter((m) => m.status === 'active' && !m.isPlatform && !m.isAdminSelf)
+            .map((m) => ({ id: m.id, label: `${m.name} 班`, meta: m.email || '' })),
+          { id: PLATFORM_MONITOR_ID, label: '平台未划拨', meta: '暂不分配班长' }
+        ];
+        return { title: '选择负责班长', options, selected: state.form.monitorId, action: 'pick-form-monitor' };
+      }
+      if (kind === 'rebindTarget') {
+        const m = monitorById(state.rebind.monitorId);
+        const options = state.monitors
+          .filter((x) => x.status === 'active' && !x.isPlatform && x.id !== (m && m.id))
+          .map((x) => ({ id: x.id, label: x.name, meta: x.email || '' }));
+        return { title: '选择接手班长', options, selected: state.rebind.targetId, action: 'pick-rebind-target' };
+      }
+      if (kind === 'singleRebindTarget') {
+        const t = teacherById(state.singleRebind.teacherId);
+        const options = state.monitors
+          .filter((x) => x.status === 'active' && !x.isPlatform && x.id !== (t && t.monitorId))
+          .map((x) => ({ id: x.id, label: x.name, meta: x.email || '' }));
+        return { title: '选择接手班长', options, selected: state.singleRebind.targetId, action: 'pick-single-rebind-target' };
+      }
+      return null;
+    }
+
+    function renderPickerSheet() {
+      const cfg = pickerConfig();
+      if (!cfg) return '';
+      const q = state.pickerQuery.trim().toLowerCase();
+      const options = q
+        ? cfg.options.filter((o) => `${o.label} ${o.meta}`.toLowerCase().includes(q))
+        : cfg.options;
+      return `<div class="absolute inset-0 z-[70]">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-picker"></div>
+        <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[85%] w-full max-w-[640px] flex-col rounded-t-2xl bg-white pb-2 shadow-2xl">
+          <div class="flex shrink-0 justify-center pt-2"><span class="h-1.5 w-10 rounded-full bg-slate-300"></span></div>
+          <div class="flex shrink-0 items-center justify-between gap-2 px-4 pb-1 pt-2">
+            <h3 class="text-[16px] font-bold text-slate-900">${cfg.title}</h3>
+            <button data-action="close-picker" class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="shrink-0 px-4 pb-2">
+            <div class="relative">
+              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
+              <input id="pickerSearch" value="${esc(state.pickerQuery)}" placeholder="搜索姓名或邮箱" class="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500" aria-label="搜索班长">
+            </div>
+          </div>
+          <div class="min-h-0 flex-1 overflow-y-auto px-2">
+            ${options.map((o) => `<button data-action="${cfg.action}" data-id="${o.id}" class="flex h-11 w-full items-center gap-2 rounded-xl px-3 text-left transition hover:bg-slate-50">
+              <span class="min-w-0 flex-1 truncate text-[14px] font-medium text-slate-800">${esc(o.label)}</span>
+              ${o.meta ? `<span class="max-w-[45%] truncate text-[12px] font-medium text-slate-500">${esc(o.meta)}</span>` : ''}
+              ${cfg.selected === o.id ? icon('check', 'h-4 w-4 shrink-0 text-slate-900') : ''}
+            </button>`).join('') || '<p class="px-3 py-6 text-center text-[14px] font-medium text-slate-500">没有匹配的班长</p>'}
+          </div>
+          <div class="shrink-0 border-t border-slate-200 px-4 pb-1 pt-2">
+            <button data-action="reset-picker" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition-colors hover:bg-slate-50 active:bg-slate-100">重置</button>
+          </div>
+        </div>
+      </div>`;
     }
 
     function modalShell(content) {
@@ -2202,24 +2257,10 @@
           <input id="resignCleared" type="checkbox" ${cleared ? 'checked' : ''} class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-indigo-600">
           <span class="text-[14px] font-medium text-slate-700">已完成全部交接确认<span class="mt-0.5 block text-[12px] font-medium text-slate-500">勾选后确认办理离职按钮可用${totalLeft ? '' : ' · 当前日期范围已无待交接项'}</span></span>
         </label>
-        <p class="mt-2.5 text-[12px] font-medium leading-relaxed text-slate-500">${future ? '到达离职日期后将自动转为已离职、下架选课大厅，并作废未生效调价计划；' : '离职后档案从选课大厅下架并作废未生效调价计划；'}历史已结课课酬正常纳入课酬单，历史课酬与教学备忘只读可查。</p>
+        <p class="mt-2.5 text-[12px] font-medium leading-relaxed text-slate-500">${future ? '到达离职日期后将自动转为已离职、下架选课大厅，并作废未生效调价计划；' : '离职后档案从选课大厅下架并作废未生效调价计划；'}历史课酬正常归集，变动日志永久保留。</p>
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition-colors hover:bg-slate-50 active:bg-slate-100">取消</button>
           <button id="btnResignTeacher" data-action="resign-confirm" ${cleared ? '' : 'disabled'} class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${future ? '确认预约离职' : '确认办理离职'}</button>
-        </div>
-      `);
-    }
-
-    function renderNoteModal() {
-      const t = teacherById(state.activeTeacherId);
-      if (!t || !canEditTeacherProfile(t)) return '';
-      return modalShell(`
-        ${modalHeader('编辑教学备忘录', `${t.name} · 纯文本备忘`)}
-        <textarea id="noteInput" rows="5" maxlength="500" placeholder="记录课上观察、家长沟通要点与下一步教学建议…" class="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(state.noteDraft)}</textarea>
-        <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">仅负责班长与管理员可查看和编辑，最多 500 字符。</p>
-        <div class="mt-3 flex gap-2">
-          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition-colors hover:bg-slate-50 active:bg-slate-100">取消</button>
-          <button data-action="save-note" class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700">保存备忘录</button>
         </div>
       `);
     }
@@ -2286,11 +2327,11 @@
       return modalShell(`
         ${modalHeader('批量改绑老师与小班', `原班长：${m.name} · 仅变更教务管辖，历史资金持有人不变`)}
         <div class="mt-3">
-          <label for="rebindTarget" class="mb-1 block text-[14px] font-semibold text-slate-700">接手班长 <span class="text-rose-500">*</span></label>
-          <select id="rebindTarget" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none focus:border-indigo-500">
-            <option value="">请选择在职班长</option>
-            ${targets.map((x) => `<option value="${x.id}" ${state.rebind.targetId === x.id ? 'selected' : ''}>${esc(x.name)} · ${esc(x.email)}</option>`).join('')}
-          </select>
+          <div class="mb-1 block text-[14px] font-semibold text-slate-700">接手班长 <span class="text-rose-500">*</span></div>
+          <button type="button" data-action="open-picker" data-kind="rebindTarget" aria-label="选择接手班长" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 outline-none transition hover:bg-slate-50">
+            <span class="truncate ${state.rebind.targetId ? '' : 'text-slate-500'}">${esc(state.rebind.targetId ? `${(monitorById(state.rebind.targetId) || {}).name || '—'} · ${(monitorById(state.rebind.targetId) || {}).email || ''}` : '请选择在职班长')}</span>
+            ${icon('chevron-down', 'h-4 w-4 shrink-0 text-slate-500')}
+          </button>
           ${targets.length ? '' : '<p class="mt-1 text-[12px] font-medium text-rose-600">暂无其他在职班长，无法改绑</p>'}
         </div>
         <div class="mt-3">
@@ -2450,11 +2491,11 @@
       return modalShell(`
         ${modalHeader('改绑负责班长', `${t.name} · 仅变更教务管辖，历史资金持有人不变`)}
         <div class="mt-3">
-          <label for="singleRebindTarget" class="mb-1 block text-[14px] font-semibold text-slate-700">接手班长 <span class="text-rose-500">*</span></label>
-          <select id="singleRebindTarget" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none focus:border-indigo-500">
-            <option value="">请选择在职班长</option>
-            ${targets.map((m) => `<option value="${m.id}" ${state.singleRebind.targetId === m.id ? 'selected' : ''}>${esc(m.name)} · ${esc(m.email)}</option>`).join('')}
-          </select>
+          <div class="mb-1 block text-[14px] font-semibold text-slate-700">接手班长 <span class="text-rose-500">*</span></div>
+          <button type="button" data-action="open-picker" data-kind="singleRebindTarget" aria-label="选择接手班长" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 outline-none transition hover:bg-slate-50">
+            <span class="truncate ${state.singleRebind.targetId ? '' : 'text-slate-500'}">${esc(state.singleRebind.targetId ? `${(monitorById(state.singleRebind.targetId) || {}).name || '—'} · ${(monitorById(state.singleRebind.targetId) || {}).email || ''}` : '请选择在职班长')}</span>
+            ${icon('chevron-down', 'h-4 w-4 shrink-0 text-slate-500')}
+          </button>
           ${targets.length ? '' : '<p class="mt-1 text-[12px] font-medium text-rose-600">暂无其他在职班长，无法改绑</p>'}
         </div>
         <div class="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">原班长：${esc((monitorById(t.monitorId) || {}).name || '—')} · 仅变更老师负责班长，不影响任何小班归属；历史购课单与课次资金归属不变。</div>
@@ -2496,6 +2537,8 @@
       state.page = 'teacherForm';
       state.navTab = 'ops';
       state.overlay = null;
+      state.picker = null;
+      state.pickerQuery = '';
       state.playingVideo = false;
       renderAll();
       updateIntroCounters();
@@ -2790,16 +2833,6 @@
       state.navTab = state.role === 'admin' ? 'settings' : 'ops';
       renderAll();
       showToast(`${t.name} 已办理离职 · 档案已下架 · 历史课酬正常纳入课酬单`);
-    }
-
-    function saveTeacherNote() {
-      const t = teacherById(state.activeTeacherId);
-      if (!t) return;
-      if (!canEditTeacherProfile(t)) return showToast('仅负责班长可编辑教学备忘录');
-      t.note = state.noteDraft.trim();
-      state.overlay = null;
-      renderAll();
-      showToast('教学备忘录已保存');
     }
 
     function submitAppoint() {
@@ -3325,14 +3358,6 @@
       if (action === 'monitor-teacher-slice') { state.monitorTeacherSlice = el.dataset.slice; return renderAll(); }
       if (action === 'admin-teacher-filter') { state.adminTeacherFilter = el.dataset.filter; return renderAll(); }
       if (action === 'admin-teacher-monitor') { state.adminTeacherMonitor = el.dataset.monitor; return renderAll(); }
-      if (action === 'edit-note') {
-        const t = teacherById(state.activeTeacherId);
-        if (!t) return;
-        state.noteDraft = t.note || '';
-        state.overlay = { type: 'note' };
-        return renderAll();
-      }
-      if (action === 'save-note') return saveTeacherNote();
       if (action === 'intro-lang') {
         state.introLang = el.dataset.lang;
         const t = teacherById(state.activeTeacherId);
@@ -3482,7 +3507,71 @@
         state.overlay = null;
         return renderAll();
       }
-      if (action === 'close-overlay') { state.overlay = null; return renderOverlayOnly(); }
+      if (action === 'open-picker') {
+        state.picker = { kind: el.dataset.kind };
+        state.pickerQuery = '';
+        return renderOverlayOnly();
+      }
+      if (action === 'close-picker') {
+        state.picker = null;
+        state.pickerQuery = '';
+        return renderOverlayOnly();
+      }
+      if (action === 'pick-form-level') {
+        state.form.level = el.dataset.level;
+        clearFormError();
+        return renderAll();
+      }
+      if (action === 'pick-form-pending-level') {
+        state.form.pendingLevel = el.dataset.level;
+        if (!el.dataset.level) state.form.pendingDate = '';
+        if (el.dataset.level && !state.form.pendingDate) state.form.pendingDate = ROUND_SETTABLE_FROM;
+        clearFormError();
+        return renderAll();
+      }
+      if (action === 'pick-form-pending-date') {
+        state.form.pendingDate = el.dataset.date;
+        clearFormError();
+        return renderAll();
+      }
+      if (action === 'pick-form-monitor') {
+        state.form.monitorId = el.dataset.id;
+        state.picker = null;
+        state.pickerQuery = '';
+        clearFormError();
+        return renderAll();
+      }
+      if (action === 'pick-rebind-target') {
+        state.rebind.targetId = el.dataset.id;
+        state.rebind.error = '';
+        state.picker = null;
+        state.pickerQuery = '';
+        renderAll();
+        updateRebindButton();
+        return;
+      }
+      if (action === 'pick-single-rebind-target') {
+        state.singleRebind.targetId = el.dataset.id;
+        state.singleRebind.error = '';
+        state.picker = null;
+        state.pickerQuery = '';
+        renderAll();
+        const btn = $('btnSingleRebind');
+        if (btn) btn.disabled = !state.singleRebind.targetId;
+        return;
+      }
+      if (action === 'reset-picker') {
+        const kind = state.picker && state.picker.kind;
+        if (kind === 'formMonitor') state.form.monitorId = ADMIN_MONITOR_ID;
+        if (kind === 'rebindTarget') { state.rebind.targetId = ''; state.rebind.error = ''; }
+        if (kind === 'singleRebindTarget') { state.singleRebind.targetId = ''; state.singleRebind.error = ''; }
+        state.picker = null;
+        state.pickerQuery = '';
+        renderAll();
+        if (kind === 'rebindTarget') updateRebindButton();
+        return;
+      }
+      if (action === 'close-overlay') { state.overlay = null; state.picker = null; state.pickerQuery = ''; return renderOverlayOnly(); }
       if (action === 'resign-confirm') return confirmResignTeacher();
       if (action === 'appoint-submit') return submitAppoint();
       if (action === 'rebind-submit') return submitRebind();
@@ -3497,6 +3586,16 @@
 
     document.getElementById('frame').addEventListener('input', (e) => {
       const id = e.target.id;
+      if (id === 'pickerSearch') {
+        state.pickerQuery = e.target.value;
+        renderOverlayOnly();
+        const input = $('pickerSearch');
+        if (input) {
+          input.focus();
+          input.setSelectionRange(state.pickerQuery.length, state.pickerQuery.length);
+        }
+        return;
+      }
       if (id === 'fTeacherName') { state.form.name = e.target.value; clearFormError(); }
       if (id === 'fIntroZh') {
         state.form.introZh = e.target.value;
@@ -3524,7 +3623,6 @@
         if ($('content')) $('content').scrollTop = scroll;
       }
       if (id === 'appointEmail') { state.appoint.email = e.target.value; state.appoint.error = ''; updateAppointMatch(); }
-      if (id === 'noteInput') { state.noteDraft = e.target.value; }
       if (id === 'appointName') { state.appoint.name = e.target.value; state.appoint.error = ''; updateAppointMatch(); }
       if (id === 'appointPhone') { state.appoint.phone = e.target.value; state.appoint.error = ''; updateAppointMatch(); }
       if (id === 'dismissConfirmName') { state.dismiss.confirmName = e.target.value; updateDismissButton(); }
@@ -3538,16 +3636,6 @@
 
     document.getElementById('frame').addEventListener('change', (e) => {
       const id = e.target.id;
-      if (id === 'fLevel') { state.form.level = e.target.value; clearFormError(); }
-      if (id === 'fMonitorId') { state.form.monitorId = e.target.value; clearFormError(); }
-      if (id === 'fPendingLevel') {
-        state.form.pendingLevel = e.target.value;
-        if (!e.target.value) state.form.pendingDate = '';
-        if (e.target.value && !state.form.pendingDate) state.form.pendingDate = ROUND_SETTABLE_FROM;
-        clearFormError();
-        renderAll();
-      }
-      if (id === 'fPendingDate') { state.form.pendingDate = e.target.value; clearFormError(); }
       if (id === 'fPhotoInput') handleAlbumFiles(e.target.files);
       if (id === 'fQrInput') handleQrFile(e.target.files && e.target.files[0]);
       if (id === 'appointWechatQrInput') handleMonitorWechatQrFile(e.target.files && e.target.files[0]);
@@ -3561,11 +3649,6 @@
         state.resignTeacher.cleared = e.target.checked;
         const btn = $('btnResignTeacher');
         if (btn) btn.disabled = !e.target.checked;
-      }
-      if (id === 'rebindTarget') {
-        state.rebind.targetId = e.target.value;
-        state.rebind.error = '';
-        updateRebindButton();
       }
       if (e.target.matches('[data-rebind-teacher]')) {
         const tid = e.target.dataset.rebindTeacher;
@@ -3592,12 +3675,6 @@
         state.dismiss.eduCleared = e.target.checked;
         state.dismiss.error = '';
         renderOverlayOnly();
-      }
-      if (id === 'singleRebindTarget') {
-        state.singleRebind.targetId = e.target.value;
-        state.singleRebind.error = '';
-        const btn = $('btnSingleRebind');
-        if (btn) btn.disabled = !e.target.value;
       }
     });
 
@@ -3675,10 +3752,36 @@
       showToast._timer = setTimeout(() => toast.classList.add('hidden'), 2400);
     }
 
+    /* 原型演示导航折叠（§8.5） */
+    const NAV_COLLAPSE_KEY = 'dream_proto_nav_collapsed';
+
+    function navCollapsedPref() {
+      try { return localStorage.getItem(NAV_COLLAPSE_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    function saveNavCollapsed(collapsed) {
+      try { localStorage.setItem(NAV_COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (e) { /* 静默降级 */ }
+    }
+
+    function applyNavCollapsed(collapsed) {
+      const header = $('console');
+      const mini = document.querySelector('[data-console-mini]');
+      if (!header || !mini) return;
+      header.classList.toggle('hidden', collapsed);
+      mini.classList.toggle('hidden', !collapsed);
+      mini.classList.toggle('flex', collapsed);
+    }
+
+    const consoleCollapseBtn = document.querySelector('[data-console-collapse]');
+    const consoleExpandBtn = document.querySelector('[data-console-expand]');
+    if (consoleCollapseBtn) consoleCollapseBtn.addEventListener('click', () => { saveNavCollapsed(true); applyNavCollapsed(true); });
+    if (consoleExpandBtn) consoleExpandBtn.addEventListener('click', () => { saveNavCollapsed(false); applyNavCollapsed(false); });
+
     /* ------------------------------------------------------------------
      * 首屏
      * ------------------------------------------------------------------ */
     renderAll();
+    applyNavCollapsed(navCollapsedPref());
 
     const focusTarget = params.get('focus');
     if (focusTarget) {

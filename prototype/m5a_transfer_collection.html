@@ -66,11 +66,17 @@
 
       <button data-action="reset" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
 
-      <a href="../docs/prd/m5a_transfer_collection.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
+      <a href="../docs/prd/m5a_transfer_collection.md" target="_blank" rel="noopener" class="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
         <i data-lucide="file-text" class="h-3.5 w-3.5"></i>PRD 规范
       </a>
+
+      <button type="button" data-console-collapse aria-label="收起演示导航" class="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">▲ 收起</button>
     </div>
   </header>
+
+  <div data-console-mini class="sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+    <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+  </div>
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
@@ -107,33 +113,37 @@
       note: 'LEO-20261110'
     };
 
-    /* 课次明细：student 为实际上课学员，parent 为出资家长；funderStudent 用于更换实际上课学员后归属原出资学员 */
-    const LN = (student, parent, teacher, teacherLevel, kind, date, weekday, time, points, extra = {}) =>
-      ({ student, parent, teacher, teacherLevel, kind, date, weekday, time, points, ...extra });
+    /* 课次明细：student 为实际上课学员，parent 为出资家长；funderStudent 用于更换实际上课学员后归属原出资学员
+     * 1v1 单节待上交积分 = 该 TS 价位快照（直接取定级中的 16 / 18 / 21），不做任何折算；
+     * 小班课继续使用录入的单节待上交积分（录入多少即上交多少）。 */
+    const LN = (student, parent, teacher, teacherLevel, kind, date, weekday, time, points, extra = {}) => {
+      const snapshot = kind === '1v1' ? parseInt(teacherLevel, 10) : points;
+      return { student, parent, teacher, teacherLevel, kind, date, weekday, time, points: snapshot, ...extra };
+    };
 
     const INIT_TS = [
-      { id: 'ts_alice0001', date: '11-09', weekday: '周日', time: '16:00-16:25', student: 'AliceZ12', nickname: '跳跳', englishName: 'Alice Zheng', parent: 'Amy', teacher: 'David Miller', kind: '1v1', points: 220, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Leo', settledAt: '11-10 02:00', anomaly: '老师旷课', orderNo: 'ORD2611010001', orderLessons: 8, anomalyNote: '家长端反馈老师停电未进 ClassIn 教室' },
-      { id: 'ts_charl0001', date: '11-09', weekday: '周日', time: '17:00-17:50', student: 'CharlieZ08', nickname: '查理', englishName: 'Charlie Zhang', parent: 'Amy', teacher: 'Lily Chen', kind: '小班课', className: 'KET 冲刺班', points: 160, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Leo', settledAt: '11-10 02:00', orderNo: 'ORD2610260004', orderLessons: 12 },
-      { id: 'ts_bob000001', date: '10-26', weekday: '周一', time: '19:00-19:25', student: 'BobZ10', nickname: '棒棒', englishName: 'Bob Zhou', parent: 'Ben', teacher: 'Lily Chen', kind: '1v1', points: 260, status: 'TRANSFER_LOCKED', orderId: 'tro_leo00002', monitor: 'Leo', orderNo: 'ORD2610120002', orderLessons: 12 },
-      { id: 'ts_tom000001', date: '10-19', weekday: '周一', time: '18:00-18:25', student: 'AliceZ12', nickname: '跳跳', englishName: 'Alice Zheng', parent: 'Amy', teacher: 'David Miller', kind: '1v1', points: 260, status: 'COLLECTED', orderId: 'tro_leo00003', monitor: 'Leo', orderNo: 'ORD2610050009', orderLessons: 8 },
-      { id: 'ts_daisy0001', date: '11-04', weekday: '周二', time: '20:00-20:50', student: 'DaisyL09', nickname: '黛西', englishName: 'Daisy Lin', parent: 'Ivy', teacher: 'Kevin Zhou', kind: '小班课', className: 'Daisy 口语班', points: 150, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Leo', settledAt: '11-10 02:00', anomaly: '家长反馈未履约', orderNo: 'ORD2610190005', orderLessons: 6, anomalyNote: '家长反馈老师未按约进入教室，课程未开始' },
-      { id: 'ts_ethan0001', date: '11-05', weekday: '周三', time: '18:30-18:55', student: 'EthanW12', nickname: '伊森', englishName: 'Ethan Wang', parent: 'Nina', teacher: 'David Miller', kind: '1v1', points: 200, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Leo', settledAt: '11-10 02:00', anomaly: '老师旷课', orderNo: 'ORD2610270003', orderLessons: 10, anomalyNote: '老师端设备故障缺席，家长已在群内反馈' },
-      { id: 'ts_roll000001', date: '11-09', weekday: '周日', time: '15:00-15:25', student: 'TomZ11', nickname: '汤姆', englishName: 'Tom Zhao', parent: 'Helen', teacher: 'David Miller', kind: '1v1', points: 220, status: 'CANCELLED', monitor: 'Leo', settledAt: '11-10 02:00', anomaly: '老师旷课', orderNo: 'ORD2611010007', orderLessons: 8, anomalyNote: '家长端反馈老师停电未进 ClassIn 教室', rebornTsId: 'TS2611180099' },
-      { id: 'ts_amy000001', date: '11-10', weekday: '周一', time: '19:00-19:25', student: 'HankQ05', nickname: '汉克', englishName: 'Hank Qian', parent: 'Grace', teacher: 'David Miller', kind: '1v1', points: 220, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Amy', settledAt: '11-10 02:00', anomaly: '家长反馈未履约', orderNo: 'ORD2611010012', orderLessons: 8, anomalyNote: '家长反馈老师迟到 20 分钟，课程实际未开始' },
-      { id: 'ts_mia000001', date: '11-10', weekday: '周一', time: '18:00-18:25', student: 'IrisM04', nickname: '艾瑞斯', englishName: 'Iris Ma', parent: 'Judy', teacher: 'Lily Chen', kind: '1v1', points: 180, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Mia', settledAt: '11-10 02:00', orderNo: 'ORD2611020002', orderLessons: 10 },
-      { id: 'ts_self000001', date: '11-10', weekday: '周一', time: '20:00-20:25', student: 'NoraP03', nickname: '诺拉', englishName: 'Nora Peng', parent: 'Lily', teacher: 'David Miller', kind: '1v1', points: 200, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Sarah', settledAt: '11-10 02:00', orderNo: 'ORD2611030005', orderLessons: 8 },
-      { id: 'ts_draft00001', date: '11-08', weekday: '周日', time: '17:00-17:25', student: 'JasonK02', nickname: '杰森', englishName: 'Jason Kuang', parent: 'Fiona', teacher: 'Kevin Zhou', kind: '1v1', points: 200, status: 'TRANSFER_LOCKED', orderId: 'tro_leo00001', monitor: 'Leo', settledAt: '11-09 02:00', orderNo: 'ORD2610200011', orderLessons: 8 },
-      { id: 'ts_coll000001', date: '11-08', weekday: '周日', time: '11:00-11:25', student: 'WendyY07', nickname: '温蒂', englishName: 'Wendy Ye', parent: 'Nina', teacher: 'Kevin Zhou', kind: '1v1', points: 200, status: 'COLLECTED', trCode: 'TR-20261109-005', monitor: 'Amy', settledAt: '11-09 02:00', orderNo: 'ORD2610060007', orderLessons: 8 }
+      { id: 'ts_alice0001', date: '11-09', weekday: '周日', time: '16:00-16:25', student: 'AliceZ12', nickname: '跳跳', englishName: 'Alice Zheng', parent: 'Amy', teacher: 'David Miller', kind: '1v1', points: 21, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Leo', settledAt: '11-10 02:00', anomaly: '老师旷课', orderNo: 'ORD2611010001', orderLessons: 8, anomalyNote: '家长端反馈老师停电未进 ClassIn 教室' },
+      { id: 'ts_charl0001', date: '11-09', weekday: '周日', time: '17:00-17:50', student: 'CharlieZ08', nickname: '查理', englishName: 'Charlie Zhang', parent: 'Amy', teacher: 'Lily Chen', kind: '小班课', className: 'KET 冲刺班', points: 50, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Leo', settledAt: '11-10 02:00', orderNo: 'ORD2610260004', orderLessons: 12 },
+      { id: 'ts_bob000001', date: '10-26', weekday: '周一', time: '19:00-19:25', student: 'BobZ10', nickname: '棒棒', englishName: 'Bob Zhou', parent: 'Ben', teacher: 'Lily Chen', kind: '1v1', points: 18, status: 'TRANSFER_LOCKED', orderId: 'tro_leo00002', monitor: 'Leo', orderNo: 'ORD2610120002', orderLessons: 12 },
+      { id: 'ts_tom000001', date: '10-19', weekday: '周一', time: '18:00-18:25', student: 'AliceZ12', nickname: '跳跳', englishName: 'Alice Zheng', parent: 'Amy', teacher: 'David Miller', kind: '1v1', points: 21, status: 'COLLECTED', orderId: 'tro_leo00003', monitor: 'Leo', orderNo: 'ORD2610050009', orderLessons: 8 },
+      { id: 'ts_daisy0001', date: '11-04', weekday: '周二', time: '20:00-20:50', student: 'DaisyL09', nickname: '黛西', englishName: 'Daisy Lin', parent: 'Ivy', teacher: 'Kevin Zhou', kind: '小班课', className: 'Daisy 口语班', points: 48, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Leo', settledAt: '11-10 02:00', anomaly: '家长反馈未履约', orderNo: 'ORD2610190005', orderLessons: 6, anomalyNote: '家长反馈老师未按约进入教室，课程未开始' },
+      { id: 'ts_ethan0001', date: '11-05', weekday: '周三', time: '18:30-18:55', student: 'EthanW12', nickname: '伊森', englishName: 'Ethan Wang', parent: 'Nina', teacher: 'David Miller', kind: '1v1', points: 21, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Leo', settledAt: '11-10 02:00', anomaly: '老师旷课', orderNo: 'ORD2610270003', orderLessons: 10, anomalyNote: '老师端设备故障缺席，家长已在群内反馈' },
+      { id: 'ts_roll000001', date: '11-09', weekday: '周日', time: '15:00-15:25', student: 'TomZ11', nickname: '汤姆', englishName: 'Tom Zhao', parent: 'Helen', teacher: 'David Miller', kind: '1v1', points: 21, status: 'CANCELLED', monitor: 'Leo', settledAt: '11-10 02:00', anomaly: '老师旷课', orderNo: 'ORD2611010007', orderLessons: 8, anomalyNote: '家长端反馈老师停电未进 ClassIn 教室', rebornTsId: 'TS2611180099' },
+      { id: 'ts_amy000001', date: '11-10', weekday: '周一', time: '19:00-19:25', student: 'HankQ05', nickname: '汉克', englishName: 'Hank Qian', parent: 'Grace', teacher: 'David Miller', kind: '1v1', points: 21, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Amy', settledAt: '11-10 02:00', anomaly: '家长反馈未履约', orderNo: 'ORD2611010012', orderLessons: 8, anomalyNote: '家长反馈老师迟到 20 分钟，课程实际未开始' },
+      { id: 'ts_mia000001', date: '11-10', weekday: '周一', time: '18:00-18:25', student: 'IrisM04', nickname: '艾瑞斯', englishName: 'Iris Ma', parent: 'Judy', teacher: 'Lily Chen', kind: '1v1', points: 18, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Mia', settledAt: '11-10 02:00', orderNo: 'ORD2611020002', orderLessons: 10 },
+      { id: 'ts_self000001', date: '11-10', weekday: '周一', time: '20:00-20:25', student: 'NoraP03', nickname: '诺拉', englishName: 'Nora Peng', parent: 'Lily', teacher: 'David Miller', kind: '1v1', points: 21, status: 'FINISHED_PENDING_SETTLEMENT', monitor: 'Sarah', settledAt: '11-10 02:00', orderNo: 'ORD2611030005', orderLessons: 8 },
+      { id: 'ts_draft00001', date: '11-08', weekday: '周日', time: '17:00-17:25', student: 'JasonK02', nickname: '杰森', englishName: 'Jason Kuang', parent: 'Fiona', teacher: 'Kevin Zhou', kind: '1v1', points: 16, status: 'TRANSFER_LOCKED', orderId: 'tro_leo00001', monitor: 'Leo', settledAt: '11-09 02:00', orderNo: 'ORD2610200011', orderLessons: 8 },
+      { id: 'ts_coll000001', date: '11-08', weekday: '周日', time: '11:00-11:25', student: 'WendyY07', nickname: '温蒂', englishName: 'Wendy Ye', parent: 'Nina', teacher: 'Kevin Zhou', kind: '1v1', points: 16, status: 'COLLECTED', trCode: 'TR-20261109-005', monitor: 'Amy', settledAt: '11-09 02:00', orderNo: 'ORD2610060007', orderLessons: 8 }
     ];
 
     /* 班长名下尚未结课的有效托管 TS（仅含待排期 + 已排期未结，严禁包含已结课/已作废/已入账） */
     const INIT_CUSTODY_TS = [
-      { id: 'ts_cus000001', holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '1v1', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', points: 220, date: '待排期', time: '购买包剩余' },
-      { id: 'ts_cus000002', holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '1v1', student: 'BobZ10', parent: 'Ben', teacher: 'Lily Chen', points: 180, date: '待排期', time: '购买包剩余' },
-      { id: 'ts_cus000003', holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '小班课', student: null, className: 'KET 冲刺班', parent: '小班待排池', teacher: 'David Miller', points: 160, date: '待排期', time: '50 分钟双网格' },
-      { id: 'ts_cus000004', holderId: 'leo', status: 'SCHEDULED', kind: '1v1', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', points: 220, date: '11-11 周三', time: '18:00-18:25' },
-      { id: 'ts_cus000005', holderId: 'leo', status: 'SCHEDULED', kind: '1v1', student: 'TomZ11', parent: 'Helen', teacher: 'Kevin Zhou', points: 220, date: '11-12 周四', time: '19:00-19:25' },
-      { id: 'ts_cus000006', holderId: 'leo', status: 'SCHEDULED', kind: '小班课', student: 'CharlieZ08', className: 'KET 冲刺班', parent: 'Amy', teacher: 'David Miller', points: 160, date: '11-12 周四', time: '17:00-17:50' }
+      { id: 'ts_cus000001', holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '1v1', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', points: 21, date: '待排期', time: '购买包剩余' },
+      { id: 'ts_cus000002', holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '1v1', student: 'BobZ10', parent: 'Ben', teacher: 'Lily Chen', points: 18, date: '待排期', time: '购买包剩余' },
+      { id: 'ts_cus000003', holderId: 'leo', status: 'PENDING_SCHEDULE', kind: '小班课', student: null, className: 'KET 冲刺班', parent: '小班待排池', teacher: 'David Miller', points: 50, date: '待排期', time: '50 分钟双网格' },
+      { id: 'ts_cus000004', holderId: 'leo', status: 'SCHEDULED', kind: '1v1', student: 'AliceZ12', parent: 'Amy', teacher: 'David Miller', points: 21, date: '11-11 周三', time: '18:00-18:25' },
+      { id: 'ts_cus000005', holderId: 'leo', status: 'SCHEDULED', kind: '1v1', student: 'TomZ11', parent: 'Helen', teacher: 'Kevin Zhou', points: 16, date: '11-12 周四', time: '19:00-19:25' },
+      { id: 'ts_cus000006', holderId: 'leo', status: 'SCHEDULED', kind: '小班课', student: 'CharlieZ08', className: 'KET 冲刺班', parent: 'Amy', teacher: 'David Miller', points: 50, date: '11-12 周四', time: '17:00-17:50' }
     ];
 
     const INIT_ORDERS = [
@@ -147,29 +157,29 @@
           { status: 'DRAFT', label: '管理员驳回退回草稿 (DRAFT)：打款回单金额模糊，请补充清晰转账截图后重新提交', by: 'Sarah', time: '11-09 18:20', tone: 'failed' }
         ],
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '11-02', '周一', '18:00-18:25', 220),
-          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '11-04', '周三', '18:00-18:25', 220),
-          LN('AliceZ12', 'Amy', 'Lily Chen', '18积分', '1v1', '11-06', '周五', '19:00-19:25', 220),
-          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '11-02', '周一', '19:00-19:25', 180),
-          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '11-04', '周三', '19:00-19:25', 180),
-          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '11-07', '周六', '10:00-10:25', 180),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-03', '周二', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-05', '周四', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-07', '周六', '14:00-14:50', 160),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '11-03', '周二', '20:00-20:50', 150),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '11-05', '周四', '20:00-20:50', 150),
-          LN('EthanW12', 'Nina', 'David Miller', '21积分', '1v1', '11-03', '周二', '18:30-18:55', 200),
-          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '11-06', '周五', '18:30-18:55', 200),
-          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '11-08', '周日', '10:00-10:25', 220),
-          LN('WendyY07', 'Nina', 'Lily Chen', '18积分', '小班课', '11-08', '周日', '11:00-11:50', 140),
-          LN('BobZ10', 'Amy', 'Kevin Zhou', '16积分', '1v1', '11-04', '周三', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller' }),
-          LN('BobZ10', 'Amy', 'Kevin Zhou', '16积分', '1v1', '11-06', '周五', '20:00-20:25', 220, { funderStudent: 'AliceZ12', subFor: 'David Miller' }),
-          LN('JasonK02', 'Fiona', 'Kevin Zhou', '16积分', '1v1', '11-08', '周日', '17:00-17:25', 200)
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '11-02', '周一', '18:00-18:25', 21),
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '11-04', '周三', '18:00-18:25', 21),
+          LN('AliceZ12', 'Amy', 'Lily Chen', '18积分', '1v1', '11-06', '周五', '19:00-19:25', 18),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '11-02', '周一', '19:00-19:25', 18),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '11-04', '周三', '19:00-19:25', 18),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '11-07', '周六', '10:00-10:25', 18),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-03', '周二', '17:00-17:50', 50),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-05', '周四', '17:00-17:50', 50),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-07', '周六', '14:00-14:50', 50),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '11-03', '周二', '20:00-20:50', 48),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '11-05', '周四', '20:00-20:50', 48),
+          LN('EthanW12', 'Nina', 'David Miller', '21积分', '1v1', '11-03', '周二', '18:30-18:55', 21),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '11-06', '周五', '18:30-18:55', 16),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '11-08', '周日', '10:00-10:25', 16),
+          LN('WendyY07', 'Nina', 'Lily Chen', '18积分', '小班课', '11-08', '周日', '11:00-11:50', 46),
+          LN('BobZ10', 'Amy', 'Kevin Zhou', '16积分', '1v1', '11-04', '周三', '20:00-20:25', 16, { funderStudent: 'AliceZ12', subFor: 'David Miller' }),
+          LN('BobZ10', 'Amy', 'Kevin Zhou', '16积分', '1v1', '11-06', '周五', '20:00-20:25', 16, { funderStudent: 'AliceZ12', subFor: 'David Miller' }),
+          LN('JasonK02', 'Fiona', 'Kevin Zhou', '16积分', '1v1', '11-08', '周日', '17:00-17:25', 16)
         ],
         groupClasses: [
-          { name: 'KET 冲刺班', max: 6, count: 3, unit: 160, salary: 96 },
-          { name: 'Daisy 口语班', max: 4, count: 2, unit: 150, salary: 120, terminated: true, terminatedAt: '11-05' },
-          { name: 'Starter 启蒙班', max: 6, count: 1, unit: 140, salary: 96 }
+          { name: 'KET 冲刺班', max: 6, count: 3, unit: 50, salary: 30 },
+          { name: 'Daisy 口语班', max: 4, count: 2, unit: 48, salary: 30, terminated: true, terminatedAt: '11-05' },
+          { name: 'Starter 启蒙班', max: 6, count: 1, unit: 46, salary: 28 }
         ]
       },
       {
@@ -180,29 +190,29 @@
           { status: 'PENDING_CONFIRMATION', label: '班长上传凭证并提交审核 (PENDING_CONFIRMATION)', by: 'Leo', time: '11-02 09:42', tone: 'done' }
         ],
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-26', '周一', '18:00-18:25', 300),
-          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-28', '周三', '18:00-18:25', 300),
-          LN('AliceZ12', 'Amy', 'Lily Chen', '18积分', '1v1', '10-30', '周五', '18:00-18:25', 300),
-          LN('AliceZ12', 'Amy', 'Lily Chen', '18积分', '1v1', '11-01', '周日', '10:00-10:25', 270),
-          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-26', '周一', '19:00-19:25', 260),
-          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-28', '周三', '19:00-19:25', 260),
-          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-31', '周六', '10:00-10:25', 260),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-27', '周二', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-29', '周四', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-31', '周六', '14:00-14:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-01', '周日', '14:00-14:50', 160),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-27', '周二', '20:00-20:50', 150),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-29', '周四', '20:00-20:50', 150),
-          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '10-28', '周三', '18:30-18:55', 240),
-          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '10-30', '周五', '18:30-18:55', 240),
-          LN('WendyY07', 'Nina', 'Kevin Zhou', '16积分', '小班课', '10-27', '周二', '16:00-16:50', 155),
-          LN('WendyY07', 'Nina', 'Kevin Zhou', '16积分', '小班课', '10-29', '周四', '16:00-16:50', 155),
-          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '11-01', '周日', '11:00-11:25', 240, { subFor: 'David Miller' })
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-26', '周一', '18:00-18:25', 21),
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-28', '周三', '18:00-18:25', 21),
+          LN('AliceZ12', 'Amy', 'Lily Chen', '18积分', '1v1', '10-30', '周五', '18:00-18:25', 18),
+          LN('AliceZ12', 'Amy', 'Lily Chen', '18积分', '1v1', '11-01', '周日', '10:00-10:25', 18),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-26', '周一', '19:00-19:25', 18),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-28', '周三', '19:00-19:25', 18),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-31', '周六', '10:00-10:25', 18),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-27', '周二', '17:00-17:50', 50),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-29', '周四', '17:00-17:50', 50),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-31', '周六', '14:00-14:50', 50),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '11-01', '周日', '14:00-14:50', 50),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-27', '周二', '20:00-20:50', 48),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-29', '周四', '20:00-20:50', 48),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '10-28', '周三', '18:30-18:55', 16),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '10-30', '周五', '18:30-18:55', 16),
+          LN('WendyY07', 'Nina', 'Kevin Zhou', '16积分', '小班课', '10-27', '周二', '16:00-16:50', 46),
+          LN('WendyY07', 'Nina', 'Kevin Zhou', '16积分', '小班课', '10-29', '周四', '16:00-16:50', 46),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '11-01', '周日', '11:00-11:25', 16, { subFor: 'David Miller' })
         ],
         groupClasses: [
-          { name: 'KET 冲刺班', max: 6, count: 4, unit: 160, salary: 96 },
-          { name: '口语进阶班', max: 4, count: 2, unit: 150, salary: 120 },
-          { name: '读写精讲班', max: 4, count: 2, unit: 155, salary: 120 }
+          { name: 'KET 冲刺班', max: 6, count: 4, unit: 50, salary: 30 },
+          { name: '口语进阶班', max: 4, count: 2, unit: 48, salary: 30 },
+          { name: '读写精讲班', max: 4, count: 2, unit: 46, salary: 28 }
         ]
       },
       {
@@ -215,49 +225,49 @@
           { status: 'COMPLETED', label: '平台确认收款入账 (COMPLETED)', by: 'Sarah', time: '10-27 10:30', tone: 'done' }
         ],
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-19', '周一', '18:00-18:25', 260),
-          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-21', '周三', '18:00-18:25', 260),
-          LN('AliceZ12', 'Amy', 'Kevin Zhou', '16积分', '1v1', '10-24', '周六', '10:00-10:25', 260),
-          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-19', '周一', '19:00-19:25', 240),
-          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-22', '周四', '19:00-19:25', 240),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-20', '周二', '17:00-17:50', 160),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-23', '周五', '17:00-17:50', 160),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-21', '周三', '20:00-20:50', 150),
-          LN('EthanW12', 'Nina', 'Lily Chen', '18积分', '1v1', '10-20', '周二', '18:30-18:55', 250),
-          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '10-23', '周五', '18:30-18:55', 250),
-          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '10-25', '周日', '11:00-11:25', 250, { subFor: 'Lily Chen' })
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-19', '周一', '18:00-18:25', 21),
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-21', '周三', '18:00-18:25', 21),
+          LN('AliceZ12', 'Amy', 'Kevin Zhou', '16积分', '1v1', '10-24', '周六', '10:00-10:25', 16),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-19', '周一', '19:00-19:25', 18),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-22', '周四', '19:00-19:25', 18),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-20', '周二', '17:00-17:50', 50),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-23', '周五', '17:00-17:50', 50),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-21', '周三', '20:00-20:50', 48),
+          LN('EthanW12', 'Nina', 'Lily Chen', '18积分', '1v1', '10-20', '周二', '18:30-18:55', 18),
+          LN('EthanW12', 'Nina', 'Kevin Zhou', '16积分', '1v1', '10-23', '周五', '18:30-18:55', 16),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '10-25', '周日', '11:00-11:25', 16, { subFor: 'Lily Chen' })
         ],
         groupClasses: [
-          { name: 'KET 冲刺班', max: 6, count: 2, unit: 160, salary: 100 },
-          { name: '口语表达班', max: 4, count: 1, unit: 150, salary: 120 }
+          { name: 'KET 冲刺班', max: 6, count: 2, unit: 50, salary: 30 },
+          { name: '口语表达班', max: 4, count: 1, unit: 48, salary: 30 }
         ]
       },
       {
         id: 'tro_leo00004', code: 'TR-20261019-004', type: 'WEEKLY_SETTLEMENT', monitor: 'Leo', week: '2026-W42', period: '10.12 - 10.18',
         status: 'CANCELLED', time: '10-19 09:15', generatedAt: '10-19 03:30', vouchers: [{ name: 'cmb-1019-0915.jpg', size: '0.9MB' }],
-        reject: '到账 1,570 元，与单据差 200 元 · 存疑课次 10-14 18:30 金额核对后重打包，本草稿已作废',
+        reject: '到账 263 积分，与单据差 21 积分 · 存疑课次 10-14 18:30 金额核对后重打包，本草稿已作废',
         rejectTime: '10-20 11:05',
         history: [
           { status: 'DRAFT', label: '系统跑批生成草稿 (DRAFT)', by: 'dream-worker', time: '10-19 03:30', tone: 'done' },
           { status: 'PENDING_CONFIRMATION', label: '班长提交审核 (PENDING_CONFIRMATION)', by: 'Leo', time: '10-19 09:15', tone: 'done' },
-          { status: 'DRAFT', label: '管理员驳回退回草稿 (DRAFT)：到账 1,570 元，与单据差 200 元', by: 'Sarah', time: '10-20 11:05', tone: 'failed' },
+          { status: 'DRAFT', label: '管理员驳回退回草稿 (DRAFT)：到账 263 积分，与单据差 21 积分', by: 'Sarah', time: '10-20 11:05', tone: 'failed' },
           { status: 'CANCELLED', label: '经办人作废草稿 (CANCELLED)，释放课次明细', by: 'Leo', time: '10-20 14:10', tone: 'failed' }
         ],
         lines: [
-          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-12', '周一', '18:00-18:25', 240),
-          LN('AliceZ12', 'Amy', 'Kevin Zhou', '16积分', '1v1', '10-15', '周四', '18:00-18:25', 240),
-          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-12', '周一', '19:00-19:25', 240),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-13', '周二', '20:00-20:50', 150),
-          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-16', '周五', '20:00-20:50', 150),
-          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-14', '周三', '17:00-17:50', 160),
-          LN('WendyY07', 'Nina', 'Lily Chen', '18积分', '小班课', '10-17', '周六', '16:00-16:50', 140),
-          LN('EthanW12', 'Nina', 'David Miller', '21积分', '1v1', '10-14', '周三', '18:30-18:55', 240),
-          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '10-18', '周日', '11:00-11:25', 240, { subFor: 'David Miller' })
+          LN('AliceZ12', 'Amy', 'David Miller', '21积分', '1v1', '10-12', '周一', '18:00-18:25', 21),
+          LN('AliceZ12', 'Amy', 'Kevin Zhou', '16积分', '1v1', '10-15', '周四', '18:00-18:25', 16),
+          LN('BobZ10', 'Ben', 'Lily Chen', '18积分', '1v1', '10-12', '周一', '19:00-19:25', 18),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-13', '周二', '20:00-20:50', 48),
+          LN('CharlieZ08', 'Amy', 'David Miller', '21积分', '小班课', '10-16', '周五', '20:00-20:50', 48),
+          LN('DaisyL09', 'Ivy', 'Lily Chen', '18积分', '小班课', '10-14', '周三', '17:00-17:50', 50),
+          LN('WendyY07', 'Nina', 'Lily Chen', '18积分', '小班课', '10-17', '周六', '16:00-16:50', 46),
+          LN('EthanW12', 'Nina', 'David Miller', '21积分', '1v1', '10-14', '周三', '18:30-18:55', 21),
+          LN('TomZ11', 'Helen', 'Kevin Zhou', '16积分', '1v1', '10-18', '周日', '11:00-11:25', 16, { subFor: 'David Miller' })
         ],
         groupClasses: [
-          { name: '口语进阶班', max: 4, count: 2, unit: 150, salary: 120 },
-          { name: 'KET 冲刺班', max: 6, count: 1, unit: 160, salary: 105 },
-          { name: '读写精讲班', max: 5, count: 1, unit: 140, salary: 105 }
+          { name: '口语进阶班', max: 4, count: 2, unit: 48, salary: 30 },
+          { name: 'KET 冲刺班', max: 6, count: 1, unit: 50, salary: 30 },
+          { name: '读写精讲班', max: 5, count: 1, unit: 46, salary: 28 }
         ]
       }
     ];
@@ -1314,7 +1324,7 @@
               <span class="text-[16px] font-bold">移交完成</span>
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2">
-              <div class="rounded-xl bg-white p-3"><div class="text-[12px] font-semibold text-slate-600">移交资金</div><div class="mt-0.5 font-mono text-[18px] font-bold text-slate-900">4,400</div></div>
+              <div class="rounded-xl bg-white p-3"><div class="text-[12px] font-semibold text-slate-600">移交资金</div><div class="mt-0.5 font-mono text-[18px] font-bold text-slate-900">880</div></div>
               <div class="rounded-xl bg-white p-3"><div class="text-[12px] font-semibold text-slate-600">改绑课次</div><div class="mt-0.5 font-mono text-[18px] font-bold text-slate-900">20 节</div></div>
             </div>
             <div class="mt-3 flex items-center justify-center gap-3 rounded-xl bg-white p-3 text-[14px]">
@@ -1344,11 +1354,11 @@
             ${chip('待平台确认', 'amber')}
           </div>
           <div class="grid grid-cols-2 gap-2">
-            <div class="rounded-xl bg-white p-3"><div class="text-[12px] font-semibold text-slate-600">待排期 TS</div><div class="mt-0.5 font-mono text-[18px] font-bold text-slate-900">12 节</div><div class="text-[12px] font-medium text-slate-600">2,640 积分</div></div>
-            <div class="rounded-xl bg-white p-3"><div class="text-[12px] font-semibold text-slate-600">未结已排期</div><div class="mt-0.5 font-mono text-[18px] font-bold text-slate-900">8 节</div><div class="text-[12px] font-medium text-slate-600">1,760 积分</div></div>
+            <div class="rounded-xl bg-white p-3"><div class="text-[12px] font-semibold text-slate-600">待排期 TS</div><div class="mt-0.5 font-mono text-[18px] font-bold text-slate-900">12 节</div><div class="text-[12px] font-medium text-slate-600">528 积分</div></div>
+            <div class="rounded-xl bg-white p-3"><div class="text-[12px] font-semibold text-slate-600">未结已排期</div><div class="mt-0.5 font-mono text-[18px] font-bold text-slate-900">8 节</div><div class="text-[12px] font-medium text-slate-600">352 积分</div></div>
           </div>
           <div class="rounded-xl border border-slate-200 bg-white p-3">
-            <div class="flex items-center justify-between"><span class="text-[12px] font-semibold text-slate-600">应移交托管资金</span><span class="font-mono text-[18px] font-bold text-indigo-700">4,400 <span class="text-[12px] font-medium text-slate-600">积分</span></span></div>
+            <div class="flex items-center justify-between"><span class="text-[12px] font-semibold text-slate-600">应移交托管资金</span><span class="font-mono text-[18px] font-bold text-indigo-700">880 <span class="text-[12px] font-medium text-slate-600">积分</span></span></div>
           </div>
           <button data-action="voucher" data-id="resign" class="flex w-full items-center gap-2.5 rounded-xl border border-slate-200 p-2.5 text-left">
             <span class="h-10 w-8 shrink-0 overflow-hidden rounded border border-slate-200 bg-white">${miniReceipt()}</span>
@@ -1391,7 +1401,7 @@
           </div>
           <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
             <div class="text-[12px] font-semibold text-slate-600">应移交托管资金</div>
-            <div class="mt-1 font-mono text-[18px] font-bold text-indigo-700">4,400 <span class="text-[12px] font-medium text-slate-600">积分</span></div>
+            <div class="mt-1 font-mono text-[18px] font-bold text-indigo-700">880 <span class="text-[12px] font-medium text-slate-600">积分</span></div>
             <div class="mt-1 text-[12px] font-medium text-slate-600">20 节未结 TS · 11-10 10:15 提交</div>
           </section>
           <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 text-[12px] leading-relaxed text-slate-500">平台确认后，20 节 TS 的资金持有人由 Tom 改绑为平台，您与这批课次彻底解绑。</div>
@@ -1406,12 +1416,12 @@
         </div>
         <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
           <div class="text-[12px] font-semibold text-slate-600">应移交托管资金</div>
-          <div class="mt-1.5 flex items-end gap-2"><span class="font-mono text-[18px] font-bold text-indigo-700">4,400</span><span class="mb-0.5 text-[12px] font-medium text-slate-600">积分</span></div>
+          <div class="mt-1.5 flex items-end gap-2"><span class="font-mono text-[18px] font-bold text-indigo-700">880</span><span class="mb-0.5 text-[12px] font-medium text-slate-600">积分</span></div>
           <div class="mt-3 border-t border-slate-200 pt-2 text-[12px] font-medium text-slate-600">20 节未结 TS · 全额上交平台</div>
         </section>
         <div class="grid grid-cols-2 gap-2">
-          <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3"><div class="text-[12px] text-slate-600">待排期 TS</div><div class="mt-1 font-mono text-[18px] font-bold text-slate-900">12 节</div><div class="text-[12px] text-slate-600">2,640 积分</div></div>
-          <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3"><div class="text-[12px] text-slate-600">未结已排期</div><div class="mt-1 font-mono text-[18px] font-bold text-slate-900">8 节</div><div class="text-[12px] text-slate-600">1,760 积分</div></div>
+          <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3"><div class="text-[12px] text-slate-600">待排期 TS</div><div class="mt-1 font-mono text-[18px] font-bold text-slate-900">12 节</div><div class="text-[12px] text-slate-600">528 积分</div></div>
+          <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3"><div class="text-[12px] text-slate-600">未结已排期</div><div class="mt-1 font-mono text-[18px] font-bold text-slate-900">8 节</div><div class="text-[12px] text-slate-600">352 积分</div></div>
         </div>
         <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[12px] font-medium leading-relaxed text-amber-900">平台确认收款后，系统在本批次内将 20 节 TS 的资金持有人由 Tom 改绑为平台。</div>
         <div id="tomUploadBox">${tomUploadInner()}</div>
@@ -1530,6 +1540,7 @@
           <span class="font-mono text-[18px] font-bold text-indigo-700">${fmt(o.transfer)}</span>
         </div>
         <div class="mt-1 text-[12px] font-medium leading-relaxed text-indigo-900/85">Σ 所选 1v1 ${fmt(split.one)} + 小班课 ${fmt(split.group)} 待上交积分 · 录入多少即上交多少</div>
+        <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-indigo-900/85">1v1 单节待上交 = 该 TS 价位快照（16 / 18 / 21 积分），不做折算</div>
       </div>`;
     }
 
@@ -1830,7 +1841,7 @@
       let amount = 3093;
       const order = state.orders.find((x) => x.id === id);
       if (order) amount = order.transfer;
-      else if (id === 'resign') amount = 4400;
+      else if (id === 'resign') amount = 880;
       return modalShell(`
         <div class="flex items-center justify-between bg-slate-900 px-4 py-2.5 text-white">
           <span class="text-[14px] font-semibold">打款凭证</span>
@@ -2029,7 +2040,7 @@
           </div>
           <div class="space-y-1.5 rounded-xl bg-slate-50 p-3 text-[14px]">
             <div class="flex justify-between"><span class="text-slate-600">离职班长</span><span class="font-semibold text-slate-800">Tom</span></div>
-            <div class="flex justify-between"><span class="text-slate-600">移交金额</span><span class="font-semibold text-slate-800">4,400 积分</span></div>
+            <div class="flex justify-between"><span class="text-slate-600">移交金额</span><span class="font-semibold text-slate-800">880 积分</span></div>
             <div class="flex justify-between"><span class="text-slate-600">改绑课次</span><span class="font-semibold text-slate-800">20 节</span></div>
           </div>
           <div class="flex gap-2">
@@ -2224,7 +2235,7 @@
       state.orders = state.orders.filter((o) => o.type !== 'RESIGNATION_HANDOVER');
       state.orders.unshift({
         id: 'tro_tom00001', code: 'TR-20261110-005', type: 'RESIGNATION_HANDOVER', monitor: 'Tom', count: 20,
-        gross: 4400, transfer: 4400,
+        gross: 880, transfer: 880,
         status: 'PENDING_CONFIRMATION', time: '11-10 10:15', voucher: true, period: '离职移交'
       });
       state.handover = 'pending';
@@ -2336,6 +2347,49 @@
         return;
       }
     }
+
+    /* ------------------------------------------------------------------
+     * 原型演示导航折叠（记忆折叠偏好，localStorage 不可用时静默降级）
+     * ------------------------------------------------------------------ */
+    const NAV_COLLAPSE_KEY = 'dream_proto_nav_collapsed';
+
+    function navCollapsed() {
+      try { return localStorage.getItem(NAV_COLLAPSE_KEY) === '1'; } catch (err) { return false; }
+    }
+
+    function saveNavCollapsed(collapsed) {
+      try { localStorage.setItem(NAV_COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (err) { /* 隐私模式下静默降级 */ }
+    }
+
+    function applyNavCollapsed(collapsed) {
+      const consoleBar = $('console');
+      const miniBar = document.querySelector('[data-console-mini]');
+      if (consoleBar) consoleBar.classList.toggle('hidden', collapsed);
+      if (miniBar) {
+        miniBar.classList.toggle('hidden', !collapsed);
+        miniBar.classList.toggle('flex', collapsed);
+      }
+    }
+
+    function setupConsoleCollapse() {
+      const collapseBtn = document.querySelector('[data-console-collapse]');
+      const expandBtn = document.querySelector('[data-console-expand]');
+      if (collapseBtn) {
+        collapseBtn.addEventListener('click', () => {
+          saveNavCollapsed(true);
+          applyNavCollapsed(true);
+        });
+      }
+      if (expandBtn) {
+        expandBtn.addEventListener('click', () => {
+          saveNavCollapsed(false);
+          applyNavCollapsed(false);
+        });
+      }
+      applyNavCollapsed(navCollapsed());
+    }
+
+    setupConsoleCollapse();
 
     window.addEventListener('popstate', () => {
       const hash = new URLSearchParams(location.hash.replace(/^#/, ''));

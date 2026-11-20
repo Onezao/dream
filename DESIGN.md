@@ -396,9 +396,10 @@
 - **两档尺寸规格（按空间密度选用，严禁自造第三套）**：
   - **`md` 标准列表胶囊**（`h-8 px-3 text-[12px]`）：用于购课单、退款单、学员/小班等常规列表顶部筛选（外层 `flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5`）；
   - **`sm` 高密度微胶囊**（`h-6 px-2.5 text-[11px]`）：专用于空间受限的多维筛选条（如 M3D 教师空闲大盘级别/时段筛选、M0 教务大厅 5–6 项一行等分 `flex-1` 筛选）。
-- **下拉筛选微触发器 (Filter Dropdown Trigger)**：
-  - 选项 $\le 4$ 个的简单条件直接做成分段胶囊；仅在选项 $> 4$ 个或需搜人（如 `授课老师 ▾`、`所属班长 ▾`、`月份 ▾`）时使用触发器：`border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1 shrink-0`（激活过滤时高亮 `border-indigo-500 text-indigo-700 bg-indigo-50/50`）；
-  - **移动端展开形态铁律（禁用桌面悬浮下拉框）**：点击 `▾` 触发器后，**严禁在手机端弹出易裁切的悬浮小菜单或原生 `<select>`**，统一从底部滑出**半屏抽屉 (Bottom Sheet Drawer)**（含顶部拖动把手、按需搜人框、`h-11` 以上高触控行、当前选中 `✓` 与重置入口）。
+- **筛选与选择触发器 (Drawer Picker Trigger · 全端禁用原生 `<select>`)**：
+  - **手机与平板端全面禁用原生下拉框 (`<select>`)**：因本系统主要面向手机版与平板端触控使用，**全站筛选与表单选择场景一律严禁使用原生 `<select>` 下拉框或桌面悬浮小菜单**；
+  - 选项 $\le 4$ 个的简单条件直接做成分段胶囊/紧凑选项卡；选项 $> 4$ 个或需选人/选月/选学员（如 `授课老师 ▾`、`所属班长 ▾`、`全部学员 ▾`、`更多月份 ▾`）时使用触发器：`border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-[12px] px-2.5 py-1.5 rounded-full flex items-center gap-1 shrink-0`（激活过滤时高亮 `border-indigo-500 text-indigo-700 bg-indigo-50/50`）；
+  - **统一抽屉展开铁律**：点击触发器后，统一从底部滑出**半屏抽屉 (Bottom Sheet Drawer)**（含顶部拖动把手、按需搜索框、`h-11` 以上高触控行、当前选中 `✓` 与重置入口）。
 
 ---
 
@@ -439,5 +440,13 @@
 1. **浅灰画布 + 分组白卡容器**：表单页底层画布使用 `bg-slate-50`，按业务逻辑将字段拆入多个独立白卡（`rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5`），卡间 `space-y-3`，层次清晰。
 2. **分组序号圆标**：每个白卡顶部的分组标题统一左侧带序号圆徽标（`h-5 w-5 rounded-full bg-indigo-50 text-indigo-600 text-[11px] font-bold grid place-items-center`）+ `text-[14px] font-bold text-slate-900`（如 `1. 学员与课程`、`2. 课次与计价`）。
 3. **呼吸感输入控件**：单行输入与选择框常态 `h-11 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition`（`16px` 踩准 iOS Safari 防自动缩放底线），聚焦态切为 `focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15`。
-4. **触感选项卡取代枯燥下拉框**：2~4 个高频枚举选项（如班型、套餐、收款方式）优先使用 `grid-cols-2 gap-2` 紧凑选项卡（未选 `border border-slate-200 bg-slate-50/60 text-slate-700`；选中 `border-indigo-500 bg-indigo-50/60 ring-1 ring-indigo-500 text-indigo-950` + 右上角选中勾）。
+4. **触感选项卡或抽屉取代原生下拉框**：2~4 个高频枚举选项（如班型、套餐、收款方式）优先使用 `grid-cols-2 gap-2` 紧凑选项卡（未选 `border border-slate-200 bg-slate-50/60 text-slate-700`；选中 `border-indigo-500 bg-indigo-50/60 ring-1 ring-indigo-500 text-indigo-950` + 右上角选中勾）；超过 4 个选项或选人/选课件/选档位等表单选择，**严禁使用原生 `<select>`**，统一点击选择框唤起**底部滑出抽屉 (`Bottom Sheet Drawer`)** 完成点选。
 5. **实时试算摘要卡 + 吸底主提交栏**：金额/课次等试算汇总区采用柔色摘要卡（`rounded-2xl border border-indigo-200/80 bg-indigo-50/50 p-3.5`）突出大数字；底部常驻吸底提交栏（`bg-white/95 border-t border-slate-200/80 p-3`）承载全宽 `h-11 bg-indigo-600 text-[16px]` 主 CTA。
+
+---
+
+### 8.5 交互原型 (`prototype/`) 顶部演示导航折叠规范
+为方便客户在手机端真机/窄屏沉浸式预览原型页面（不被多层原型调试条挤占首屏）：
+1. **折叠 / 展开开关**：所有 `prototype/*.html` 页面顶部的原型演示/角色切换导航栏，**必须提供一个清晰的折叠与展开按钮**（如 `[ ▲ 收起 ]` / `[ ▾ 展开导航 ]`）。
+2. **收起态表现**：点击折叠后，完整原型演示工具栏收起隐藏，仅保留一枚极简紧凑小胶囊（如右上角半透明或吸顶微条 `[ ▾ 导航 ]`，不遮挡业务顶栏核心标题与操作按钮），将 `100%` 真实手机首屏空间让渡给业务界面。
+3. **展开与状态记忆**：轻触小胶囊即可重新展开完整原型角色/场景切换条，可选通过本地存储记忆用户的展开/折叠偏好。

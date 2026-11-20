@@ -111,6 +111,105 @@
         credits: 2,
         emoji: '🧒',
         preferences: ['1-22']
+      },
+      dora: {
+        key: 'dora',
+        id: 'stu_dora',
+        name: 'DoraZ08',
+        nickname: 'Dora',
+        short: 'Dora',
+        price: '16',
+        credits: 6,
+        emoji: '👧',
+        preferences: ['2-22', '4-20']
+      },
+      evan: {
+        key: 'evan',
+        id: 'stu_evan',
+        name: 'EvanZ07',
+        nickname: 'Evan',
+        short: 'Evan',
+        price: '18',
+        credits: 4,
+        emoji: '👦',
+        preferences: ['1-20', '3-22']
+      },
+      hana: {
+        key: 'hana',
+        id: 'stu_hana',
+        name: 'HanaZ06',
+        nickname: 'Hana',
+        short: 'Hana',
+        price: '16',
+        credits: 2,
+        emoji: '👧',
+        preferences: ['0-24', '2-18']
+      },
+      jason: {
+        key: 'jason',
+        id: 'stu_jason',
+        name: 'JasonZ05',
+        nickname: 'Jason',
+        short: 'Jaso',
+        price: '21',
+        credits: 8,
+        emoji: '🧒',
+        preferences: ['1-22', '3-24']
+      },
+      lily: {
+        key: 'lily',
+        id: 'stu_lily',
+        name: 'LilyZ04',
+        nickname: 'Lily',
+        short: 'Lily',
+        price: '16',
+        credits: 12,
+        emoji: '👧',
+        preferences: ['2-20', '4-22']
+      },
+      mia: {
+        key: 'mia',
+        id: 'stu_mia',
+        name: 'MiaZ03',
+        nickname: 'Mia',
+        short: 'MiaZ',
+        price: '18',
+        credits: 6,
+        emoji: '👦',
+        preferences: ['1-18', '3-20']
+      },
+      nina: {
+        key: 'nina',
+        id: 'stu_nina',
+        name: 'NinaZ02',
+        nickname: 'Nina',
+        short: 'Nina',
+        price: '16',
+        credits: 4,
+        emoji: '👧',
+        preferences: ['0-22', '2-22']
+      },
+      tom: {
+        key: 'tom',
+        id: 'stu_tom',
+        name: 'TomZ01',
+        nickname: 'Tom',
+        short: 'TomZ',
+        price: '21',
+        credits: 10,
+        emoji: '🧒',
+        preferences: ['1-24', '4-18']
+      },
+      will: {
+        key: 'will',
+        id: 'stu_will',
+        name: 'WillZ00',
+        nickname: 'Will',
+        short: 'Will',
+        price: '18',
+        credits: 2,
+        emoji: '👦',
+        preferences: ['2-24', '3-18']
       }
     };
 
@@ -219,6 +318,9 @@
       embed: false,
       view: 'board',
       contextType: 'none',
+      contextSearch: '',
+      contextLetter: 'all',
+      contextLetterOpen: false,
       student: 'alice',
       classKey: 'ket1',
       price: '16',
@@ -244,7 +346,10 @@
       justLockedKeys: [],
       tempBookingSlot: null,
       toast: '',
-      scenario: ''
+      scenario: '',
+      renewalEdit: false,
+      renewalOrderId: '',
+      consoleCollapsed: false
     };
 
     const params = new URLSearchParams(window.location.search);
@@ -253,6 +358,31 @@
     state.device = params.get('device') === 'tablet' ? 'tablet' : 'mobile';
     if (['monitor', 'admin'].includes(params.get('role'))) state.role = params.get('role');
     if (params.get('online') === '0' || params.get('network') === 'off') state.online = false;
+    if (params.get('mode') === 'renewal_edit') {
+      state.renewalEdit = true;
+      state.renewalOrderId = params.get('orderId') || '';
+    }
+
+    /* 演示导航折叠偏好：切换角色 / 设备 / 场景后保持 */
+    const NAV_COLLAPSED_KEY = 'dream_proto_nav_collapsed';
+
+    function readNavCollapsed() {
+      try {
+        return window.localStorage.getItem(NAV_COLLAPSED_KEY) === '1';
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function persistNavCollapsed(collapsed) {
+      try {
+        window.localStorage.setItem(NAV_COLLAPSED_KEY, collapsed ? '1' : '0');
+      } catch (error) {
+        /* 隐私模式等 localStorage 不可用时静默降级 */
+      }
+    }
+
+    state.consoleCollapsed = readNavCollapsed();
 
     function resetCalRuntime() {
       state.calWeek = 0;
@@ -276,6 +406,12 @@
       if (state.calMode === 'batch') state.calWeek = 0;
     }
 
+    function resetContextSheetFilters() {
+      state.contextSearch = '';
+      state.contextLetter = 'all';
+      state.contextLetterOpen = false;
+    }
+
     function applyScenario(name) {
       state.scenario = name || '';
       state.overlay = null;
@@ -286,6 +422,7 @@
       state.shown = 5;
       state.holdMode = 'none';
       resetCalRuntime();
+      resetContextSheetFilters();
 
       if (name === 'student-alice') {
         state.view = 'board';
@@ -681,9 +818,15 @@
 
     function selectUrl(teacher) {
       const query = new URLSearchParams();
-      query.set('role', state.role);
+      query.set('role', state.renewalEdit ? 'monitor' : state.role);
       query.set('teacherId', teacher.id);
-      query.set('mode', 'schedule_select');
+      if (state.renewalEdit) {
+        query.set('mode', 'renewal_edit');
+        query.set('orderId', state.renewalOrderId);
+        query.set('return', 'm2a');
+      } else {
+        query.set('mode', 'schedule_select');
+      }
       query.set('week', String(state.week));
       if (state.contextType === 'student') query.set('studentId', STUDENTS[state.student].id);
       if (state.contextType === 'class') query.set('classId', CLASSES[state.classKey].id);
@@ -766,14 +909,27 @@
       </div>`;
     }
 
+    function renderRenewalEditStrip() {
+      if (!state.renewalEdit) return '';
+      return `<div class="mt-1 flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50/70 px-2.5 py-1.5">
+        <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-amber-200 bg-white text-amber-700">${icon('repeat', 'h-3.5 w-3.5')}</span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-[12px] font-bold text-amber-900">续费改单 · 选择新老师</p>
+          <p class="mt-0.5 truncate text-[11px] font-medium text-amber-800">单号 ${esc(state.renewalOrderId || '未提供')} · 选老师后进入课表复选新时段</p>
+        </div>
+        <span class="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200">改单中</span>
+      </div>`;
+    }
+
     function renderBoard() {
       const list = sortedTeachers();
       const total = list.length;
       const hidden = hiddenCount();
       const visibleCount = Math.min(state.shown, total, LOAD_LIMIT);
       const visible = list.slice(0, visibleCount);
-      return `<div id="content" data-price="${state.price}" data-period="${state.period}" data-week="${state.week}" data-context="${state.contextType}" data-total="${total}" data-hidden="${hidden}" data-shown="${visibleCount}" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      return `<div id="content" data-price="${state.price}" data-period="${state.period}" data-week="${state.week}" data-context="${state.contextType}" data-total="${total}" data-hidden="${hidden}" data-shown="${visibleCount}"${state.renewalEdit ? ` data-renewal-edit="1" data-order-id="${esc(state.renewalOrderId)}"` : ''} class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div class="mx-auto w-full max-w-[720px] px-3 pb-1 pt-1">
+          ${renderRenewalEditStrip()}
           ${renderStepHint()}
           ${renderContextCard()}
           ${renderWeekSwitch()}
@@ -899,6 +1055,9 @@
       const focus = state.focusTeacher === teacher.key;
       const load = weekLoad(teacher);
       const cardBorder = focus ? 'border-indigo-300 ring-2 ring-inset ring-indigo-200' : 'border-slate-300';
+      const selectControl = state.renewalEdit
+        ? `<a href="${esc(selectUrl(teacher))}" class="inline-flex h-7 shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 active:scale-[0.98]" aria-label="选取 ${esc(teacher.name)} 并跳转课表">${icon('corner-up-right', 'h-3.5 w-3.5')}选取</a>`
+        : `<button type="button" data-action="select-teacher" data-teacher="${teacher.key}" class="inline-flex h-7 shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 active:scale-[0.98]" aria-label="选取 ${esc(teacher.name)} 并进入课表">${icon('corner-up-right', 'h-3.5 w-3.5')}选取</button>`;
       return `<article data-teacher="${teacher.key}" data-load="${load}" data-free="${free}" data-familiar="${familiar ? 1 : 0}" data-same-price="${samePrice ? 1 : 0}" data-mine="${mine ? 1 : 0}" class="rounded-xl border ${cardBorder} bg-slate-50/70 px-2 py-0.5">
         <div class="flex items-center gap-1.5">
           <div class="flex min-w-0 flex-1 flex-col">
@@ -912,9 +1071,7 @@
             </div>
             <div class="mt-1 flex items-center justify-between gap-1.5">
               <p class="truncate text-[12px] font-medium text-slate-600">${state.week === 0 ? '本周' : '下周'}负荷 <span class="text-[12px] font-bold text-slate-900">${load}</span>/${teacher.capacity} 节</p>
-              <button type="button" data-action="select-teacher" data-teacher="${teacher.key}" class="inline-flex h-7 shrink-0 items-center justify-center gap-0.5 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 active:scale-[0.98]" aria-label="选取 ${esc(teacher.name)} 并进入课表">
-                ${icon('corner-up-right', 'h-3.5 w-3.5')}选取
-              </button>
+              ${selectControl}
             </div>
           </div>
           <div class="shrink-0">${renderMatrix(teacher)}</div>
@@ -1408,7 +1565,7 @@
             const classBlocked = state.calMode === 'batch' && isClass && !cellSelectable(teacher.key, absWeek, day, row, true).ok;
             if (classBlocked) {
               cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 p-0.5">
-                <div class="flex h-[26px] w-full items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-[10px] font-medium text-slate-400">双格缺</div>${conflictDot}
+                <div class="flex h-[26px] w-full items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-[11px] font-medium text-slate-500">双格缺</div>${conflictDot}
               </div>`);
             } else {
               const label = isClass ? '双格' : (state.calMode === 'batch' ? (isPref ? '★约' : '约') : '约');
@@ -1601,10 +1758,35 @@
       return '';
     }
 
+    function filterContextStudents() {
+      const query = String(state.contextSearch || '').trim().toLowerCase();
+      const students = Object.values(STUDENTS);
+      if (!query) return students;
+      return students.filter((student) => {
+        const nickname = student.nickname.toLowerCase();
+        const name = student.name.toLowerCase();
+        const short = student.short.toLowerCase();
+        return nickname.startsWith(query) || name.includes(query) || short.includes(query);
+      });
+    }
+
     function renderContextSheetContent() {
-      const studentButtons = Object.values(STUDENTS).map((student) => {
+      const searchedStudents = filterContextStudents();
+      /* 仅当当前可选学员 > 10 人时展示首字母索引（≤10 隐藏） */
+      const showLetterIndex = searchedStudents.length > 10;
+      const letters = [...new Set(searchedStudents.map((student) => student.nickname.charAt(0).toUpperCase()))]
+        .filter((letter) => /^[A-Z]$/.test(letter))
+        .sort();
+      const effectiveLetter = showLetterIndex && letters.includes(state.contextLetter) ? state.contextLetter : 'all';
+      const sortAZ = String(state.contextSearch || '').trim() !== '' || effectiveLetter !== 'all';
+      let visibleStudents = effectiveLetter === 'all'
+        ? searchedStudents.slice()
+        : searchedStudents.filter((student) => student.nickname.charAt(0).toUpperCase() === effectiveLetter);
+      if (sortAZ) visibleStudents.sort((a, b) => a.nickname.localeCompare(b.nickname));
+
+      const studentButtons = visibleStudents.map((student) => {
         const active = state.contextType === 'student' && state.student === student.key;
-        return `<button type="button" data-pick-context="student" data-key="${student.key}" class="flex w-full items-center gap-2 rounded-xl border p-2.5 text-left transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-300 bg-slate-50/70 hover:bg-slate-100'}">
+        return `<button type="button" data-pick-context="student" data-key="${student.key}" class="flex min-h-[44px] w-full items-center gap-2 rounded-xl border p-2.5 text-left transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-300 bg-slate-50/70 hover:bg-slate-100'}">
           <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-indigo-100 bg-white text-[16px]">${student.emoji}</span>
           <span class="min-w-0 flex-1">
             <span class="block truncate text-[14px] font-bold text-slate-900">${esc(student.nickname)}</span>
@@ -1614,10 +1796,25 @@
         </button>`;
       }).join('');
 
+      const studentList = visibleStudents.length
+        ? studentButtons
+        : `<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-3 py-4 text-center text-[12px] font-medium text-slate-500">没有匹配的学员</p>`;
+
+      const letterChips = [`<button type="button" data-context-letter="all" class="h-7 rounded-full px-2.5 text-[12px] font-semibold transition ${effectiveLetter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">全部</button>`]
+        .concat(letters.map((letter) => `<button type="button" data-context-letter="${letter}" class="h-7 w-7 rounded-full px-2 text-[12px] font-semibold transition ${effectiveLetter === letter ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">${letter}</button>`))
+        .join('');
+
+      const letterIndex = showLetterIndex ? `<div class="mt-2">
+        <button type="button" data-context-letter-toggle class="flex h-7 items-center gap-1 rounded-full border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50" aria-expanded="${state.contextLetterOpen}">
+          <span aria-hidden="true">🔤</span><span>首字母索引</span><span aria-hidden="true">${state.contextLetterOpen ? '▴' : '▾'}</span>
+        </button>
+        ${state.contextLetterOpen ? `<div class="mt-2 flex flex-wrap gap-1.5">${letterChips}</div>` : ''}
+      </div>` : '';
+
       const classButtons = Object.values(CLASSES).map((cls) => {
         const active = state.contextType === 'class' && state.classKey === cls.key;
         const teacher = cls.teacher ? TEACHERS.find((item) => item.key === cls.teacher) : null;
-        return `<button type="button" data-pick-context="class" data-key="${cls.key}" class="flex w-full items-center gap-2 rounded-xl border p-2.5 text-left transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-300 bg-slate-50/70 hover:bg-slate-100'}">
+        return `<button type="button" data-pick-context="class" data-key="${cls.key}" class="flex min-h-[44px] w-full items-center gap-2 rounded-xl border p-2.5 text-left transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-300 bg-slate-50/70 hover:bg-slate-100'}">
           <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-teal-200 bg-white text-[14px] font-bold text-teal-800">${esc(cls.code.slice(0, 1))}</span>
           <span class="min-w-0 flex-1">
             <span class="block truncate text-[14px] font-bold text-slate-900">${esc(cls.name)}</span>
@@ -1628,7 +1825,12 @@
       }).join('');
 
       return `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">选学员后按熟客、价位与当周负荷排序；也可保持无对象，仅查空档。</p>
-        <div class="mt-2 grid grid-cols-1 gap-2">${studentButtons}</div>
+        <div class="relative mt-2">
+          <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">${icon('search', 'h-4 w-4')}</span>
+          <input type="search" inputmode="search" autocomplete="off" data-context-search value="${esc(state.contextSearch)}" placeholder="搜索规范昵称 1–2 字母 / 英文名 / 小名" aria-label="搜索学员" class="h-11 w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-9 pr-3 text-[13px] font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white" />
+        </div>
+        ${letterIndex}
+        <div class="mt-2 grid grid-cols-1 gap-2">${studentList}</div>
         <p class="mt-3 text-[12px] font-semibold text-slate-600">小班</p>
         <div class="mt-1 grid grid-cols-1 gap-2">${classButtons}</div>
         <button type="button" data-pick-context="none" class="mt-2 flex h-11 w-full items-center justify-center gap-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">
@@ -1706,7 +1908,7 @@
         { value: 'load-more', label: '已加载 10 位' },
         { value: 'focus-david', label: '当前老师 David' }
       ];
-      return `<header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+      return `<header class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur ${state.consoleCollapsed ? 'hidden' : ''}">
         <div class="mx-auto max-w-[1400px] px-3 py-2.5">
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             <div class="flex min-w-0 items-center gap-2">
@@ -1731,6 +1933,7 @@
             <div class="ml-auto flex flex-wrap items-center gap-2">
               <span class="hidden text-[12px] font-medium text-slate-500 xl:inline">演示日 11-14 周六</span>
               <button type="button" data-action="reset-demo" class="rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">重置演示</button>
+              <button type="button" data-console-collapse class="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50" aria-label="收起演示导航">▲ 收起</button>
             </div>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-1.5">
@@ -1738,7 +1941,10 @@
             ${scenarios.map((scenario) => `<button type="button" data-scenario="${scenario.value}" class="rounded-lg border px-2 py-1.5 text-[12px] font-semibold transition ${state.scenario === scenario.value ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">${scenario.label}</button>`).join('')}
           </div>
         </div>
-      </header>`;
+      </header>
+      <div data-console-mini class="sticky top-0 z-[60] ${state.consoleCollapsed ? 'flex' : 'hidden'} items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+        <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+      </div>`;
     }
 
     /* ------------------------------------------------------------------
@@ -1758,6 +1964,7 @@
       state.overlay = null;
       state.shown = 5;
       state.scenario = '';
+      resetContextSheetFilters();
       if (type === 'student' && STUDENTS[key]) {
         state.contextType = 'student';
         state.student = key;
@@ -1806,6 +2013,12 @@
       render(false);
     }
 
+    function setConsoleCollapsed(collapsed) {
+      state.consoleCollapsed = !!collapsed;
+      persistNavCollapsed(state.consoleCollapsed);
+      render(true);
+    }
+
     function resetDemo() {
       state.role = 'monitor';
       state.device = 'mobile';
@@ -1826,6 +2039,7 @@
       state.calMode = 'temp';
       state.holdMode = 'none';
       resetCalRuntime();
+      resetContextSheetFilters();
       state.toast = '';
       state.scenario = '';
       if (toastTimer) clearTimeout(toastTimer);
@@ -2020,7 +2234,33 @@
       flashToast(`已锁定 ${weekCount} 周 · ${actualTotal} 格 · 实扣 ${billable} 节${holdConverted ? `（预占转正 ${holdConverted} 格）` : ''}${remaining ? ` · ${remaining} 节留存待排池` : ''}`);
     }
 
+    document.addEventListener('input', (event) => {
+      const searchInput = event.target.closest('[data-context-search]');
+      if (!searchInput) return;
+      state.contextSearch = searchInput.value;
+      state.contextLetter = 'all';
+      render(true);
+      const nextInput = document.querySelector('[data-context-search]');
+      if (nextInput) {
+        nextInput.focus();
+        const caret = nextInput.value.length;
+        nextInput.setSelectionRange(caret, caret);
+      }
+    });
+
     document.addEventListener('click', (event) => {
+      const consoleCollapseBtn = event.target.closest('[data-console-collapse]');
+      if (consoleCollapseBtn) {
+        setConsoleCollapsed(true);
+        return;
+      }
+
+      const consoleExpandBtn = event.target.closest('[data-console-expand]');
+      if (consoleExpandBtn) {
+        setConsoleCollapsed(false);
+        return;
+      }
+
       const control = event.target.closest('[data-control]');
       if (control) {
         setControl(control.dataset.control, control.dataset.value);
@@ -2043,6 +2283,21 @@
       const filterButton = event.target.closest('[data-filter]');
       if (filterButton) {
         setFilter(filterButton.dataset.filter, filterButton.dataset.value);
+        return;
+      }
+
+      const letterToggle = event.target.closest('[data-context-letter-toggle]');
+      if (letterToggle) {
+        state.contextLetterOpen = !state.contextLetterOpen;
+        render(true);
+        return;
+      }
+
+      const letterChip = event.target.closest('[data-context-letter]');
+      if (letterChip) {
+        const letter = letterChip.dataset.contextLetter;
+        state.contextLetter = letter === 'all' || state.contextLetter === letter ? 'all' : letter;
+        render(true);
         return;
       }
 
@@ -2194,12 +2449,14 @@
         flashToast('已释放候补，请在课表按可用周自选时段');
       } else if (action === 'open-context') {
         state.overlay = 'context';
+        resetContextSheetFilters();
         render(true);
       } else if (action === 'open-rules') {
         state.overlay = 'rules';
         render(true);
       } else if (action === 'close-overlay') {
         state.overlay = null;
+        resetContextSheetFilters();
         render(true);
       } else if (action === 'load-more') {
         const total = sortedTeachers().length;

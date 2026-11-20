@@ -68,9 +68,13 @@
         <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
       </div>
 
-      </div>
+      <button type="button" data-console-collapse aria-label="收起演示导航" class="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">▲ 收起</button>
     </div>
   </header>
+
+  <div data-console-mini class="sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+    <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+  </div>
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
@@ -863,6 +867,48 @@
 
     $('btnToggle99').addEventListener('click', toggleForce99);
     $('btnResetDemo').addEventListener('click', resetDemo);
+
+    /* ------------------------------------------------------------------
+     * 演示导航折叠（DESIGN.md §8.5）
+     * 状态写入 localStorage，不可用时静默降级；角色 / 设备 / 网络状态不受影响。
+     * ------------------------------------------------------------------ */
+    const NAV_COLLAPSED_KEY = 'dream_proto_nav_collapsed';
+
+    function readNavCollapsed() {
+      try { return localStorage.getItem(NAV_COLLAPSED_KEY) === '1'; } catch (error) { return false; }
+    }
+
+    function writeNavCollapsed(collapsed) {
+      try { localStorage.setItem(NAV_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (error) { /* 静默降级 */ }
+    }
+
+    function applyNavCollapsed(collapsed) {
+      const consoleBar = $('console');
+      const miniBar = document.querySelector('[data-console-mini]');
+      if (consoleBar) consoleBar.classList.toggle('hidden', collapsed);
+      if (miniBar) {
+        miniBar.classList.toggle('hidden', !collapsed);
+        miniBar.classList.toggle('flex', collapsed);
+      }
+    }
+
+    const navCollapseBtn = document.querySelector('[data-console-collapse]');
+    if (navCollapseBtn) {
+      navCollapseBtn.addEventListener('click', () => {
+        applyNavCollapsed(true);
+        writeNavCollapsed(true);
+      });
+    }
+
+    const navExpandBtn = document.querySelector('[data-console-expand]');
+    if (navExpandBtn) {
+      navExpandBtn.addEventListener('click', () => {
+        applyNavCollapsed(false);
+        writeNavCollapsed(false);
+      });
+    }
+
+    applyNavCollapsed(readNavCollapsed());
 
     $('frame').addEventListener('click', (event) => {
       const el = event.target.closest('[data-action]');

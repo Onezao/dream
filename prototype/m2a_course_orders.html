@@ -71,11 +71,17 @@
 
       <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
 
-      <a href="../docs/prd/m2a_course_orders.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
+      <a href="../docs/prd/m2a_course_orders.md" target="_blank" rel="noopener" class="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
         <i data-lucide="file-text" class="h-3.5 w-3.5"></i>PRD 文档
       </a>
+
+      <button type="button" data-console-collapse aria-label="收起演示导航" class="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">▲ 收起</button>
     </div>
   </header>
+
+  <div data-console-mini class="sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+    <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+  </div>
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
@@ -105,6 +111,7 @@
      * ------------------------------------------------------------------ */
     const TODAY = '2026-11-10';
     const PRICE_TIERS = [16, 18, 21];
+    const RENEWAL_DRAFT_PREFIX = 'dream_renewal_draft_';
     const TEACHERS = [
       { id: 'tc_david0001', name: 'David Miller', level: '21积分', priceTier: 21 },
       { id: 'tc_sarah0002', name: 'Sarah Jenkins', level: '18积分', priceTier: 18 },
@@ -271,11 +278,12 @@
         teacherId: '', lessons: '16', extraPrep: false,
         items: [{ priceTier: 18, lessons: '2' }, { priceTier: 21, lessons: '1' }],
         paid: '57', autoPaid: true, forceSubmit: false, forceReason: '', holder: 'Leo',
-        sourceClassId: '', remarks: '', vouchers: [], error: ''
+        sourceClassId: '', remarks: '', vouchers: [], error: '',
+        picker: null, pickerQuery: ''
       };
     }
     function emptyEdit() {
-      return { orderId: null, teacherId: '', lessons: '8', paid: '336', autoPaid: true, slotsTue: true, slotsThu: true, slotTime: '19:00', forceReason: '', error: '' };
+      return { orderId: null, teacherId: '', lessons: '8', paid: '336', autoPaid: true, forceReason: '', error: '', draft: null };
     }
     function emptyVoucher() {
       return { orderId: null, amount: '', remark: '', file: null, error: '' };
@@ -324,7 +332,8 @@
     if (params.get('overlay') === 'edit') {
       const target = state.orders.find((o) => o.id === params.get('orderId')) || state.orders.find((o) => o.source === 'AUTO_RENEWAL');
       if (target) {
-        state.edit = { ...emptyEdit(), orderId: target.id, teacherId: target.teacherId, lessons: String(target.lessonCount), paid: String(target.paidPoints), autoPaid: Number(target.paidPoints) === Number(target.expectedPoints), slotTime: target.slotTime || '19:00', forceReason: target.forceReason || '' };
+        const draft = loadRenewalDraft(target.id);
+        state.edit = buildEditState(target, draft);
         state.overlay = { type: 'edit', orderId: target.id };
       }
     }
@@ -376,12 +385,95 @@
     const holderLabel = (h) => h === '平台' ? '平台（管理员）' : h;
     const adjustmentPending = (o) => !!o && o.adjustmentStatus === 'PENDING_HANDLE';
     const parentCanSelfServe = (o) => state.role === 'parent' && !!o && o.source === 'AUTO_RENEWAL' && o.status === 'PENDING_PAYMENT' && o.orderType !== 'small_group';
-    const slotRange = (start) => {
-      const [h, m] = String(start || '19:00').split(':').map(Number);
-      const total = h * 60 + m + 30;
-      return `${String(start || '19:00')} - ${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-    };
     const shortDate = (v) => /^\d{4}-\d{2}-\d{2}/.test(String(v || '')) ? String(v).slice(5, 10) : String(v || '');
+    function loadRenewalDraft(orderId) {
+      if (!orderId) return null;
+      try {
+        const raw = localStorage.getItem(`${RENEWAL_DRAFT_PREFIX}${orderId}`);
+        if (!raw) return null;
+        const draft = JSON.parse(raw);
+        return draft && typeof draft === 'object' && !Array.isArray(draft) ? draft : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    function discardRenewalDraft(orderId) {
+      if (!orderId) return;
+      try { localStorage.removeItem(`${RENEWAL_DRAFT_PREFIX}${orderId}`); } catch (e) { /* ignore */ }
+    }
+    function buildEditState(o, draft) {
+      return {
+        orderId: o.id,
+        teacherId: (draft && draft.teacherId) || o.teacherId || '',
+        lessons: String(o.lessonCount),
+        paid: String(o.paidPoints),
+        autoPaid: draft ? false : Number(o.paidPoints) === Number(o.expectedPoints),
+        forceReason: '',
+        error: '',
+        draft: draft || null
+      };
+    }
+    function draftWeeks(draft) {
+      if (!draft) return [];
+      if (Array.isArray(draft.weeks)) return draft.weeks;
+      if (typeof draft.weeks === 'string' && draft.weeks.trim()) return [draft.weeks];
+      return [];
+    }
+    function draftWeekLabel(w) {
+      if (typeof w === 'string') return w;
+      if (!w || typeof w !== 'object') return '';
+      return w.label || w.slot || w.time || w.text || w.day || w.week || '';
+    }
+    function draftConflictWeeks(draft) {
+      if (!draft) return [];
+      const weeks = draftWeeks(draft);
+      const marked = [];
+      weeks.forEach((w, idx) => {
+        if (w && typeof w === 'object' && (w.status === 'conflict' || w.conflict)) marked.push(idx + 1);
+      });
+      if (marked.length) return marked;
+      const count = Math.max(0, Math.min(4, Number(draft.conflictCount) || 0));
+      return Array.from({ length: count }, (_, i) => 4 - i).sort((a, b) => a - b);
+    }
+    function draftScheduleText(draft) {
+      const weeks = draftWeeks(draft);
+      const selected = [];
+      const all = [];
+      weeks.forEach((w) => {
+        const label = draftWeekLabel(w);
+        if (!label) return;
+        all.push(label);
+        const conflict = !!(w && typeof w === 'object' && (w.status === 'conflict' || w.conflict));
+        if (!conflict) selected.push(label);
+      });
+      const unique = [...new Set(selected)];
+      if (unique.length) return unique.join('、');
+      if (all.length) return all.join('、');
+      if (typeof draft.weeks === 'string') return draft.weeks;
+      return '';
+    }
+    function draftWeekCells(draft, o) {
+      const weeks = draftWeeks(draft);
+      if (weeks.length) {
+        return weeks.slice(0, 4).map((w, idx) => ({
+          week: idx + 1,
+          label: draftWeekLabel(w) || `第${idx + 1}周`,
+          conflict: !!(w && typeof w === 'object' && (w.status === 'conflict' || w.conflict))
+        }));
+      }
+      const skipped = (o && o.holdSkipped) || [];
+      return [1, 2, 3, 4].map((w) => ({ week: w, label: skipped.includes(w) ? '冲突跳过' : '保持原时段', conflict: skipped.includes(w) }));
+    }
+    function editTeacherInfo(o, e) {
+      if (e && e.draft && (e.draft.teacherName || e.draft.priceTier)) {
+        return {
+          id: e.draft.teacherId || (o && o.teacherId) || '',
+          name: e.draft.teacherName || (o && o.teacherName) || '老师',
+          priceTier: Number(e.draft.priceTier) || Number(o && o.priceTier) || 18
+        };
+      }
+      return teacherById((e && e.teacherId) || (o && o.teacherId));
+    }
     const bannerTitle = () => {
       const t = state.overlay && state.overlay.type;
       if (t === 'create') return '新建购课单';
@@ -544,6 +636,27 @@
     /* ------------------------------------------------------------------
      * 控制台
      * ------------------------------------------------------------------ */
+    const CONSOLE_COLLAPSED_KEY = 'dream_proto_nav_collapsed';
+    function readConsoleCollapsed() {
+      try { return localStorage.getItem(CONSOLE_COLLAPSED_KEY) === '1'; } catch (e) { return false; }
+    }
+    function writeConsoleCollapsed(collapsed) {
+      try { localStorage.setItem(CONSOLE_COLLAPSED_KEY, collapsed ? '1' : '0'); } catch (e) { /* 本地存储不可用时静默降级 */ }
+    }
+    function applyConsoleCollapsed(collapsed) {
+      const consoleEl = $('console');
+      if (consoleEl) consoleEl.classList.toggle('hidden', collapsed);
+      const mini = document.querySelector('[data-console-mini]');
+      if (mini) {
+        mini.classList.toggle('hidden', !collapsed);
+        mini.classList.toggle('flex', collapsed);
+      }
+    }
+    const consoleCollapseBtn = document.querySelector('[data-console-collapse]');
+    if (consoleCollapseBtn) consoleCollapseBtn.addEventListener('click', () => { applyConsoleCollapsed(true); writeConsoleCollapsed(true); });
+    const consoleExpandBtn = document.querySelector('[data-console-expand]');
+    if (consoleExpandBtn) consoleExpandBtn.addEventListener('click', () => { applyConsoleCollapsed(false); writeConsoleCollapsed(false); });
+
     document.querySelectorAll('.ctl').forEach((btn) => {
       btn.addEventListener('click', () => {
         const group = btn.dataset.group;
@@ -589,6 +702,7 @@
       const o = orderById('ord_auto0001');
       if (!o) return;
       if (o.status !== 'PENDING_PAYMENT') return showToast('该自动续费单已处理，跑批幂等跳过');
+      discardRenewalDraft(o.id);
       o.status = 'CANCELLED';
       o.cancelReason = 'EXPIRED_OVERDUE';
       o.cancelledAt = '刚刚';
@@ -624,6 +738,9 @@
       state.activeOrderId = 'ord_auto0001'; state.statusFilter = 'all'; state.sourceFilter = 'all'; state.query = '';
       state.parentChild = 'AliceZ12'; state.renewal = 'normal';
       state.overlay = null; state.create = emptyCreate(); state.edit = emptyEdit(); state.voucher = emptyVoucher(); state.adjustment = emptyAdjustment();
+      try {
+        Object.keys(localStorage).filter((k) => k.startsWith(RENEWAL_DRAFT_PREFIX)).forEach((k) => localStorage.removeItem(k));
+      } catch (e) { /* ignore */ }
       renderAll();
       showToast('演示数据已重置');
     }
@@ -725,7 +842,7 @@
         <div id="orderList" class="${grid}">
           ${list.length ? list.map(renderOrderCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center text-[14px] font-medium text-slate-500">暂无符合条件的购课单</div>`}
         </div>
-        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">${isParent ? '仅展示当前宝贝名下的非小班单据。自动续费待付款单可申请调整、上传凭证或暂不续费，其余单据只读。' : state.role === 'admin' ? '管理员可查看全平台单据、录入或作废任一班长名下待付款单据。' : '班长仅可查看与操作本人持有的购课单。家长调整诉求待付款单已置顶。'}</div>
+        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">${isParent ? '仅展示当前宝贝名下的非小班单据。自动续费待付款单可申请调整、上传凭证或暂不续费，其余单据只读。' : state.role === 'admin' ? '管理员可查看全平台单据、录入或作废任一班长名下待付款单据。' : '班长仅可查看与操作本人持有的购课单。自动续费待付款单可直接【修改】排期，家长调整诉求待付款单已置顶。'}</div>
       </div>`;
     }
     function childSelector() {
@@ -804,7 +921,10 @@
           ? `<button data-action="open-adjustment" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold whitespace-nowrap text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">申请调整</button><button data-action="open-voucher" data-id="${o.id}" ${state.online === 'off' || (o.voucherCount || 0) >= 5 ? 'disabled' : ''} class="h-7 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold whitespace-nowrap text-slate-800 transition hover:bg-slate-50 disabled:opacity-40">上传付款凭证</button>`
           : `<button data-action="open-order" data-id="${o.id}" class="inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">查看明细</button>`;
       } else if (canOp && pending) {
-        actions = `<button data-action="open-cancel" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold whitespace-nowrap text-slate-800 transition hover:bg-slate-50 disabled:opacity-40">作废</button><button data-action="open-confirm" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold whitespace-nowrap text-white transition hover:bg-indigo-700 disabled:opacity-50">确认收款</button>`;
+        const editBtn = auto
+          ? `<button data-action="open-edit" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 rounded-lg border border-slate-300 bg-white px-2 text-[12px] font-bold whitespace-nowrap text-slate-800 transition hover:bg-slate-50 disabled:opacity-40">修改</button>`
+          : '';
+        actions = `${editBtn}<button data-action="open-cancel" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 rounded-lg border border-slate-300 bg-white px-2 text-[12px] font-bold whitespace-nowrap text-slate-800 transition hover:bg-slate-50 disabled:opacity-40">作废</button><button data-action="open-confirm" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 rounded-lg bg-indigo-600 px-2 text-[12px] font-bold whitespace-nowrap text-white transition hover:bg-indigo-700 disabled:opacity-50">确认收款</button>`;
       } else if (paid) {
         actions = `<button data-action="open-fission" data-id="${o.id}" class="h-7 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold whitespace-nowrap text-slate-800 transition hover:bg-slate-50">课次明细</button>`;
       } else {
@@ -1076,6 +1196,77 @@
     function groupTitle(no, title) {
       return `<div class="flex items-center gap-2"><span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">${no}</span><h3 class="text-[14px] font-bold text-slate-900">${title}</h3></div>`;
     }
+    function pickerTrigger(label, picker, ariaLabel) {
+      return `<button type="button" data-action="open-picker" data-picker="${picker}" aria-haspopup="dialog" aria-label="${ariaLabel}" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-left text-[16px] font-medium text-slate-900 outline-none transition hover:bg-white focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+        <span class="min-w-0 truncate">${esc(label)}</span>
+        ${icon('chevron-down', 'h-4 w-4 shrink-0 text-slate-500')}
+      </button>`;
+    }
+    function pickerOption(picker, value, title, sub, selected) {
+      return `<button type="button" data-action="pick-value" data-picker="${picker}" data-value="${esc(value)}" class="flex min-h-[44px] w-full items-center gap-3 px-3.5 py-2.5 text-left transition ${selected ? 'bg-indigo-50/70' : 'hover:bg-white'}">
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-[14px] font-semibold ${selected ? 'text-indigo-950' : 'text-slate-900'}">${esc(title)}</span>
+          ${sub ? `<span class="mt-0.5 block truncate text-[12px] font-medium ${selected ? 'text-indigo-700' : 'text-slate-600'}">${esc(sub)}</span>` : ''}
+        </span>
+        ${selected ? `<span class="shrink-0 text-indigo-600">${icon('check', 'h-4 w-4')}</span>` : ''}
+      </button>`;
+    }
+    function renderPickerSheet() {
+      const f = state.create;
+      const picker = f.picker;
+      if (!picker) return '';
+      const q = String(f.pickerQuery || '').trim().toLowerCase();
+      const hit = (text) => !q || String(text).toLowerCase().includes(q);
+      let title = '';
+      let hint = '';
+      let searchPlaceholder = '';
+      let rows = '';
+      if (picker === 'class') {
+        title = '选择关联小班';
+        hint = '选定后按整班录单';
+        searchPlaceholder = '搜索小班或授课老师';
+        rows = activeClasses().filter((c) => hit(`${c.name} ${c.teacherName || '待委任'}`))
+          .map((c) => pickerOption('class', c.id, c.name, `${c.teacherName || '待委任'} · 满班 ${c.max} 人`, f.classId === c.id)).join('');
+      } else if (picker === 'source-class') {
+        title = '选择结转原小班';
+        hint = '仅展示已提前结课的小班';
+        rows = [
+          pickerOption('source-class', '', '不关联结转小班', '按全新小班录单', !f.sourceClassId),
+          ...terminatedClasses().map((c) => pickerOption('source-class', c.id, c.name, `已提前结课 · 剩余 ${c.remainingLessons} 节`, f.sourceClassId === c.id))
+        ].join('');
+      } else if (picker === 'student') {
+        title = '选择上课学员档案';
+        hint = '试课待认领档案仅管理员可选';
+        searchPlaceholder = '搜索学员昵称';
+        rows = STUDENTS.filter((s) => state.role === 'admin' || !s.trial)
+          .filter((s) => hit(`${s.name} ${s.tag}`))
+          .map((s) => pickerOption('student', s.name, s.name, s.tag, f.student === s.name)).join('');
+      } else if (picker === 'teacher') {
+        title = '选择意向老师';
+        hint = '选定后自动带出当前价位';
+        searchPlaceholder = '搜索老师姓名';
+        rows = [
+          pickerOption('teacher', '', '不指定意向老师', '可在下方课次明细中自行调整价位', !f.teacherId),
+          ...TEACHERS.filter((t) => hit(`${t.name} ${t.priceTier}`)).map((t) => pickerOption('teacher', t.id, t.name, `${t.priceTier} 积分/节`, f.teacherId === t.id))
+        ].join('');
+      } else {
+        return '';
+      }
+      return `<div class="absolute inset-0 z-[60]">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-picker"></div>
+        <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[85%] w-full max-w-[560px] flex-col overflow-hidden rounded-t-3xl bg-white">
+          <div class="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-300"></div>
+          <div class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200/80 px-4 py-2.5">
+            <div class="min-w-0"><h3 class="text-[16px] font-bold text-slate-900">${title}</h3><p class="mt-0.5 text-[12px] font-medium text-slate-600">${hint}</p></div>
+            <button type="button" data-action="close-picker" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-600 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          ${searchPlaceholder ? `<div class="shrink-0 px-4 pt-3"><div class="relative"><span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span><input id="pickerSearch" value="${esc(f.pickerQuery)}" placeholder="${searchPlaceholder}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-[16px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15"></div></div>` : ''}
+          <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+            <div class="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/70">${rows || '<p class="px-3.5 py-6 text-center text-[14px] font-medium text-slate-600">未找到匹配项</p>'}</div>
+          </div>
+        </div>
+      </div>`;
+    }
 
     function renderCreateSheet() {
       const f = state.create;
@@ -1093,6 +1284,9 @@
       const sourceCls = terminatedClassById(f.sourceClassId);
       const usedTiers = (f.items || []).map((it) => Number(it.priceTier));
       const trialLimitErr = trial && (totalLessons < 1 || totalLessons > 20);
+      const currentClass = classById(f.classId);
+      const currentStudent = STUDENTS.find((s) => s.name === f.student) || STUDENTS[0];
+      const currentTeacher = f.teacherId ? teacherById(f.teacherId) : null;
 
       return `<div class="absolute inset-0 z-50">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
@@ -1114,30 +1308,30 @@
                 </div>
                 ${small ? `<div class="space-y-3">
                     <div>
-                      <label for="createClass" class="mb-1 block text-[14px] font-semibold text-slate-700">关联小班 <span class="text-rose-500">*</span></label>
-                      <select id="createClass" class="${inputCls} font-medium">${activeClasses().map((c) => `<option value="${c.id}" ${f.classId === c.id ? 'selected' : ''}>${esc(c.name)} · ${esc(c.teacherName || '待委任')} · 满班 ${c.max} 人</option>`).join('')}</select>
+                      <span class="mb-1 block text-[14px] font-semibold text-slate-700">关联小班 <span class="text-rose-500">*</span></span>
+                      ${pickerTrigger(`${currentClass.name} · ${currentClass.teacherName || '待委任'}`, 'class', '选择关联小班')}
                       ${pendingClass ? `<div class="mt-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-rose-700">该小班尚未委任授课老师，请先委任老师后再录单收款（CLASS_TEACHER_NOT_ASSIGNED）</div>` : ''}
                     </div>
                     <div>
-                      <label for="createSourceClass" class="mb-1 block text-[14px] font-semibold text-slate-700">关联结转原小班（选填）</label>
-                      <select id="createSourceClass" class="${inputCls} font-medium"><option value="">不关联结转小班</option>${terminatedClasses().map((c) => `<option value="${c.id}" ${f.sourceClassId === c.id ? 'selected' : ''}>${esc(c.name)} · 已提前结课 · 剩余 ${c.remainingLessons} 节</option>`).join('')}</select>
+                      <span class="mb-1 block text-[14px] font-semibold text-slate-700">关联结转原小班（选填）</span>
+                      ${pickerTrigger(sourceCls ? `${sourceCls.name} · 剩余 ${sourceCls.remainingLessons} 节` : '不关联结转小班', 'source-class', '选择结转原小班')}
                       ${sourceCls ? `<div class="mt-1.5 flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[12px] font-medium leading-relaxed text-amber-900"><span>承接原班剩余 ${sourceCls.remainingLessons} 节 · 建议课次数 ${sourceCls.remainingLessons} 节</span><button data-action="apply-remaining" class="shrink-0 rounded-md bg-amber-600 px-2 py-1 text-[12px] font-bold text-white">带入</button></div>` : ''}
                     </div>
                   </div>`
                 : `<div class="space-y-3">
                     <div>
-                      <label for="createStudent" class="mb-1 block text-[14px] font-semibold text-slate-700">上课学员档案 <span class="text-rose-500">*</span></label>
-                      <select id="createStudent" class="${inputCls} font-medium">${STUDENTS.filter((s) => isAdmin || !s.trial).map((s) => `<option value="${s.name}" ${f.student === s.name ? 'selected' : ''}>${esc(s.name)} · ${esc(s.tag)}</option>`).join('')}</select>
+                      <span class="mb-1 block text-[14px] font-semibold text-slate-700">上课学员档案 <span class="text-rose-500">*</span></span>
+                      ${pickerTrigger(`${currentStudent.name} · ${currentStudent.tag}`, 'student', '选择上课学员档案')}
                     </div>
                     <div>
-                      <label for="createTeacher" class="mb-1 block text-[14px] font-semibold text-slate-700">意向老师（选填 · 选定自动带出当前价位）</label>
-                      <select id="createTeacher" class="${inputCls} font-medium"><option value="">不指定意向老师</option>${TEACHERS.map((t) => `<option value="${t.id}" ${f.teacherId === t.id ? 'selected' : ''}>${esc(t.name)}（${t.priceTier}积分/节）</option>`).join('')}</select>
+                      <span class="mb-1 block text-[14px] font-semibold text-slate-700">意向老师（选填 · 选定自动带出当前价位）</span>
+                      ${pickerTrigger(currentTeacher ? `${currentTeacher.name}（${currentTeacher.priceTier}积分/节）` : '不指定意向老师', 'teacher', '选择意向老师')}
                       ${f.teacherId ? `<p class="mt-1 text-[12px] font-medium text-indigo-700">已带出当前价位 ${teacherById(f.teacherId).priceTier}积分/节，可在下方明细中调整</p>` : ''}
                     </div>
                   </div>`}
                 <div>
                   <span class="mb-1 block text-[14px] font-semibold text-slate-700">资金持有方 <span class="text-rose-500">*</span></span>
-                  ${isAdmin && !trial ? `<select id="createHolder" class="${inputCls} font-medium"><option value="Leo" ${f.holder === 'Leo' ? 'selected' : ''}>Leo（班长）</option><option value="Amy" ${f.holder === 'Amy' ? 'selected' : ''}>Amy（班长）</option></select>` : `<div class="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[14px] font-medium text-slate-700"><span>${trial ? '平台（管理员）' : 'Leo（当前班长）'}</span>${icon('lock', 'h-3.5 w-3.5 text-slate-500')}</div>`}
+                  ${isAdmin && !trial ? `<div class="grid grid-cols-2 gap-2">${['Leo', 'Amy'].map((h) => { const on = f.holder === h; return `<button type="button" data-action="set-holder" data-value="${h}" class="relative h-11 rounded-xl border text-[14px] font-bold transition ${on ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'}">${h}（班长）${on ? `<span class="absolute right-1 top-1 text-indigo-600">${icon('check', 'h-3 w-3')}</span>` : ''}</button>`; }).join('')}</div>` : `<div class="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[14px] font-medium text-slate-700"><span>${trial ? '平台（管理员）' : 'Leo（当前班长）'}</span>${icon('lock', 'h-3.5 w-3.5 text-slate-500')}</div>`}
                 </div>
               </section>
 
@@ -1157,9 +1351,9 @@
                   </div>
                   <p class="text-[12px] font-medium text-slate-600">同一价位不可重复；意向老师选定后自动带出其当前价位</p>
                   ${f.items.map((it, idx) => `<div class="flex items-center gap-2">
-                    <select data-action="item-tier" data-index="${idx}" class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-[16px] font-semibold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white">
-                      ${PRICE_TIERS.map((tier) => { const dup = usedTiers.includes(tier) && Number(it.priceTier) !== tier; return `<option value="${tier}" ${Number(it.priceTier) === tier ? 'selected' : ''} ${dup ? 'disabled' : ''}>${tier}积分/节${dup ? '（已选）' : ''}</option>`; }).join('')}
-                    </select>
+                    <div class="flex flex-1 items-center gap-1" role="group" aria-label="第 ${idx + 1} 行价位">
+                      ${PRICE_TIERS.map((tier) => { const on = Number(it.priceTier) === tier; const dup = usedTiers.includes(tier) && !on; return `<button type="button" data-action="set-item-tier" data-index="${idx}" data-value="${tier}" ${dup ? 'disabled' : ''} aria-pressed="${on}" class="h-11 flex-1 rounded-xl border text-[14px] font-bold transition ${on ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'} disabled:cursor-not-allowed disabled:opacity-40">${tier}<span class="ml-0.5 text-[12px] font-medium">分</span></button>`; }).join('')}
+                    </div>
                     <span class="text-[14px] font-bold text-slate-500">×</span>
                     <input data-action="item-lessons" data-index="${idx}" type="number" min="1" ${trial ? 'max="20"' : ''} value="${esc(it.lessons)}" class="h-11 w-20 rounded-xl border border-slate-200 bg-slate-50/70 px-3 text-center text-[16px] font-bold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white">
                     <span class="text-[12px] font-medium text-slate-600">节</span>
@@ -1186,13 +1380,13 @@
                     <input id="createForceSubmit" type="checkbox" ${f.forceSubmit ? 'checked' : ''} class="h-4 w-4 rounded accent-amber-600">
                     <span class="text-[14px] font-semibold text-amber-900">金额不符：勾选强制提交并留痕</span>
                   </label>
-                  <input id="createForceReason" value="${esc(f.forceReason)}" maxlength="200" placeholder="强制提交原因（1-200 字）" class="mt-1.5 h-11 w-full rounded-xl border border-amber-300 bg-white px-3 text-[16px] text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/15">
+                  <input id="createForceReason" value="${esc(f.forceReason)}" maxlength="200" placeholder="强制提交原因（1-200 字）" class="mt-1.5 h-11 w-full rounded-xl border border-amber-300 bg-white px-3 text-[16px] text-slate-900 outline-none placeholder:text-slate-500 focus:ring-2 focus:ring-amber-500/15">
                 </div>` : ''}
               </section>
 
               <section class="space-y-3.5 rounded-2xl border border-slate-200/80 bg-white p-4">
                 ${groupTitle(3, '凭证与备注')}
-                ${small ? `<div><label for="createRemarks" class="mb-1 block text-[14px] font-semibold text-slate-700">业务备注（选填）</label><textarea id="createRemarks" rows="2" maxlength="200" placeholder="如：承接原班剩余 6 节，老生按 9 折续费" class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(f.remarks)}</textarea></div>` : ''}
+                ${small ? `<div><label for="createRemarks" class="mb-1 block text-[14px] font-semibold text-slate-700">业务备注（选填）</label><textarea id="createRemarks" rows="2" maxlength="200" placeholder="如：承接原班剩余 6 节，老生按 9 折续费" class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-[16px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(f.remarks)}</textarea></div>` : ''}
                 <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                   <div class="flex items-center justify-between"><span class="text-[14px] font-semibold text-slate-800">支付凭证</span><span class="text-[12px] font-medium text-slate-600">${f.vouchers.length}/5</span></div>
                   <label class="mt-2 flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white text-[12px] font-semibold text-slate-600">${icon('upload', 'h-4 w-4 text-slate-500')}选择 JPG/PNG/PDF（≤10MB）<input id="createVoucherInput" type="file" accept="image/jpeg,image/png,application/pdf" multiple class="hidden"></label>
@@ -1208,6 +1402,7 @@
             <button id="createSubmit" data-action="submit-create" ${state.online === 'off' || pendingClass || trialLimitErr ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${pendingClass ? '请先委任老师' : '提交生成待确认单据'}</button>
           </div>
         </div>
+        ${renderPickerSheet()}
       </div>`;
     }
     function updateCreateCalc() {
@@ -1264,23 +1459,37 @@
       const o = orderById(state.edit.orderId);
       if (!o) return '';
       const e = state.edit;
-      const selectedTeacher = teacherById(e.teacherId || o.teacherId);
-      const editUnit = selectedTeacher.priceTier;
+      const draft = e.draft;
+      const newTeacher = editTeacherInfo(o, e);
+      const editUnit = newTeacher.priceTier;
       const expected = (Number(e.lessons) || 0) * editUnit;
       const leave = Math.floor((Number(e.lessons) || 0) * 0.125);
       const mismatch = Number(e.paid || 0) !== expected;
+      const diff = Number(e.paid || 0) - expected;
       const currTier = Number(o.priceTier || editUnit);
       const prevTier = Number(o.previousTier || currTier);
-      const priceDelta = editUnit - prevTier;
+      const priceShift = draft ? editUnit - currTier : editUnit - prevTier;
       const adjust = adjustmentPending(o);
+      const weekCells = draftWeekCells(draft, o);
+      const selectedCount = draft ? (Number(draft.selectedCount) || 0) : Math.max(0, Number(o.lessonCount) - Number(o.makeupLessons || 0));
+      const conflictCount = draft ? (Number(draft.conflictCount) || 0) : Number(o.makeupLessons || 0);
+      const scheduleText = draft ? (draftScheduleText(draft) || '按课表草稿回填') : (o.preScheduleSlots || '未设置固定时段');
+      const reasonText = draft && newTeacher.id !== o.teacherId
+        ? `课表草稿已更换授课老师为 ${newTeacher.name}（${editUnit} 积分/节），保存后按新课表锁定 HOLD。`
+        : (o.priceChangeReason || '');
+      const badge = draft
+        ? '<span class="inline-flex shrink-0 items-center rounded-full border border-indigo-200 bg-indigo-100 px-2 py-0.5 text-[12px] font-bold text-indigo-800">待保存新排期</span>'
+        : '<span class="inline-flex shrink-0 items-center rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[12px] font-bold text-amber-900">当前 HOLD</span>';
+      const m3aHref = `m3a_calendar_grid.html?mode=renewal_edit&role=monitor&teacher=${encodeURIComponent(o.teacherId || newTeacher.id || '')}&orderId=${encodeURIComponent(o.id)}&return=m2a`;
+      const m3dHref = `m3d_scheduling_workbench.html?mode=renewal_edit&role=monitor&orderId=${encodeURIComponent(o.id)}`;
       const inputCls = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15';
       return `<div class="absolute inset-0 z-50">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="cancel-edit"></div>
         <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[92%] w-full max-w-[560px] flex-col overflow-hidden rounded-t-3xl bg-slate-50 shadow-2xl">
           <div class="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-300"></div>
           <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200/80 bg-white px-4 py-2.5">
-            <div class="min-w-0"><h2 class="text-[16px] font-bold text-slate-900">修改购课单</h2><p class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(o.student)} · ${esc(selectedTeacher.name)} · 老师价位 ${esc(priceLabel(selectedTeacher))}</p></div>
-            <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-600 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+            <div class="min-w-0"><h2 class="text-[16px] font-bold text-slate-900">修改购课单</h2><p class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(o.student)} · ${esc(newTeacher.name)} · 老师价位 ${esc(levelLabel(editUnit))}/节</p></div>
+            <button data-action="cancel-edit" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-600 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3">
             <div class="space-y-3">
@@ -1291,25 +1500,39 @@
                 <p class="mt-1 text-[12px] font-medium text-slate-600">提交于 ${esc(o.adjustmentAt || '')}</p>
               </section>` : ''}
 
-              <section class="space-y-3.5 rounded-2xl border border-slate-200/80 bg-white p-4">
-                ${groupTitle(1, '排课与老师')}
-                <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] leading-relaxed text-amber-900">
-                  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
-                    <div class="rounded-lg bg-white px-2 py-1.5"><div class="font-medium">原价位</div><div class="mt-0.5 text-[14px] font-bold">${levelLabel(prevTier)} · ${prevTier} 积分/节</div></div>
-                    <span class="text-[14px] font-bold">→</span>
-                    <div class="rounded-lg bg-white px-2 py-1.5"><div class="font-medium">新价位</div><div class="mt-0.5 text-[14px] font-bold">${levelLabel(selectedTeacher.priceTier)} · ${selectedTeacher.priceTier} 积分/节</div></div>
+              <section class="rounded-2xl border border-indigo-200/80 bg-indigo-50/50 p-4">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <h3 class="text-[14px] font-bold text-slate-900">未来 4 周排期</h3>
+                    <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">${draft ? '课表草稿已回填，保存前原 HOLD 保持不变' : '当前续费预占（HOLD）摘要，可进入课表可视化调整'}</p>
                   </div>
-                  <p class="mt-1 font-medium">${esc(o.priceChangeReason || '')}${priceDelta !== 0 ? ` 单节${priceDelta > 0 ? '上调' : '下调'} ${Math.abs(priceDelta)} 积分。` : ''}</p>
+                  ${badge}
                 </div>
-                <div><label for="editTeacher" class="mb-1 block text-[14px] font-semibold text-slate-700">授课老师</label><select id="editTeacher" class="${inputCls} font-medium">${TEACHERS.map((t) => `<option value="${t.id}" ${selectedTeacher.id === t.id ? 'selected' : ''}>${esc(t.name)} · ${t.priceTier} 积分/节</option>`).join('')}</select></div>
-                <div>
-                  <span class="mb-1 block text-[14px] font-semibold text-slate-700">未来 4 周固定时段</span>
-                  <div class="grid grid-cols-2 gap-2">
-                    <label class="flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 text-[14px] font-medium transition ${e.slotsTue ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/70 text-slate-700'}"><input id="editSlotTue" type="checkbox" ${e.slotsTue ? 'checked' : ''} class="h-4 w-4 accent-indigo-600">每周二</label>
-                    <label class="flex h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 text-[14px] font-medium transition ${e.slotsThu ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/70 text-slate-700'}"><input id="editSlotThu" type="checkbox" ${e.slotsThu ? 'checked' : ''} class="h-4 w-4 accent-indigo-600">每周四</label>
-                  </div>
-                  <label class="mt-2 flex items-center justify-between gap-2 text-[14px] font-medium text-slate-700">教学时间<select id="editSlotTime" class="${inputCls} max-w-[180px] font-medium"><option value="19:00" ${e.slotTime === '19:00' ? 'selected' : ''}>19:00 - 19:30</option><option value="20:00" ${e.slotTime === '20:00' ? 'selected' : ''}>20:00 - 20:30</option><option value="18:00" ${e.slotTime === '18:00' ? 'selected' : ''}>18:00 - 18:30</option></select></label>
-                  <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">保存后释放旧时段 HOLD、锁定新时段，并同步家长端日历。</p>
+                <div class="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-1.5">
+                  <div class="rounded-lg bg-white px-2.5 py-2"><div class="text-[12px] font-medium text-slate-600">当前老师</div><div class="mt-0.5 truncate text-[14px] font-bold text-slate-900">${esc(o.teacherName || '—')}</div><div class="text-[12px] font-semibold text-slate-600">${currTier} 积分/节</div></div>
+                  <span class="text-[14px] font-bold text-slate-500">→</span>
+                  <div class="rounded-lg bg-white px-2.5 py-2"><div class="text-[12px] font-medium text-slate-600">新排期老师</div><div class="mt-0.5 truncate text-[14px] font-bold text-slate-900">${esc(newTeacher.name)}</div><div class="text-[12px] font-semibold text-slate-600">${editUnit} 积分/节</div></div>
+                </div>
+                <div class="mt-2 rounded-lg bg-white px-2.5 py-2">
+                  <div class="text-[12px] font-medium text-slate-600">每周已选时段</div>
+                  <div class="mt-0.5 text-[14px] font-semibold leading-relaxed text-slate-900">${esc(scheduleText)}</div>
+                </div>
+                <div class="mt-1.5 grid grid-cols-4 gap-1">
+                  ${weekCells.map((cell) => `<div class="rounded-lg border px-1 py-1.5 text-center ${cell.conflict ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-white text-emerald-800'}"><div class="text-[12px] font-bold">第${cell.week}周</div><div class="text-[11px] font-medium leading-tight">${esc(cell.label)}</div></div>`).join('')}
+                </div>
+                <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12px] font-semibold">
+                  <span class="rounded-md border border-emerald-200 bg-white px-1.5 py-0.5 text-emerald-800">已选 ${selectedCount} 节</span>
+                  <span class="rounded-md border ${conflictCount ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-600'} px-1.5 py-0.5">冲突/待补 ${conflictCount} 节</span>
+                  ${priceShift !== 0 ? `<span class="rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-800">${draft ? '当前' : '上轮'} ${draft ? currTier : prevTier}积分 → ${editUnit}积分</span>` : ''}
+                </div>
+                <div class="mt-1.5 flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-2 text-[12px] font-semibold">
+                  <span class="text-slate-600">重算期望 <b id="editSummaryExpected" class="font-mono text-[14px] text-slate-900">${expected}</b> 积分</span>
+                  <span id="editSummaryDiff" class="${mismatch ? 'text-amber-700' : 'text-emerald-700'}">${mismatch ? `差额 ${diff > 0 ? '+' : ''}${diff}` : '与期望相符'}</span>
+                </div>
+                ${reasonText ? `<p class="mt-1.5 rounded-lg bg-white px-2.5 py-2 text-[12px] font-medium leading-relaxed text-slate-700">${esc(reasonText)}${priceShift !== 0 ? ` 单节${priceShift > 0 ? '上调' : '下调'} ${Math.abs(priceShift)} 积分。` : ''}</p>` : ''}
+                <div class="mt-2 grid gap-2">
+                  <a href="${m3aHref}" target="_blank" rel="noopener" class="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-white text-[14px] font-semibold text-indigo-700 transition hover:bg-indigo-50">${icon('calendar-days', 'h-4 w-4')}在课表上调整时段</a>
+                  ${o.orderType !== 'small_group' ? `<a href="${m3dHref}" target="_blank" rel="noopener" class="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-white text-[14px] font-semibold text-indigo-700 transition hover:bg-indigo-50">${icon('search', 'h-4 w-4')}更换老师并选时段</a>` : ''}
                 </div>
               </section>
 
@@ -1321,18 +1544,24 @@
                   <div class="mt-2 flex gap-1.5">${[4, 8, 12, 16].map((n) => `<button data-action="set-edit-lessons" data-lessons="${n}" class="h-7 flex-1 rounded-lg border text-[12px] font-bold transition ${Number(e.lessons) === n ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}">${n} 节</button>`).join('')}</div>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
-                  <div class="rounded-xl border border-indigo-200/80 bg-indigo-50/50 px-3 py-2.5"><div class="text-[12px] font-medium text-indigo-700">重新测算期望</div><div id="editExpected" class="mt-0.5 font-mono text-[18px] font-bold text-indigo-950">${expected} 积分</div><div id="editPriceLine" class="mt-0.5 text-[12px] text-indigo-700">${selectedTeacher.priceTier} 积分/节</div></div>
+                  <div class="rounded-xl border border-indigo-200/80 bg-indigo-50/50 px-3 py-2.5"><div class="text-[12px] font-medium text-indigo-700">重新测算期望</div><div id="editExpected" class="mt-0.5 font-mono text-[18px] font-bold text-indigo-950">${expected} 积分</div><div id="editPriceLine" class="mt-0.5 text-[12px] text-indigo-700">${editUnit} 积分/节</div></div>
                   <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3 py-2.5"><div class="text-[12px] font-medium text-emerald-700">请假额度</div><div id="editLeave" class="mt-0.5 font-mono text-[18px] font-bold text-emerald-950">${leave} 节</div><div class="mt-0.5 text-[12px] text-emerald-700">⌊课次 × 12.5%⌋</div></div>
                 </div>
-                <div><label for="editPaid" class="mb-1 block text-[14px] font-semibold text-slate-700">实收积分</label><input id="editPaid" type="number" min="1" value="${esc(e.paid)}" class="${inputCls} font-bold"></div>
+                <div>
+                  <div class="mb-1 flex items-center justify-between gap-2">
+                    <label for="editPaid" class="text-[14px] font-semibold text-slate-700">实收积分</label>
+                    <span id="editDiff" class="text-[12px] font-semibold ${mismatch ? 'text-amber-700' : 'text-emerald-700'}">${mismatch ? `差额 ${diff > 0 ? '+' : ''}${diff}` : '与期望相符'}</span>
+                  </div>
+                  <input id="editPaid" type="number" min="1" value="${esc(e.paid)}" class="${inputCls} font-bold">
+                </div>
                 <div id="editForceBox" class="${mismatch ? '' : 'hidden'} rounded-xl border border-amber-200 bg-amber-50 p-3"><div class="text-[14px] font-semibold text-amber-900">金额不符：需填写修改原因（1-200 字）</div><input id="editForceReason" value="${esc(e.forceReason)}" maxlength="200" placeholder="如：老学员沟通换师补偿直减 10 积分" class="mt-1.5 h-11 w-full rounded-xl border border-amber-300 bg-white px-3 text-[16px] text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/15"></div>
                 ${e.error ? `<div id="editError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(e.error)}</div>` : ''}
-                <p class="text-[12px] font-medium leading-relaxed text-slate-600">保存后按新老师价位重算期望，释放旧 HOLD、锁定新 HOLD，并向家长补发更正账单；家长诉求自动闭环为已处理。</p>
+                <p class="text-[12px] font-medium leading-relaxed text-slate-600">${draft ? '保存后按草稿排期释放旧 HOLD、锁定新 HOLD，并向家长补发更正账单；家长诉求自动闭环为已处理。' : '修改课次或实收后保存，系统按当前老师价位重算并更正账单；家长诉求自动闭环为已处理。'}</p>
                 <button data-action="cancel-renewal" data-id="${o.id}" class="h-10 w-full rounded-xl border border-rose-200 bg-rose-50 text-[12px] font-bold text-rose-700">取消续费并作废（释放 HOLD）</button>
               </section>
             </div>
           </div>
-          <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3"><button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">取消</button><button data-action="save-edit" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">保存并更正账单</button></div>
+          <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3"><button data-action="cancel-edit" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">取消</button><button data-action="save-edit" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">保存并更正账单</button></div>
         </div>
       </div>`;
     }
@@ -1341,7 +1570,7 @@
       if (!el) return;
       const e = state.edit;
       const o = orderById(e.orderId);
-      const teacher = o ? teacherById(e.teacherId || o.teacherId) : TEACHERS[0];
+      const teacher = o ? editTeacherInfo(o, e) : TEACHERS[0];
       const editUnit = teacher.priceTier;
       const expected = (Number(e.lessons) || 0) * editUnit;
       const leave = Math.floor((Number(e.lessons) || 0) * 0.125);
@@ -1354,7 +1583,22 @@
       $('editLeave').textContent = `${leave} 节`;
       const priceLine = $('editPriceLine');
       if (priceLine) priceLine.textContent = `${teacher.priceTier} 积分/节`;
-      $('editForceBox').classList.toggle('hidden', Number(e.paid || 0) === expected);
+      const diff = Number(e.paid || 0) - expected;
+      const diffText = diff === 0 ? '与期望相符' : `差额 ${diff > 0 ? '+' : ''}${diff}`;
+      const diffEl = $('editDiff');
+      if (diffEl) {
+        diffEl.textContent = diffText;
+        diffEl.className = `text-[12px] font-semibold ${diff === 0 ? 'text-emerald-700' : 'text-amber-700'}`;
+      }
+      const summaryExpected = $('editSummaryExpected');
+      if (summaryExpected) summaryExpected.textContent = expected;
+      const summaryDiff = $('editSummaryDiff');
+      if (summaryDiff) {
+        summaryDiff.textContent = diffText;
+        summaryDiff.className = diff === 0 ? 'text-emerald-700' : 'text-amber-700';
+      }
+      const forceBox = $('editForceBox');
+      if (forceBox) forceBox.classList.toggle('hidden', Number(e.paid || 0) === expected);
     }
 
     /* ------------------------------------------------------------------
@@ -1558,6 +1802,43 @@
       if (window.lucide) lucide.createIcons();
       showToast(msg);
     }
+    function resetCreatePicker() {
+      if (!state.create) return;
+      state.create.picker = null;
+      state.create.pickerQuery = '';
+    }
+    function pickCreateValue(picker, value) {
+      const f = state.create;
+      f.picker = null;
+      f.pickerQuery = '';
+      f.error = '';
+      if (picker === 'class') f.classId = value;
+      else if (picker === 'source-class') f.sourceClassId = value;
+      else if (picker === 'student') {
+        f.student = value;
+        if (value === 'LeoW8') { f.orderType = '1v1'; f.holder = '平台'; }
+        else if (f.holder === '平台') f.holder = 'Leo';
+      } else if (picker === 'teacher') {
+        f.teacherId = value;
+        if (value) {
+          const tier = teacherById(value).priceTier;
+          const items = f.items;
+          items[0].priceTier = tier;
+          items.forEach((it, idx) => {
+            if (idx === 0) return;
+            if (Number(it.priceTier) === tier) {
+              const used = items.filter((_, i) => i !== idx).map((x) => Number(x.priceTier));
+              const alt = PRICE_TIERS.find((t) => !used.includes(t));
+              if (alt) it.priceTier = alt;
+            }
+          });
+          f.autoPaid = true;
+        }
+      }
+      $('overlay').innerHTML = renderOverlay();
+      if (window.lucide) lucide.createIcons();
+      updateCreateCalc();
+    }
     function setCreateType(type) {
       if (state.create.student === 'LeoW8' && type !== '1v1') return showToast('试课待认领档案仅支持 1v1 课次');
       state.create.orderType = type;
@@ -1591,6 +1872,7 @@
         return showToast('当前单据已处理，幂等返回，不重复生成课次');
       }
       const wasAdjusting = adjustmentPending(o);
+      discardRenewalDraft(o.id);
       o.status = 'PAID';
       o.cancelReason = '';
       o.paidAt = '刚刚';
@@ -1615,6 +1897,7 @@
         state.overlay = null; renderAll();
         return showToast('仅待付款单据可作废');
       }
+      discardRenewalDraft(o.id);
       o.status = 'CANCELLED';
       o.cancelReason = 'MANUAL_CANCEL';
       o.cancelledAt = '刚刚';
@@ -1629,10 +1912,18 @@
       if (!o || !canOperate(o)) return showToast('无权操作该购课单');
       if (o.source !== 'AUTO_RENEWAL') return showToast('仅自动续费单可在确认收款前修改');
       if (o.status !== 'PENDING_PAYMENT') return showToast('仅待确认收款单据可修改');
-      state.edit = { orderId: id, teacherId: o.teacherId, lessons: String(o.lessonCount), paid: String(o.paidPoints), autoPaid: Number(o.paidPoints) === Number(o.expectedPoints), slotsTue: true, slotsThu: true, slotTime: o.slotTime || '19:00', forceReason: o.forceReason || '', error: '' };
+      state.edit = buildEditState(o, loadRenewalDraft(id));
       state.overlay = { type: 'edit', orderId: id };
       renderAll();
       updateEditCalc();
+    }
+    function cancelEdit() {
+      const id = state.edit.orderId;
+      const hadDraft = !!loadRenewalDraft(id);
+      discardRenewalDraft(id);
+      state.overlay = null;
+      renderAll();
+      showToast(hadDraft ? '已放弃草稿排期 · 原 HOLD 保持不变' : '已取消修改');
     }
     function saveEdit() {
       if (state.online === 'off') return showToast('离线模式下不可修改');
@@ -1644,8 +1935,7 @@
       if (!Number.isInteger(lessons) || lessons <= 0) { e.error = '课次数必须为正整数'; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); return; }
       if (lessons % 4 !== 0) { e.error = '续费课次数须为 4 的倍数（4 周固定时段）'; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); return; }
       if (!Number.isInteger(paid) || paid <= 0) { e.error = '实收积分必须为正整数'; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); return; }
-      if (!e.slotsTue && !e.slotsThu) { e.error = '请至少保留一个固定教学时段'; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); return; }
-      const newTeacher = teacherById(e.teacherId || o.teacherId);
+      const newTeacher = editTeacherInfo(o, e);
       const editUnit = newTeacher.priceTier;
       const expected = lessons * editUnit;
       if (paid !== expected && e.forceReason.trim().length > 200) { e.error = '修改原因不能超过 200 字'; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); return; }
@@ -1653,9 +1943,12 @@
       const oldTeacher = teacherById(o.teacherId);
       const oldLessons = o.lessonCount;
       const oldPaid = o.paidPoints;
-      const days = [e.slotsTue ? '二' : '', e.slotsThu ? '四' : ''].filter(Boolean).join('、');
+      const hadDraft = !!e.draft;
       if (newTeacher.id !== oldTeacher.id) {
         o.previousTier = oldTeacher.priceTier;
+        o.priceChangeReason = `授课老师更换为 ${newTeacher.name}（${newTeacher.priceTier} 积分/节）。`;
+      } else if (hadDraft) {
+        o.priceChangeReason = `已按课表草稿更新未来 4 周排期，按 ${newTeacher.priceTier} 积分/节计费。`;
       }
       o.teacherId = newTeacher.id;
       o.teacherName = newTeacher.name;
@@ -1667,22 +1960,24 @@
       o.leaveQuota = Math.floor(lessons * 0.125);
       o.isForced = paid !== expected;
       o.forceReason = paid !== expected ? e.forceReason.trim() : '';
-      o.slotTime = e.slotTime;
-      o.preScheduleSlots = `每周${days} ${slotRange(e.slotTime)}（共 ${lessons} 节）`;
-      o.priceChangeReason = newTeacher.id !== oldTeacher.id
-        ? `授课老师更换为 ${newTeacher.name}（${newTeacher.priceTier} 积分/节）。`
-        : o.priceChangeReason;
+      if (hadDraft) {
+        const scheduleText = draftScheduleText(e.draft);
+        if (scheduleText) o.preScheduleSlots = scheduleText;
+        o.holdSkipped = draftConflictWeeks(e.draft);
+        o.makeupLessons = Number(e.draft.conflictCount) || 0;
+      }
       o.history = o.history || [];
       o.history.push({
         at: '刚刚',
-        title: '班长修改续费单',
-        note: `老师 ${oldTeacher.name}→${newTeacher.name}；课次 ${oldLessons}→${lessons}；实收 ${oldPaid}→${paid}；释放旧 HOLD 并锁定新 HOLD`,
+        title: hadDraft ? '班长按课表草稿修改续费单' : '班长修改续费单',
+        note: `老师 ${oldTeacher.name}→${newTeacher.name}；课次 ${oldLessons}→${lessons}；实收 ${oldPaid}→${paid}；${hadDraft ? '释放旧 HOLD 并锁定新排期 HOLD' : '更新账单'}`,
         actor: holderLabel(o.holder)
       });
       if (adjustmentPending(o)) { o.adjustmentStatus = 'RESOLVED'; o.adjustmentResolvedAt = '刚刚'; }
+      discardRenewalDraft(o.id);
       state.overlay = null;
       renderAll();
-      showToast('已保存并更正账单，已通知家长');
+      showToast(hadDraft ? '已保存并更正账单 · 旧 HOLD 已释放，新 HOLD 已锁定' : '已保存并更正账单，已通知家长');
     }
     function openFission(id) {
       state.overlay = { type: 'fission', orderId: id };
@@ -1728,6 +2023,7 @@
       if (state.online === 'off') return showToast('离线模式下不可操作');
       const o = orderById(state.overlay.orderId);
       if (!o || !parentCanSelfServe(o)) return;
+      discardRenewalDraft(o.id);
       o.status = 'CANCELLED';
       o.cancelReason = 'PARENT_DECLINED';
       o.cancelledAt = '刚刚';
@@ -1795,13 +2091,40 @@
       if (action === 'toast') return showToast(el.dataset.message || '');
       if (action === 'back-list') { state.page = 'list'; state.overlay = null; renderAll(); return; }
       if (action === 'banner-back') {
+        if (state.overlay && state.overlay.type === 'edit') return cancelEdit();
         if (state.overlay) { state.overlay = null; renderAll(); return; }
         if (state.page === 'detail') { state.page = 'list'; renderAll(); return; }
         return;
       }
       if (action === 'open-order') return openOrder(el.dataset.id);
       if (action === 'open-create') return openCreate();
-      if (action === 'close-overlay') { state.overlay = null; renderAll(); return; }
+      if (action === 'close-overlay') { state.overlay = null; resetCreatePicker(); renderAll(); return; }
+      if (action === 'open-picker') {
+        state.create.picker = el.dataset.picker || null;
+        state.create.pickerQuery = '';
+        $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons();
+        return;
+      }
+      if (action === 'close-picker') {
+        resetCreatePicker();
+        $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons();
+        return;
+      }
+      if (action === 'pick-value') return pickCreateValue(el.dataset.picker, el.dataset.value || '');
+      if (action === 'set-holder') {
+        state.create.holder = el.dataset.value;
+        $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons();
+        return;
+      }
+      if (action === 'set-item-tier') {
+        const idx = Number(el.dataset.index);
+        if (!state.create.items[idx]) return;
+        state.create.items[idx].priceTier = Number(el.dataset.value);
+        state.create.error = '';
+        $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); updateCreateCalc();
+        return;
+      }
+      if (action === 'cancel-edit') return cancelEdit();
       if (action === 'apply-remaining') {
         const src = terminatedClassById(state.create.sourceClassId);
         if (!src) return;
@@ -1839,7 +2162,7 @@
       if (action === 'confirm-cancel') return confirmCancel();
       if (action === 'open-edit') return openEdit(el.dataset.id);
       if (action === 'save-edit') return saveEdit();
-      if (action === 'cancel-renewal') { state.overlay = null; return openCancel(el.dataset.id); }
+      if (action === 'cancel-renewal') { discardRenewalDraft(el.dataset.id); state.overlay = null; return openCancel(el.dataset.id); }
       if (action === 'open-fission') return openFission(el.dataset.id);
       if (action === 'open-adjustment') return openAdjustment(el.dataset.id);
       if (action === 'toggle-adjust-tag') return toggleAdjustTag(el.dataset.tag);
@@ -1872,6 +2195,14 @@
         if (input) { input.focus(); input.setSelectionRange(val.length, val.length); }
         return;
       }
+      if (id === 'pickerSearch') {
+        state.create.pickerQuery = e.target.value;
+        $('overlay').innerHTML = renderOverlay();
+        if (window.lucide) lucide.createIcons();
+        const input = $('pickerSearch');
+        if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+        return;
+      }
       if (e.target.dataset.action === 'item-lessons') {
         const idx = Number(e.target.dataset.index);
         if (state.create.items[idx]) state.create.items[idx].lessons = e.target.value;
@@ -1892,55 +2223,8 @@
     });
     $('frame').addEventListener('change', (e) => {
       const id = e.target.id;
-      if (e.target.dataset.action === 'item-tier') {
-        const idx = Number(e.target.dataset.index);
-        if (state.create.items[idx]) state.create.items[idx].priceTier = Number(e.target.value);
-        state.create.error = '';
-        $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); updateCreateCalc(); return;
-      }
-      if (id === 'createClass') { state.create.classId = e.target.value; state.create.error = ''; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); updateCreateCalc(); return; }
-      if (id === 'createSourceClass') { state.create.sourceClassId = e.target.value; state.create.error = ''; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); updateCreateCalc(); return; }
-      if (id === 'createStudent') {
-        state.create.student = e.target.value; state.create.error = '';
-        if (e.target.value === 'LeoW8') { state.create.orderType = '1v1'; state.create.holder = '平台'; }
-        else if (state.create.holder === '平台') state.create.holder = 'Leo';
-        $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); updateCreateCalc();
-        return;
-      }
-      if (id === 'createTeacher') {
-        state.create.teacherId = e.target.value;
-        if (e.target.value) {
-          const tier = teacherById(e.target.value).priceTier;
-          const items = state.create.items;
-          items[0].priceTier = tier;
-          items.forEach((it, idx) => {
-            if (idx === 0) return;
-            if (Number(it.priceTier) === tier) {
-              const used = items.filter((_, i) => i !== idx).map((x) => Number(x.priceTier));
-              const alt = PRICE_TIERS.find((t) => !used.includes(t));
-              if (alt) it.priceTier = alt;
-            }
-          });
-          state.create.autoPaid = true;
-        }
-        state.create.error = '';
-        $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); updateCreateCalc();
-        return;
-      }
-      if (id === 'createHolder') { state.create.holder = e.target.value; return; }
       if (id === 'createExtra') { state.create.extraPrep = e.target.checked; state.create.error = ''; updateCreateCalc(); return; }
       if (id === 'createForceSubmit') { state.create.forceSubmit = e.target.checked; state.create.error = ''; return; }
-      if (id === 'editTeacher') {
-        state.edit.teacherId = e.target.value;
-        state.edit.autoPaid = true;
-        state.edit.error = '';
-        $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons();
-        updateEditCalc();
-        return;
-      }
-      if (id === 'editSlotTue') { state.edit.slotsTue = e.target.checked; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); updateEditCalc(); return; }
-      if (id === 'editSlotThu') { state.edit.slotsThu = e.target.checked; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); updateEditCalc(); return; }
-      if (id === 'editSlotTime') { state.edit.slotTime = e.target.value; return; }
       if (id === 'createVoucherInput') {
         const files = Array.from(e.target.files || []);
         for (const file of files) {
@@ -1973,8 +2257,20 @@
       showToast._timer = setTimeout(() => toast.classList.add('hidden'), 2400);
     }
 
+    if (params.get('draft') === '1') {
+      const draftOrderId = params.get('orderId');
+      const draft = draftOrderId ? loadRenewalDraft(draftOrderId) : null;
+      const target = draftOrderId ? state.orders.find((o) => o.id === draftOrderId) : null;
+      if (draft && target && target.source === 'AUTO_RENEWAL' && target.status === 'PENDING_PAYMENT' && canOperate(target)) {
+        state.activeOrderId = target.id;
+        state.edit = buildEditState(target, draft);
+        state.overlay = { type: 'edit', orderId: target.id };
+      }
+    }
     renderAll();
+    if (params.get('bare') !== '1') applyConsoleCollapsed(readConsoleCollapsed());
     updateCreateCalc();
+    if (state.overlay && state.overlay.type === 'edit') updateEditCalc();
     if (params.get('scroll') === 'bottom') {
       setTimeout(() => {
         const contentEl = $('content');

@@ -70,11 +70,18 @@
 
       <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
 
-      <a href="../docs/prd/m1c_classes.md" target="_blank" rel="noopener" class="ml-auto hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
+      <a href="../docs/prd/m1c_classes.md" target="_blank" rel="noopener" class="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
         <i data-lucide="file-text" class="h-3.5 w-3.5"></i>需求文档
       </a>
+
+      <button type="button" data-console-collapse aria-label="收起演示导航" class="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">▲ 收起</button>
     </div>
   </header>
+
+  <!-- 收起态：极简吸顶微条（不属于产品界面） -->
+  <div data-console-mini class="sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+    <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+  </div>
 
   <main class="flex justify-center py-6">
     <div id="frame" class="relative flex h-[812px] w-full max-w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
@@ -83,6 +90,7 @@
       <div id="content" class="min-h-0 flex-1 overflow-y-auto"></div>
       <nav id="bottomnav" class="shrink-0"></nav>
       <div id="overlay"></div>
+      <div id="picker"></div>
       <div id="toast" class="pointer-events-none absolute bottom-20 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
     </div>
   </main>
@@ -348,7 +356,9 @@
       edit: null,
       appoint: { classId: '', selected: '' },
       logOpen: false,
-      overlay: null
+      overlay: null,
+      picker: null,
+      pickerSearch: ''
     };
 
     const params = new URLSearchParams(location.search);
@@ -702,11 +712,39 @@
     $('btnResetDemo').addEventListener('click', resetDemo);
 
     /* ------------------------------------------------------------------
+     * 演示控制台折叠（DESIGN §8.5）
+     * ------------------------------------------------------------------ */
+    const CONSOLE_NAV_KEY = 'dream_proto_nav_collapsed';
+    function readConsoleCollapsed() {
+      try { return localStorage.getItem(CONSOLE_NAV_KEY) === '1'; } catch (e) { return false; }
+    }
+    function writeConsoleCollapsed(collapsed) {
+      try { localStorage.setItem(CONSOLE_NAV_KEY, collapsed ? '1' : '0'); } catch (e) { /* 隐私模式下静默降级 */ }
+    }
+    function applyConsoleCollapsed(collapsed) {
+      const header = $('console');
+      const mini = document.querySelector('[data-console-mini]');
+      if (!header || !mini) return;
+      header.classList.toggle('hidden', collapsed);
+      mini.className = collapsed
+        ? 'sticky top-0 z-[60] flex items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur'
+        : 'sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur';
+    }
+    document.querySelector('[data-console-collapse]')?.addEventListener('click', () => { writeConsoleCollapsed(true); applyConsoleCollapsed(true); });
+    document.querySelector('[data-console-expand]')?.addEventListener('click', () => { writeConsoleCollapsed(false); applyConsoleCollapsed(false); });
+    applyConsoleCollapsed(readConsoleCollapsed());
+
+    /* ------------------------------------------------------------------
      * 总渲染
      * ------------------------------------------------------------------ */
     function renderAll() {
       const frame = $('frame');
       frame.className = `relative flex shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300 ${state.device === 'tablet' ? 'h-[860px] w-full max-w-[768px]' : 'h-[812px] w-full max-w-[390px]'}`;
+
+      /* 全量重渲染时关闭临时选择抽屉，避免跨场景残留 */
+      state.picker = null;
+      state.pickerSearch = '';
+      $('picker').innerHTML = '';
 
       $('banner').innerHTML = renderBanner();
 
@@ -1214,10 +1252,11 @@
     function renderCreatePage() {
       const f = state.create;
       const inputCls = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15';
-      const teachers = teacherOptions();
-      const monitors = monitorOptions();
       const fin = calcFinance(f);
       const source = f.sourceClassId ? classById(f.sourceClassId) : null;
+      const selectedTeacher = f.teacherId ? teacherById(f.teacherId) : null;
+      const teacherLabel = selectedTeacher ? `${selectedTeacher.name} · ${selectedTeacher.price}积分` : '暂不绑定老师（待委任老师）';
+      const ownerMonitor = monitorById(f.ownerMonitorId);
       return `<div class="flex h-full min-h-0 flex-col">
         <div class="min-h-0 flex-1 overflow-y-auto bg-slate-50">
           <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3">
@@ -1247,17 +1286,20 @@
                   <input id="fClassName" value="${esc(f.name)}" maxlength="64" placeholder="如 KET 考前冲刺周六班" class="${inputCls}">
                 </div>
                 <div>
-                  <label for="fTeacher" class="mb-1 block text-[14px] font-semibold text-slate-700">授课老师</label>
-                  <select id="fTeacher" class="${inputCls} font-medium">
-                    <option value="" ${!f.teacherId ? 'selected' : ''}>暂不绑定老师（待委任老师）</option>
-                    ${teachers.map((t) => `<option value="${t.id}" ${f.teacherId === t.id ? 'selected' : ''}>${esc(t.name)} · ${t.price}积分</option>`).join('')}
-                  </select>
+                  <label for="fTeacherTrigger" class="mb-1 block text-[14px] font-semibold text-slate-700">授课老师</label>
+                  <button type="button" id="fTeacherTrigger" data-action="open-picker" data-picker="teacher-create" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] font-medium outline-none transition hover:bg-white focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 ${f.teacherId ? 'text-slate-900' : 'text-slate-500'}">
+                    <span class="truncate">${esc(teacherLabel)}</span>
+                    ${icon('chevron-down', 'h-4 w-4 shrink-0 text-slate-500')}
+                  </button>
                   <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">可从全平台全体在职老师中直接委任（全平台在职老师均可选定）；也可先暂不绑定，建班后再委任。</p>
                 </div>
                 <div>
-                  <label for="fOwnerMonitor" class="mb-1 block text-[14px] font-semibold text-slate-700">小班课主理人 <span class="text-rose-500">*</span></label>
+                  <label class="mb-1 block text-[14px] font-semibold text-slate-700">小班课主理人 <span class="text-rose-500">*</span></label>
                   ${isAdmin()
-                    ? `<select id="fOwnerMonitor" class="${inputCls} font-medium">${monitors.map((m) => `<option value="${m.id}" ${f.ownerMonitorId === m.id ? 'selected' : ''}>${esc(m.name)}（在职）</option>`).join('')}</select>
+                    ? `<button type="button" id="fOwnerTrigger" data-action="open-picker" data-picker="owner-create" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] font-medium text-slate-900 outline-none transition hover:bg-white focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+                      <span class="truncate">${esc((ownerMonitor ? ownerMonitor.name : '—') + '（在职）')}</span>
+                      ${icon('chevron-down', 'h-4 w-4 shrink-0 text-slate-500')}
+                    </button>
                     <p class="mt-1 text-[12px] font-medium text-slate-500">管理员可指定任一在职班长作为主理人；班长建班时默认本人。</p>`
                     : `<div class="flex h-11 items-center justify-between rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-[14px] font-medium text-slate-600"><span>Leo（当前登录，默认主理人）</span>${icon('lock', 'h-3.5 w-3.5 text-slate-500')}</div>`}
                 </div>
@@ -1553,7 +1595,8 @@
       const editableCls = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15';
       const lockedCls = 'h-11 w-full rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-[16px] text-slate-500 outline-none';
       const owner = classOwner(c);
-      const teachers = teacherOptions();
+      const editTeacher = f.teacherId ? teacherById(f.teacherId) : null;
+      const editTeacherLabel = editTeacher ? `${editTeacher.name} · ${editTeacher.price}积分` : '待委任老师';
       const stageNotice = stage === '3'
         ? `<div class="mt-2 flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">${icon('lock', 'h-4 w-4 shrink-0 text-amber-700')}<span>已存在购课单或排课记录，容量、财务参数与授课老师已锁定；如需长期换师请走【提前结课解散】</span></div>`
         : stage === '4'
@@ -1627,11 +1670,16 @@
                   <h3 class="text-[14px] font-bold text-slate-900">授课老师</h3>
                 </div>
                 <div class="mt-3">
-                  <label for="eTeacher" class="mb-1 block text-[14px] font-semibold text-slate-700">主讲老师</label>
-                  <select id="eTeacher" ${lockBusiness ? 'disabled' : ''} class="${lockBusiness ? lockedCls : editableCls} font-medium">
-                    <option value="" ${!f.teacherId ? 'selected' : ''}>待委任老师</option>
-                    ${teachers.map((t) => `<option value="${t.id}" ${f.teacherId === t.id ? 'selected' : ''}>${esc(t.name)} · ${t.price}积分</option>`).join('')}
-                  </select>
+                  <label for="eTeacherTrigger" class="mb-1 block text-[14px] font-semibold text-slate-700">主讲老师</label>
+                  ${lockBusiness
+                    ? `<button type="button" id="eTeacherTrigger" disabled class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-[16px] font-medium text-slate-500 disabled:cursor-not-allowed">
+                      <span class="truncate">${esc(editTeacherLabel)}</span>
+                      ${icon('lock', 'h-4 w-4 shrink-0 text-slate-500')}
+                    </button>`
+                    : `<button type="button" id="eTeacherTrigger" data-action="open-picker" data-picker="teacher-edit" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] font-medium outline-none transition hover:bg-white focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 ${f.teacherId ? 'text-slate-900' : 'text-slate-500'}">
+                      <span id="eTeacherTriggerLabel" class="truncate">${esc(editTeacherLabel)}</span>
+                      ${icon('chevron-down', 'h-4 w-4 shrink-0 text-slate-500')}
+                    </button>`}
                   <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">可从全平台全体在职老师中直接选定（全平台在职老师均可选定）；暂不委任将受购课与排课双阻断。</p>
                 </div>
               </section>
@@ -1663,6 +1711,136 @@
     function renderOverlayOnly() {
       $('overlay').innerHTML = renderOverlay();
       if (window.lucide) lucide.createIcons();
+    }
+
+    /* ------------------------------------------------------------------
+     * 授业老师 / 主理人选择抽屉（DESIGN §8.1.2 / §8.4.4，禁用原生 select）
+     * ------------------------------------------------------------------ */
+    function renderPickerOnly() {
+      $('picker').innerHTML = renderPickerSheet();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function pickerMeta() {
+      const kind = state.picker?.kind;
+      if (kind === 'teacher-create' || kind === 'teacher-edit') {
+        const isEdit = kind === 'teacher-edit';
+        const current = isEdit ? (state.edit ? state.edit.teacherId : '') : state.create.teacherId;
+        return {
+          title: '选择授课老师',
+          current,
+          action: isEdit ? 'pick-teacher-edit' : 'pick-teacher-create',
+          search: true,
+          allowNone: true,
+          noneLabel: isEdit ? '待委任老师' : '暂不绑定老师（待委任老师）',
+          noneMeta: isEdit ? '暂不委任将受购课与排课双阻断' : '建班后可再委任',
+          resetLabel: '重置为待委任老师',
+          options: teacherOptions().map((t) => ({ value: t.id, name: t.name, meta: `全平台在职老师 · 每节 ${t.price} 积分` }))
+        };
+      }
+      if (kind === 'owner-create') {
+        return {
+          title: '选择小班课主理人',
+          current: state.create.ownerMonitorId,
+          action: 'pick-owner-create',
+          search: false,
+          allowNone: false,
+          resetLabel: '恢复默认主理人',
+          options: monitorOptions().map((m) => ({ value: m.id, name: m.name, meta: '在职班长' }))
+        };
+      }
+      return null;
+    }
+
+    function renderPickerRow(cfg, option, on) {
+      return `<button type="button" data-action="${cfg.action}" data-value="${esc(option.value)}" class="flex h-12 w-full items-center justify-between gap-3 rounded-xl border px-3 text-left transition ${on ? 'border-indigo-500 bg-indigo-50/60' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+        <span class="min-w-0">
+          <span class="block truncate text-[14px] font-semibold ${on ? 'text-indigo-950' : 'text-slate-900'}">${esc(option.name)}</span>
+          ${option.meta ? `<span class="mt-0.5 block truncate text-[12px] font-medium text-slate-500">${esc(option.meta)}</span>` : ''}
+        </span>
+        <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 text-transparent'}">${icon('check', 'h-3.5 w-3.5')}</span>
+      </button>`;
+    }
+
+    function renderPickerRows(cfg, options) {
+      const rows = [];
+      if (cfg.allowNone) rows.push(renderPickerRow(cfg, { value: '', name: cfg.noneLabel, meta: cfg.noneMeta }, !cfg.current));
+      if (!options.length) {
+        rows.push(`<div class="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-[14px] font-medium leading-relaxed text-slate-500">没有匹配结果，请更换关键词</div>`);
+      }
+      options.forEach((option) => rows.push(renderPickerRow(cfg, option, cfg.current === option.value)));
+      return rows.join('');
+    }
+
+    function renderPickerSheet() {
+      const cfg = pickerMeta();
+      if (!cfg) return '';
+      const q = state.pickerSearch.trim().toLowerCase();
+      const options = cfg.search && q ? cfg.options.filter((option) => option.name.toLowerCase().includes(q)) : cfg.options;
+      return `<div class="absolute inset-0 z-[70]">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-picker"></div>
+        <div class="absolute inset-x-0 bottom-0 flex max-h-[72%] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl">
+          <div class="flex shrink-0 justify-center pt-2"><span class="h-1.5 w-10 rounded-full bg-slate-200"></span></div>
+          <div class="shrink-0 px-4 pb-2 pt-1">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-[16px] font-bold text-slate-900">${esc(cfg.title)}</h2>
+              <button type="button" data-action="close-picker" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+            </div>
+            ${cfg.search ? `<div class="relative mt-2">
+              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
+              <input id="pickerSearch" type="text" value="${esc(state.pickerSearch)}" placeholder="搜索老师姓名" autocomplete="off" enterkeyhint="search" aria-label="搜索老师姓名" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-[16px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+            </div>` : ''}
+          </div>
+          <div id="pickerRows" class="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 pb-2">${renderPickerRows(cfg, options)}</div>
+          <div class="shrink-0 border-t border-slate-200/80 p-3">
+            <button type="button" data-action="picker-reset" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 hover:bg-slate-50">${esc(cfg.resetLabel)}</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function refreshPickerRows() {
+      const cfg = pickerMeta();
+      if (!cfg) return;
+      const q = state.pickerSearch.trim().toLowerCase();
+      const options = cfg.search && q ? cfg.options.filter((option) => option.name.toLowerCase().includes(q)) : cfg.options;
+      const rows = $('pickerRows');
+      if (rows) rows.innerHTML = renderPickerRows(cfg, options);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function applyTeacherPick(value) {
+      const kind = state.picker?.kind;
+      if (kind === 'teacher-edit') {
+        if (!state.edit) return;
+        state.edit.teacherId = value || '';
+        state.edit.error = '';
+        state.picker = null;
+        state.pickerSearch = '';
+        renderPickerOnly();
+        const teacher = teacherById(value);
+        const label = $('eTeacherTriggerLabel');
+        if (label) {
+          label.textContent = teacher ? `${teacher.name} · ${teacher.price}积分` : '待委任老师';
+          label.className = `truncate ${teacher ? 'text-slate-900' : 'text-slate-500'}`;
+        }
+        updateEditLive();
+        return;
+      }
+      state.create.teacherId = value || '';
+      state.create.error = '';
+      state.picker = null;
+      state.pickerSearch = '';
+      renderAll();
+    }
+
+    function applyOwnerPick(value) {
+      if (!value) return;
+      state.create.ownerMonitorId = value;
+      state.create.error = '';
+      state.picker = null;
+      state.pickerSearch = '';
+      renderAll();
     }
 
     function modalShell(content) {
@@ -1925,6 +2103,30 @@
       }
       if (action === 'open-edit') return openEdit(el.dataset.id);
       if (action === 'save-edit') return saveEdit();
+      if (action === 'open-picker') {
+        const kind = el.dataset.picker;
+        if (!kind) return;
+        if (kind === 'teacher-edit') {
+          if (!state.edit) return;
+          const c = classById(state.edit.classId);
+          if (!c || classStage(c) === '3' || classStage(c) === '4') return;
+        }
+        state.picker = { kind };
+        state.pickerSearch = '';
+        return renderPickerOnly();
+      }
+      if (action === 'close-picker') {
+        state.picker = null;
+        state.pickerSearch = '';
+        return renderPickerOnly();
+      }
+      if (action === 'pick-teacher-create' || action === 'pick-teacher-edit') return applyTeacherPick(el.dataset.value || '');
+      if (action === 'pick-owner-create') return applyOwnerPick(el.dataset.value || '');
+      if (action === 'picker-reset') {
+        if (!state.picker) return;
+        if (state.picker.kind === 'owner-create') return applyOwnerPick(monitorOptions()[0]?.id || CURRENT_MONITOR_ID);
+        return applyTeacherPick('');
+      }
       if (action === 'toggle-log') { state.logOpen = !state.logOpen; return renderAll(); }
       if (action === 'set-filter') { state.filter = el.dataset.filter; return renderAll(); }
       if (action === 'set-teacher') { state.teacherFilter = el.dataset.teacher; return renderAll(); }
@@ -2100,7 +2302,10 @@
       }
       if (action === 'close-overlay') {
         state.overlay = null;
+        state.picker = null;
+        state.pickerSearch = '';
         $('overlay').innerHTML = '';
+        $('picker').innerHTML = '';
         if (window.lucide) lucide.createIcons();
         return;
       }
@@ -2128,17 +2333,7 @@
         const c = state.overlay ? classById(state.overlay.classId) : null;
         if (btn && c) btn.disabled = !dissolveValid(c);
       }
-    });
-
-    document.getElementById('frame').addEventListener('change', (e) => {
-      const id = e.target.id;
-      if (id === 'fTeacher') { state.create.teacherId = e.target.value; state.create.error = ''; renderAll(); }
-      if (id === 'fOwnerMonitor') { state.create.ownerMonitorId = e.target.value; state.create.error = ''; updateCreatePreview(); }
-      if (id === 'eTeacher' && state.edit) {
-        state.edit.teacherId = e.target.value;
-        state.edit.error = '';
-        updateEditLive();
-      }
+      if (id === 'pickerSearch') { state.pickerSearch = e.target.value; refreshPickerRows(); }
     });
 
     function navTo(tab) {

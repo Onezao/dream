@@ -71,8 +71,14 @@
           <i data-lucide="receipt" class="h-3.5 w-3.5"></i>购课单
         </a>
       </div>
+
+      <button type="button" data-console-collapse aria-label="收起演示导航" class="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50">▲ 收起</button>
     </div>
   </header>
+
+  <div id="consoleMini" data-console-mini class="sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+    <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+  </div>
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
@@ -92,7 +98,7 @@
     <span class="bg-emerald-50/80 border-emerald-200/70 bg-emerald-100 text-emerald-800 text-emerald-700 text-emerald-950 text-emerald-900/85 bg-emerald-600 hover:bg-emerald-700 border-emerald-300 bg-white/70 bg-emerald-50"></span>
     <span class="bg-rose-50/80 border-rose-200/70 border-rose-200 border-l-4 border-l-rose-600 box-border bg-rose-100 text-rose-800 text-rose-700 text-rose-950 text-rose-900/85 bg-rose-600 hover:bg-rose-700 border-rose-300 bg-white/70 bg-rose-50"></span>
     <span class="bg-slate-50 border-slate-200/80 bg-slate-100 text-slate-700 text-slate-600 text-slate-500 bg-slate-400 bg-slate-900 hover:bg-slate-800 border-slate-300 bg-white/70 text-slate-300 bg-slate-50/80 bg-slate-50/70 border-slate-400 opacity-65 opacity-60"></span>
-    <span class="bg-indigo-50/80 border-indigo-200/70 bg-indigo-100 text-indigo-800 text-indigo-700 text-indigo-950 text-indigo-900/85 bg-indigo-600 hover:bg-indigo-700 border-indigo-300 bg-white/70 border-indigo-100"></span>
+    <span class="bg-indigo-50/80 border-indigo-200/70 bg-indigo-100 text-indigo-800 text-indigo-700 text-indigo-950 text-indigo-900/85 bg-indigo-600 hover:bg-indigo-700 border-indigo-300 bg-white/70 border-indigo-100 border-indigo-500 bg-indigo-50/50"></span>
     <span class="bg-white/60 bg-white/70 bg-white/20 bg-white/15 ring-white/30 bg-slate-900/40 backdrop-blur-[1px] border-dashed"></span>
     <span class="h-[812px] w-[390px] h-[860px] w-[768px] max-h-[92%] max-w-[560px] max-w-[360px] grid-cols-1 grid-cols-2 grid-cols-3 line-clamp-2 w-12 w-9 h-9 h-10 w-11"></span>
   </div>
@@ -479,6 +485,33 @@
     });
     $('btnResetDemo').addEventListener('click', resetDemo);
 
+    /* 演示导航折叠（状态记忆，localStorage 不可用时静默降级） */
+    function applyConsoleCollapsed(collapsed) {
+      const header = $('console');
+      const mini = $('consoleMini');
+      if (!header || !mini) return;
+      header.classList.toggle('hidden', collapsed);
+      mini.classList.toggle('hidden', !collapsed);
+      mini.classList.toggle('flex', collapsed);
+    }
+
+    (function initConsoleCollapse() {
+      if (params.get('embed') === '1') return;
+      let collapsed = false;
+      try { collapsed = localStorage.getItem('dream_proto_nav_collapsed') === '1'; } catch (_) { /* noop */ }
+      applyConsoleCollapsed(collapsed);
+      const collapseBtn = document.querySelector('[data-console-collapse]');
+      const expandBtn = document.querySelector('[data-console-expand]');
+      if (collapseBtn) collapseBtn.addEventListener('click', () => {
+        applyConsoleCollapsed(true);
+        try { localStorage.setItem('dream_proto_nav_collapsed', '1'); } catch (_) { /* noop */ }
+      });
+      if (expandBtn) expandBtn.addEventListener('click', () => {
+        applyConsoleCollapsed(false);
+        try { localStorage.setItem('dream_proto_nav_collapsed', '0'); } catch (_) { /* noop */ }
+      });
+    })();
+
     function setRole(role) {
       state.role = role;
       state.page = 'records';
@@ -644,8 +677,26 @@
     /* ------------------------------------------------------------------
      * 独立清退记录列表页
      * ------------------------------------------------------------------ */
+    const HOLDER_FILTERS = [
+      { value: 'all', label: '全部持有人' },
+      { value: 'self', label: '⭐ 我经办/直管' },
+      { value: 'Leo', label: 'Leo' },
+      { value: 'Mia', label: 'Mia' },
+      { value: '平台', label: '平台' }
+    ];
+    const METHOD_FILTERS = [
+      { value: 'all', label: '全部' },
+      { value: 'self', label: '持有人自清退' },
+      { value: 'fallback', label: '管理员兜底代清退' }
+    ];
+
+    function holderFilterLabel() {
+      const found = HOLDER_FILTERS.find((o) => o.value === state.adminHolder);
+      return found ? found.label : '全部持有人';
+    }
+
     function filterChip(label, active, action, attr, value) {
-      return `<button data-action="${action}" ${attr}="${value}" class="rounded-full px-2.5 py-1 text-[12px] font-bold transition ${active ? 'bg-slate-900 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}">${label}</button>`;
+      return `<button data-action="${action}" ${attr}="${value}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${active ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}</button>`;
     }
 
     function renderRecordsPage() {
@@ -656,30 +707,19 @@
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
 
       const ranges = [['30', '近 30 天'], ['90', '近 90 天'], ['all', '全部']];
+      const holderActive = state.adminHolder !== 'all';
       const adminFilters = isAdmin
-        ? `<div class="mt-2 grid grid-cols-2 gap-2">
-            <div class="min-w-0">
-              <div class="mb-1 text-[12px] font-semibold text-slate-600">持有人</div>
-              <div class="relative">
-                <select id="adminHolderFilter" class="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-3 pr-8 text-[14px] font-medium text-slate-700 outline-none transition focus:border-indigo-500">
-                  <option value="all" ${state.adminHolder === 'all' ? 'selected' : ''}>全部持有人</option>
-                  <option value="self" ${state.adminHolder === 'self' ? 'selected' : ''}>⭐ 我经办/直管</option>
-                  <option value="Leo" ${state.adminHolder === 'Leo' ? 'selected' : ''}>Leo</option>
-                  <option value="Mia" ${state.adminHolder === 'Mia' ? 'selected' : ''}>Mia</option>
-                  <option value="平台" ${state.adminHolder === '平台' ? 'selected' : ''}>平台</option>
-                </select>
-                <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">${icon('chevron-down', 'h-4 w-4')}</span>
-              </div>
+        ? `<div class="mt-2 space-y-1.5">
+            <div class="flex items-center gap-2">
+              <span class="shrink-0 text-[12px] font-semibold text-slate-600">持有人</span>
+              <button type="button" data-action="open-holder-sheet" class="flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1.5 text-[12px] font-medium transition ${holderActive ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}">
+                ${esc(holderFilterLabel())} ${icon('chevron-down', 'h-3.5 w-3.5')}
+              </button>
             </div>
-            <div class="min-w-0">
-              <div class="mb-1 text-[12px] font-semibold text-slate-600">清退方式</div>
-              <div class="relative">
-                <select id="methodFilter" class="h-10 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-3 pr-8 text-[14px] font-medium text-slate-700 outline-none transition focus:border-indigo-500">
-                  <option value="all" ${state.method === 'all' ? 'selected' : ''}>全部</option>
-                  <option value="self" ${state.method === 'self' ? 'selected' : ''}>持有人自清退</option>
-                  <option value="fallback" ${state.method === 'fallback' ? 'selected' : ''}>管理员兜底代清退</option>
-                </select>
-                <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500">${icon('chevron-down', 'h-4 w-4')}</span>
+            <div class="flex items-center gap-2">
+              <span class="shrink-0 text-[12px] font-semibold text-slate-600">清退方式</span>
+              <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                ${METHOD_FILTERS.map((o) => `<button data-action="set-method" data-method="${o.value}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${state.method === o.value ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${o.label}</button>`).join('')}
               </div>
             </div>
           </div>`
@@ -1488,12 +1528,43 @@
       </div>`;
     }
 
+    function renderHolderSheet() {
+      return `<div class="absolute inset-x-0 bottom-0 top-16 z-50">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[72%] w-full max-w-[560px] flex-col rounded-t-3xl bg-white shadow-2xl">
+          <div class="mx-auto mb-1 mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-200"></div>
+          <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 pb-2.5">
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">按资金持有人筛选</h2>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-600">选择后立即刷新清退流水</p>
+            </div>
+            <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3" data-scroll>
+            <div class="space-y-1.5">
+              ${HOLDER_FILTERS.map((o) => {
+                const selected = state.adminHolder === o.value;
+                return `<button data-action="pick-holder" data-value="${esc(o.value)}" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border px-3 text-left text-[14px] font-semibold transition ${selected ? 'border-slate-300 bg-slate-100 text-slate-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}">
+                  <span class="truncate">${esc(o.label)}</span>
+                  ${selected ? icon('check', 'h-4 w-4 shrink-0 text-slate-900') : ''}
+                </button>`;
+              }).join('')}
+            </div>
+          </div>
+          <div class="shrink-0 border-t border-slate-100 px-4 pb-4 pt-2.5">
+            <button data-action="reset-holder-filter" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">重置为全部持有人</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
     function renderOverlay() {
       const el = $('overlay');
       if (!state.overlay) el.innerHTML = '';
       else if (state.overlay.type === 'pick') el.innerHTML = renderPicker();
       else if (state.overlay.type === 'deduct') el.innerHTML = renderDeductSheet();
       else if (state.overlay.type === 'confirm') el.innerHTML = renderConfirmModal();
+      else if (state.overlay.type === 'holder') el.innerHTML = renderHolderSheet();
       else el.innerHTML = '';
     }
 
@@ -1759,6 +1830,28 @@
         return openDeduct(order.studentKey);
       }
       if (action === 'close-overlay') { state.overlay = null; renderAll(); return; }
+      if (action === 'open-holder-sheet') {
+        state.overlay = { type: 'holder' };
+        renderAll();
+        return;
+      }
+      if (action === 'pick-holder') {
+        state.adminHolder = el.dataset.value;
+        state.overlay = null;
+        renderAll();
+        return;
+      }
+      if (action === 'reset-holder-filter') {
+        state.adminHolder = 'all';
+        state.overlay = null;
+        renderAll();
+        return;
+      }
+      if (action === 'set-method') {
+        state.method = el.dataset.method;
+        renderAll();
+        return;
+      }
       if (action === 'set-range') {
         state.range = el.dataset.range;
         renderAll();
@@ -1852,16 +1945,6 @@
     });
 
     $('frame').addEventListener('change', (e) => {
-      if (e.target.id === 'adminHolderFilter') {
-        state.adminHolder = e.target.value;
-        renderAll();
-        return;
-      }
-      if (e.target.id === 'methodFilter') {
-        state.method = e.target.value;
-        renderAll();
-        return;
-      }
       if (e.target.id === 'proofInput') {
         const files = Array.from(e.target.files || []);
         if (!files.length) return;

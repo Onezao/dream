@@ -48,7 +48,7 @@
         </div>
       </div>
       <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
-      <div class="ml-auto hidden items-center gap-1.5 lg:flex">
+      <div class="hidden items-center gap-1.5 lg:flex">
         <a href="../docs/prd/m1b_teacher_profile.md" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">
           <i data-lucide="file-text" class="h-3.5 w-3.5"></i>需求文档
         </a>
@@ -56,8 +56,13 @@
           <i data-lucide="external-link" class="h-3.5 w-3.5"></i>管理端
         </a>
       </div>
+
+      <button type="button" data-console-collapse class="ml-auto flex h-7 shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50" aria-label="收起演示导航">▲ 收起</button>
     </div>
   </header>
+  <div data-console-mini class="sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+    <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+  </div>
 
   <main class="flex justify-center px-4 py-6">
     <div id="frame" class="relative flex h-[812px] w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300 transition-all duration-300">
@@ -790,7 +795,34 @@
       showToast._timer = setTimeout(() => toast.classList.add('hidden'), 2400);
     }
 
+    /* 原型演示导航折叠（§8.5） */
+    const NAV_COLLAPSE_KEY = 'dream_proto_nav_collapsed';
+
+    function navCollapsedPref() {
+      try { return localStorage.getItem(NAV_COLLAPSE_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    function saveNavCollapsed(collapsed) {
+      try { localStorage.setItem(NAV_COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (e) { /* 静默降级 */ }
+    }
+
+    function applyNavCollapsed(collapsed) {
+      const header = $('console');
+      const mini = document.querySelector('[data-console-mini]');
+      if (!header || !mini) return;
+      const embed = !!state.embed;
+      header.classList.toggle('hidden', collapsed || embed);
+      mini.classList.toggle('hidden', embed || !collapsed);
+      mini.classList.toggle('flex', !embed && collapsed);
+    }
+
+    const consoleCollapseBtn = document.querySelector('[data-console-collapse]');
+    const consoleExpandBtn = document.querySelector('[data-console-expand]');
+    if (consoleCollapseBtn) consoleCollapseBtn.addEventListener('click', () => { saveNavCollapsed(true); applyNavCollapsed(true); });
+    if (consoleExpandBtn) consoleExpandBtn.addEventListener('click', () => { saveNavCollapsed(false); applyNavCollapsed(false); });
+
     renderAll();
+    applyNavCollapsed(navCollapsedPref());
   </script>
 </body>
 </html>
