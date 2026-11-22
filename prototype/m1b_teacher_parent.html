@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Dream · 教师风采</title>
+  <title>Dream · 老师风采</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -45,6 +45,13 @@
         <div class="inline-flex rounded-xl bg-slate-100 p-1">
           <button data-group="online" data-value="on" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">在线</button>
           <button data-group="online" data-value="off" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">离线</button>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-slate-500">购课状态</span>
+        <div class="inline-flex rounded-xl bg-slate-100 p-1">
+          <button data-group="paid" data-value="yes" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">已购课</button>
+          <button data-group="paid" data-value="no" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">未购课</button>
         </div>
       </div>
       <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
@@ -179,7 +186,7 @@
 
     const NAVS = [
       { id: 'home', icon: 'home', label: '首页', desc: '查看家庭日程与教务待办。', href: 'm0_workspace_home.html?role=user' },
-      { id: 'schedule', icon: 'calendar-days', label: '学生课表', desc: '查看孩子的当周课程安排。', href: 'm3a_calendar_grid.html' },
+      { id: 'schedule', icon: 'calendar-days', label: '自家课表', desc: '查看孩子的当周课程安排。', href: 'm3a_calendar_grid.html' },
       { id: 'hall', icon: 'plus-circle', label: '约课大厅', desc: '选老师与预约排课', board: true },
       { id: 'me', icon: 'user', label: '我的', desc: '查看孩子档案与购课账单。', href: 'm1a_student_profile.html' }
     ];
@@ -189,6 +196,7 @@
       navTab: 'hall',
       device: 'mobile',
       online: 'on',
+      paid: 'yes',
       teachers: JSON.parse(JSON.stringify(TEACHERS)),
       activeTeacherId: 'tc_david0001',
       child: 'AliceZ12',
@@ -197,12 +205,21 @@
       overlay: null,
       teacherPreview: false,
       embed: false,
-      returnTo: 'm0_workspace_home.html?role=teacher&tab=me'
+      availabilityRole: 'teacher',
+      returnTo: 'm0_workspace_home.html?role=teacher&tab=me',
+      availabilityFullDay: false,
+      availabilityExpanded: {},
+      availabilityData: null,
+      availBatchOpen: false,
+      availBatchStart: '09:00',
+      availBatchEnd: '12:00',
+      availBatchMode: 'open'
     };
 
     const params = new URLSearchParams(location.search);
     if (params.get('teacher_id')) state.activeTeacherId = params.get('teacher_id');
     if (params.get('child')) state.child = params.get('child');
+    if (params.get('paid') === 'no') state.paid = 'no';
     if (params.get('device') === 'tablet') state.device = 'tablet';
     if (params.get('embed') === '1') {
       state.embed = true;
@@ -213,6 +230,17 @@
       state.teacherPreview = true;
       state.page = 'detail';
       state.navTab = 'me';
+    }
+    if (!state.embed && ['teacher', 'monitor', 'admin'].includes(params.get('role')) && params.get('page') === 'availability') {
+      const availabilityRole = params.get('role');
+      state.teacherPreview = true;
+      state.page = 'availability';
+      state.navTab = 'home';
+      state.availabilityRole = availabilityRole === 'teacher' ? 'teacher' : 'manager';
+      state.returnTo = availabilityRole === 'teacher'
+        ? 'm0_workspace_home.html?role=teacher&tab=home'
+        : 'm1b_teacher_monitor.html';
+      state.lang = availabilityRole === 'teacher' ? 'en' : 'zh';
     }
 
     const $ = (id) => document.getElementById(id);
@@ -328,20 +356,26 @@
 
     function renderBanner() {
       const preview = state.teacherPreview;
-      const title = preview
-        ? '我的名片'
-        : (state.page === 'detail'
-          ? '老师介绍'
-          : (state.page === 'placeholder'
-            ? ((NAVS.find((n) => n.id === state.navTab) || {}).label || '选老师')
-            : '选老师'));
-      const bannerTone = preview ? 'from-slate-800 via-emerald-900 to-slate-700' : 'from-slate-800 via-blue-900 to-slate-700';
+      const availability = state.page === 'availability';
+      const managerAvailability = availability && state.availabilityRole === 'manager';
+      const title = availability
+        ? (managerAvailability ? '常规可约时段' : '开放时段')
+        : (preview
+          ? '我的名片'
+          : (state.page === 'detail'
+            ? '老师介绍'
+            : (state.page === 'placeholder'
+              ? ((NAVS.find((n) => n.id === state.navTab) || {}).label || '选老师')
+              : '选老师')));
+      const bannerTone = (preview || availability) ? 'from-slate-800 via-emerald-900 to-slate-700' : 'from-slate-800 via-blue-900 to-slate-700';
       const initial = (activeTeacher().name || 'A').trim().charAt(0).toUpperCase() || 'A';
-      const backButton = preview
-        ? `<button data-action="teacher-back" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="返回老师工作台">${icon('chevron-left', 'h-4 w-4')}<span>返回</span></button>`
-        : (state.page === 'detail'
-          ? `<button data-action="go-back" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="返回选老师">${icon('chevron-left', 'h-4 w-4')}<span>返回</span></button>`
-          : '');
+      const backButton = availability
+        ? `<button data-action="teacher-back" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="${managerAvailability ? '返回管理端' : '返回首页'}">${icon('chevron-left', 'h-4 w-4')}<span>${managerAvailability ? '返回管理端' : '返回首页'}</span></button>`
+        : (preview
+          ? `<button data-action="teacher-back" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="返回老师工作台">${icon('chevron-left', 'h-4 w-4')}<span>返回</span></button>`
+          : (state.page === 'detail'
+            ? `<button data-action="go-back" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="返回选老师">${icon('chevron-left', 'h-4 w-4')}<span>返回</span></button>`
+            : ''));
       return `<header class="relative flex h-16 shrink-0 items-center justify-between overflow-hidden bg-gradient-to-br ${bannerTone} px-4 text-white">
         <svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 390 80" preserveAspectRatio="xMidYMid slice" fill="none"><path d="M-20 64 C50 30 110 82 190 48 S300 18 410 44" stroke="white" stroke-opacity=".10" stroke-width="18" stroke-linecap="round"/><circle cx="320" cy="20" r="34" fill="white" fill-opacity=".05"/></svg>
         <div class="relative flex min-w-0 items-center gap-2">
@@ -379,6 +413,7 @@
     }
 
     function renderContent() {
+      if (state.page === 'availability') return renderAvailability();
       if (state.page === 'placeholder') return renderPlaceholder();
       if (state.page === 'detail') return renderDetail();
       return renderHall();
@@ -399,6 +434,175 @@
       return `<div class="px-1">
         <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${esc(title)}</h1>
         <p class="mt-0.5 text-[12px] font-medium text-slate-500">${esc(subtitle)}</p>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 老师常规可约时段模板（纯 2 色 · 零学员名 · 禁预约交互）
+     * ------------------------------------------------------------------ */
+    const AVAIL_DAYS = [
+      { key: 'mon', label: '周一', en: 'Mon' },
+      { key: 'tue', label: '周二', en: 'Tue' },
+      { key: 'wed', label: '周三', en: 'Wed' },
+      { key: 'thu', label: '周四', en: 'Thu' },
+      { key: 'fri', label: '周五', en: 'Fri' },
+      { key: 'sat', label: '周六', en: 'Sat' },
+      { key: 'sun', label: '周日', en: 'Sun' }
+    ];
+
+    function availPad(n) { return String(n).padStart(2, '0'); }
+    function availTime(hour, minute) { return `${availPad(hour)}:${minute === 0 ? '00' : '30'}`; }
+
+    function availTimeOptions(selected) {
+      const opts = [];
+      for (let h = 6; h <= 24; h += 1) {
+        const minutes = h === 24 ? [0] : [0, 30];
+        minutes.forEach((m) => {
+          const t = availTime(h, m);
+          opts.push(`<option value="${t}"${t === selected ? ' selected' : ''}>${t}</option>`);
+        });
+      }
+      return opts.join('');
+    }
+
+    function availBatchTimes(start, end) {
+      const toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+      const out = [];
+      for (let cur = toMin(start); cur < toMin(end); cur += 30) {
+        out.push(availTime(Math.floor(cur / 60), cur % 60));
+      }
+      return out;
+    }
+
+    function renderAvailBatchPanel() {
+      const invalid = state.availBatchEnd <= state.availBatchStart;
+      const modeOpen = state.availBatchMode === 'open';
+      return `<div class="mt-2 w-full max-w-[340px] rounded-xl border border-slate-300 bg-white p-2.5 shadow-sm">
+        <div class="flex flex-wrap items-center gap-1.5 text-[12px] font-semibold text-slate-700">
+          <span>从</span>
+          <select data-action="avail-batch-start" aria-label="批量选段开始时间" class="h-8 rounded-lg border border-slate-300 bg-white px-1 text-[12px] font-semibold text-slate-700">${availTimeOptions(state.availBatchStart)}</select>
+          <span>至</span>
+          <select data-action="avail-batch-end" aria-label="批量选段结束时间" class="h-8 rounded-lg border border-slate-300 bg-white px-1 text-[12px] font-semibold text-slate-700">${availTimeOptions(state.availBatchEnd)}</select>
+        </div>
+        <div class="mt-2 flex flex-wrap items-center gap-1.5">
+          <button type="button" data-action="avail-batch-mode" data-mode="open" aria-pressed="${modeOpen}" class="h-8 whitespace-nowrap rounded-full border px-2.5 text-[12px] font-bold transition ${modeOpen ? 'border-emerald-300 bg-emerald-100 text-emerald-900' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}">🟢 开放可约</button>
+          <button type="button" data-action="avail-batch-mode" data-mode="rest" aria-pressed="${!modeOpen}" class="h-8 whitespace-nowrap rounded-full border px-2.5 text-[12px] font-bold transition ${!modeOpen ? 'border-slate-400 bg-slate-200 text-slate-900' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}">⚪ 休息</button>
+        </div>
+        <button type="button" data-action="avail-batch-apply" ${invalid ? 'disabled' : ''} class="mt-2 h-8 w-full rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">应用到全周</button>
+        ${invalid ? '<p class="mt-1 text-[12px] font-medium text-rose-600">结束时间需晚于开始时间</p>' : ''}
+      </div>`;
+    }
+
+    function buildAvailability() {
+      const data = {};
+      AVAIL_DAYS.forEach((d) => { data[d.key] = {}; });
+      for (let h = 6; h < 24; h += 1) {
+        [0, 30].forEach((m) => {
+          const time = availTime(h, m);
+          AVAIL_DAYS.forEach((d) => {
+            const isWeekend = d.key === 'sat' || d.key === 'sun';
+            const open = isWeekend
+              ? ((h >= 9 && h < 12) || (h >= 14 && h < 18))
+              : (d.key !== 'mon' && h >= 16 && h < 21);
+            data[d.key][time] = open;
+          });
+        });
+      }
+      return data;
+    }
+
+    function availabilityRow(time) {
+      const data = state.availabilityData || (state.availabilityData = buildAvailability());
+      const cells = AVAIL_DAYS.map((d) => {
+        const open = !!data[d.key][time];
+        return `<button type="button" data-action="toggle-availability" data-day="${d.key}" data-time="${time}" aria-pressed="${open}" aria-label="${d.label} ${time} ${open ? '开放可约' : '休息'}" class="flex h-6 items-center justify-center rounded-[4px] border transition ${open ? 'border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200' : 'border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200'}"><span class="text-[12px] leading-none">${open ? '●' : '·'}</span></button>`;
+      }).join('');
+      return `<div class="flex h-6 items-center justify-end pr-1 font-mono text-[12px] font-medium text-slate-600">${time}</div>${cells}`;
+    }
+
+    function availabilityBand(band, start, end, hint) {
+      const expanded = !!state.availabilityExpanded[band];
+      return `<button type="button" data-action="toggle-avail-band" data-band="${band}" class="col-span-8 my-0.5 flex h-[22px] items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 bg-white text-[12px] font-medium text-slate-600 transition hover:bg-slate-50">${expanded ? `▾ ${start}–${end} ${hint} · fold 点击收起` : `▸ ${start}–${end} ${hint} · folded 点击展开设置`}</button>`;
+    }
+
+    function availabilityRows(startHour, endHour) {
+      const rows = [];
+      for (let h = startHour; h < endHour; h += 1) {
+        for (const m of [0, 30]) rows.push(availabilityRow(availTime(h, m)));
+      }
+      return rows.join('');
+    }
+
+    function availabilityBandAllRest(startHour, endHour) {
+      const data = state.availabilityData || (state.availabilityData = buildAvailability());
+      for (let h = startHour; h < endHour; h += 1) {
+        for (const m of [0, 30]) {
+          const time = availTime(h, m);
+          if (AVAIL_DAYS.some((d) => data[d.key][time])) return false;
+        }
+      }
+      return true;
+    }
+
+    function availabilityBody() {
+      if (state.availabilityFullDay) return availabilityRows(6, 24);
+      const earlyFolded = !state.availabilityExpanded.early && availabilityBandAllRest(6, 9);
+      const midFolded = !state.availabilityExpanded.mid && availabilityBandAllRest(12, 14);
+      const lateFolded = !state.availabilityExpanded.late && availabilityBandAllRest(21, 24);
+      return `
+        ${earlyFolded ? availabilityBand('early', '06:00', '09:00', '早间全休息') : availabilityRows(6, 9)}
+        ${availabilityRows(9, 12)}
+        ${midFolded ? availabilityBand('mid', '12:00', '14:00', '午间全休息') : availabilityRows(12, 14)}
+        ${availabilityRows(14, 21)}
+        ${lateFolded ? availabilityBand('late', '21:00', '24:00', '晚间全休息') : availabilityRows(21, 24)}
+      `;
+    }
+
+    function renderAvailability() {
+      if (!state.availabilityData) state.availabilityData = buildAvailability();
+      const manager = state.availabilityRole === 'manager';
+      const labelFullDay = manager ? (state.availabilityFullDay ? '恢复智能折叠' : '展开全天') : (state.availabilityFullDay ? 'Smart fold' : 'Expand full day');
+      const labelCopyWeekday = manager ? '复制周二到工作日' : 'Copy Tue → weekdays';
+      const labelCopyAll = manager ? '复制到全周' : 'Copy Tue → all week';
+      const labelBatch = manager ? '批量选段' : 'Batch range';
+      const labelSave = manager ? '保存模板' : 'Save template';
+      const dayHeaders = AVAIL_DAYS.map((d) => `<div class="flex h-8 flex-col items-center justify-center leading-tight"><span class="text-[12px] font-bold text-slate-600">${d.en}</span><span class="text-[12px] text-slate-500">${d.label}</span></div>`).join('');
+      return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${manager ? '常规可约时段 <span class="text-[14px] font-bold text-slate-700">Availability</span>' : 'Availability <span class="text-[14px] font-bold text-slate-700">开放时段</span>'}</h1>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(activeTeacher().name)} · ${manager ? '班长/管理员配置 · 仅维护每周常规模板，不影响已排课次' : 'Weekly recurring template · 每周循环重复生效 · 不展示具体日期与学员'}</p>
+            </div>
+            <button type="button" data-action="avail-full-day" title="展开全天 06:00–24:00 / 恢复智能折叠" class="h-8 shrink-0 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50">${labelFullDay}</button>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            <button type="button" data-action="avail-copy-weekday" title="复制周二到工作日" class="h-8 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50">${labelCopyWeekday}</button>
+            <button type="button" data-action="avail-copy-all" title="复制到全周" class="h-8 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50">${labelCopyAll}</button>
+            <button type="button" data-action="avail-batch-toggle" aria-expanded="${state.availBatchOpen}" title="按时段区间批量开关" class="h-8 whitespace-nowrap rounded-lg border px-2.5 text-[12px] font-semibold transition ${state.availBatchOpen ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}">${labelBatch}</button>
+            <button type="button" data-action="avail-save" title="保存模板" class="h-8 whitespace-nowrap rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white transition hover:bg-indigo-700">${labelSave}</button>
+          </div>
+          ${state.availBatchOpen ? renderAvailBatchPanel() : ''}
+        </section>
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-2.5">
+          <div class="grid grid-cols-[42px_repeat(7,minmax(0,1fr))] gap-0.5">
+            <div class="flex h-8 flex-col items-center justify-center leading-tight"><span class="text-[12px] font-semibold text-slate-600">Time</span><span class="text-[12px] text-slate-500">时段</span></div>
+            ${dayHeaders}
+            ${availabilityBody()}
+          </div>
+        </section>
+        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
+          <div class="flex flex-wrap items-center gap-3 text-[12px] font-semibold text-slate-700">
+            <span class="inline-flex items-center gap-1"><span class="inline-block h-3 w-3 rounded-[3px] border border-emerald-300 bg-emerald-100"></span>🟢 Available 开放可约</span>
+            <span class="inline-flex items-center gap-1"><span class="inline-block h-3 w-3 rounded-[3px] border border-slate-200 bg-slate-100"></span>⚪ Rest 休息</span>
+          </div>
+          <div class="mt-2 space-y-1 text-[12px] leading-relaxed text-slate-600">
+            <p>• Weekly recurring template only. No dates, student names or booking actions are shown here.</p>
+            <p>• 本页仅设置每周循环重复的常规可约时段，不展示具体日期与任何学员姓名，页面内不可发起约课、选生或请假操作。</p>
+            <p>• Existing booked lessons are not affected; closing a slot only stops new bookings and next-round renewal placement.</p>
+            <p>• 修改常规模板不会取消既有已排课次；如需仅针对具体某天临时加开时段或请假，请前往【课表】页面操作。</p>
+          </div>
+        </section>
       </div>`;
     }
 
@@ -462,7 +666,9 @@
             <span class="inline-flex items-center gap-1">${icon('play', 'h-3.5 w-3.5')}${esc(t.videoDuration)}</span>
           </div>
           <div class="flex shrink-0 items-center gap-1.5">
-            <button data-action="open-qr" data-id="${t.id}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label="ClassIn 二维码">${icon('qr-code', 'h-4 w-4')}</button>
+            ${state.paid === 'yes'
+              ? `<button data-action="open-qr" data-id="${t.id}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label="ClassIn 二维码">${icon('qr-code', 'h-4 w-4')}</button>`
+              : `<button data-action="toast" data-message="购课后解锁查看老师 ClassIn 联系方式" class="inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-100 px-1.5 text-[12px] font-medium text-slate-500" aria-label="购课后解锁查看老师 ClassIn 联系方式">${icon('lock', 'h-3.5 w-3.5')}购课后解锁</button>`}
             <button data-action="open-teacher" data-id="${t.id}" class="inline-flex items-center gap-0.5 whitespace-nowrap text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">查看介绍${icon('chevron-right', 'h-3 w-3')}</button>
             <button data-action="book" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500">预约</button>
           </div>
@@ -471,7 +677,7 @@
     }
 
     /* ------------------------------------------------------------------
-     * 教师详情
+     * 老师详情
      * ------------------------------------------------------------------ */
     function renderDetail() {
       const t = activeTeacher();
@@ -529,10 +735,11 @@
                 </div>
               </button>`}
           </div>
-          <p class="mt-1.5 text-[12px] font-medium text-slate-500">教师试讲视频 · MP4 格式 · 支持全屏播放</p>
+          <p class="mt-1.5 text-[12px] font-medium text-slate-500">老师试讲视频 · MP4 格式 · 支持全屏播放</p>
         </section>
 
-        <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
+        ${state.paid === 'yes'
+          ? `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
           <div class="flex items-center justify-between">
             <h2 class="text-[16px] font-bold text-slate-900">ClassIn 二维码</h2>
             <span class="text-[12px] font-medium text-slate-500">点击放大</span>
@@ -544,7 +751,20 @@
               <span class="mt-0.5 block text-[12px] font-medium text-slate-500">长按识别或截图，使用 ClassIn App 扫码添加</span>
             </span>
           </button>
-        </section>
+        </section>`
+          : `<section class="rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-[16px] font-bold text-slate-500">ClassIn 二维码</h2>
+            <span class="inline-flex items-center gap-1 text-[12px] font-medium text-slate-500">${icon('lock', 'h-3.5 w-3.5')}购课后解锁</span>
+          </div>
+          <div class="mt-2.5 flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-100/60 p-3">
+            <span class="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-slate-200/70 text-slate-400">${icon('lock', 'h-6 w-6')}</span>
+            <span class="min-w-0">
+              <span class="block text-[14px] font-semibold text-slate-500">购课后解锁查看老师 ClassIn 联系方式</span>
+              <span class="mt-0.5 block text-[12px] font-medium text-slate-400">完成任一购课单后即可扫码添加老师</span>
+            </span>
+          </div>
+        </section>`}
 
         ${state.teacherPreview
           ? renderTeacherPreviewNote()
@@ -570,7 +790,7 @@
       const remain = photos.length - capacity + 1;
       return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <div class="flex items-center justify-between gap-2">
-          <h2 class="text-[16px] font-bold text-slate-900">教师风采相册</h2>
+          <h2 class="text-[16px] font-bold text-slate-900">老师风采相册</h2>
           <span class="text-[12px] font-medium text-slate-500">共 ${photos.length} 张 · 点击看大图</span>
         </div>
         <div class="mt-2.5 grid ${cols} gap-1.5">
@@ -594,10 +814,33 @@
       if (!state.overlay) return '';
       if (state.overlay.type === 'photo') return renderPhotoLightbox();
       if (state.overlay.type === 'qr') return renderQrModal();
+      if (state.overlay.type === 'avail-conflict') return renderAvailConflictModal();
       return '';
     }
 
+    function renderAvailConflictModal() {
+      const count = Number(state.overlay && state.overlay.count) || 3;
+      return `<div class="absolute inset-0 z-50">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-5 top-1/2 mx-auto max-w-[330px] -translate-y-1/2 rounded-2xl bg-white p-4 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="availConflictTitle">
+          <div class="flex items-start justify-between gap-2">
+            <h2 id="availConflictTitle" class="text-[16px] font-bold text-slate-900">保存常规可约时段</h2>
+            <button type="button" data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-2.5">
+            ${icon('alert-triangle', 'mt-0.5 h-4 w-4 shrink-0 text-amber-600')}
+            <p class="text-[12px] font-medium leading-relaxed text-amber-900">检测到 <span class="font-bold">${count}</span> 处已排课程落在即将关闭的时段。已排课程不受影响，如需按时授课或请假，请前往【课表】另行处理。确认保存后仅停止后续新约与下轮自动续费排入。</p>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button type="button" data-action="close-overlay" class="h-10 rounded-xl border border-slate-300 bg-white text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50">取消</button>
+            <button type="button" data-action="avail-confirm-save" class="h-10 rounded-xl bg-indigo-600 text-[12px] font-semibold text-white transition hover:bg-indigo-700">确认保存</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
     function renderQrModal() {
+      if (state.paid !== 'yes') return '';
       const t = teacherById(state.overlay.teacherId);
       if (!t) return '';
       return `<div class="absolute inset-0 z-50">
@@ -681,7 +924,7 @@
       showToast(`正在打开 ${t.name} 的周度排班网格...`);
       setTimeout(() => {
         const teacherKey = t.id.replace('tc_', '').replace(/\d+$/, '');
-        window.location.href = `m3a_calendar_grid.html?role=parent&view=calendar&teacher=${encodeURIComponent(teacherKey)}&teacher_name=${encodeURIComponent(t.name)}&child=${encodeURIComponent(state.child)}`;
+        window.location.href = `m3a_calendar_grid.html?role=parent&view=calendar&teacher=${encodeURIComponent(teacherKey)}&teacher_name=${encodeURIComponent(t.name)}&child=${encodeURIComponent(state.child)}&from=hall`;
       }, 350);
     }
 
@@ -707,6 +950,7 @@
       if (action === 'select-child') { state.child = el.dataset.child; return renderContentOnly(); }
       if (action === 'open-teacher') return openTeacher(el.dataset.id);
       if (action === 'open-qr') {
+        if (state.paid !== 'yes') return showToast('购课后解锁查看老师 ClassIn 联系方式');
         state.overlay = { type: 'qr', teacherId: el.dataset.id };
         $('overlay').innerHTML = renderOverlay();
         if (window.lucide) lucide.createIcons();
@@ -743,17 +987,92 @@
       }
       if (action === 'set-lang') return setLang(el.dataset.lang);
       if (action === 'play-video') { state.playingVideo = true; return renderContentOnly(); }
+      if (action === 'toggle-availability') {
+        const day = el.dataset.day;
+        const time = el.dataset.time;
+        if (state.availabilityData && day && time) {
+          state.availabilityData[day][time] = !state.availabilityData[day][time];
+          renderContentOnly();
+        }
+        return;
+      }
+      if (action === 'toggle-avail-band') {
+        const band = el.dataset.band;
+        state.availabilityExpanded[band] = !state.availabilityExpanded[band];
+        return renderContentOnly();
+      }
+      if (action === 'avail-full-day') {
+        state.availabilityFullDay = !state.availabilityFullDay;
+        state.availabilityExpanded = {};
+        return renderContentOnly();
+      }
+      if (action === 'avail-copy-weekday' || action === 'avail-copy-all') {
+        const source = state.availabilityData || (state.availabilityData = buildAvailability());
+        const targets = action === 'avail-copy-weekday' ? ['mon', 'wed', 'thu', 'fri'] : ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+        targets.forEach((k) => { source[k] = { ...source.tue }; });
+        state.availabilityExpanded = {};
+        renderContentOnly();
+        showToast(action === 'avail-copy-weekday' ? '已将周二模板复制到工作日' : '已将周二模板复制到全周');
+        return;
+      }
+      if (action === 'avail-batch-toggle') {
+        state.availBatchOpen = !state.availBatchOpen;
+        return renderContentOnly();
+      }
+      if (action === 'avail-batch-mode') {
+        state.availBatchMode = el.dataset.mode === 'rest' ? 'rest' : 'open';
+        return renderContentOnly();
+      }
+      if (action === 'avail-batch-apply') {
+        if (state.availBatchEnd <= state.availBatchStart) return showToast('结束时间需晚于开始时间');
+        const data = state.availabilityData || (state.availabilityData = buildAvailability());
+        const target = state.availBatchMode !== 'rest';
+        const times = availBatchTimes(state.availBatchStart, state.availBatchEnd);
+        AVAIL_DAYS.forEach((d) => {
+          times.forEach((time) => { data[d.key][time] = target; });
+        });
+        renderContentOnly();
+        showToast(`已将全周 ${state.availBatchStart}–${state.availBatchEnd} 设为${target ? '开放可约' : '休息'}`);
+        return;
+      }
+      if (action === 'avail-save') {
+        state.overlay = { type: 'avail-conflict', count: 3 };
+        $('overlay').innerHTML = renderOverlay();
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+      if (action === 'avail-confirm-save') {
+        state.overlay = null;
+        $('overlay').innerHTML = '';
+        showToast('常规可约模板已保存，并记入档案变动日志');
+        return;
+      }
       if (action === 'book') return book(el.dataset.id);
     });
 
+    document.getElementById('frame').addEventListener('change', (e) => {
+      const el = e.target.closest('[data-action]');
+      if (!el) return;
+      if (el.dataset.action === 'avail-batch-start') {
+        state.availBatchStart = el.value;
+        renderContentOnly();
+      } else if (el.dataset.action === 'avail-batch-end') {
+        state.availBatchEnd = el.value;
+        renderContentOnly();
+      }
+    });
+
     document.addEventListener('keydown', (e) => {
-      if (!state.overlay || state.overlay.type !== 'photo') return;
-      const t = teacherById(state.overlay.teacherId);
-      const total = (t && t.photos && t.photos.length) || 0;
+      if (!state.overlay) return;
       if (e.key === 'Escape') {
         state.overlay = null;
         $('overlay').innerHTML = '';
-      } else if (total > 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        return;
+      }
+      if (state.overlay.type !== 'photo') return;
+      const t = teacherById(state.overlay.teacherId);
+      const total = (t && t.photos && t.photos.length) || 0;
+      if (total > 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
         e.preventDefault();
         state.overlay.index = (state.overlay.index + (e.key === 'ArrowRight' ? 1 : -1) + total) % total;
         state.overlay.zoom = false;
@@ -763,13 +1082,22 @@
     });
 
     document.getElementById('btnResetDemo').addEventListener('click', () => {
-      state.page = state.teacherPreview ? 'detail' : 'hall';
-      state.navTab = state.teacherPreview ? 'me' : 'hall';
+      const availability = state.page === 'availability';
+      state.page = availability ? 'availability' : (state.teacherPreview ? 'detail' : 'hall');
+      state.navTab = availability ? 'home' : (state.teacherPreview ? 'me' : 'hall');
       state.device = 'mobile'; state.online = 'on';
+      state.paid = 'yes';
       state.teachers = clone(TEACHERS);
       state.activeTeacherId = 'tc_david0001';
-      state.child = 'AliceZ12'; state.lang = 'zh';
+      state.child = 'AliceZ12'; state.lang = availability ? 'en' : 'zh';
       state.playingVideo = false; state.overlay = null;
+      state.availabilityFullDay = false;
+      state.availabilityExpanded = {};
+      state.availabilityData = null;
+      state.availBatchOpen = false;
+      state.availBatchStart = '09:00';
+      state.availBatchEnd = '12:00';
+      state.availBatchMode = 'open';
       renderAll();
       showToast('演示数据已重置');
     });
@@ -779,6 +1107,12 @@
         const group = btn.dataset.group;
         const value = btn.dataset.value;
         if (group === 'device') { state.device = value; renderAll(); }
+        if (group === 'paid') {
+          state.paid = value;
+          state.overlay = null;
+          renderAll();
+          showToast(value === 'yes' ? '已切换为已购课家长' : '已切换为未购课家长');
+        }
         if (group === 'online') {
           state.online = value;
           renderAll();

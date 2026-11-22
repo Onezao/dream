@@ -112,11 +112,12 @@
     };
 
     const TEACHERS = {
-      david: { key: 'david', id: 'tea_david', name: 'David Miller', short: 'David', initial: 'D', priceTier: 21, tierLabel: '21积分', load: 18, cap: 24, free: 6 },
-      linda: { key: 'linda', id: 'tea_linda', name: 'Linda Wu', short: 'Linda', initial: 'L', priceTier: 18, tierLabel: '18积分', load: 14, cap: 24, free: 10 },
-      nina: { key: 'nina', id: 'tea_nina', name: 'Nina Park', short: 'Nina', initial: 'N', priceTier: 18, tierLabel: '18积分', load: 10, cap: 24, free: 14 },
-      elena: { key: 'elena', id: 'tea_elena', name: 'Elena Stone', short: 'Elena', initial: 'E', priceTier: 16, tierLabel: '16积分', load: 6, cap: 24, free: 18 }
+      david: { key: 'david', id: 'tea_david', name: 'David Miller', short: 'David', initial: 'D', priceTier: 21, tierLabel: '21积分', load: 18, cap: 24, free: 6, owner: 'leo' },
+      linda: { key: 'linda', id: 'tea_linda', name: 'Linda Wu', short: 'Linda', initial: 'L', priceTier: 18, tierLabel: '18积分', load: 14, cap: 24, free: 10, owner: 'leo' },
+      nina: { key: 'nina', id: 'tea_nina', name: 'Nina Park', short: 'Nina', initial: 'N', priceTier: 18, tierLabel: '18积分', load: 10, cap: 24, free: 14, owner: 'leo' },
+      elena: { key: 'elena', id: 'tea_elena', name: 'Elena Stone', short: 'Elena', initial: 'E', priceTier: 16, tierLabel: '16积分', load: 6, cap: 24, free: 18, owner: 'amy' }
     };
+    const OWNER_NAMES = { leo: 'Leo', amy: 'Amy' };
 
     const CLASSES = {
       ket1: { key: 'ket1', id: 'cls_ket1', name: 'KET 冲刺精讲小班', code: 'KET1', enrolled: 3, capacity: 4, teacher: 'david', credits: 20 }
@@ -178,7 +179,9 @@
       subbing: 'border-purple-300 bg-purple-50 text-purple-900',
       group: 'border-2 border-teal-400 bg-teal-50 text-teal-950',
       leave: 'border-rose-300 bg-rose-50 text-rose-800',
+      pending: 'border-rose-300 bg-rose-50 text-rose-800',
       rest: 'border-slate-200 bg-slate-100 text-slate-600',
+      blocked: 'border-slate-200 bg-slate-100 text-slate-500',
       available: 'border-emerald-200 bg-emerald-50 text-emerald-800'
     };
 
@@ -190,6 +193,7 @@
       subbing: '代上课',
       group: '小班课',
       leave: '已请假',
+      pending: '待代',
       available: '空闲可约',
       rest: '休息'
     };
@@ -214,6 +218,10 @@
       { value: 'reschedule-conflict', label: '挪位撞课过滤' },
       { value: 'teacher', label: '老师 David' },
       { value: 'monitor', label: '班长 David' },
+      { value: 'monitor-other', label: '班长看 Elena 课表' },
+      { value: 'monitor-other-single', label: '非负责老师单周复选' },
+      { value: 'cross-readonly', label: '跨组只读 ≥3h' },
+      { value: 'cross-rescue', label: '跨组驰援 <3h' },
       { value: 'monitor-free', label: '班长代约课' },
       { value: 'admin-free', label: '管理员代约课' },
       { value: 'admin-quick-trial', label: '管理员快速建档' },
@@ -240,7 +248,8 @@
       { value: 'day', label: '日调度今天' },
       { value: 'day-abnormal', label: '日调度异常过滤' },
       { value: 'day-compare', label: '同屏找代课' },
-      { value: 'day-students', label: '日调度按学员' }
+      { value: 'day-students', label: '日调度按学员' },
+      { value: 'day-groups', label: '日调度小班双格' }
     ];
 
     /* ------------------------------------------------------------------
@@ -269,6 +278,8 @@
     function teacherName(key) { return (TEACHERS[key] || TEACHERS.david).name; }
     function teacherShort(key) { return (TEACHERS[key] || TEACHERS.david).short; }
     function teacherTier(key) { return (TEACHERS[key] || TEACHERS.david).priceTier || 18; }
+    function ownerName(key) { return OWNER_NAMES[key] || key || 'Leo'; }
+    function teacherOwner(key) { return (TEACHERS[key] || TEACHERS.david).owner || 'leo'; }
     function studentName(key) { return (STUDENTS[key] || STUDENTS.alice).name; }
     function studentShort(key) { return (STUDENTS[key] || STUDENTS.alice).short; }
     function dayLabel(day) { return DAY_LABELS[day] || ''; }
@@ -307,6 +318,7 @@
         { teacher: 'david', time: '09:00', student: 'alice', type: 'fixed' },
         { teacher: 'david', time: '11:00', student: 'bob', type: 'pendingSub', note: '学员临时请假 · 尚未指派代课' },
         { teacher: 'david', time: '15:30', student: 'alice', type: 'temp' },
+        { teacher: 'david', time: '16:00', type: 'group', classId: 'ket1', dur: 2, sub: 'elena', nearChange: true },
         { teacher: 'linda', time: '09:30', student: 'charlie', type: 'fixed' },
         { teacher: 'linda', time: '14:00', student: 'alice', type: 'temp' },
         { teacher: 'nina', time: '10:00', student: 'bob', type: 'fixed' },
@@ -315,7 +327,8 @@
       ],
       '0': [
         { teacher: 'david', time: '09:00', student: 'alice', type: 'fixed' },
-        { teacher: 'david', time: '10:30', student: 'bob', type: 'temp' },
+        { teacher: 'david', time: '10:00', type: 'group', classId: 'ket1', dur: 2 },
+        { teacher: 'david', time: '11:00', student: 'bob', type: 'temp' },
         { teacher: 'david', time: '14:00', student: 'alice', type: 'fixed' },
         { teacher: 'david', time: '16:00', student: 'alice', type: 'pendingSub', note: '学员临时请假 · 尚未指派代课' },
         { teacher: 'david', time: '16:30', student: 'bob', type: 'nearChange', badge: 'sub', note: '距开课 2.1h 学员临时请假 · 已进入代课处理' },
@@ -326,6 +339,7 @@
         { teacher: 'linda', time: '16:30', student: 'alice', type: 'nearChange', badge: 'free', note: '距开课 2.1h 学员临时请假 · 已退回待排期' },
         { teacher: 'nina', time: '10:00', student: 'bob', type: 'fixed' },
         { teacher: 'nina', time: '13:00', student: 'alice', type: 'temp' },
+        { teacher: 'nina', time: '14:00', type: 'group', classId: 'ket1', dur: 2, pendingSub: true },
         { teacher: 'nina', time: '15:30', student: 'charlie', type: 'fixed' },
         { teacher: 'nina', time: '18:00', student: 'bob', type: 'fixed' },
         { teacher: 'elena', time: '09:00', student: 'bob', type: 'fixed' },
@@ -422,6 +436,7 @@
       dayIncident: null,
       device: 'mobile',
       embed: false,
+      fromHall: false,
       online: true,
       week: 1,
       roundOffset: 0,
@@ -470,6 +485,7 @@
       subSearch: '',
       subCandidate: 'elena',
       scheduleSelect: false,
+      scheduleMode: 'single',
       scheduleStudent: null,
       scheduleClass: null,
       scheduleSel: {},
@@ -721,26 +737,52 @@
 
     function getSlot(day, time) {
       const key = slotKey(state.week, day, time);
+      const parentView = state.role === 'parent' && !state.weekStudent;
       const preview = state.bookedPreview[key];
       if (preview === 'fixed') {
         return { kind: 'fixed', lesson: { day, time, teacher: 'david', student: 'alice', kind: 'fixed' }, key };
       }
-      if (preview === 'group') {
+      if (preview === 'group' && !parentView) {
         return { kind: 'group', lesson: { day, time, teacher: 'david', student: 'alice', kind: 'group', classId: 'ket1', dur: 2 }, key };
       }
       const override = overrides[key];
-      if (override && override.forced) return { kind: override.forced, lesson: null, key };
+      if (override && override.forced) {
+        if (isHallParent() && override.forced !== 'available') return { kind: 'rest', lesson: null, key, hall: 'leave' };
+        return { kind: override.forced, lesson: null, key };
+      }
       const lessons = slotLessons(day, time);
+
+      if (isHallParent()) {
+        const targetKey = state.teacher;
+        const ownLessons = lessons.filter((item) => item.student === state.child && item.kind !== 'group');
+        const ownTarget = ownLessons.find((item) => item.teacher === targetKey) || null;
+        if (ownTarget) return { kind: ownTarget.kind, lesson: ownTarget, key, hall: 'own' };
+        if (ownLessons.some((item) => item.teacher !== targetKey)) {
+          return { kind: 'blocked', lesson: null, key, hall: 'masked' };
+        }
+        if (!inParentBookWindow(day)) return { kind: 'rest', lesson: null, key, hall: 'out-window' };
+        if (override && override.forced === 'leave') return { kind: 'rest', lesson: null, key, hall: 'leave' };
+        const targetBusy = lessons.some((item) => item.teacher === targetKey || item.actual === targetKey);
+        if (targetBusy) return { kind: 'rest', lesson: null, key, hall: 'busy' };
+        if (teacherOpen(targetKey, day, time)) return { kind: 'available', lesson: null, key, hall: 'open' };
+        return { kind: 'rest', lesson: null, key, hall: 'closed' };
+      }
+
       const studentViewKey = state.weekStudent || (state.role === 'parent' ? state.child : null);
       let lesson = null;
       if (studentViewKey) {
-        lesson = lessons.find((item) => item.student === studentViewKey) || null;
+        lesson = lessons.find((item) => item.student === studentViewKey
+          && !(parentView && item.kind === 'group')) || null;
       } else {
         lesson = lessons.find((item) => item.teacher === state.teacher) || null;
       }
       if (lesson) return { kind: lesson.kind, lesson, key };
 
       if (studentViewKey && !state.reschedule) {
+        /* 家长端小班课完全不可见；孩子若在该格有小班课，按不可约灰格处理 */
+        if (parentView && lessons.some((item) => item.kind === 'group' && item.student === studentViewKey)) {
+          return { kind: 'rest', lesson: null, key };
+        }
         /* 未来 1~7 天窗口内，孩子本人无课/无请假/无覆盖的任意格均可约 */
         if (!inParentBookWindow(day)) return { kind: 'rest', lesson: null, key };
         return { kind: 'available', lesson: null, key };
@@ -753,6 +795,8 @@
     }
 
     function visibleGroup(day, time) {
+      /* 家长端（含单师可约视图）绝不展示小班课；仅班长/管理员学员周视角可见 */
+      if (state.role === 'parent' && !state.weekStudent) return null;
       const key = slotKey(state.week, day, time);
       if (state.bookedPreview[key] === 'group') {
         return { day, time, teacher: 'david', student: 'alice', kind: 'group', classId: 'ket1', dur: 2 };
@@ -793,6 +837,23 @@
     function activeTeacher() { return TEACHERS[state.teacher]; }
     function isStaff() { return state.role !== 'parent'; }
     function canSwitchTeacher() { return state.role === 'monitor' || state.role === 'admin'; }
+    function isHallParent() { return !!state.fromHall && state.role === 'parent' && !state.weekStudent; }
+    function isOwnTeacher(teacherKey) {
+      const key = teacherKey || state.teacher;
+      if (state.role === 'admin') return true;
+      if (state.role === 'monitor') return teacherOwner(key) === 'leo';
+      return true;
+    }
+    function lessonOwnerName(lesson) { return ownerName(teacherOwner(lesson ? lesson.teacher : state.teacher)); }
+    function isCrossGroupLesson(lesson) {
+      return state.role === 'monitor' && !!lesson && !isOwnTeacher(lesson.teacher);
+    }
+    function isCrossReadonlyLesson(lesson) {
+      return isCrossGroupLesson(lesson) && Number(state.hours) >= 3;
+    }
+    function isCrossRescueLesson(lesson) {
+      return isCrossGroupLesson(lesson) && Number(state.hours) < 3;
+    }
 
     /* ------------------------------------------------------------------
      * 代课匹配、换学员检索与排课复选态工具
@@ -895,11 +956,14 @@
       if (!query) return '';
       const incident = dayTeacherItem(dayKey, state.dayIncident.key, state.dayIncident.time);
       if (!incident) return '';
+      const incidentTimes = [];
+      const dur = incident.type === 'group' ? (incident.dur || 2) : 1;
+      for (let index = 0; index < dur; index += 1) incidentTimes.push(fmtMinutes(toMin(state.dayIncident.time) + index * 30));
       const matched = DAY_TEACHER_ORDER.filter((key) => key !== incident.teacher
         && `${teacherName(key)} ${teacherShort(key)}`.toLowerCase().includes(query));
       for (let index = 0; index < matched.length; index += 1) {
         const key = matched[index];
-        if (dayFreeAt(dayKey, key, state.dayIncident.time)) continue;
+        if (incidentTimes.every((point) => dayFreeAt(dayKey, key, point))) continue;
         const busy = dayTeacherItem(dayKey, key, state.dayIncident.time);
         return busy
           ? `${teacherShort(key)} ${dayWeekday(dayKey)} ${state.dayIncident.time} 已排课`
@@ -925,9 +989,48 @@
     function scheduleTemplateList() {
       return Object.keys(state.scheduleSel).map((key) => state.scheduleSel[key]);
     }
+    function scheduleSingleMode() { return state.scheduleMode !== 'batch'; }
+    function scheduleBatchLocked() {
+      return state.role === 'monitor' && !isOwnTeacher(state.teacher) && !state.scheduleClass;
+    }
+    function scheduleModeForObject(object) {
+      if (object && object.kind === 'class') {
+        return Number(object.credits || 0) >= 4 ? 'batch' : 'single';
+      }
+      return 'single';
+    }
+    function setScheduleMode(mode) {
+      const next = mode === 'batch' ? 'batch' : 'single';
+      if (next === 'batch' && scheduleBatchLocked()) {
+        showToast('仅该老师所属负责班长或管理员可排 1v1 固定位');
+        return;
+      }
+      if (next === state.scheduleMode) return;
+      state.scheduleMode = next;
+      if (next === 'batch') {
+        state.week = 0;
+      } else {
+        state.scheduleSel = {};
+        resetScheduleWeeks();
+      }
+      render(true);
+      showToast(next === 'batch' ? '已切换为连续 4 周批量，第 1 周为模板周' : '已切换为仅排单周 / 临时课，不再自动复制四周');
+    }
+    function renderScheduleModeToggle() {
+      const single = scheduleSingleMode();
+      const locked = scheduleBatchLocked();
+      return `<div class="mt-1.5" data-role="schedule-mode-toggle">
+        <div class="grid grid-cols-2 gap-1.5">
+          <button data-action="schedule-mode" data-mode="single" class="flex h-10 items-center justify-center gap-1 rounded-xl border px-1 text-[12px] font-bold transition ${single ? 'border-slate-900 bg-slate-900 text-white shadow-sm ring-2 ring-slate-900' : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'}">🗓️ 仅排单周 / 临时课</button>
+          <button data-action="schedule-mode" data-mode="batch" ${locked ? 'disabled' : ''} class="flex h-10 items-center justify-center gap-1 rounded-xl border px-1 text-[12px] font-bold transition ${!single ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-600' : locked ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'}">🔁 连续 4 周批量</button>
+        </div>
+        ${locked ? '<p class="mt-1 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-[12px] font-semibold leading-relaxed text-amber-900">仅该老师所属负责班长或管理员可排 1v1 固定位</p>' : ''}
+      </div>`;
+    }
     function scheduleSelectedList() { return scheduleTemplateList(); }
     function scheduleSlotKey(day, time) { return `${day}|${time}`; }
     function scheduleWeekMap(week) {
+      if (scheduleSingleMode()) return week === state.week ? state.scheduleSel : {};
       return week === 0 ? state.scheduleSel : (state.scheduleWeekSel[week - 1] || {});
     }
     function scheduleWeekCount(week) { return Object.keys(scheduleWeekMap(week)).length; }
@@ -937,6 +1040,7 @@
       return total;
     }
     function scheduleRetainedCount() {
+      if (scheduleSingleMode()) return 0;
       let retained = 0;
       scheduleTemplateList().forEach((slot) => {
         const key = scheduleSlotKey(slot.day, slot.time);
@@ -948,6 +1052,11 @@
     }
     function scheduleUnitLabel() { return state.scheduleClass ? '组双格' : '格'; }
     function scheduleWeekMeta(week) {
+      if (scheduleSingleMode()) {
+        return week === state.week
+          ? { label: '仅单周', text: 'text-indigo-700', badge: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-500' }
+          : { label: '—', text: 'text-slate-500', badge: 'bg-slate-100 text-slate-500', dot: 'bg-slate-300' };
+      }
       if (week === 0) {
         return { label: '模板周', text: 'text-indigo-700', badge: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-500' };
       }
@@ -1004,6 +1113,7 @@
     }
     function scheduleDeriveWeek(weekIndex) {
       if (weekIndex < 1) return;
+      if (scheduleSingleMode()) return;
       const map = {};
       const notes = {};
       scheduleTemplateList().forEach((slot) => {
@@ -1017,6 +1127,7 @@
       state.scheduleWeekStatus[weekIndex] = Object.keys(notes).length ? 'conflict' : 'follow';
     }
     function scheduleSyncDerivedWeeks() {
+      if (scheduleSingleMode()) return;
       for (let week = 1; week < 4; week += 1) {
         if (state.scheduleWeekStatus[week] === 'adjusted') continue;
         scheduleDeriveWeek(week);
@@ -1112,6 +1223,7 @@
     }
     function exitScheduleSelect(showMessage = true) {
       state.scheduleSelect = false;
+      state.scheduleMode = 'single';
       state.scheduleStudent = null;
       state.scheduleClass = null;
       state.scheduleSel = {};
@@ -1168,7 +1280,7 @@
         saved = false;
       }
       state.renewalSaved = saved;
-      showToast(saved ? '已带回 M2A，原 HOLD 未变更' : '草稿已生成，但当前环境不可写入本地缓存');
+      showToast(saved ? '已带回续费购课单，原预占未变更' : '草稿已生成，但当前环境不可写入本地缓存');
     }
     function confirmScheduleSelect() {
       if (!requireOnline()) return;
@@ -1179,7 +1291,7 @@
         return;
       }
       if (!total) {
-        showToast('请至少在第 1 周模板选择 1 个可排时段');
+        showToast(scheduleSingleMode() ? '请至少在当前周选择 1 个可排时段' : '请至少在第 1 周模板选择 1 个可排时段');
         return;
       }
       if (total > object.credits) {
@@ -1190,10 +1302,12 @@
         saveRenewalDraft(object, total);
         return;
       }
+      const single = scheduleSingleMode();
+      const bookWeeks = single ? [state.week] : [0, 1, 2, 3];
       const firstSelectedWeek = [0, 1, 2, 3].find((week) => scheduleWeekCount(week) > 0);
       const flashWeek = scheduleWeekCount(state.week) ? state.week : firstSelectedWeek;
       const flashKeys = [];
-      for (let week = 0; week < 4; week += 1) {
+      bookWeeks.forEach((week) => {
         const map = scheduleWeekMap(week);
         Object.keys(map).forEach((key) => {
           const slot = map[key];
@@ -1210,10 +1324,11 @@
             }
           }
         });
-      }
+      });
       const retained = scheduleRetainedCount();
       state.selectCredits[object.key] = object.credits - total;
       state.scheduleSelect = false;
+      state.scheduleMode = 'single';
       state.scheduleStudent = null;
       state.scheduleClass = null;
       state.scheduleSel = {};
@@ -1223,9 +1338,11 @@
       state.panel = null;
       state.flash = true;
       state.flashKeys = flashKeys;
-      state.toast = retained > 0
-        ? `已锁定可用周 · 实扣 ${total} 节 · ${retained} 节留存待排池`
-        : `已锁定 4 周 · 实扣 ${total} 节`;
+      state.toast = single
+        ? `已锁定单周 · 实扣 ${total} 节`
+        : (retained > 0
+          ? `已锁定可用周 · 实扣 ${total} 节 · ${retained} 节留存待排池`
+          : `已锁定 4 周 · 实扣 ${total} 节`);
       clearScheduleUrl();
       render(true);
       armFlashTimers();
@@ -1292,7 +1409,10 @@
       const meta = roleMeta();
       let title = state.role === 'teacher' ? '课表' : '自家课表';
       let subtitle = '';
-      if (state.scheduleSelect) {
+      if (state.fromHall && state.role === 'parent') {
+        title = '预约老师';
+        subtitle = `${activeTeacher().name} · ${fmtDot(weekStart())} - ${fmtDot(addDays(weekStart(), 6))}`;
+      } else if (state.scheduleSelect) {
         title = state.role === 'teacher' ? '课表' : '自家课表';
         const mode = state.renewalEdit ? '续费改单 · 排期草稿' : '排课复选态';
         subtitle = `${mode} · ${activeTeacher().name} · 实选 ${scheduleTotalCount()} 节`;
@@ -1318,6 +1438,7 @@
         <span class="pointer-events-none absolute -right-7 -top-9 h-24 w-24 rounded-full border border-white/10"></span>
         <span class="pointer-events-none absolute right-16 top-5 h-14 w-14 rounded-full border border-white/10"></span>
         <span class="pointer-events-none absolute -bottom-8 left-20 h-20 w-20 rounded-full bg-white/5"></span>
+        ${state.fromHall && state.role === 'parent' ? `<a href="m1b_teacher_parent.html?role=parent&embed=1" class="relative inline-flex h-8 shrink-0 items-center gap-0.5 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15">${icon('chevron-left', 'h-4 w-4')}<span>返回选老师</span></a>` : ''}
         <div class="relative min-w-0 flex-1">
           <h1 class="truncate text-[18px] font-bold tracking-tight">${esc(title)}</h1>
           <p class="mt-0.5 truncate text-[12px] font-medium text-white/70">${esc(subtitle)}</p>
@@ -1429,10 +1550,11 @@
 
     function renderStaffEntries() {
       const roleParam = state.role === 'admin' ? 'admin' : 'monitor';
-      return `<div class="mt-1.5 grid grid-cols-2 gap-1.5">
-        <button data-action="open-schedule-select" class="flex h-8 items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 text-[12px] font-bold text-indigo-700 transition active:scale-[0.99]">
-          ${icon('plus', 'h-3.5 w-3.5')}批量固定位排课
-        </button>
+      const owned = isOwnTeacher(state.teacher);
+      return `<div class="mt-1.5 grid grid-cols-2 gap-1.5" data-role="staff-entries" data-teacher-owned="${owned ? '1' : '0'}">
+        ${owned
+          ? `<button data-action="open-schedule-select" data-mode="fixed" class="flex h-8 items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 text-[12px] font-bold text-indigo-700 transition active:scale-[0.99]">📅 + 批量固定位排课</button>`
+          : `<button data-action="open-schedule-select" data-mode="temp" class="flex h-8 items-center justify-center gap-1 rounded-lg border border-amber-200 bg-amber-50 text-[12px] font-bold text-amber-900 transition active:scale-[0.99]">🗓️ 批量临时约课</button>`}
         <a href="m3d_scheduling_workbench.html?role=${roleParam}&view=board" class="flex h-8 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">
           ${icon('search', 'h-3.5 w-3.5')}空闲大盘
         </a>
@@ -1450,7 +1572,7 @@
           </div>
           <div class="mt-0.5 flex items-center justify-between gap-2">
             <span class="min-w-0 truncate text-[12px] font-medium text-amber-800">学员 ${esc(object ? object.label : '未选择学员')} · 原 HOLD 未变更</span>
-            ${state.renewalReturn === 'm2a' ? `<a href="m2a_course_orders.html?draft=1&orderId=${encodeURIComponent(state.renewalOrderId || '')}&role=monitor" class="shrink-0 rounded border border-amber-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-amber-900">返回 M2A 修改抽屉</a>` : ''}
+            ${state.renewalReturn === 'm2a' ? `<a href="m2a_course_orders.html?draft=1&orderId=${encodeURIComponent(state.renewalOrderId || '')}&role=monitor" class="shrink-0 rounded border border-amber-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-amber-900">返回购课单修改抽屉</a>` : ''}
           </div>
         </div>` : ''}
         <div class="flex items-center gap-1.5">
@@ -1458,7 +1580,7 @@
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[12px] font-bold text-indigo-700">${teacher.initial}</span>
             <span class="min-w-0 flex-1">
               <span class="block truncate text-[14px] font-bold text-slate-900">${esc(teacher.name)}</span>
-              <span class="block truncate text-[12px] font-medium text-slate-600">本周已排 ${teacher.load}/${teacher.cap} 节 · 连续 4 周批量</span>
+              <span class="block truncate text-[12px] font-medium text-slate-600">本周已排 ${teacher.load}/${teacher.cap} 节 · ${scheduleSingleMode() ? '仅排单周 / 临时课' : '连续 4 周批量'}</span>
             </span>
           </div>
           <button data-action="exit-schedule-select" class="flex h-10 shrink-0 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 text-[12px] font-semibold text-slate-800 transition hover:bg-slate-50">${icon('x', 'h-3.5 w-3.5')}退出复选</button>
@@ -1471,6 +1593,7 @@
           </span>
           <span class="shrink-0 rounded-md bg-indigo-600 px-2 py-1 text-[12px] font-bold text-white">${object ? '更换' : '选择'}</span>
         </button>
+        ${renderScheduleModeToggle()}
         ${renderWeekNav()}
       </div>`;
     }
@@ -1594,6 +1717,9 @@
 
     function cellContent(kind, lesson) {
       const parent = state.role === 'parent' || !!state.weekStudent;
+      if (lesson && lesson.pendingSub) {
+        return '<span class="block text-center text-[12px] font-bold leading-none">待代</span>';
+      }
       if (kind === 'group') {
         if (lesson.outage) {
           return `<span class="flex h-full w-full flex-col items-center justify-center gap-0.5 overflow-hidden leading-none">
@@ -1626,6 +1752,7 @@
         return `<span class="block w-full truncate text-center text-[12px] font-bold leading-none">${esc(text)}</span>`;
       }
       if (kind === 'leave') return '<span class="block text-center text-[12px] font-bold leading-none">假</span>';
+      if (kind === 'blocked') return '<span class="block text-center text-[12px] font-bold leading-none">不可约</span>';
       if (kind === 'available') return '<span class="block text-center text-[12px] font-bold leading-none">约</span>';
       return '<span class="block text-center text-[12px] font-bold leading-none">休</span>';
     }
@@ -1694,15 +1821,19 @@
       const conflict = !!target && target.conflict && kind === 'available';
       const validTarget = !!target && !isSource && target.inWindow && !target.conflict && kind === 'available';
       const blockedTarget = !!target && !isSource && (!target.inWindow || kind !== 'available' || conflict);
-      const tokenKind = kind === 'group' && lesson.outage ? 'leave' : kind;
+      const tokenKind = lesson.pendingSub ? 'pending' : (kind === 'group' && lesson.outage ? 'leave' : kind);
       const cls = `${TOKEN[tokenKind] || TOKEN.rest} ${flash ? 'ring-2 ring-inset ring-indigo-500 animate-pulse' : ''} ${isSource ? 'border-dashed ring-2 ring-inset ring-indigo-400' : ''} ${validTarget ? 'ring-1 ring-emerald-400 animate-pulse' : ''} ${blockedTarget ? 'opacity-40' : ''}`;
       const baseLabel = kind === 'group'
-        ? `${dayLabel(day)} ${time} ${CLASSES[lesson.classId] ? CLASSES[lesson.classId].code : 'KET1'}`
-        : `${dayLabel(day)} ${time} ${TYPE_NAME[kind] || ''}${isSource ? ' 原时段' : ''}`;
+        ? `${dayLabel(day)} ${time} ${CLASSES[lesson.classId] ? CLASSES[lesson.classId].code : 'KET1'}${lesson.pendingSub ? ' 待代课' : ''}`
+        : kind === 'blocked'
+          ? `${dayLabel(day)} ${time} 不可约`
+          : kind === 'available'
+            ? `${dayLabel(day)} ${time} 空闲可约`
+            : `${dayLabel(day)} ${time} ${lesson.pendingSub ? TYPE_NAME.pending : (TYPE_NAME[kind] || '')}${isSource ? ' 原时段' : ''}`;
       const label = `${baseLabel}${conflict ? ' 学员该时段已有其他课程' : ''}`;
       const height = isGroup ? 'h-[54px]' : 'h-[26px]';
       return `<td ${isGroup ? 'rowspan="2"' : ''} class="p-px align-middle">
-        <button data-action="cell" data-day="${day}" data-time="${time}" aria-label="${esc(label)}" class="relative flex ${height} w-full min-w-0 items-center justify-center overflow-hidden rounded-md border px-0.5 font-bold leading-none transition active:scale-95 ${cls}">
+        <button data-action="cell" data-day="${day}" data-time="${time}" ${kind === 'blocked' ? 'data-mask="blocked"' : ''} aria-label="${esc(label)}" class="relative flex ${height} w-full min-w-0 items-center justify-center overflow-hidden rounded-md border px-0.5 font-bold leading-none transition active:scale-95 ${cls}">
           ${cellContent(kind, lesson)}
           ${isSource ? '<span class="absolute right-0 top-0 rounded-sm bg-indigo-600 px-0.5 text-[12px] font-bold leading-none text-white">原</span>' : ''}
           ${conflict ? '<span class="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-rose-600 ring-1 ring-white"></span>' : ''}
@@ -1820,18 +1951,20 @@
     function renderScheduleSelectHint() {
       const object = scheduleObjectInfo();
       const group = !!state.scheduleClass;
+      const single = scheduleSingleMode();
       const week = state.week;
       const meta = scheduleWeekMeta(week);
       const status = week === 0 ? 'template' : (state.scheduleWeekStatus[week] || 'follow');
       let detail = '';
       if (!object) detail = '请先在顶部选择学员或小班，未选对象不可提交。';
+      else if (single) detail = '当前为仅排单周 / 临时课模式：只在当前周选格提交，不会复制到第 2~4 周。';
       else if (week === 0) detail = '当前为模板周：点击绿色空闲格复选时段，系统自动复制到第 2~4 周；冲突周不阻断整单。';
       else if (status === 'adjusted') detail = '当前周为可编辑副本：增删只影响本周，不再跟随模板。';
       else if (status === 'conflict') detail = '当前周存在冲突时段，未选中的课次留存待排；可在本周补选其他空闲格。';
       else detail = '当前周跟随模板，点击格子编辑后将转为「已调整」。';
-      return `<div class="mb-2 rounded-xl border border-indigo-200 bg-indigo-50 px-2.5 py-2">
+      return `<div class="mb-2 rounded-xl border border-indigo-200 bg-indigo-50 px-2.5 py-2" data-role="schedule-hint">
         <div class="flex items-center justify-between gap-2">
-          <p class="min-w-0 truncate text-[12px] font-bold text-indigo-800">${state.renewalEdit ? '续费改单 · 排期草稿' : '排课复选态'} · ${group ? '小班连续双格 56px' : '1v1 单格'} · 模板穿透</p>
+          <p class="min-w-0 truncate text-[12px] font-bold text-indigo-800">${state.renewalEdit ? '续费改单 · 排期草稿' : '排课复选态'} · ${group ? '小班连续双格 56px' : '1v1 单格'} · ${single ? '仅排单周' : '4 周批量'}</p>
           <span class="shrink-0 rounded-full px-1.5 py-0.5 text-[12px] font-bold ${meta.badge}">第${week + 1}周 ${meta.label}</span>
         </div>
         <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-indigo-700">${esc(detail)}</p>
@@ -1855,10 +1988,12 @@
           if (slot) conflictEntries.push(`第${week + 1}周 ${dayLabel(slot.day)} ${slot.time} ${notes[key]}`);
         });
       });
-      const rows = [0, 1, 2, 3].map((week) => {
+      const single = scheduleSingleMode();
+      const weekRows = single ? [state.week] : [0, 1, 2, 3];
+      const rows = weekRows.map((week) => {
         const meta = scheduleWeekMeta(week);
         const count = scheduleWeekCount(week);
-        const adjusted = week > 0 && state.scheduleWeekStatus[week] === 'adjusted';
+        const adjusted = !single && week > 0 && state.scheduleWeekStatus[week] === 'adjusted';
         return `<div class="flex min-w-0 items-center gap-1 leading-tight">
           <span class="w-9 shrink-0 text-[12px] font-bold text-slate-800">第${week + 1}周</span>
           <span class="shrink-0 rounded px-1 py-px text-[12px] font-bold ${meta.badge}">${meta.label}</span>
@@ -1881,7 +2016,7 @@
         ${insufficient ? `<p class="mt-1 text-[12px] font-semibold text-rose-700">待排课次不足：需 ${total} 节，仅剩 ${credits} 节</p>` : ''}
         <div class="mt-1.5 flex gap-2">
           <button data-action="exit-schedule-select" class="flex h-10 w-20 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">取消</button>
-          <button data-action="confirm-schedule-select" ${ready ? '' : 'disabled'} class="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg text-[14px] font-bold transition ${ready ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">${icon('check', 'h-4 w-4 shrink-0')}<span class="truncate">${state.renewalEdit ? '确认排期并返回' : (ready ? `确认锁定可用周 · 共扣 ${total} 节` : '确认锁定可用周')}</span></button>
+          <button data-action="confirm-schedule-select" ${ready ? '' : 'disabled'} class="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg text-[14px] font-bold transition ${ready ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">${icon('check', 'h-4 w-4 shrink-0')}<span class="truncate">${state.renewalEdit ? '确认排期并返回' : (ready ? (single ? `确认锁定当前周 · 共扣 ${total} 节` : `确认锁定可用周 · 共扣 ${total} 节`) : (single ? '确认锁定当前周' : '确认锁定可用周'))}</span></button>
         </div>
       </div>`;
     }
@@ -1890,7 +2025,7 @@
       const object = scheduleObjectInfo();
       const isStudent = object && object.kind === 'student';
       const isClass = object && object.kind === 'class';
-      return `${sheetHeader('选择学员或小班', '排课复选态 · 连续 4 周批量')}
+      return `${sheetHeader('选择学员或小班', scheduleSingleMode() ? '排课复选态 · 仅排单周 / 临时课' : '排课复选态 · 连续 4 周批量')}
         <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
           <div class="text-[12px] font-semibold text-slate-600">在读 / 试课学员</div>
           <div class="mt-1.5 space-y-1.5">
@@ -1942,6 +2077,24 @@
       return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date(`${iso}T00:00:00Z`).getUTCDay()];
     }
     function dayPlan(key) { return DAY_PLANS[String(key)] || []; }
+    function dayClassItem(dayKey, classId, time) {
+      const base = dayPlan(dayKey).find((item) => item.type === 'group' && item.classId === classId && item.time === time);
+      if (!base) return null;
+      const override = dayOverrides[`${dayKey}|${base.teacher}|${time}`];
+      return override ? Object.assign({}, base, override) : base;
+    }
+    function dayClassIds(dayKey) {
+      const ids = [];
+      dayPlan(dayKey).forEach((item) => {
+        if (item.type === 'group' && item.classId && !ids.includes(item.classId)) ids.push(item.classId);
+      });
+      return ids;
+    }
+    function dayItemNear3h(dayKey, time) {
+      if (Number(dayKey) !== 0) return false;
+      const diff = toMin(time) - DAY_NOW_MIN;
+      return diff <= 180 && diff >= -60;
+    }
     function dayTeacherItem(dayKey, teacher, time) {
       const base = dayPlan(dayKey).find((item) => item.teacher === teacher && item.time === time);
       if (!base) return null;
@@ -1955,11 +2108,17 @@
       return override ? Object.assign({}, base, override) : base;
     }
     function dayIsAbnormal(item) {
-      return !!item && !item.sub && (item.type === 'pendingSub' || item.type === 'nearChange');
+      if (!item) return false;
+      if (item.type === 'group') return !!item.pendingSub || !!item.nearChange;
+      return !item.sub && (item.type === 'pendingSub' || item.type === 'nearChange');
     }
     function dayColumnItems(dayKey, mode, key) {
       return dayPlan(dayKey)
-        .filter((item) => (mode === 'teacher' ? item.teacher === key : item.student === key))
+        .filter((item) => {
+          if (mode === 'teacher') return item.teacher === key;
+          if (mode === 'class') return item.type === 'group' && item.classId === key;
+          return item.type !== 'group' && item.student === key;
+        })
         .map((item) => {
           const override = dayOverrides[`${dayKey}|${item.teacher}|${item.time}`];
           return override ? Object.assign({}, item, override) : item;
@@ -1977,6 +2136,8 @@
     }
     function dayFreeAt(dayKey, teacher, time) {
       if (dayPlan(dayKey).some((item) => item.teacher === teacher && item.time === time)) return false;
+      const prev = prevTime(time);
+      if (prev && dayPlan(dayKey).some((item) => item.type === 'group' && item.teacher === teacher && item.time === prev && (item.dur || 2) > 1)) return false;
       return DAY_TEACHER_ORDER.includes(teacher);
     }
     function dayFreeCount(dayKey, teacher) {
@@ -1985,12 +2146,18 @@
     function dayLessonCount(dayKey, mode, key) { return dayColumnItems(dayKey, mode, key).length; }
     function dayNowInSlot(time) { return DAY_NOW_MIN >= toMin(time) && DAY_NOW_MIN < toMin(time) + 30; }
 
-    function dayCandidates(dayKey, teacherKey, time) {
+    function dayCandidates(dayKey, teacherKey, time, options) {
+      const opts = options || {};
+      const dur = Math.max(1, Number(opts.dur || 1));
+      const times = [];
+      for (let index = 0; index < dur; index += 1) times.push(fmtMinutes(toMin(time) + index * 30));
       const incident = dayTeacherItem(dayKey, teacherKey, time);
       const studentKey = incident ? incident.student : null;
       return DAY_TEACHER_ORDER
-        .filter((key) => key !== teacherKey && dayFreeAt(dayKey, key, time) && (state.dayScope === 'all' || DAY_MANAGED.includes(key)))
-        .map((key) => Object.assign(subRank(key, studentKey, teacherKey, false, null), { free: dayFreeCount(dayKey, key), available: true }))
+        .filter((key) => key !== teacherKey
+          && times.every((point) => dayFreeAt(dayKey, key, point))
+          && (state.dayScope === 'all' || DAY_MANAGED.includes(key)))
+        .map((key) => Object.assign(subRank(key, studentKey, teacherKey, !!opts.isGroup, opts.classId), { free: dayFreeCount(dayKey, key), available: true }))
         .sort(subSort);
     }
 
@@ -2002,7 +2169,9 @@
         if (state.dayCompare && state.dayIncident) {
           const incidentKey = state.dayIncident.key;
           const incidentTime = state.dayIncident.time;
-          const candidates = dayCandidates(dayKey, incidentKey, incidentTime);
+          const incidentItem = dayTeacherItem(dayKey, incidentKey, incidentTime);
+          const candidates = dayCandidates(dayKey, incidentKey, incidentTime,
+            incidentItem && incidentItem.type === 'group' ? { dur: incidentItem.dur || 2, isGroup: true, classId: incidentItem.classId } : {});
           candidates.forEach((candidate) => { metaMap[candidate.key] = candidate; });
           keys = [incidentKey].concat(candidates.map((candidate) => candidate.key));
         }
@@ -2017,7 +2186,7 @@
           meta: metaMap[key] || null
         }));
       } else {
-        cols = DAY_STUDENT_ORDER.map((key) => ({
+        const studentCols = DAY_STUDENT_ORDER.map((key) => ({
           mode: 'student',
           key,
           title: STUDENTS[key].nick,
@@ -2026,6 +2195,22 @@
           count: dayAbnormalCount(dayKey, 'student', key),
           earliest: dayEarliestAbnormal(dayKey, 'student', key)
         }));
+        const classCols = dayClassIds(dayKey).map((classKey) => {
+          const cls = CLASSES[classKey] || CLASSES.ket1;
+          const items = dayColumnItems(dayKey, 'class', classKey);
+          const earliest = items.filter(dayIsAbnormal).map((item) => toMin(item.time));
+          return {
+            mode: 'class',
+            key: classKey,
+            isClass: true,
+            title: cls.code,
+            subtitle: `${cls.name} · ${items.length} 节`,
+            search: `${cls.name} ${cls.code} ${classKey}`.toLowerCase(),
+            count: dayAbnormalCount(dayKey, 'class', classKey),
+            earliest: earliest.length ? Math.min.apply(null, earliest) : 99999
+          };
+        });
+        cols = studentCols.concat(classCols);
       }
       const query = state.daySearch.trim().toLowerCase();
       if (query) cols = cols.filter((col) => col.search.includes(query));
@@ -2062,14 +2247,14 @@
             }).join('')}
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-1.5">
-            ${daySeg('day-mode', [{ value: 'teacher', label: '按老师' }, { value: 'student', label: '按学员' }], state.dayMode)}
+            ${daySeg('day-mode', [{ value: 'teacher', label: '按老师' }, { value: 'student', label: '按学员/小班' }], state.dayMode)}
             ${daySeg('day-filter', [{ value: 'all', label: '全部' }, { value: 'abnormal', label: `${isToday ? '今日异常' : '当日异常'} (${abnormal})` }], state.dayFilter)}
             ${state.dayMode === 'teacher' ? daySeg('day-scope', [{ value: 'managed', label: '仅看我管的' }, { value: 'all', label: '全平台老师' }], state.dayScope) : ''}
           </div>
           <div class="mt-2 flex items-center gap-1.5">
             <div class="relative min-w-0 flex-1">
               <span class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-3.5 w-3.5')}</span>
-              <input data-day-search value="${esc(state.daySearch)}" placeholder="搜索老师姓名 / 学员小名" class="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-7 pr-2 text-[12px] font-medium text-slate-800 outline-none focus:border-indigo-400 focus:bg-white">
+              <input data-day-search value="${esc(state.daySearch)}" placeholder="搜索老师 / 学员 / 小班" class="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-7 pr-2 text-[12px] font-medium text-slate-800 outline-none focus:border-indigo-400 focus:bg-white">
             </div>
             ${state.daySearch ? `<button data-action="day-clear-search" class="h-9 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-800">清空</button>` : ''}
           </div>
@@ -2099,7 +2284,7 @@
       }
       if (!cols.length) {
         return `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-4 py-6 text-center">
-          <p class="text-[14px] font-bold text-slate-900">未找到匹配的老师或学员</p>
+          <p class="text-[14px] font-bold text-slate-900">未找到匹配的老师、学员或小班</p>
           <button data-action="day-clear-search" class="mt-2 h-9 rounded-lg border border-slate-300 bg-white px-3 text-[12px] font-semibold text-slate-800">一键清空</button>
         </div>`;
       }
@@ -2134,6 +2319,7 @@
       return `<div class="w-[92px] shrink-0 border-r border-slate-200 last:border-r-0">
         <div class="flex h-14 flex-col justify-center border-b border-slate-200 bg-slate-50 px-1">
           <div class="flex items-center gap-1">
+            ${col.isClass ? '<span class="shrink-0 rounded bg-teal-600 px-1 text-[12px] font-bold leading-none text-white">[G]</span>' : ''}
             <span class="truncate text-[12px] font-bold text-slate-900">${esc(col.title)}</span>
             ${col.count ? `<span class="shrink-0 rounded-full bg-rose-50 px-1 text-[12px] font-bold leading-none text-rose-700">🔴 ${col.count}</span>` : ''}
           </div>
@@ -2146,12 +2332,54 @@
       </div>`;
     }
 
+    function dayGroupContinuation(dayKey, col, time) {
+      const prev = prevTime(time);
+      if (!prev) return false;
+      const prevItem = col.mode === 'teacher'
+        ? dayTeacherItem(dayKey, col.key, prev)
+        : col.mode === 'class'
+          ? dayClassItem(dayKey, col.key, prev)
+          : null;
+      return !!prevItem && prevItem.type === 'group' && (prevItem.dur || 2) > 1;
+    }
+
+    function renderDayGroupCell(dayKey, col, time, item) {
+      const cls = CLASSES[item.classId] || CLASSES.ket1;
+      const past = dayKey === 0 && toMin(time) + 30 <= DAY_NOW_MIN;
+      const nowSlot = dayKey === 0 && dayNowInSlot(time);
+      const subbed = !!item.sub;
+      const pending = !!item.pendingSub && !subbed;
+      const near = !!item.nearChange || dayItemNear3h(dayKey, item.time);
+      let card = 'border-2 border-teal-400 bg-teal-50 text-teal-950';
+      let inner = `<span class="shrink-0 rounded-sm bg-teal-600 px-1 text-[12px] font-bold leading-none text-white">[G]</span>
+        <span class="max-w-full truncate text-[12px] font-bold leading-none">${esc(cls.code)} · ${cls.enrolled}/${cls.capacity}人</span>`;
+      if (pending) {
+        card = 'border-rose-300 bg-rose-50 text-rose-800';
+        inner = '<span class="text-[12px] font-bold leading-none">🔴 待代</span><span class="max-w-full truncate text-[12px] font-semibold leading-none">[G] ' + esc(cls.code) + '</span>';
+      } else if (subbed) {
+        card = 'border-purple-300 bg-purple-50 text-purple-900';
+        inner = `<span class="text-[12px] font-bold leading-none">🟣 代课</span><span class="max-w-full truncate text-[12px] font-semibold leading-none">[G] ${esc(cls.code)}</span>`;
+      }
+      const attrs = `data-action="day-cell" data-day="${dayKey}" data-mode="${col.mode}" data-key="${esc(col.key)}" data-time="${item.time}" data-group="1"`;
+      return `<div class="relative h-14 w-full border-b border-slate-100 p-px ${past ? 'opacity-60' : ''}">
+        <button ${attrs} class="relative flex h-full w-full min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-md border px-0.5 leading-none transition active:scale-95 ${card}" aria-label="${esc(`${cls.name} ${item.time} 小班课`)}">
+          ${inner}
+          ${near ? '<span class="pointer-events-none absolute right-0.5 top-0.5 text-[12px] leading-none">⚡</span>' : ''}
+          ${nowSlot ? '<span class="pointer-events-none absolute inset-x-0 top-3/4 border-t-2 border-rose-500"></span>' : ''}
+        </button>
+      </div>`;
+    }
+
     function renderDayColumnCell(dayKey, col, time) {
+      if (dayGroupContinuation(dayKey, col, time)) return '';
       const past = dayKey === 0 && toMin(time) + 30 <= DAY_NOW_MIN;
       const nowSlot = dayKey === 0 && dayNowInSlot(time);
       const item = col.mode === 'teacher'
         ? dayTeacherItem(dayKey, col.key, time)
-        : dayStudentItem(dayKey, col.key, time);
+        : col.mode === 'class'
+          ? dayClassItem(dayKey, col.key, time)
+          : dayStudentItem(dayKey, col.key, time);
+      if (item && item.type === 'group') return renderDayGroupCell(dayKey, col, time, item);
       const free = col.mode === 'teacher' && !item && dayFreeAt(dayKey, col.key, time);
       let cls = 'border-transparent bg-white';
       let inner = '';
@@ -2190,20 +2418,27 @@
     }
 
     function dayAlertLine(item) {
+      if (item.type === 'group') {
+        const cls = CLASSES[item.classId] || CLASSES.ket1;
+        if (item.sub) return `🟣 已指派 ${teacherShort(item.sub)} 代课 · [G] ${cls.code}`;
+        if (item.pendingSub) return item.note ? `🔴 ${item.note}` : `🔴 [G] ${cls.code} 待代 · 尚未指派代课`;
+        if (item.nearChange) return `⚡ [G] ${cls.code} 距开课不足 3 小时的临期变动`;
+        return `[G] ${cls.name} · ${cls.enrolled}/${cls.capacity} 人`;
+      }
       if (item.sub) return `✅ 已指派 ${teacherShort(item.sub)} 代课`;
       if (item.type === 'pendingSub') return item.note ? `🔴 ${item.note}` : '🔴 待代 · 尚未指派代课';
       if (item.type === 'nearChange') return `⚡ ${item.note || '距开课不足 3 小时的临期变动'}`;
       return `${TYPE_NAME[item.type] || '课次'} · ${STUDENTS[item.student].nick} · ${TEACHERS[item.teacher].short}`;
     }
 
-    function renderDayCandidates(cell, candidates) {
+    function renderDayCandidates(cell, candidates, isGroup) {
       if (!candidates.length) {
         return '<div class="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-amber-900">该时段暂无全部空闲的可接手老师</div>';
       }
       return `<div class="mt-2 rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
         <div class="flex items-center justify-between gap-2">
           <span class="text-[12px] font-semibold text-slate-600">推荐空闲代课老师</span>
-          <span class="shrink-0 text-[12px] font-medium text-slate-600">熟客 → 同/相近价位 → 负荷</span>
+          <span class="shrink-0 text-[12px] font-medium text-slate-600">${isGroup ? '连续双格空闲 · ' : ''}熟客 → 同/相近价位 → 负荷</span>
         </div>
         <div class="mt-1.5 space-y-1.5">
           ${candidates.map((candidate) => `<button data-action="day-assign" data-key="${candidate.key}" class="flex min-h-12 w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-left transition hover:bg-slate-50">
@@ -2212,7 +2447,7 @@
               <span class="flex items-center gap-1">
                 <span class="truncate text-[14px] font-bold text-slate-900">${esc(TEACHERS[candidate.key].name)}</span>
                 <span class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[12px] font-semibold text-slate-700">${TEACHERS[candidate.key].tierLabel}</span>
-                ${candidate.taught ? '<span class="shrink-0 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 text-[12px] font-bold text-emerald-700">教过该学员</span>' : ''}
+                ${candidate.taught ? `<span class="shrink-0 rounded border border-emerald-200 bg-emerald-50 px-1 py-0.5 text-[12px] font-bold text-emerald-700">${isGroup ? '教过本班' : '教过该学员'}</span>` : ''}
               </span>
               <span class="block truncate text-[12px] font-medium text-slate-600">${esc(candidate.tierText)} · 本周已排 ${candidate.load} 节 · 空闲 ${candidate.free} 节</span>
             </span>
@@ -2222,47 +2457,101 @@
       </div>`;
     }
 
+    function renderDayGroupActions(cell, item, ctx) {
+      const links = `<a href="m1c_classes.html" class="flex h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-lg border border-teal-200 bg-teal-50 px-1 text-[14px] font-semibold text-teal-800">小班详情</a>
+        <a href="m3a_calendar_grid.html?role=monitor&teacher=${esc(item.teacher)}" class="flex h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">小班课表</a>`;
+      if (ctx.readonly) return `<div class="mt-2 grid grid-cols-2 gap-1.5">${links}</div>`;
+      return `<div class="mt-2 grid grid-cols-2 gap-1.5">
+        ${item.pendingSub && !item.sub
+          ? ''
+          : `<button data-action="day-proxy-teacher-leave" class="flex h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">代老师请假</button>`}
+        ${item.sub
+          ? `<button data-action="day-revoke-sub" class="flex h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-lg border border-rose-200 bg-rose-50 px-1 text-[14px] font-semibold text-rose-800">撤销代课</button>`
+          : `<button data-action="day-group-pause" class="flex h-10 min-w-0 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">暂停待排</button>`}
+        ${links}
+      </div>`;
+    }
+
+    function renderDay1v1Actions(cell, item, ctx) {
+      const weekLink = cell.mode === 'teacher'
+        ? `<button data-action="day-week" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">老师课表</button>`
+        : `<button data-action="day-week" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">学员课表</button>`;
+      if (ctx.readonly) {
+        return `<div class="mt-2 flex gap-1.5">${weekLink}</div>`;
+      }
+      if (cell.mode === 'teacher') {
+        return `<div class="mt-2 flex gap-1.5">
+          ${item.type === 'pendingSub' ? '' : `<button data-action="day-proxy-teacher-leave" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">代老师请假</button>`}
+          <button data-action="day-proxy-leave" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">代学员请假</button>
+          ${weekLink}
+        </div>`;
+      }
+      return `<div class="mt-2 flex gap-1.5">
+        <button data-action="day-proxy-leave" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">代 ${esc(ctx.student.nick)} 请假</button>
+        ${weekLink}
+      </div>`;
+    }
+
     function renderDaySheet() {
       const cell = state.dayCell;
       if (!cell) return '';
       const item = cell.mode === 'teacher'
         ? dayTeacherItem(cell.dayKey, cell.key, cell.time)
-        : dayStudentItem(cell.dayKey, cell.key, cell.time);
+        : cell.mode === 'class'
+          ? dayClassItem(cell.dayKey, cell.key, cell.time)
+          : dayStudentItem(cell.dayKey, cell.key, cell.time);
       const when = `${dayWeekday(cell.dayKey)} ${fmtSlash(dayDate(cell.dayKey))} ${cell.time} - ${endTime(cell.time)}`;
       if (!item) return `${sheetHeader('时段详情', when)}<p class="text-[14px] font-medium text-slate-700">该时段暂无排课。</p>`;
-      const pending = item.type === 'pendingSub' && !item.sub;
-      const near = item.type === 'nearChange';
-      const student = STUDENTS[item.student] || STUDENTS.alice;
+      const isGroup = item.type === 'group';
+      const pending = isGroup ? (!!item.pendingSub && !item.sub) : (item.type === 'pendingSub' && !item.sub);
+      const near = isGroup
+        ? (!!item.nearChange || dayItemNear3h(cell.dayKey, item.time))
+        : item.type === 'nearChange';
+      const cls = isGroup ? (CLASSES[item.classId] || CLASSES.ket1) : null;
+      const student = isGroup ? STUDENTS.alice : (STUDENTS[item.student] || STUDENTS.alice);
       const teacher = TEACHERS[item.teacher] || TEACHERS.david;
-      const candidates = pending ? dayCandidates(cell.dayKey, item.teacher, cell.time) : [];
-      return `${sheetHeader(pending ? '待指派代课' : (near ? '临期变动' : '课次详情'), when)}
-        <div class="rounded-xl border px-3 py-2 ${pending ? 'border-rose-200 bg-rose-50' : near ? 'border-purple-200 bg-purple-50' : 'border-slate-300 bg-slate-50/70'}">
-          <p class="text-[14px] font-bold leading-snug ${pending ? 'text-rose-800' : near ? 'text-purple-900' : 'text-slate-900'}">${esc(dayAlertLine(item))}</p>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed ${pending ? 'text-rose-700' : near ? 'text-purple-800' : 'text-slate-600'}">${esc(student.nick)} · 任课 ${esc(teacher.short)} · ${cell.mode === 'teacher' ? '按老师视角' : '按学员视角'}</p>
+      const cross = state.role === 'monitor' && !isOwnTeacher(item.teacher);
+      const rescue = cross && (dayItemNear3h(cell.dayKey, item.time) || pending);
+      const readonly = cross && !rescue;
+      const candidates = pending && !readonly
+        ? dayCandidates(cell.dayKey, item.teacher, cell.time, isGroup ? { dur: item.dur || 2, isGroup: true, classId: item.classId } : {})
+        : [];
+      const contextLine = isGroup
+        ? `[G] ${esc(cls.name)} · 授课 ${esc(teacher.short)} · ${cell.mode === 'class' ? '按小班视角' : '按老师视角'}`
+        : `${esc(student.nick)} · 任课 ${esc(teacher.short)} · ${cell.mode === 'teacher' ? '按老师视角' : '按学员视角'}`;
+      const banner = cross ? (rescue ? crossOwnerBanner('rescue', item) : crossOwnerBanner('readonly', item)) : '';
+      const compare = pending && !readonly && cell.mode === 'teacher'
+        ? `<button data-action="day-compare" class="mt-2 flex h-10 w-full items-center justify-center gap-1 rounded-xl border text-[14px] font-semibold transition ${state.dayCompare ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-300 bg-white text-slate-800'}">🔍 同屏对照空闲老师${state.dayCompare ? ' · 已开启' : ''}</button>`
+        : '';
+      const actions = isGroup
+        ? renderDayGroupActions(cell, item, { pending, near, readonly, rescue, cls, teacher })
+        : renderDay1v1Actions(cell, item, { pending, near, readonly, rescue, teacher, student });
+      return `<div data-role="${isGroup ? 'day-group' : 'day-1v1'}${readonly ? ' day-cross-readonly' : ''}${rescue ? ' day-cross-rescue' : ''}">
+        ${sheetHeader(pending ? '待指派代课' : (isGroup ? '小班课详情' : (near ? '临期变动' : '课次详情')), when)}
+        ${banner}
+        <div class="rounded-xl border px-3 py-2 ${pending ? 'border-rose-200 bg-rose-50' : near ? 'border-purple-200 bg-purple-50' : isGroup ? 'border-teal-200 bg-teal-50' : 'border-slate-300 bg-slate-50/70'}">
+          <p class="text-[14px] font-bold leading-snug ${pending ? 'text-rose-800' : near ? 'text-purple-900' : isGroup ? 'text-teal-900' : 'text-slate-900'}">${esc(dayAlertLine(item))}</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed ${pending ? 'text-rose-700' : near ? 'text-purple-800' : isGroup ? 'text-teal-800' : 'text-slate-600'}">${contextLine}</p>
         </div>
-        ${pending ? renderDayCandidates(cell, candidates) : ''}
-        ${pending ? `<button data-action="day-compare" class="mt-2 flex h-10 w-full items-center justify-center gap-1 rounded-xl border text-[14px] font-semibold transition ${state.dayCompare ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-300 bg-white text-slate-800'}">🔍 同屏对照空闲老师${state.dayCompare ? ' · 已开启' : ''}</button>` : ''}
-        <div class="mt-2 flex gap-1.5">
-          ${cell.mode === 'teacher' ? `
-            ${item.type === 'pendingSub' ? '' : `<button data-action="day-proxy-teacher-leave" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">代老师请假</button>`}
-            <button data-action="day-proxy-leave" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">代学员请假</button>
-            <button data-action="day-week" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">老师课表</button>
-          ` : `
-            <button data-action="day-proxy-leave" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">代 ${esc(student.nick)} 请假</button>
-            <button data-action="day-week" class="flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg border border-slate-300 bg-white px-1 text-[14px] font-semibold text-slate-800">学员课表</button>
-          `}
-        </div>`;
+        ${pending ? renderDayCandidates(cell, candidates, isGroup) : ''}
+        ${compare}
+        ${actions}
+      </div>`;
     }
 
     function handleDayCell(dayKey, mode, key, time) {
-      const item = mode === 'teacher' ? dayTeacherItem(dayKey, key, time) : dayStudentItem(dayKey, key, time);
+      const item = mode === 'teacher'
+        ? dayTeacherItem(dayKey, key, time)
+        : mode === 'class'
+          ? dayClassItem(dayKey, key, time)
+          : dayStudentItem(dayKey, key, time);
       if (!item) {
         showToast('该时段暂无排课');
         return;
       }
       state.dayCell = { dayKey: Number(dayKey), mode, key, time, teacher: item.teacher };
       state.dayCompare = false;
-      if (item.type === 'pendingSub' && !item.sub && mode === 'teacher') {
+      if (!item.sub && (item.type === 'pendingSub' || (item.type === 'group' && item.pendingSub))) {
         state.dayIncident = { key: item.teacher, time };
       }
       state.drawer = 'day';
@@ -2274,17 +2563,20 @@
       if (!cell) return;
       const item = cell.mode === 'teacher'
         ? dayTeacherItem(cell.dayKey, cell.key, cell.time)
-        : dayStudentItem(cell.dayKey, cell.key, cell.time);
+        : cell.mode === 'class'
+          ? dayClassItem(cell.dayKey, cell.key, cell.time)
+          : dayStudentItem(cell.dayKey, cell.key, cell.time);
       if (!item) return;
-      dayOverrides[`${cell.dayKey}|${item.teacher}|${cell.time}`] = {
-        type: 'pendingSub',
-        sub: teacherKey
-      };
+      dayOverrides[`${cell.dayKey}|${item.teacher}|${cell.time}`] = item.type === 'group'
+        ? Object.assign({}, item, { pendingSub: true, sub: teacherKey })
+        : { type: 'pendingSub', sub: teacherKey };
       state.drawer = null;
       state.dayCell = null;
       state.dayCompare = false;
       render(true);
-      showToast(`${TEACHERS[teacherKey].name} 已指派为 ${STUDENTS[item.student].nick} 代课`);
+      showToast(item.type === 'group'
+        ? `${TEACHERS[teacherKey].name} 已指派为 ${(CLASSES[item.classId] || CLASSES.ket1).code} 代课`
+        : `${TEACHERS[teacherKey].name} 已指派为 ${STUDENTS[item.student].nick} 代课`);
     }
 
     function proxyDayLeave() {
@@ -2292,8 +2584,14 @@
       if (!cell) return;
       const item = cell.mode === 'teacher'
         ? dayTeacherItem(cell.dayKey, cell.key, cell.time)
-        : dayStudentItem(cell.dayKey, cell.key, cell.time);
+        : cell.mode === 'class'
+          ? dayClassItem(cell.dayKey, cell.key, cell.time)
+          : dayStudentItem(cell.dayKey, cell.key, cell.time);
       if (!item) return;
+      if (item.type === 'group') {
+        showToast('小班课不适用代学员请假，请使用暂停待排');
+        return;
+      }
       const student = STUDENTS[item.student] || STUDENTS.alice;
       dayOverrides[`${cell.dayKey}|${item.teacher}|${cell.time}`] = {
         type: 'nearChange',
@@ -2313,13 +2611,13 @@
       if (!cell) return;
       const item = cell.mode === 'teacher'
         ? dayTeacherItem(cell.dayKey, cell.key, cell.time)
-        : dayStudentItem(cell.dayKey, cell.key, cell.time);
+        : cell.mode === 'class'
+          ? dayClassItem(cell.dayKey, cell.key, cell.time)
+          : dayStudentItem(cell.dayKey, cell.key, cell.time);
       if (!item) return;
-      dayOverrides[`${cell.dayKey}|${item.teacher}|${cell.time}`] = {
-        type: 'pendingSub',
-        sub: null,
-        note: '老师请假 · 待指派代课'
-      };
+      dayOverrides[`${cell.dayKey}|${item.teacher}|${cell.time}`] = item.type === 'group'
+        ? Object.assign({}, item, { pendingSub: true, sub: null, note: '老师请假 · 待指派代课' })
+        : { type: 'pendingSub', sub: null, note: '老师请假 · 待指派代课' };
       state.drawer = null;
       state.dayCell = null;
       state.dayCompare = false;
@@ -2327,14 +2625,53 @@
       showToast('已代老师请假 · 课格转为待代课');
     }
 
+    function pauseDayGroup() {
+      const cell = state.dayCell;
+      if (!cell || !cell.teacher) return;
+      const item = dayClassItem(cell.dayKey, cell.key, cell.time) || dayTeacherItem(cell.dayKey, cell.key, cell.time);
+      if (!item || item.type !== 'group') return;
+      dayOverrides[`${cell.dayKey}|${item.teacher}|${cell.time}`] = Object.assign({}, item, {
+        pendingSub: true,
+        sub: null,
+        note: '小班暂停待排 · 不扣学员课次'
+      });
+      state.drawer = null;
+      state.dayCell = null;
+      state.dayCompare = false;
+      render(true);
+      showToast('小班已暂停待排，课次退回小班待排池');
+    }
+
+    function revokeDaySub() {
+      const cell = state.dayCell;
+      if (!cell) return;
+      const item = cell.mode === 'class'
+        ? dayClassItem(cell.dayKey, cell.key, cell.time)
+        : cell.mode === 'teacher'
+          ? dayTeacherItem(cell.dayKey, cell.key, cell.time)
+          : dayStudentItem(cell.dayKey, cell.key, cell.time);
+      if (!item) return;
+      dayOverrides[`${cell.dayKey}|${item.teacher}|${cell.time}`] = Object.assign({}, item, {
+        sub: null,
+        pendingSub: false
+      });
+      state.drawer = null;
+      state.dayCell = null;
+      state.dayCompare = false;
+      render(true);
+      showToast('已撤销代课指派，恢复原任老师排期');
+    }
+
     function openDayWeekView() {
       const cell = state.dayCell;
       if (!cell) return;
       const item = cell.mode === 'teacher'
         ? dayTeacherItem(cell.dayKey, cell.key, cell.time)
-        : dayStudentItem(cell.dayKey, cell.key, cell.time);
+        : cell.mode === 'class'
+          ? dayClassItem(cell.dayKey, cell.key, cell.time)
+          : dayStudentItem(cell.dayKey, cell.key, cell.time);
       if (!item && cell.mode === 'teacher') return;
-      if (cell.mode === 'teacher') {
+      if (cell.mode === 'teacher' || cell.mode === 'class') {
         state.teacher = item.teacher;
         state.weekStudent = null;
       } else {
@@ -2355,10 +2692,11 @@
      * ------------------------------------------------------------------ */
     function navItems() {
       if (state.role === 'parent') {
+        const fromHall = !!state.fromHall;
         return [
           { icon: 'home', label: '首页', href: 'm0_workspace_home.html?role=user' },
-          { icon: 'calendar-days', label: '自家课表', active: true },
-          { icon: 'plus-circle', label: '约课大厅', href: 'm1c_classes.html' },
+          { icon: 'calendar-days', label: '自家课表', active: !fromHall, href: fromHall ? 'm0_workspace_home.html?role=user&tab=schedule' : '' },
+          { icon: 'plus-circle', label: '约课大厅', active: fromHall, href: fromHall ? '' : 'm1b_teacher_parent.html?role=parent' },
           { icon: 'user', label: '我的', href: 'm0_workspace_home.html?role=user&view=me' }
         ];
       }
@@ -2569,6 +2907,7 @@
       if (state.panel === 'leave') return renderLeavePanel();
       const lesson = state.lesson;
       if (!lesson) return '';
+      if (state.role === 'parent' && !state.weekStudent && lesson.kind === 'group') return '';
       const pair = pairFor(lesson);
       const isGroup = lesson.kind === 'group';
       return `${sheetHeader(isGroup ? '小班课详情' : '课次详情', slotLabel(lesson.day, lesson.time, isGroup ? 2 : 1))}
@@ -2834,6 +3173,15 @@
         if (!tier) return { ok: false, reason: '暂无可用待排课次，请联系班长购课' };
         const tierAvail = studentTempTierCredits(studentKey, tier);
         if (tierAvail < count) return { ok: false, reason: '该价位待排课次不足' };
+        if (isHallParent()) {
+          if (Number(tier) !== teacherTier(state.teacher)) return { ok: false, reason: '仅可按该老师当前价位预约' };
+          for (let index = 0; index < times.length; index += 1) {
+            const time = times[index];
+            if (!teacherOpen(state.teacher, slot.day, time)) return { ok: false, reason: `${time} 该老师不可约` };
+            if (!teacherFreeAt(state.teacher, slot.day, time)) return { ok: false, reason: `${time} 该老师已有课` };
+          }
+          return { ok: true, reason: '' };
+        }
         const hasTeacher = freeTeachersFor(slot.day, slot.time, count, tier).some((item) => item.available);
         if (!hasTeacher) return { ok: false, reason: `无连续 ${count} 节空闲老师` };
         return { ok: true, reason: '' };
@@ -2963,18 +3311,24 @@
       const slot = bookingSlot();
       if (!slot) return '';
       const staff = isStaff();
+      const hallLocked = isHallParent();
       const canProxy = state.role === 'monitor' || state.role === 'admin';
       const count = Math.max(1, Math.min(4, Math.round((state.bookDuration || 30) / 30)));
       const windowOk = staff || inParentBookWindow(slot.day);
       const tierOptions = staff ? [] : parentTierOptions(state.child);
+      if (!staff && hallLocked) {
+        const targetTier = state.teacher ? teacherTier(state.teacher) : null;
+        if (targetTier && studentTempTierCredits(state.child, targetTier) > 0) state.bookTier = targetTier;
+      }
       const bookTier = staff ? null : normalizeBookTier(state.child);
       const freeTeachers = staff ? [] : freeTeachersFor(slot.day, slot.time, count, bookTier);
       const availableTeachers = windowOk ? freeTeachers.filter((item) => item.available) : [];
-      let teacherKey = staff ? state.teacher : (windowOk ? state.bookTeacher : '');
-      if (!staff && windowOk && !availableTeachers.some((item) => item.key === teacherKey)) {
+      let teacherKey = staff ? state.teacher : (hallLocked ? state.teacher : (windowOk ? state.bookTeacher : ''));
+      if (!staff && !hallLocked && windowOk && !availableTeachers.some((item) => item.key === teacherKey)) {
         teacherKey = availableTeachers.length ? availableTeachers[0].key : '';
       }
-      if (!staff && state.bookTeacher !== teacherKey) state.bookTeacher = teacherKey;
+      if (!hallLocked && !staff && state.bookTeacher !== teacherKey) state.bookTeacher = teacherKey;
+      if (hallLocked) state.bookTeacher = state.teacher;
       const teacher = teacherKey ? TEACHERS[teacherKey] : null;
       const pickedStudent = canProxy ? STUDENTS[state.staffStudent] : STUDENTS[state.child];
       const availCredits = pickedStudent ? studentCredits(pickedStudent.key) : 0;
@@ -3024,7 +3378,21 @@
           </div>
           <div class="grid grid-cols-4 gap-1.5">${durOptions}</div>
         </div>
-        ${staff ? '' : `<div class="mt-2.5">${renderParentTeacherPick(freeTeachers, teacherKey, count, windowOk)}</div>`}
+        ${staff ? '' : hallLocked
+          ? `<div class="mt-2.5 rounded-xl border border-indigo-200 bg-indigo-50 p-3" data-role="hall-teacher-locked">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[12px] font-semibold text-indigo-900">② 本次预约老师（已锁定）</span>
+                <span class="shrink-0 rounded bg-white px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">不可切换</span>
+              </div>
+              <div class="mt-1.5 flex items-center gap-2">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[12px] font-bold text-indigo-700">${teacher ? teacher.initial : '—'}</span>
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-[14px] font-bold text-indigo-900">${esc(teacher ? teacher.name : '未匹配老师')}</span>
+                  <span class="block truncate text-[12px] font-medium text-indigo-700">${esc(teacher ? teacher.tierLabel : '')} · 本次仅可预约该老师</span>
+                </span>
+              </div>
+            </div>`
+          : `<div class="mt-2.5">${renderParentTeacherPick(freeTeachers, teacherKey, count, windowOk)}</div>`}
         ${!windowOk ? `<p class="mt-2.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-amber-900">仅支持预约未来 1~7 天，今天与 7 天外时段不可约。</p>` : ''}
         ${state.role === 'parent' && windowOk && !tierOptions.length ? `<div class="mt-2 flex items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-2">
           <span class="text-[12px] font-medium text-amber-900">暂无可用待排课次，请联系班长购课</span>
@@ -3038,12 +3406,12 @@
           ${syncActive ? `<div class="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[12px] text-amber-950">
             <div class="flex items-center justify-between gap-2">
               <span class="font-bold text-amber-900">应收总额（不可改价）</span>
-              <span class="text-[14px] font-extrabold text-amber-900">${totalSyncPoints} 积分（等值 ¥${totalSyncPoints}）</span>
+              <span class="text-[14px] font-extrabold text-amber-900">${totalSyncPoints} 积分</span>
             </div>
-            <p class="mt-1 text-[12px] font-medium text-amber-900">本次代约 ${count} 节 × ${teacherPriceTier} 积分/节 = 应收总计 ${totalSyncPoints} 积分（等值 ¥${totalSyncPoints}）</p>
+            <p class="mt-1 text-[12px] font-medium text-amber-900">本次代约 ${count} 节 × ${teacherPriceTier} 积分/节 = 应收总计 ${totalSyncPoints} 积分</p>
             <label class="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-amber-300 bg-white/90 p-2 text-[12px] font-semibold text-amber-950">
               <input type="checkbox" data-action="toggle-proxy-payment" ${state.proxyPaymentConfirmed ? 'checked' : ''} class="mt-0.5 h-4 w-4 shrink-0 rounded border-amber-400 text-indigo-600">
-              <span>我已确认线下收到家长本次课次费用 ¥${totalSyncPoints}（提交后将直接生成已付款购课单并锁定为本人托管，结课后计入周转账单）</span>
+              <span>我已确认线下收到家长本次课次费用 ${totalSyncPoints} 积分（提交后将直接生成已付款购课单并锁定为本人托管，结课后计入周转账单）</span>
             </label>
             <div class="mt-2 flex items-center justify-between gap-2">
               <button type="button" data-action="upload-proxy-proof" class="inline-flex h-8 items-center gap-1 rounded-lg border border-amber-300 bg-white px-2.5 text-[12px] font-bold text-amber-900 hover:bg-amber-100/50">${icon('upload', 'h-3.5 w-3.5')}上传收款凭证 (${state.proxyProofCount}/5 · 可选)</button>
@@ -3210,8 +3578,82 @@
       </div>`;
     }
 
+    function crossOwnerBanner(kind, lesson) {
+      const owner = lessonOwnerName(lesson);
+      if (kind === 'readonly') {
+        return `<div data-role="cross-readonly-banner" class="mb-2.5 rounded-xl border border-slate-300 bg-slate-100 px-3 py-2">
+          <p class="text-[14px] font-bold text-slate-800">跨组只读 · 负责班长: ${esc(owner)}</p>
+          <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">距开课 ≥3 小时，非本人负责课次仅可查看，写操作已锁定。</p>
+        </div>`;
+      }
+      return `<div data-role="cross-rescue-banner" class="mb-2.5 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2">
+        <p class="text-[14px] font-bold text-rose-900">跨组紧急驰援 · 原负责班长/主理人: ${esc(owner)}</p>
+        <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-rose-800">距开课 &lt;3 小时，仅解锁当节急救处置；不改变资金持有人与老师归属，并知会原负责班长。</p>
+      </div>`;
+    }
+
+    function renderCrossReadonlySheet() {
+      const lesson = state.lesson;
+      if (!lesson) return '';
+      const isGroup = lesson.kind === 'group';
+      return `<div data-role="cross-readonly">
+        ${sheetHeader('跨组只读 · 课次详情', slotLabel(lesson.day, lesson.time, isGroup ? 2 : 1))}
+        ${crossOwnerBanner('readonly', lesson)}
+        ${renderLessonInfo(lesson)}
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          <a href="m3a_calendar_grid.html?role=monitor&teacher=${esc(lesson.teacher)}" class="flex h-10 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-800">老师课表</a>
+          ${isGroup
+            ? `<a href="m1c_classes.html" class="flex h-10 items-center justify-center gap-1 rounded-lg border border-teal-200 bg-teal-50 text-[12px] font-bold text-teal-800">小班详情</a>`
+            : `<a href="m1a_student_profile.html" class="flex h-10 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-800">学员档案</a>`}
+        </div>
+        <p class="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[12px] font-medium leading-relaxed text-slate-600">请假、挪位、代课、考勤、更换学员、加开时段等写操作已按跨组只读锁定。</p>
+      </div>`;
+    }
+
+    function renderCrossRescueSheet() {
+      const lesson = state.lesson;
+      if (!lesson) return '';
+      const isGroup = lesson.kind === 'group';
+      return `<div data-role="cross-rescue">
+        ${sheetHeader('跨组紧急驰援', slotLabel(lesson.day, lesson.time, isGroup ? 2 : 1))}
+        ${crossOwnerBanner('rescue', lesson)}
+        ${renderLessonInfo(lesson)}
+        <div class="mt-1.5 rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-2">
+          <p class="text-[12px] font-bold text-rose-900">急救通道 · 仅作用于当节（不足 3 小时）</p>
+          <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-rose-800">严禁连带修改跨过 3 小时的后续节次；提交前将弹出温和确认。</p>
+        </div>
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          ${coordTile('start-sub', 'user-check', '指派 / 撤销代课', '当节急救代课')}
+          ${isGroup
+            ? coordTile('start-sub', 'calendar-x', '暂停待排', '小班路线 B · 不扣学员课次')
+            : coordTile('coord-leave', 'calendar-x', '&lt;3h 退回待排期', 'TS 退回待排池')}
+          ${coordTile('coord-reschedule', 'move-right', '&lt;3h 同师挪位', '仅当节同师平移')}
+          ${coordTile('start-attendance', 'clipboard-check', '急救考勤', '旷课 / 迟到 / 早退')}
+        </div>
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          ${coordTile('coord-teacher-leave', 'calendar-clock', '代老师请假', '跨组救援不开放', true)}
+          ${isGroup
+            ? coordTile('start-class-dissolve', 'users', '小班解散', '跨组救援不开放', true)
+            : coordTile('start-change-student', 'arrow-left-right', '换上课学员', '跨组救援不开放', true)}
+          ${coordTile('confirm-open-slot', 'sun', '加开时段', '跨组救援不开放', true)}
+        </div>
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          <a href="m3a_calendar_grid.html?role=monitor&teacher=${esc(lesson.teacher)}" class="flex h-10 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-800">老师课表</a>
+          ${isGroup
+            ? `<a href="m1c_classes.html" class="flex h-10 items-center justify-center gap-1 rounded-lg border border-teal-200 bg-teal-50 text-[12px] font-bold text-teal-800">小班详情</a>`
+            : `<a href="m1a_student_profile.html" class="flex h-10 items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-800">学员档案</a>`}
+        </div>
+      </div>`;
+    }
+
     function renderStaffLessonSheet() {
       if (state.role !== 'teacher') {
+        if (state.lesson && isCrossReadonlyLesson(state.lesson)) return renderCrossReadonlySheet();
+        if (state.lesson && isCrossRescueLesson(state.lesson)) {
+          if (state.panel === 'sub') return `<div data-role="cross-rescue">${crossOwnerBanner('rescue', state.lesson)}${renderCoordSubPanel()}</div>`;
+          if (state.panel === 'attendance') return `<div data-role="cross-rescue">${crossOwnerBanner('rescue', state.lesson)}${renderCoordAttendancePanel()}</div>`;
+          return renderCrossRescueSheet();
+        }
         if (state.panel === 'leave-move') return renderCoordLeaveMovePanel();
         if (state.panel === 'sub') return renderCoordSubPanel();
         if (state.panel === 'attendance') return renderCoordAttendancePanel();
@@ -3266,6 +3708,7 @@
     function coordScope() {
       const lesson = state.lesson;
       if (!lesson) return [];
+      if (isCrossGroupLesson(lesson)) return [lesson];
       const pair = pairFor(lesson);
       if (!pair || state.pairLink === false) return [lesson];
       return pair.slice().sort((a, b) => toMin(a.time) - toMin(b.time));
@@ -3295,13 +3738,15 @@
       const other = pair ? pair.find((item) => item.time !== lesson.time) : null;
       const settled = state.lessonSettled;
       const isSub = lesson.kind === 'sub' || !!lesson.actual;
+      const teacherPending = !!lesson.pendingSub;
       const cls = isGroup ? (CLASSES[lesson.classId] || CLASSES.ket1) : null;
       const student = STUDENTS[lesson.student] || STUDENTS.alice;
       return `${sheetHeader('课次动作', coordScopeLabel(scope))}
         <section aria-label="课次与对象摘要" class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
           <div class="flex items-center justify-between gap-2">
             <span class="flex min-w-0 items-center gap-1.5">
-              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${TYPE_NAME[lesson.kind] || '课次'}</span>
+              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${teacherPending ? TYPE_NAME.pending : (TYPE_NAME[lesson.kind] || '课次')}</span>
+              ${teacherPending ? '<span class="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[12px] font-bold text-rose-800">老师已请假 · 待重排</span>' : ''}
               ${isGroup ? '<span class="rounded bg-teal-50 px-1.5 py-0.5 text-[12px] font-bold text-teal-800">[G]</span>' : ''}
             </span>
             <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${settled ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-slate-200 bg-white text-slate-700'}">${settled ? '已结课 · 未归集' : '未结课'}</span>
@@ -3320,6 +3765,7 @@
                 <div class="mt-0.5 flex items-center justify-between gap-2 text-[12px]"><span class="font-medium text-slate-600">实际代课</span><span class="font-bold text-slate-900">${esc(teacherName(lesson.actual || 'elena'))}</span></div>
               </div>`
             : `<div class="mt-1 text-[12px] font-medium text-slate-600">任课老师 <span class="font-semibold text-slate-800">${esc(teacherName(lesson.teacher))}</span></div>`}
+          ${teacherPending ? '<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-[12px] font-semibold leading-relaxed text-rose-700">原任老师已请假 · 待重排，请通过【指派代课】继续处理。</div>' : ''}
           ${isGroup
             ? `<div class="mt-2 flex items-center justify-between gap-2 rounded-lg bg-white px-2 py-1.5">
                 <span class="min-w-0 truncate text-[12px] font-medium text-slate-600">在读学员 <span class="font-bold text-slate-900">${cls.enrolled}/${cls.capacity}</span></span>
@@ -3355,7 +3801,7 @@
           <div class="mt-1.5 grid grid-cols-2 gap-2">
             ${coordTile('start-leave-move', 'calendar-x', '请假 / 同师挪位', scope.length > 1 ? '本次 2 节 · 释放或平移' : '释放待排 · 同师平移', settled)}
             ${coordTile('start-sub', 'user-check', isGroup ? '代课 / 暂停待排' : '指派代课', isGroup ? '连续双格代课 / 暂停待排' : `按 ${scope.length} 节筛全空闲老师`, settled)}
-            ${coordTile('start-attendance', 'clipboard-check', '考勤 / 旷课标记', '正常 · 旷课纠偏', false)}
+            ${coordTile('start-attendance', 'clipboard-check', '考勤 / 旷课标记', '正常 · 旷课 / 迟到 / 早退纠偏', false)}
             ${isGroup ? '' : coordTile('start-change-student', 'arrow-left-right', '换上课学员', '仅变更实际学员', settled)}
           </div>
           ${settled ? '<p class="mt-1.5 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-[12px] font-semibold leading-relaxed text-amber-900">已结课 · 排课类动作已置灰，仅保留考勤纠偏。</p>' : ''}
@@ -3390,6 +3836,7 @@
       const move = rescheduleEligibility(lesson);
       const gentle = state.hours < 3;
       const leaveBlocked = fixedPair || !leave.ok;
+      const teacherPending = !!lesson.pendingSub;
       const isSub = lesson.kind === 'sub' || !!lesson.actual;
       return `${sheetHeader('请假 / 同师挪位', coordScopeLabel(scope))}
         <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-3">
@@ -3410,10 +3857,18 @@
           <button data-action="coord-leave" ${leaveBlocked ? 'disabled' : ''} class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${leaveBlocked ? 'cursor-not-allowed border-slate-200 bg-slate-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${leaveBlocked ? 'bg-slate-100 text-slate-500' : 'bg-slate-100 text-slate-700'}">${icon(leaveBlocked ? 'lock' : 'calendar-x', 'h-4 w-4')}</span>
             <span class="min-w-0 flex-1">
-              <span class="block text-[14px] font-bold ${leaveBlocked ? 'text-slate-500' : 'text-slate-900'}">请假退期待排</span>
+              <span class="block text-[14px] font-bold ${leaveBlocked ? 'text-slate-500' : 'text-slate-900'}">代学员请假</span>
               <span class="mt-0.5 block text-[12px] font-medium leading-snug ${leaveBlocked ? 'text-slate-600' : 'text-slate-600'}">${fixedPair ? '固定位连选 2 节仅支持单节请假，请先取消连带开关' : `${scope.length} 节释放为绿色空闲，TS 退回待排期`}</span>
             </span>
             ${leaveBlocked ? icon('lock', 'h-4 w-4 shrink-0 text-slate-500') : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
+          </button>
+          <button data-action="coord-teacher-leave" ${teacherPending ? 'disabled' : ''} class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${teacherPending ? 'cursor-not-allowed border-slate-200 bg-slate-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${teacherPending ? 'bg-slate-100 text-slate-500' : 'bg-rose-50 text-rose-700'}">${icon(teacherPending ? 'lock' : 'calendar-clock', 'h-4 w-4')}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[14px] font-bold ${teacherPending ? 'text-slate-500' : 'text-slate-900'}">代老师请假</span>
+              <span class="mt-0.5 block text-[12px] font-medium leading-snug text-slate-600">${teacherPending ? '该课次已挂起为待代课，请直接指派代课' : '挂起为 🔴 待代，保留课次等待指派代课'}</span>
+            </span>
+            ${teacherPending ? icon('lock', 'h-4 w-4 shrink-0 text-slate-500') : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
           </button>
           <button data-action="coord-reschedule" ${move.ok ? '' : 'disabled'} class="flex min-h-12 w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition ${move.ok ? 'border-slate-200 bg-white hover:bg-slate-50' : 'cursor-not-allowed border-slate-200 bg-slate-50'}">
             <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg ${move.ok ? 'bg-slate-100 text-slate-700' : 'bg-slate-100 text-slate-500'}">${icon(move.ok ? 'move-right' : 'lock', 'h-4 w-4')}</span>
@@ -3424,7 +3879,7 @@
             ${move.ok ? icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500') : icon('lock', 'h-4 w-4 shrink-0 text-slate-500')}
           </button>
         </div>
-        ${fixedPair ? '<p class="mt-1.5 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-[12px] font-semibold leading-relaxed text-amber-900">固定位为 4 周契约，连选 2 节时仅支持单节请假；请取消连带开关后逐节操作。</p>' : ''}
+        ${fixedPair ? '<p class="mt-1.5 rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-[12px] font-semibold leading-relaxed text-amber-900">固定位为 4 周契约，代学员请假连选 2 节时仅支持单节；代老师请假可按当前范围整体挂起。</p>' : ''}
         ${backRow()}`;
     }
 
@@ -3568,20 +4023,31 @@
       const lesson = state.lesson;
       if (!lesson) return '';
       const mark = state.attendanceMark;
-      const abnormal = mark === 'student-absent' || mark === 'teacher-absent';
-      const markLabel = mark === 'student-absent' ? '学员旷课' : (mark === 'teacher-absent' ? '老师旷课' : '');
+      const marks = {
+        'student-absent': '学员旷课',
+        'teacher-absent': '老师旷课',
+        'teacher-late': '老师迟到',
+        'teacher-early': '老师早退'
+      };
+      const abnormal = !!marks[mark];
+      const markLabel = marks[mark] || '';
+      const markOptions = [
+        { value: 'student-absent', label: '标为学员旷课', icon: 'user-x' },
+        { value: 'teacher-absent', label: '标为老师旷课', icon: 'triangle-alert' },
+        { value: 'teacher-late', label: '标为老师迟到', icon: 'clock-alert' },
+        { value: 'teacher-early', label: '标为老师早退', icon: 'log-out' }
+      ];
       return `${sheetHeader('考勤 / 旷课标记', slotLabel(lesson.day, lesson.time, lesson.kind === 'group' ? 2 : 1))}
         <div class="rounded-xl border px-3 py-2.5 ${abnormal ? 'border-rose-200 bg-rose-50' : 'border-slate-300 bg-slate-50/70'}">
           <div class="flex items-center justify-between gap-2">
             <span class="text-[12px] font-medium text-slate-600">当前状态</span>
             <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${abnormal ? 'border-rose-300 bg-white text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}">${abnormal ? markLabel : '正常（次日 02:00 自动结课）'}</span>
           </div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed ${abnormal ? 'text-rose-700' : 'text-slate-600'}">系统于次日凌晨 02:00 自动结课并照常扣减课次、计入课酬；日常无需手动标记正常。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed ${abnormal ? 'text-rose-700' : 'text-slate-600'}">系统于次日凌晨 02:00 自动结课并照常扣减课次、计入课酬；日常无需手动标记正常。迟到/早退不改变正常结课与默认计薪节数。</p>
         </div>
         ${abnormal ? `<button data-action="coord-attendance-normal" class="mt-2 flex h-10 w-full items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white text-[14px] font-bold text-slate-800 transition hover:bg-slate-50">${icon('undo-2', 'h-4 w-4')}恢复为正常出勤</button>` : ''}
         <div class="mt-2 grid grid-cols-2 gap-2">
-          <button data-action="coord-attendance" data-value="student-absent" class="flex h-11 items-center justify-center gap-1 rounded-lg border px-1.5 text-[14px] font-bold transition ${mark === 'student-absent' ? 'border-rose-300 bg-rose-50 text-rose-800' : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50'}">${icon('user-x', 'h-4 w-4')}标为学员旷课</button>
-          <button data-action="coord-attendance" data-value="teacher-absent" class="flex h-11 items-center justify-center gap-1 rounded-lg border px-1.5 text-[14px] font-bold transition ${mark === 'teacher-absent' ? 'border-rose-300 bg-rose-50 text-rose-800' : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50'}">${icon('triangle-alert', 'h-4 w-4')}标为老师旷课</button>
+          ${markOptions.map((option) => `<button data-action="coord-attendance" data-value="${option.value}" class="flex h-11 items-center justify-center gap-1 rounded-lg border px-1.5 text-[14px] font-bold transition ${mark === option.value ? 'border-rose-300 bg-rose-50 text-rose-800' : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50'}">${icon(option.icon, 'h-4 w-4')}${option.label}</button>`).join('')}
         </div>
         ${backRow()}`;
     }
@@ -4005,6 +4471,7 @@
       state.subSearch = '';
       state.subCandidate = 'elena';
       state.scheduleSelect = false;
+      state.scheduleMode = 'single';
       state.scheduleStudent = null;
       state.scheduleClass = null;
       state.scheduleSel = {};
@@ -4113,6 +4580,30 @@
         state.role = 'teacher';
       } else if (name === 'monitor') {
         state.role = 'monitor';
+      } else if (name === 'monitor-other') {
+        state.role = 'monitor';
+        state.teacher = 'elena';
+        state.hours = 12;
+      } else if (name === 'monitor-other-single') {
+        state.role = 'monitor';
+        state.teacher = 'elena';
+        state.hours = 12;
+        state.scheduleSelect = true;
+        state.scheduleMode = 'single';
+        state.scheduleStudent = 'alice';
+        state.week = 0;
+      } else if (name === 'cross-readonly') {
+        state.role = 'monitor';
+        state.teacher = 'elena';
+        state.hours = 12;
+        state.lesson = { day: 5, time: '11:00', teacher: 'elena', student: 'bob', kind: 'fixed' };
+        state.drawer = 'staff-lesson';
+      } else if (name === 'cross-rescue') {
+        state.role = 'monitor';
+        state.teacher = 'elena';
+        state.hours = 2;
+        state.lesson = { day: 0, time: '16:00', teacher: 'elena', student: 'bob', kind: 'fixed' };
+        state.drawer = 'staff-lesson';
       } else if (name === 'monitor-free') {
         state.role = 'monitor';
         state.target = { day: 4, time: '19:00' };
@@ -4209,6 +4700,7 @@
       } else if (name === 'schedule-group') {
         state.role = 'monitor';
         state.scheduleSelect = true;
+        state.scheduleMode = 'batch';
         state.scheduleClass = 'ket1';
         state.week = 0;
         state.scheduleSel = {
@@ -4245,6 +4737,11 @@
         state.role = 'monitor';
         state.view = 'day';
         state.dayMode = 'student';
+      } else if (name === 'day-groups') {
+        state.role = 'monitor';
+        state.view = 'day';
+        state.dayMode = 'student';
+        state.dayKey = 0;
       } else if (name === 'day-compare') {
         state.role = 'monitor';
         state.view = 'day';
@@ -4588,14 +5085,19 @@
       let teacher = state.teacher;
       if (!staff) {
         normalizeBookTier(state.child);
-        const available = freeTeachersFor(slot.day, slot.time, count, state.bookTier).filter((item) => item.available);
-        const picked = available.some((item) => item.key === state.bookTeacher) ? state.bookTeacher : (available[0] ? available[0].key : '');
-        if (!picked) {
-          showToast(`当前时段无连续 ${count} 节空闲老师`);
-          return;
+        if (isHallParent()) {
+          teacher = state.teacher;
+          state.bookTeacher = teacher;
+        } else {
+          const available = freeTeachersFor(slot.day, slot.time, count, state.bookTier).filter((item) => item.available);
+          const picked = available.some((item) => item.key === state.bookTeacher) ? state.bookTeacher : (available[0] ? available[0].key : '');
+          if (!picked) {
+            showToast(`当前时段无连续 ${count} 节空闲老师`);
+            return;
+          }
+          state.bookTeacher = picked;
+          teacher = picked;
         }
-        state.bookTeacher = picked;
-        teacher = picked;
       }
       const cost = count;
       const avail = studentCredits(studentKey);
@@ -4644,7 +5146,7 @@
       const teacherText = teacherName(teacher);
       showToast(staff
         ? (syncedOrderCount > 0
-          ? `已确认收款 ¥${syncedOrderCount * tTier} 并生成已付款购课单，由 ${teacherText} 完成 ${studentObj.name} 约课（${count} 节）`
+          ? `已确认收款 ${syncedOrderCount * tTier} 积分并生成已付款购课单，由 ${teacherText} 完成 ${studentObj.name} 约课（${count} 节）`
           : `已为 ${studentObj.name} 预约 ${count} 节（${mins} 分钟），授课老师 ${teacherText}`)
         : `已预约 ${count} 节（${mins} 分钟），授课老师 ${teacherText}，扣减 ${tTier}积分临时课 ${cost} 节`);
     }
@@ -4714,11 +5216,11 @@
       }
       const key = slotKey(state.week, lesson.day, lesson.time);
       if (lesson.kind === 'group') {
-        overrides[key] = Object.assign({}, lesson, { actual: state.subCandidate });
+        overrides[key] = Object.assign({}, lesson, { actual: state.subCandidate, pendingSub: false });
       } else {
         const scope = coordScope();
         scope.forEach((cell) => {
-          overrides[slotKey(state.week, cell.day, cell.time)] = Object.assign({}, cell, { kind: 'sub', actual: state.subCandidate });
+          overrides[slotKey(state.week, cell.day, cell.time)] = Object.assign({}, cell, { kind: 'sub', actual: state.subCandidate, pendingSub: false });
         });
       }
       state.drawer = null;
@@ -4782,6 +5284,34 @@
       showToast(`已请假 ${applied} 节，TS 已退回待排期，课格恢复空闲可约`);
     }
 
+    function coordTeacherLeave(gentleOk = false) {
+      if (!requireOnline()) return;
+      const lesson = state.lesson;
+      if (!lesson) return;
+      if (lesson.pendingSub) {
+        showToast('该课次已处于待代课状态，请直接指派代课');
+        return;
+      }
+      if (state.hours < 3 && !gentleOk) {
+        state.modal = { type: 'staff-gentle', action: 'coord-teacher-leave', cells: coordScope() };
+        render(true);
+        return;
+      }
+      applyCoordTeacherLeave(coordScope());
+    }
+
+    function applyCoordTeacherLeave(cells) {
+      const scope = (cells && cells.length) ? cells : coordScope();
+      scope.forEach((cell) => {
+        overrides[slotKey(state.week, cell.day, cell.time)] = Object.assign({}, cell, { pendingSub: true });
+      });
+      state.drawer = null;
+      state.panel = null;
+      state.modal = null;
+      render(true);
+      showToast('已代老师请假 · 课格转为待代课');
+    }
+
     function coordRevokeSub(gentleOk = false) {
       if (!requireOnline()) return;
       const lesson = state.lesson;
@@ -4816,7 +5346,7 @@
 
     function coordMarkAttendance(value) {
       if (!requireOnline()) return;
-      const labels = { 'student-absent': '学员旷课', 'teacher-absent': '老师旷课' };
+      const labels = { 'student-absent': '学员旷课', 'teacher-absent': '老师旷课', 'teacher-late': '老师迟到', 'teacher-early': '老师早退' };
       state.attendanceMark = value;
       render(true);
       showToast(`已标记：${labels[value] || '旷课'}，可在面板内纠偏`);
@@ -4882,7 +5412,7 @@
         const time = fmtMinutes(toMin(lesson.time) + index * 30);
         overrides[slotKey(state.week, lesson.day, time)] = holiday
           ? { forced: 'available' }
-          : Object.assign({}, lesson, { time, dur, outage: true });
+          : Object.assign({}, lesson, { time, dur, outage: true, pendingSub: false });
       }
       state.drawer = null;
       state.panel = null;
@@ -5118,6 +5648,7 @@
         case 'open-schedule-select':
           if (state.role !== 'monitor' && state.role !== 'admin') break;
           state.scheduleSelect = true;
+          state.scheduleMode = 'single';
           state.scheduleStudent = null;
           state.scheduleClass = null;
           state.scheduleSel = {};
@@ -5155,6 +5686,7 @@
           }
           state.scheduleSel = {};
           resetScheduleWeeks();
+          state.scheduleMode = scheduleModeForObject(scheduleObjectInfo());
           state.week = 0;
           state.drawer = null;
           render(true);
@@ -5163,6 +5695,9 @@
             : `已选择学员 ${STUDENTS[state.scheduleStudent].name}，请从第 1 周模板周选格`);
           break;
         }
+        case 'schedule-mode':
+          setScheduleMode(actionEl.dataset.mode);
+          break;
         case 'schedule-slot': {
           const day = Number(actionEl.dataset.day);
           const time = actionEl.dataset.time;
@@ -5213,6 +5748,10 @@
           render(true);
           break;
         case 'set-week':
+          if (state.scheduleSelect && scheduleSingleMode() && clampWeek(actionEl.dataset.week) !== state.week) {
+            state.scheduleSel = {};
+            resetScheduleWeeks();
+          }
           state.week = clampWeek(actionEl.dataset.week);
           state.drawer = null;
           state.panel = null;
@@ -5277,6 +5816,12 @@
         case 'day-proxy-leave':
           proxyDayLeave();
           break;
+        case 'day-group-pause':
+          pauseDayGroup();
+          break;
+        case 'day-revoke-sub':
+          revokeDaySub();
+          break;
         case 'day-week':
           openDayWeekView();
           break;
@@ -5289,6 +5834,7 @@
           state.modal = null;
           if (!pending) break;
           if (pending.action === 'coord-leave') applyCoordLeave(pending.cells || []);
+          else if (pending.action === 'coord-teacher-leave') applyCoordTeacherLeave(pending.cells || []);
           else if (pending.action === 'revoke-sub') applyRevokeSub();
           else if (pending.action === 'proxy-leave') proxyLeave(true);
           else if (pending.action === 'reschedule') beginReschedule(pending.cells || [], true);
@@ -5439,6 +5985,9 @@
           break;
         case 'coord-leave':
           coordLeave();
+          break;
+        case 'coord-teacher-leave':
+          coordTeacherLeave();
           break;
         case 'coord-reschedule':
           beginReschedule(coordScope());
@@ -5770,6 +6319,7 @@
       const returnParam = params.get('return') || '';
       const studentParam = studentIdParam || params.get('student');
       state.embed = params.get('embed') === '1';
+      state.fromHall = params.get('from') === 'hall';
 
       state.device = deviceParam === 'tablet' ? 'tablet' : 'mobile';
 
@@ -5824,6 +6374,7 @@
         state.scenario = state.role;
         state.view = 'week';
         state.scheduleSelect = true;
+        state.scheduleMode = 'single';
         state.scheduleStudent = null;
         state.scheduleClass = null;
         state.scheduleSel = {};
@@ -5849,6 +6400,7 @@
             }
           }
         }
+        state.scheduleMode = renewalMode ? 'batch' : scheduleModeForObject(scheduleObjectInfo());
       }
       if (viewParam === 'day' && (state.role === 'monitor' || state.role === 'admin')) state.view = 'day';
       else if (state.role === 'parent' || state.role === 'teacher') state.view = 'week';

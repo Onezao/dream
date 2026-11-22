@@ -132,7 +132,7 @@
      * ------------------------------------------------------------------ */
     const TODAY = '2026-11-10';
     const REGISTERED_EMAILS = ['amy@example.com', 'grace@example.com', 'tom@example.com', 'leo@example.com'];
-    const EXTERNAL_NICKNAMES = ['TomB08', 'LeoW10', 'KevinZ9'];
+    const EXTERNAL_NICKNAMES = ['TomB8', 'LeoW10', 'KevinZ9'];
 
     const COURSEWARE_LIB = [
       { id: 'cw_wonders', nameCn: 'Wonders 精读', nameEn: 'Wonders', levels: ['Grade K', 'Grade 1', 'Grade 2'] },
@@ -142,6 +142,23 @@
       { id: 'cw_reach', nameCn: 'Reach Higher', nameEn: 'Reach Higher', levels: ['Grade 1', 'Grade 2', 'Grade 3'] },
       { id: 'cw_ket', nameCn: 'KET 备考', nameEn: 'KET Compact', levels: ['A2', 'B1'] }
     ];
+
+    /* 常态作息偏好：星期一至星期日 × 四大常用时段胶囊（选填）。 */
+    const SLOT_DAYS = [
+      { id: 'mon', label: '周一' }, { id: 'tue', label: '周二' }, { id: 'wed', label: '周三' },
+      { id: 'thu', label: '周四' }, { id: 'fri', label: '周五' }, { id: 'sat', label: '周六' }, { id: 'sun', label: '周日' }
+    ];
+    const SLOT_PERIODS = [
+      { id: 'early', label: '早 06-11' }, { id: 'mid', label: '中 10-15' },
+      { id: 'after', label: '下 14-19' }, { id: 'late', label: '晚 18-24' }
+    ];
+
+    /* 班长动态关联：以每条学员记录的 relations 为准，仅在缺失时按老师归属兜底。 */
+    const TEACHER_MONITOR_MAP = {
+      'David Miller': 'Leo',
+      'Sarah Jenkins': 'Lucy',
+      'Elena': 'Leo'
+    };
 
     const TONES = {
       amber: {
@@ -235,18 +252,20 @@
       two: [
         {
           id: 'sp_alice0001', nickname: 'AliceZ12', realName: '张小丽', englishName: 'Alice',
-          surnameInitial: 'Z', age: 12, gender: 'female', tag: '大宝',
-          status: 'ACTIVE', createdAt: '2026-03-12', responsible: 'Leo',
+          surnameInitial: 'Z', age: 12, gender: 'female', tag: '大宝', familyId: 'fam_zhang',
+          status: 'ACTIVE', createdAt: '2026-03-12', responsible: 'Leo', holderMonitor: 'Leo',
+          preferredSlots: ['tue:late', 'thu:late', 'sat:mid'],
+          historyTs: 38, historyOrders: 5,
           courseware: [
-            { cwId: 'cw_ort', level: 'Stage 3', progressText: 'Unit 3 · Page 24', lastUpdatedAt: '2026-11-07', lastUpdatedBy: 'Elena', lastUpdatedRole: '老师', teacherUpdates: { 'Elena': 12, 'David Miller': 8 } },
+            { cwId: 'cw_ort', level: 'Stage 3', progressText: 'Unit 3 · Page 24\nReviewed sight words and read the story aloud. Needs encouragement to speak in full sentences.', lastUpdatedAt: '2026-11-07', lastUpdatedBy: 'Elena', lastUpdatedRole: '老师', teacherUpdates: { 'Elena': 12, 'David Miller': 8 } },
             { cwId: 'cw_wonders', level: 'Grade 1', progressText: 'Unit 2 · Week 3 · Vocabulary', lastUpdatedAt: '2026-11-08', lastUpdatedBy: 'David Miller', lastUpdatedRole: '老师', teacherUpdates: { 'David Miller': 9 } },
             { cwId: 'cw_raz', level: 'Level F', progressText: 'Book 12 · The Rainforest', lastUpdatedAt: '2026-04-15', lastUpdatedBy: 'Leo', lastUpdatedRole: '班长', teacherUpdates: {} }
           ],
-          stats: { upcoming: 2, pendingTs: 6, completed: 38, fixed: 2, temp: 0, pendingTiers: [{ price: 16, count: 4 }, { price: 18, count: 2 }] },
+          stats: { upcoming: 2, pendingTs: 6, completed: 38, fixed: 2, temp: 0, hold: 1, pendingOrders: 1, exceptionRollback: 0, pendingTiers: [{ price: 16, count: 4 }, { price: 18, count: 2 }] },
           fixedRound: '11-10 ~ 12-05',
           lastActiveAt: '2026-11-10 14:32',
           teacher: 'David Miller',
-          notes: '跳跳性格偏内向，David 老师引导节奏很好；课上参与积极，发音清晰。',
+          notes: 'Shy at first, needs encouragement.\nResponds well to David\'s pacing and participates actively once warmed up. Pronunciation is clear; please keep instructions short and praise effort.',
           audit: [
             { type: 'field', at: '2026-11-08 09:15', by: 'Leo', field: '在学课件与级别', before: 'Oxford Reading Tree · Stage 2', after: 'Oxford Reading Tree · Stage 3' },
             { type: 'field', at: '2026-10-12 16:40', by: 'Sarah', field: '在学课件与级别', before: 'Raz-Kids · Level E', after: 'Raz-Kids · Level F' },
@@ -255,34 +274,76 @@
         },
         {
           id: 'sp_bob000002', nickname: 'BobZ10', realName: '张小博', englishName: 'Bob',
-          surnameInitial: 'Z', age: 10, gender: 'male', tag: '二宝',
-          status: 'ACTIVE', createdAt: '2026-05-08', responsible: 'Leo',
+          surnameInitial: 'Z', age: 10, gender: 'male', tag: '二宝', familyId: 'fam_zhang',
+          status: 'ACTIVE', createdAt: '2026-05-08', responsible: 'Leo', holderMonitor: 'Leo',
+          preferredSlots: ['wed:after', 'sun:early'],
+          historyTs: 22, historyOrders: 3,
           courseware: [{ cwId: 'cw_phonics', level: 'Level 2', progressText: 'Unit 4 · Short Vowel e', lastUpdatedAt: '2026-11-05', lastUpdatedBy: 'Sarah Jenkins', lastUpdatedRole: '老师', teacherUpdates: { 'Sarah Jenkins': 6 } }],
-          stats: { upcoming: 0, pendingTs: 0, completed: 22, fixed: 0, temp: 0, pendingTiers: [] },
+          stats: { upcoming: 0, pendingTs: 0, completed: 22, fixed: 0, temp: 0, hold: 0, pendingOrders: 0, exceptionRollback: 0, pendingTiers: [] },
           teacher: 'Sarah Jenkins',
-          notes: '二宝注意力容易分散，建议每 10 分钟穿插一次互动；能主动跟读，自然拼读进步明显。',
+          notes: 'Easily distracted; switch activities every 10 minutes.\nCan read along independently and phonics has improved noticeably.',
           audit: [{ type: 'field', at: '2026-10-20 11:05', by: 'Leo', field: '在学课件与级别', before: '未配置', after: 'Oxford Phonics World · Level 2' }]
+        },
+        {
+          id: 'sp_cindy00003', nickname: 'CindyM9', realName: '张小雨', englishName: 'Cindy',
+          surnameInitial: 'M', age: 9, gender: 'female', tag: '三宝', familyId: 'fam_zhang',
+          status: 'ARCHIVED', archiveType: '正式暂别归档', archivedAt: '2026-09-30',
+          createdAt: '2025-12-18', responsible: 'Leo', holderMonitor: 'Leo',
+          preferredSlots: ['sat:after'],
+          historyTs: 24, historyOrders: 4,
+          courseware: [{ cwId: 'cw_ort', level: 'Stage 2' }],
+          stats: { upcoming: 0, pendingTs: 0, completed: 24, fixed: 0, temp: 0, hold: 0, pendingOrders: 0, exceptionRollback: 0, pendingTiers: [] },
+          teacher: 'Sarah Jenkins',
+          notes: 'Paused formal lessons for family travel. History and notes kept read-only.',
+          audit: [
+            { type: 'status', at: '2026-09-30 18:00', by: 'Amy', from: 'ACTIVE', to: 'ARCHIVED', archiveType: '正式暂别归档', reason: '五项资产清零，家长手工归档（正式暂别归档）；昵称永久锁定' }
+          ]
         }
       ],
-      full: Array.from({ length: 10 }).map((_, i) => {
-        const letter = String.fromCharCode(65 + i);
-        const age = 8 + (i % 5);
-        return {
-          id: `sp_kid${String(i + 1).padStart(6, '0')}`,
-          nickname: `Kid${letter}Z${age}`,
-          realName: `孩子 ${i + 1} 号`,
-          englishName: `Kid${letter}`,
-          surnameInitial: 'Z', age, gender: i % 2 === 0 ? 'female' : 'male',
-          tag: ['大宝', '二宝', '三宝', '四宝', '五宝', '六宝', '七宝', '八宝', '九宝', '十宝'][i] || `宝贝 ${i + 1}`,
-          status: 'ACTIVE',
-          createdAt: `2026-09-${String(i + 1).padStart(2, '0')}`, responsible: 'Leo',
-          courseware: i % 2 === 0 ? [{ cwId: 'cw_ort', level: 'Stage 2' }] : [],
-          stats: { upcoming: i % 3, pendingTs: 0, completed: i * 4, fixed: i % 3, temp: 0, pendingTiers: [] },
+      full: [
+        ...Array.from({ length: 10 }).map((_, i) => {
+          const letter = String.fromCharCode(65 + i);
+          const age = 8 + (i % 5);
+          const familyId = i === 1 || i === 2 ? 'fam_full_a' : `fam_full_${i + 1}`;
+          const pendingTs = i === 1 ? 4 : i === 2 ? 2 : 0;
+          const historyTs = i * 4;
+          return {
+            id: `sp_kid${String(i + 1).padStart(6, '0')}`,
+            nickname: `Kid${letter}Z${age}`,
+            realName: `孩子 ${i + 1} 号`,
+            englishName: `Kid${letter}`,
+            surnameInitial: 'Z', age, gender: i % 2 === 0 ? 'female' : 'male',
+            tag: ['大宝', '二宝', '三宝', '四宝', '五宝', '六宝', '七宝', '八宝', '九宝', '十宝'][i] || `宝贝 ${i + 1}`,
+            status: 'ACTIVE', familyId, holderMonitor: 'Leo',
+            preferredSlots: i % 3 === 0 ? ['mon:early', 'sat:mid'] : (i % 3 === 1 ? ['tue:after', 'thu:late'] : []),
+            historyTs, historyOrders: i === 0 ? 0 : i,
+            createdAt: `2026-09-${String(i + 1).padStart(2, '0')}`, responsible: 'Leo',
+            courseware: i % 2 === 0 ? [{ cwId: 'cw_ort', level: 'Stage 2' }] : [],
+            stats: {
+              upcoming: i % 3, pendingTs, completed: historyTs, fixed: i % 3, temp: 0,
+              hold: i === 1 ? 1 : 0, pendingOrders: i === 2 ? 1 : 0, exceptionRollback: 0,
+              pendingTiers: pendingTs ? [{ price: 16, count: pendingTs }] : []
+            },
+            teacher: 'David Miller',
+            notes: i === 3
+              ? 'Zero-asset profile with history: archive only, delete is disabled.\nReading fluency is stable; keep weekly review sheets.'
+              : 'Participates actively and pronounces clearly; homework completion is steady.',
+            audit: []
+          };
+        }),
+        {
+          id: 'sp_archived011', nickname: 'MiloQ10', realName: '孩子 11 号', englishName: 'Milo',
+          surnameInitial: 'Q', age: 10, gender: 'male', tag: '十一宝', familyId: 'fam_full_arch',
+          status: 'ARCHIVED', archiveType: '正式暂别归档', archivedAt: '2026-10-08',
+          createdAt: '2025-10-08', responsible: 'Leo', holderMonitor: 'Leo',
+          preferredSlots: ['sun:late'], historyTs: 16, historyOrders: 2,
+          courseware: [{ cwId: 'cw_raz', level: 'Level F' }],
+          stats: { upcoming: 0, pendingTs: 0, completed: 16, fixed: 0, temp: 0, hold: 0, pendingOrders: 0, exceptionRollback: 0, pendingTiers: [] },
           teacher: 'David Miller',
-          notes: '课上参与积极，发音清晰；家庭作业完成度稳定。',
-          audit: []
-        };
-      })
+          notes: 'Family paused lessons; history kept read-only.',
+          audit: [{ type: 'status', at: '2026-10-08 10:00', by: 'Amy', from: 'ACTIVE', to: 'ARCHIVED', archiveType: '正式暂别归档', reason: '五项资产清零，家长手工归档（正式暂别归档）；昵称永久锁定' }]
+        }
+      ]
     };
 
     const MOCK_ENROLLED = [
@@ -305,7 +366,7 @@
           { type: 'field', at: '2026-09-15 10:05', by: 'Amy', field: '英文名', before: 'Alise', after: 'Alice' },
           { type: 'field', at: '2026-09-15 10:05', by: 'Amy', field: '学员姓名或小名', before: '小丽', after: '跳跳' },
           { type: 'status', at: '2026-03-12 10:20', by: '系统', from: 'UNBOUND', to: 'ACTIVE', reason: '家长 Amy 认领试课档案并绑定 amy@example.com，历史试课 3 节并入' },
-          { type: 'field', at: '2026-03-12 10:20', by: '系统', field: '所属家长', before: '平台托管（未绑定）', after: '家长 Amy · amy@example.com' }
+          { type: 'field', at: '2026-03-12 10:20', by: '系统', field: '所属家长', before: '待归集（未绑定）', after: '家长 Amy · amy@example.com' }
         ]
       },
       {
@@ -340,7 +401,6 @@
         audit: [
           { type: 'field', at: '2026-11-05 19:10', by: 'Leo', field: '学生备注', before: 'Kevin 的阅读流畅度一般，口语输出需要更多鼓励。', after: 'Kevin 的阅读流畅度提升明显；近期口语输出偏少，课上多安排开放式提问。' },
           { type: 'field', at: '2026-10-12 16:40', by: 'Leo', field: '英文名', before: 'Kelvin', after: 'Kevin' },
-          { type: 'field', at: '2026-10-12 16:40', by: 'Leo', field: '规范昵称', before: 'KelvinZ9', after: 'KevinZ9' },
           { type: 'field', at: '2026-09-02 11:25', by: 'Leo', field: '在学课件与级别', before: 'Oxford Reading Tree · Stage 3', after: 'Oxford Reading Tree · Stage 3；KET Compact · A2' },
           { type: 'field', at: '2026-08-20 09:30', by: 'Leo', field: '头像', before: '未设置头像', after: '已更新头像（1:1 裁切）' },
           { type: 'field', at: '2026-04-02 10:15', by: 'Leo', field: '年龄', before: '8 岁', after: '9 岁' }
@@ -446,7 +506,7 @@
         stats: { upcoming: 1, pendingTs: 2, completed: 2, fixed: 0, temp: 2 },
         roundTaught: 6, roundTotal: 8,
         leaveStats: { leaves30d: 1, nearDeadline30d: 0, lessons30d: 10 },
-        notes: 'Grace 试课认领后适应良好；试课阶段教学备忘已并入档案。', audit: []
+        notes: 'Grace 试课认领后适应良好；试课阶段学生备注已并入档案。', audit: []
       },
       {
         id: 'st_zoe00000014', nickname: 'ZoeX9', realName: '柔伊', englishName: 'Zoe', surnameInitial: 'X', age: 9, gender: 'female',
@@ -455,7 +515,7 @@
         stats: { upcoming: 0, pendingTs: 0, completed: 24, fixed: 0, temp: 0 },
         notes: '已结课离场，历史单据只读留存。',
         audit: [
-          { type: 'status', at: '2026-10-20 18:00', by: 'Sarah', from: 'ACTIVE', to: 'ARCHIVED', reason: '离场注销：固定位与临时课已清零，课次资产结清后归档' }
+          { type: 'status', at: '2026-10-20 18:00', by: 'Sarah', from: 'ACTIVE', to: 'ARCHIVED', archiveType: '正式暂别归档', reason: '离场归档：固定位与临时课已清零，五项资产结清后归档' }
         ]
       },
       {
@@ -543,6 +603,78 @@
       }
     ];
 
+    /* 正式学员动态关联与生命周期补充字段（不强绑唯一班长）。 */
+    const ENROLLED_FAMILY = {
+      AliceZ12: 'fam_zhang', BobZ10: 'fam_zhang',
+      LilyC9: 'fam_enr_lily', KevinZ9: 'fam_enr_kevin',
+      AvaD8: 'fam_enr_ava', EthanK10: 'fam_enr_ethan',
+      HenryW7: 'fam_enr_henry', IrisP8: 'fam_enr_iris'
+    };
+    const ENROLLED_PREFERRED = {
+      AliceZ12: ['tue:late', 'thu:late', 'sat:mid'],
+      BobZ10: ['wed:after', 'sun:early'],
+      LilyC9: ['mon:after', 'fri:late'],
+      KevinZ9: ['tue:early', 'thu:early'],
+      EthanK10: ['sat:after'],
+      HenryW7: ['sun:mid']
+    };
+    MOCK_ENROLLED.forEach((p, idx) => {
+      if (!p.familyId) p.familyId = ENROLLED_FAMILY[p.nickname] || `fam_enr_${idx + 1}`;
+      if (p.historyTs === undefined) p.historyTs = Number(p.stats && p.stats.completed) || 0;
+      if (p.historyOrders === undefined) p.historyOrders = p.historyTs ? Math.max(1, Math.round(p.historyTs / 8)) : 0;
+      if (!p.holderMonitor) p.holderMonitor = p.responsible || 'Leo';
+      if (!p.preferredSlots) p.preferredSlots = ENROLLED_PREFERRED[p.nickname] || [];
+      if (!p.relations) {
+        p.relations = [];
+        if (p.holderMonitor && ((p.stats && p.stats.pendingTs) > 0 || (p.stats && p.stats.pendingOrders) > 0)) {
+          p.relations.push({ type: 'holder', monitor: p.holderMonitor });
+        }
+        if (p.teacher && TEACHER_MONITOR_MAP[p.teacher]) p.relations.push({ type: 'group', monitor: TEACHER_MONITOR_MAP[p.teacher] });
+      }
+      if (p.stats) {
+        if (p.stats.hold === undefined) p.stats.hold = p.nickname === 'AliceZ12' ? 1 : 0;
+        if (p.stats.pendingOrders === undefined) p.stats.pendingOrders = p.nickname === 'AliceZ12' ? 1 : 0;
+        if (p.stats.exceptionRollback === undefined) p.stats.exceptionRollback = 0;
+      }
+      if (p.status === 'ARCHIVED') {
+        p.archiveType = p.archiveType || '正式暂别归档';
+        p.archivedAt = p.archivedAt || '2026-10-20';
+      }
+    });
+    const enrolledZoe = MOCK_ENROLLED.find((x) => x.nickname === 'ZoeX9');
+    if (enrolledZoe && enrolledZoe.audit[0]) enrolledZoe.audit[0].archiveType = '正式暂别归档';
+    const enrolledBen = MOCK_ENROLLED.find((x) => x.nickname === 'BenK8');
+    if (enrolledBen && !enrolledBen.audit.length) {
+      enrolledBen.audit = [{ type: 'status', at: '2026-09-18 10:00', by: 'Amy', from: 'ACTIVE', to: 'ARCHIVED', archiveType: '正式暂别归档', reason: '五项资产清零，家长手工归档（正式暂别归档）；昵称永久锁定' }];
+    }
+
+    /* 全量数据集同家庭兄妹：让管理员/班长在【全员学员】也能演示课次划转。 */
+    [
+      { nickname: 'KidBZ9', pendingTs: 4, age: 9, gender: 'male', realName: '孩子 2 号', holderMonitor: 'Lucy' },
+      { nickname: 'KidCZ10', pendingTs: 2, age: 10, gender: 'female', realName: '孩子 3 号' },
+      { nickname: 'AvaS6', pendingTs: 0, age: 6, gender: 'female', realName: '艾娃妹妹', familyId: 'fam_enr_ava' }
+    ].forEach((seed) => {
+      if (MOCK_ENROLLED.some((x) => x.nickname === seed.nickname)) return;
+      const holder = seed.holderMonitor || 'Leo';
+      MOCK_ENROLLED.push({
+        id: `st_${seed.nickname.toLowerCase()}`,
+        nickname: seed.nickname, realName: seed.realName, englishName: seed.nickname.replace(/[A-Z]\d+$/, ''),
+        surnameInitial: 'Z', age: seed.age, gender: seed.gender,
+        status: 'ACTIVE', createdAt: '2026-09-02', responsible: 'Leo', holderMonitor: holder,
+        familyId: seed.familyId || 'fam_full_a', preferredSlots: ['tue:after', 'thu:late'],
+        historyTs: seed.pendingTs + 4, historyOrders: 2, teacher: 'David Miller',
+        relations: [{ type: 'holder', monitor: holder }, { type: 'group', monitor: 'Leo' }],
+        courseware: [{ cwId: 'cw_ort', level: 'Stage 2' }],
+        stats: {
+          upcoming: 0, pendingTs: seed.pendingTs, completed: seed.pendingTs + 4,
+          fixed: 0, temp: 0, hold: 0, pendingOrders: 0, exceptionRollback: 0,
+          pendingTiers: [{ price: 16, count: seed.pendingTs }]
+        },
+        lastActiveAt: '2026-11-08 10:00',
+        notes: '同家庭兄妹：可在档案抽屉演示待排课次划转。', audit: []
+      });
+    });
+
     const MOCK_TRIALS = [
       {
         id: 'tr_leo000001', nickname: 'LeoW8', realName: '王小明', englishName: 'Leo', surnameInitial: 'W', age: 8, gender: 'male',
@@ -568,28 +700,28 @@
       },
       {
         id: 'tr_eric000004', nickname: 'EricS9', realName: '赵小宝', englishName: 'Eric', surnameInitial: 'S', age: 9, gender: 'male',
-        contact: '13900139001', status: 'TRIALING', createdAt: '2026-11-02',
+        contact: '13900139001', status: 'UNBOUND', createdAt: '2026-11-02',
         lastLessonDate: '2026-11-06', trialLessons: 1, daysLeft: 23, createdBy: 'Sarah', responsible: 'Leo',
         trialProgress: '首节试课已完成（备注已更新）',
         courseware: [], notes: 'Eric 很积极，能完整跟读目标句型；建议下节增加口语输出。', audit: []
       },
       {
         id: 'tr_anna000005', nickname: 'AnnaW7', realName: '王安娜', englishName: 'Anna', surnameInitial: 'W', age: 7, gender: 'female',
-        contact: '13700137001', status: 'TRIALING', createdAt: '2026-10-28',
+        contact: '13700137001', status: 'UNBOUND', createdAt: '2026-10-28',
         lastLessonDate: '2026-11-03', trialLessons: 2, daysLeft: 20, createdBy: 'Sarah', responsible: 'Leo',
         trialProgress: '2 节试课已完成（待认领）',
         courseware: [{ cwId: 'cw_phonics', level: 'Level 1' }], notes: 'Anna 能独立完成字母音配对。', audit: []
       },
       {
         id: 'tr_ben0000006', nickname: 'BenC10', realName: '陈本', englishName: 'Ben', surnameInitial: 'C', age: 10, gender: 'male',
-        contact: '13600136001', status: 'TRIALING', createdAt: '2026-10-25',
+        contact: '13600136001', status: 'UNBOUND', createdAt: '2026-10-25',
         lastLessonDate: '2026-11-01', trialLessons: 1, daysLeft: 18, createdBy: 'Sarah', responsible: 'Leo',
         trialProgress: '首节试课已排期',
         courseware: [], notes: '', audit: []
       },
       {
         id: 'tr_doris00007', nickname: 'DorisL6', realName: '李朵', englishName: 'Doris', surnameInitial: 'L', age: 6, gender: 'female',
-        contact: '13500135001', status: 'TRIALING', createdAt: '2026-10-20',
+        contact: '13500135001', status: 'UNBOUND', createdAt: '2026-10-20',
         lastLessonDate: '2026-10-30', trialLessons: 3, daysLeft: 12, createdBy: 'Sarah', responsible: 'Leo',
         trialProgress: '3 节试课已完成（待认领）',
         courseware: [], notes: 'Doris 课上参与度高，能主动表达；家长关注固定位时间。', audit: []
@@ -663,7 +795,7 @@
         createdBy: 'Sarah', responsible: 'Leo', trialProgress: '30 天未认领自动归档',
         courseware: [], notes: '',
         audit: [
-          { type: 'status', at: '2026-10-15 02:00', by: '系统', from: 'UNBOUND', to: 'ARCHIVED', reason: '超过 30 天未认领，系统自动归档；昵称保持占用' }
+          { type: 'status', at: '2026-10-15 02:00', by: '系统', from: 'UNBOUND', to: 'ARCHIVED', archiveType: '试课失效归档', reason: '超过 30 天未认领，系统自动归档；昵称保持占用' }
         ]
       },
       {
@@ -673,7 +805,7 @@
         createdBy: 'Sarah', responsible: 'Lucy', trialProgress: '30 天未认领自动归档',
         courseware: [], notes: '',
         audit: [
-          { type: 'status', at: '2026-10-20 02:00', by: '系统', from: 'UNBOUND', to: 'ARCHIVED', reason: '超过 30 天未认领，系统自动归档；昵称保持占用' }
+          { type: 'status', at: '2026-10-20 02:00', by: '系统', from: 'UNBOUND', to: 'ARCHIVED', archiveType: '试课失效归档', reason: '超过 30 天未认领，系统自动归档；昵称保持占用' }
         ]
       },
       {
@@ -684,6 +816,43 @@
         courseware: [], notes: '', audit: []
       }
     ];
+
+    /* 试课档案补充字段：派生分组（待认领 / 试课中）、归档类型、作息偏好。 */
+    const TRIAL_META = {
+      tr_leo000001: { pendingTs: 0, scheduledTs: 1, preferredSlots: ['sat:early'], familyId: 'fam_trial_leo' },
+      tr_mia000002: { pendingTs: 0, scheduledTs: 0, preferredSlots: ['sun:mid'], familyId: 'fam_trial_mia' },
+      tr_ethan0003: { pendingTs: 1, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_ethan' },
+      tr_eric000004: { pendingTs: 0, scheduledTs: 1, preferredSlots: ['tue:after'], familyId: 'fam_trial_eric' },
+      tr_anna000005: { pendingTs: 0, scheduledTs: 0, preferredSlots: ['wed:late'], familyId: 'fam_trial_anna' },
+      tr_ben0000006: { pendingTs: 0, scheduledTs: 1, preferredSlots: [], familyId: 'fam_trial_ben' },
+      tr_doris00007: { pendingTs: 0, scheduledTs: 0, preferredSlots: ['fri:after'], familyId: 'fam_trial_doris' },
+      tr_grace00008: { pendingTs: 0, scheduledTs: 0, preferredSlots: ['thu:late'], familyId: 'fam_trial_grace' },
+      tr_henry00009: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_henry' },
+      tr_iris0000010: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_iris' },
+      tr_jason00011: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_jason' },
+      tr_kelly00012: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_kelly' },
+      tr_lucas00013: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_lucas' },
+      tr_nancy00014: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_nancy' },
+      tr_owen000015: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_owen' },
+      tr_tom00000016: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_tom' },
+      tr_vera000017: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_vera' },
+      tr_will000018: { pendingTs: 0, scheduledTs: 0, preferredSlots: [], familyId: 'fam_trial_will' }
+    };
+    MOCK_TRIALS.forEach((t) => {
+      const meta = TRIAL_META[t.id] || {};
+      t.pendingTs = Number(meta.pendingTs) || 0;
+      t.scheduledTs = Number(meta.scheduledTs) || 0;
+      t.uncompletedTs = t.pendingTs + t.scheduledTs;
+      t.preferredSlots = meta.preferredSlots || [];
+      t.familyId = meta.familyId || `fam_${t.id}`;
+      t.activatedAt = t.activatedAt || t.createdAt;
+      t.historyTs = Number(t.trialLessons) || 0;
+      t.historyOrders = t.historyTs ? 1 : 0;
+      if (t.status === 'ARCHIVED') {
+        t.archiveType = '试课失效归档';
+        t.archivedAt = t.archivedAt || '2026-10-20';
+      }
+    });
 
     /* ------------------------------------------------------------------
      * 工具函数
@@ -705,6 +874,164 @@
 
     function cwCount(p) {
       return (p.courseware || []).length;
+    }
+
+    /* 状态标签：全界面只展示中文，严禁直接透出英文枚举码。 */
+    const STATUS_LABELS = {
+      UNBOUND: '待认领',
+      ACTIVE: '正式在读',
+      ARCHIVED: '已归档',
+      DELETED: '已删除'
+    };
+
+    function statusLabel(status, archiveType) {
+      if (!status) return '—';
+      if (status === 'ARCHIVED') {
+        return archiveType === '试课失效归档' ? '已归档·试课失效' : archiveType === '正式暂别归档' ? '已归档·暂别停课' : '已归档';
+      }
+      return STATUS_LABELS[status] || String(status);
+    }
+
+    function activeProfiles() {
+      return state.profiles.filter((p) => p.status === 'ACTIVE');
+    }
+
+    function archivedFormalProfiles() {
+      return state.profiles.filter((p) => p.status === 'ARCHIVED' && p.archiveType === '正式暂别归档');
+    }
+
+    function preferredSlotLabel(key) {
+      const [dayId, periodId] = String(key || '').split(':');
+      const d = SLOT_DAYS.find((x) => x.id === dayId);
+      const p = SLOT_PERIODS.find((x) => x.id === periodId);
+      return d && p ? `${d.label} ${p.label}` : '';
+    }
+
+    function preferredSlotsText(p) {
+      const list = (p && p.preferredSlots) || [];
+      return list.length ? list.map(preferredSlotLabel).filter(Boolean).join(' · ') : '未填写';
+    }
+
+    function flattenText(text) {
+      return String(text || '').replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function compactText(text, max = 38) {
+      const flat = flattenText(text);
+      if (!flat) return '';
+      return flat.length > max ? `${flat.slice(0, max).trim()}…` : flat;
+    }
+
+    /* 列表卡单行折叠：1 行 / ≤36~40 字符 + [展开 ▾] / [收起 ▴]。 */
+    function compactNoteBlock(text, max = 38, empty = '暂无学生备注') {
+      const flat = flattenText(text);
+      if (!flat) return `<span class="text-slate-500">${esc(empty)}</span>`;
+      const short = compactText(flat, max);
+      if (short === flat) return `<span class="whitespace-pre-line break-words">${esc(flat)}</span>`;
+      return `<details class="group inline-block w-full">
+        <summary class="flex cursor-pointer list-none items-center gap-1 [&::-webkit-details-marker]:hidden">
+          <span class="min-w-0 flex-1 truncate">${esc(short)}</span>
+          <span class="shrink-0 font-bold text-indigo-600"><span class="group-open:hidden">[展开 ▾]</span><span class="hidden group-open:inline">[收起 ▴]</span></span>
+        </summary>
+        <p class="mt-1 whitespace-pre-line break-words text-slate-700">${esc(String(text || '').trim())}</p>
+      </details>`;
+    }
+
+    /* 抽屉 / 详情面板：2 行 / ≤64 字符 + [展开全文 ▾] / [收起 ▴]。 */
+    function expandableTextBlock(text, empty = '暂无内容') {
+      const raw = String(text || '').trim();
+      const flat = flattenText(raw);
+      if (!flat) return `<span class="text-slate-500">${esc(empty)}</span>`;
+      if (raw.length <= 64 && !/[\r\n]/.test(raw)) {
+        return `<span class="whitespace-pre-line break-words">${esc(raw)}</span>`;
+      }
+      const preview = raw.length > 64 ? `${flat.slice(0, 64).trim()}…` : raw;
+      return `<details class="group">
+        <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+          <span class="line-clamp-2 whitespace-pre-line break-words">${esc(preview)}</span>
+          <span class="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-indigo-600">
+            <span class="group-open:hidden">[展开全文 ▾]</span>
+            <span class="hidden group-open:inline">[收起 ▴]</span>
+          </span>
+        </summary>
+        <p class="mt-1 whitespace-pre-line break-words text-slate-800">${esc(raw)}</p>
+      </details>`;
+    }
+
+    function historyTsOf(p, kind) {
+      if (kind === 'trial') return Number(p.historyTs ?? p.trialLessons) || 0;
+      return Number(p.historyTs ?? (p.stats && p.stats.completed)) || 0;
+    }
+
+    function historyOrdersOf(p, kind) {
+      if (kind === 'trial') return Number(p.historyOrders) || 0;
+      return Number(p.historyOrders ?? Math.max(0, Math.round((Number(p.stats && p.stats.completed) || 0) / 8))) || 0;
+    }
+
+    function trialPendingTs(t) {
+      return Math.max(0, Number(t && t.pendingTs) || 0);
+    }
+
+    function trialScheduledTs(t) {
+      return Math.max(0, Number(t && t.scheduledTs) || 0);
+    }
+
+    function trialUncompletedTs(t) {
+      if (!t) return 0;
+      if (t.pendingTs !== undefined || t.scheduledTs !== undefined) {
+        return trialPendingTs(t) + trialScheduledTs(t);
+      }
+      return Math.max(0, Number(t.uncompletedTs) || 0);
+    }
+
+    function trialBucket(t) {
+      if (!t) return '';
+      if (t.status === 'UNBOUND') return trialUncompletedTs(t) > 0 ? 'trialing' : 'unbound';
+      if (t.status === 'ACTIVE') {
+        const days = daysSinceToday(t.claimedAt);
+        return days !== null && days <= 30 ? 'converted' : '';
+      }
+      if (t.status === 'ARCHIVED' && t.archiveType === '试课失效归档') return 'archived';
+      return '';
+    }
+
+    function archiveAssetsOf(p, kind) {
+      const pending = kind === 'trial' ? trialPendingTs(p) : pendingTsOf(p);
+      const scheduled = kind === 'trial' ? trialScheduledTs(p) : upcomingTsOf(p);
+      return [
+        { label: '待排期课次', count: pending, hint: '请先办理课次划转或课次清退' },
+        { label: '未来及当日未结课已排课次', count: scheduled, hint: '请更换实际上课学员、挪位或请假退回' },
+        { label: '在途续费预占 HOLD', count: Number(p.stats && p.stats.hold) || 0, hint: '请先取消待续费预占' },
+        { label: '待付款确认购课单', count: Number(p.stats && p.stats.pendingOrders) || 0, hint: '请先取消待付款购课单' },
+        { label: '待处理异常回退', count: Number(p.stats && p.stats.exceptionRollback) || 0, hint: '请先完成异常回退处置' }
+      ];
+    }
+
+    /* 班长动态关联：试课待认领 / 本组在读 / 持有未排课次，去重展示。 */
+    function relationsOf(x) {
+      if (!x) return [];
+      if (x.staffKind === 'trial') return x.status === 'UNBOUND' ? ['试课待认领'] : [];
+      const source = (x.relations && x.relations.length) ? x.relations : fallbackRelations(x);
+      const out = [];
+      source.forEach((r) => {
+        if (r.type === 'group' && !out.includes('本组在读')) out.push('本组在读');
+        if (r.type === 'holder' && !out.includes('持有未排课次')) out.push('持有未排课次');
+      });
+      return out;
+    }
+
+    function fallbackRelations(x) {
+      const out = [];
+      if (x.holderMonitor) out.push({ type: 'holder', monitor: x.holderMonitor });
+      if (x.teacher && TEACHER_MONITOR_MAP[x.teacher]) out.push({ type: 'group', monitor: TEACHER_MONITOR_MAP[x.teacher] });
+      return out;
+    }
+
+    function associatedMonitors(x) {
+      if (!x) return [];
+      if (x.staffKind === 'trial') return [...new Set([x.responsible, x.createdBy].filter(Boolean))];
+      const source = (x.relations && x.relations.length) ? x.relations : fallbackRelations(x);
+      return [...new Set(source.map((r) => r.monitor).filter(Boolean))];
     }
 
     /* 1v1 待排课次统一资产池：购买不分固定/临时，排课后才定性。 */
@@ -793,12 +1120,14 @@
       return `<span class="${size} grid shrink-0 place-items-center rounded-full ${t.icon} ${text} font-bold ring-1 ring-black/5">${esc(initial)}</span>`;
     }
 
-    function statusChip(status, context = 'parent') {
+    function statusChip(status, context = 'parent', archiveType = '') {
+      if (status === 'ARCHIVED') {
+        return `<span class="inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${TONES.slate.chip}">${esc(statusLabel(status, archiveType))}</span>`;
+      }
       const map = {
-        ACTIVE: { tone: 'emerald', label: context === 'admin' ? '已认领' : '在读' },
-        TRIALING: { tone: 'indigo', label: '试课中' },
+        ACTIVE: { tone: 'emerald', label: '正式在读' },
         UNBOUND: { tone: 'amber', label: '待认领' },
-        ARCHIVED: { tone: 'slate', label: '已归档' }
+        DELETED: { tone: 'slate', label: '已删除' }
       };
       const item = map[status] || map.ACTIVE;
       return `<span class="inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${TONES[item.tone].chip}">${item.label}</span>`;
@@ -858,7 +1187,15 @@
       const age = String(f.age || '').trim();
       const sfx = (f.suffix || '').trim().toLowerCase();
       if (!en || !ini || !age) return '';
-      return `${en}${ini}${age}${sfx}`;
+      return `${en}${ini}${sfx}${age}`;
+    }
+
+    function lockedNicknameOf(f) {
+      if (f.editingId) {
+        const p = state.profiles.find((x) => x.id === f.editingId);
+        if (p) return p.nickname;
+      }
+      return f.editingNickname || '';
     }
 
     function allNicknames(excludeId = null) {
@@ -888,15 +1225,19 @@
       if (!Number.isInteger(Number(f.age)) || Number(f.age) < 1 || Number(f.age) > 99) {
         return { ok: false, message: '年龄需为 1-99 的整数' };
       }
-      if (f.suffix && !/^[a-z0-9]{1,3}$/.test(f.suffix)) {
-        return { ok: false, message: '微调后缀仅支持 1-3 位小写字母或数字' };
+      if (f.suffix && !/^[a-z]{1,2}$/.test(f.suffix)) {
+        return { ok: false, message: '微调字母仅支持 1-2 位小写英文字母' };
+      }
+      if (f.editingId) {
+        return { ok: true, message: '规范昵称创建后永久锁定，不随编辑变化' };
       }
       const nick = computeNickname(f);
-      if (nick.length < 3 || nick.length > 30 || !/^[A-Za-z]{1,24}[A-Z]\d{1,2}[a-z0-9]{0,3}$/.test(nick)) {
-        return { ok: false, message: '规范昵称格式不合法' };
+      if (nick.length < 3 || nick.length > 29 || !/^[A-Za-z]{1,24}[A-Z][a-z]{0,2}\d{1,2}$/.test(nick)) {
+        return { ok: false, message: '规范昵称格式不合法（英文名 + 姓首字母 + 可选 1-2 位小写字母 + 1-2 位年龄）' };
       }
       if (nicknameConflict(nick, f.editingId)) {
-        return { ok: false, message: `该昵称已被使用，建议添加后缀（如 ${nick}b）` };
+        const suggestion = `${en.slice(0, 24)}${ini.toUpperCase()}b${String(f.age).trim()}`;
+        return { ok: false, message: `该昵称已被使用，建议添加微调字母（如 ${suggestion}）` };
       }
       return { ok: true, message: '该昵称全局唯一，可使用' };
     }
@@ -904,14 +1245,17 @@
     function parseQuickNick(raw) {
       const val = (raw || '').trim();
       if (!val) return { ok: false, incomplete: true, message: '请输入规范英文名（如 MarkL10）' };
-      const m = /^([A-Za-z]{1,24})([A-Z])(\d{1,2})([a-z0-9]{0,3})$/.exec(val);
-      if (!m || val.length < 3 || val.length > 30) {
-        return { ok: false, message: '格式需为：英文名 + 大写姓首字母 + 1~2位年龄（如 MarkL10）' };
+      const m = /^([A-Za-z]{1,24})([A-Z])([a-z]{0,2})(\d{1,2})$/.exec(val);
+      if (!m || val.length < 3 || val.length > 29) {
+        return { ok: false, message: '格式需为：英文名 + 大写姓首字母 + 可选 1-2 位小写字母 + 1~2 位年龄（如 MarkL10 / MarkLa10）' };
       }
-      const age = Number(m[3]);
+      const age = Number(m[4]);
       if (age < 1 || age > 99) return { ok: false, message: '年龄需为 1-99 的整数' };
-      if (nicknameConflict(val)) return { ok: false, message: `该昵称已被占用，可微调后缀（如 ${val}b）` };
-      return { ok: true, nickname: val, englishName: m[1], initial: m[2], age, suffix: m[4] || '', message: '格式合法且全局唯一，自动解析并同步小名' };
+      if (nicknameConflict(val)) {
+        const suggestion = `${m[1].slice(0, 24)}${m[2]}b${m[4]}`;
+        return { ok: false, message: `该昵称已被占用，可添加微调字母（如 ${suggestion}）` };
+      }
+      return { ok: true, nickname: val, englishName: m[1], initial: m[2], age, suffix: m[3] || '', message: '格式合法且全局唯一，自动解析并同步小名' };
     }
 
     function trialNicknameStatus(f) {
@@ -926,15 +1270,20 @@
       if (!Number.isInteger(Number(f.age)) || Number(f.age) < 1 || Number(f.age) > 99) {
         return { ok: false, message: '年龄需为 1-99 的整数' };
       }
+      if (f.suffix && !/^[a-z]{1,2}$/.test(f.suffix)) {
+        return { ok: false, message: '微调字母仅支持 1-2 位小写英文字母' };
+      }
       const nick = computeNickname(f);
-      if (!/^[A-Za-z]{1,24}[A-Z]\d{1,2}$/.test(nick)) return { ok: false, message: '规范昵称格式不合法' };
+      if (nick.length < 3 || nick.length > 29 || !/^[A-Za-z]{1,24}[A-Z][a-z]{0,2}\d{1,2}$/.test(nick)) {
+        return { ok: false, message: '规范昵称格式不合法' };
+      }
       if (nicknameConflict(nick)) return { ok: false, message: '该昵称已存在，请微调英文名或年龄' };
       return { ok: true, message: '待认领档案将使用该昵称' };
     }
 
     function profileFormError(f) {
       if (state.online === 'off') return '离线模式下无法创建或编辑档案';
-      if (f.mode === 'create' && state.profiles.length >= 10) return '名下档案已达上限 (10/10)';
+      if (f.mode === 'create' && activeProfiles().length >= 10) return '名下档案已达上限 (10/10)';
       if (!f.realName.trim()) return '请填写学员姓名或小名';
       const nickStatus = profileNicknameStatus(f);
       if (!nickStatus.ok) return nickStatus.message;
@@ -952,14 +1301,14 @@
 
     function emptyProfileForm() {
       return {
-        mode: 'create', editingId: null, realName: '', englishName: '', initial: '',
-        age: '', suffix: '', gender: 'female', avatarDataUrl: '',
+        mode: 'create', editingId: null, editingNickname: '', realName: '', englishName: '', initial: '',
+        age: '', suffix: '', gender: 'female', avatarDataUrl: '', preferredSlots: [],
         error: '', reason: ''
       };
     }
 
     function emptyTrialForm() {
-      return { mode: 'full', quickNick: '', realName: '', englishName: '', initial: '', age: '', contact: '', error: '' };
+      return { mode: 'full', quickNick: '', realName: '', englishName: '', initial: '', age: '', suffix: '', contact: '', preferredSlots: [], error: '' };
     }
 
     /* ------------------------------------------------------------------
@@ -980,6 +1329,7 @@
       trials: clone(MOCK_TRIALS),
       staffKind: 'enrolled',
       staffId: MOCK_ENROLLED[0].id,
+      explicitStaffTarget: false,
       staffQuery: '',
       staffTab: 'all',
       staffCounselor: 'all',
@@ -993,8 +1343,9 @@
       trialForm: emptyTrialForm(),
       claim: { step: 1, nickname: '', last4: '', error: '', matchedId: null },
       bind: { targetId: null, email: '', error: '' },
-      cw: { targetKind: 'enrolled', targetId: null, draft: [], pickCw: '', pickLevel: '', pickQuery: '', picking: null },
-      inlineCw: null,
+      cw: { targetKind: 'enrolled', targetId: null, draft: [], pickCw: '', pickLevel: '', pickQuery: '', picking: null, pendingRemoveIndex: null },
+      progressEdit: null,
+      transfer: { sourceId: null, targetId: '', count: 1, note: '' },
       noteEdit: { kind: 'enrolled', id: null, text: '' }
     };
 
@@ -1021,11 +1372,13 @@
       if (enrolledMatch) {
         state.staffKind = 'enrolled';
         state.staffId = enrolledMatch.id;
+        state.explicitStaffTarget = true;
       }
       const trialMatch = state.trials.find((x) => x.id === requestedStudentId);
       if (trialMatch) {
         state.staffKind = 'trial';
         state.staffId = trialMatch.id;
+        state.explicitStaffTarget = true;
       }
     }
     if (requestedPage) {
@@ -1050,14 +1403,15 @@
     if (params.get('tab')) state.navTab = params.get('tab');
     if (params.get('device') === 'tablet') state.device = 'tablet';
     if (state.role !== 'parent') ensureStaffTarget();
+    state.explicitStaffTarget = false;
 
     function activeProfile() {
       return state.profiles.find((p) => p.id === state.activeId) || state.profiles[0] || null;
     }
 
-    /* 列表一【自家孩子】：固定按建档时间正序（大宝 → 十宝），与顶栏切换器完全一致。 */
+    /* 列表一【自家孩子】：仅展示正式在读，固定按建档时间正序（大宝 → 十宝）。 */
     function sortedProfiles() {
-      return [...state.profiles].sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')) || compareNickname(a, b));
+      return activeProfiles().sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')) || compareNickname(a, b));
     }
 
     function operatorName() {
@@ -1122,8 +1476,8 @@
       return true;
     }
 
-    function recordStatusChange(target, from, to, reason, by = operatorName()) {
-      appendAudit(target, { type: 'status', by, from, to, reason });
+    function recordStatusChange(target, from, to, reason, by = operatorName(), archiveType = '') {
+      appendAudit(target, { type: 'status', by, from, to, reason, archiveType });
     }
 
     function coursewareSnapshot(list) {
@@ -1132,45 +1486,56 @@
       return items.map((d) => `${cwById(d.cwId).nameEn} · ${d.level || '标准'}${d.progressText ? ` (${d.progressText})` : ''}`).join('；');
     }
 
+    function monitorRelated(x, me) {
+      if (!x) return false;
+      const recent = daysSinceToday(x.lastActiveAt) !== null && daysSinceToday(x.lastActiveAt) <= 90;
+      const ordersOrHold = Number(x.stats && x.stats.pendingOrders) > 0 || Number(x.stats && x.stats.hold) > 0;
+      const hasLive = upcomingTsOf(x) > 0 || pendingTsOf(x) > 0 || ordersOrHold || recent;
+      return associatedMonitors(x).includes(me) && hasLive;
+    }
+
     function visibleEnrolled() {
       if (state.role === 'monitor') {
         const me = operatorName();
-        const enrolled = state.enrolled.filter((x) => x.responsible === me).map((x) => ({ ...x, staffKind: 'enrolled' }));
+        const enrolled = state.enrolled
+          .filter((x) => x.status === 'ACTIVE' && monitorRelated(x, me))
+          .map((x) => ({ ...x, staffKind: 'enrolled' }));
         const trials = state.trials
-          .filter((t) => t.responsible === me && (t.status === 'UNBOUND' || t.status === 'TRIALING'))
+          .filter((t) => t.status === 'UNBOUND' && (t.responsible === me || t.createdBy === me))
           .map((t) => ({
             ...t,
             staffKind: 'trial',
             teacher: t.teacher || '试课待排',
-            stats: t.stats || { upcoming: t.trialLessons || 0, pendingTs: 0, completed: 0, fixed: 0, temp: t.trialLessons || 0, pendingTiers: [] }
+            stats: {
+              upcoming: trialScheduledTs(t), pendingTs: trialPendingTs(t), completed: t.trialLessons || 0,
+              fixed: 0, temp: trialScheduledTs(t), hold: 0, pendingOrders: 0, exceptionRollback: 0, pendingTiers: []
+            }
           }));
         return [...trials, ...enrolled];
       }
       if (state.role === 'teacher') {
-        return state.enrolled.filter((x) => x.teacher === operatorName()).map((x) => ({ ...x, staffKind: 'enrolled' }));
+        return state.enrolled.filter((x) => x.status === 'ACTIVE' && x.teacher === operatorName()).map((x) => ({ ...x, staffKind: 'enrolled' }));
       }
-      return state.enrolled.map((x) => ({ ...x, staffKind: 'enrolled' }));
+      return state.enrolled.filter((x) => x.status === 'ACTIVE').map((x) => ({ ...x, staffKind: 'enrolled' }));
     }
 
     function counselorLabel(value) {
       if (!value || value === 'platform') return '平台未划拨';
-      if (value === 'Sarah') return '我直管';
+      if (value === 'Sarah') return '我关联';
       return `班长 ${value}`;
     }
 
     function counselorFilterLabel(value) {
-      if (value === 'all') return '全部班长';
-      if (value === 'mine') return '我直管';
+      if (value === 'all') return '全部关联班长';
+      if (value === 'mine') return '我关联';
       if (value === 'platform') return '平台未划拨';
-      return `班长 ${value}`;
+      return `关联班长 ${value}`;
     }
 
     function counselorOptions() {
       const set = [];
-      state.enrolled.forEach((x) => {
-        const key = x.responsible || 'platform';
-        if (!set.includes(key)) set.push(key);
-      });
+      const all = visibleEnrolled();
+      all.forEach((x) => associatedMonitors(x).forEach((key) => { if (!set.includes(key)) set.push(key); }));
       return set.sort((a, b) => {
         const order = { Sarah: 0, platform: 1 };
         return (order[a] ?? 2) - (order[b] ?? 2) || a.localeCompare(b);
@@ -1179,15 +1544,19 @@
 
     function counselorMatch(item) {
       if (state.role !== 'admin' || state.staffCounselor === 'all') return true;
-      if (state.staffCounselor === 'mine') return item.responsible === operatorName();
-      if (state.staffCounselor === 'platform') return !item.responsible;
-      return item.responsible === state.staffCounselor;
+      const monitors = associatedMonitors(item);
+      if (state.staffCounselor === 'mine') return monitors.includes(operatorName());
+      if (state.staffCounselor === 'platform') return monitors.length === 0;
+      return monitors.includes(state.staffCounselor);
     }
 
     function staffTabMatch(x) {
-      const map = { all: '', active: 'ACTIVE', archived: 'ARCHIVED' };
-      return state.staffTab === 'all'
-        || (state.staffTab === 'trial' ? x.staffKind === 'trial' : (x.staffKind !== 'trial' && x.status === map[state.staffTab]));
+      if (state.staffTab === 'all') return true;
+      if (state.staffTab === 'trial') return x.staffKind === 'trial';
+      if (state.staffTab === 'group') return x.staffKind !== 'trial' && relationsOf(x).includes('本组在读');
+      if (state.staffTab === 'holder') return x.staffKind !== 'trial' && relationsOf(x).includes('持有未排课次');
+      if (state.staffTab === 'active') return x.staffKind !== 'trial' && x.status === 'ACTIVE';
+      return true;
     }
 
     function staffSearchMatch(x, q) {
@@ -1252,6 +1621,7 @@
     }
 
     function ensureStaffTarget() {
+      if (state.explicitStaffTarget && lifecycleTarget(state.staffKind, state.staffId)) return;
       const items = visibleEnrolled();
       if (items.some((x) => x.id === state.staffId && state.staffKind === 'enrolled')) return;
       const preferred = items.find((x) => x.status === 'ACTIVE');
@@ -1344,7 +1714,8 @@
       state.navTab = role === 'parent' ? 'me' : role === 'teacher' ? 'students' : 'ops';
       state.page = role === 'parent' ? 'center' : 'staffList';
       state.overlay = null;
-      state.inlineCw = null;
+      state.progressEdit = null;
+      state.transfer = { sourceId: null, targetId: '', count: 1, note: '' };
       state.staffQuery = '';
       state.staffTab = 'all';
       state.staffCounselor = 'all';
@@ -1359,12 +1730,12 @@
 
     function setView(view) {
       state.overlay = null;
-      state.inlineCw = null;
+      state.progressEdit = null;
       if (view === 'claim') return openClaimModal();
       if (state.role === 'parent') {
         if (view === 'center') { state.page = 'center'; state.navTab = 'me'; }
         if (view === 'detail') {
-          if (!state.profiles.length) {
+          if (!activeProfiles().length) {
             showToast('请先添加孩子档案');
             state.page = 'center'; state.navTab = 'me';
           } else {
@@ -1388,7 +1759,7 @@
           state.navTab = 'settings';
         }
         if (view === 'detail') {
-          if (!state.profiles.length) {
+          if (!activeProfiles().length) {
             showToast('请先添加孩子档案');
             state.page = 'center'; state.navTab = 'settings';
           } else {
@@ -1409,9 +1780,10 @@
     function setDataset(dataset) {
       state.dataset = dataset;
       state.profiles = clone(MOCK_PROFILES[dataset]);
-      state.activeId = state.profiles[0] ? state.profiles[0].id : '';
+      const firstActive = state.profiles.find((p) => p.status === 'ACTIVE');
+      state.activeId = firstActive ? firstActive.id : '';
       state.overlay = null;
-      if (state.role === 'parent' && state.page === 'detail' && !state.profiles.length) {
+      if (state.role === 'parent' && state.page === 'detail' && !activeProfiles().length) {
         state.page = 'center';
       }
       if (state.staffKind === 'enrolled') ensureStaffTarget();
@@ -1431,6 +1803,8 @@
       state.staffSort = 'smart'; state.staffLetter = 'all'; state.staffLetterOpen = false;
       state.adminTab = 'all'; state.trialQuery = '';
       state.overlay = null;
+      state.progressEdit = null;
+      state.transfer = { sourceId: null, targetId: '', count: 1, note: '' };
       state.form = emptyProfileForm(); state.trialForm = emptyTrialForm();
       state.claim = { step: 1, nickname: '', last4: '', error: '', matchedId: null };
       state.bind = { targetId: null, email: '', error: '' };
@@ -1553,7 +1927,7 @@
         return 'David Miller · 本轮授课进度与在学课件';
       }
       if (state.role === 'admin' && state.page === 'staffList') {
-        return '全校在籍学员 · 按班长筛选';
+        return '全校在籍学员 · 按关联班长筛选';
       }
       return '';
     }
@@ -1638,6 +2012,29 @@
     }
 
     /* 嵌入式 iframe 模式：M1A 自身 Banner 已隐藏，详情内保留返回入口。 */
+    function slotPickerSection(slots, step = '4') {
+      return `<section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-2.5">
+        <div class="flex items-center gap-2">
+          <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">${step}</span>
+          <h3 class="text-[14px] font-bold text-slate-900">常态作息偏好 <span class="text-[12px] font-normal text-slate-500">选填</span></h3>
+        </div>
+        <p class="text-[12px] font-medium leading-relaxed text-slate-500">默认留空，不阻断保存；仅供排课高亮参考，对老师端严格隐藏。</p>
+        <div class="space-y-1.5">
+          ${SLOT_DAYS.map((day) => `<div class="flex items-start gap-2">
+            <span class="w-9 shrink-0 pt-1.5 text-[12px] font-semibold text-slate-600">${day.label}</span>
+            <div class="flex min-w-0 flex-1 flex-wrap gap-1">
+              ${SLOT_PERIODS.map((period) => {
+                const key = `${day.id}:${period.id}`;
+                const on = (slots || []).includes(key);
+                return `<button data-action="toggle-slot" data-day="${day.id}" data-period="${period.id}" class="h-7 shrink-0 rounded-full px-2 text-[11px] transition ${on ? 'bg-indigo-600 font-bold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${period.label}</button>`;
+              }).join('')}
+            </div>
+          </div>`).join('')}
+        </div>
+      </section>`;
+    }
+
+    /* 嵌入式 iframe 模式：M1A 自身 Banner 已隐藏，详情内保留返回入口。 */
     function embedBackRow() {
       if (!state.embed) return '';
       let action = '';
@@ -1666,7 +2063,7 @@
     }
 
     function renderSwitcher() {
-      const count = state.profiles.length;
+      const count = activeProfiles().length;
       if (!count) {
         return `<div class="sticky top-0 z-20 border-b border-slate-200/70 bg-white/95 px-4 py-2 backdrop-blur">
           <div class="mx-auto flex w-full max-w-[640px] items-center justify-between gap-2">
@@ -1695,7 +2092,7 @@
      * 家长 · 档案中心
      * ------------------------------------------------------------------ */
     function renderCenter() {
-      const count = state.profiles.length;
+      const count = activeProfiles().length;
       const isFull = count >= 10;
       const blocked = isFull || state.online === 'off';
       const tablet = state.device === 'tablet';
@@ -1708,17 +2105,22 @@
         ${pageHeader('自家孩子', state.role === 'admin' ? `${count} 个孩子 · 仅本人家庭可见` : `${count} 个孩子 · 单账号上限 10 个`, `<button data-action="add-profile" ${blocked ? 'disabled' : ''} class="h-11 shrink-0 rounded-xl bg-indigo-600 px-4 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 添加</button>`)}
         ${isFull ? `<div class="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
           <span class="mt-0.5 shrink-0 text-amber-700">${icon('alert-triangle', 'h-4 w-4')}</span>
-          <div class="text-[12px] font-medium leading-relaxed text-amber-900"><span class="font-bold">名下档案已达上限 (10/10)</span><br>如需新增，请先注销不再使用的档案。</div>
+          <div class="text-[12px] font-medium leading-relaxed text-amber-900"><span class="font-bold">名下档案已达上限 (10/10)</span><br>如需新增，请先归档或删除不再使用的档案。</div>
+        </div>` : ''}
+        ${!count ? `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-8 text-center">
+          <div class="text-[14px] font-semibold text-slate-700">暂无正式在读孩子</div>
+          <div class="mt-1 text-[12px] font-medium text-slate-500">可从下方【已归档宝贝】重新激活，或添加新宝贝。</div>
         </div>` : ''}
 
         <section class="${tablet ? 'grid grid-cols-2 gap-2' : 'overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70'}">
           ${sortedProfiles().map((p) => profileItem(p, tablet)).join('')}
           ${tablet ? addRow : ''}
         </section>
-        ${!tablet ? addRow : ''}
+        ${!tablet && count ? addRow : ''}
 
         ${state.role === 'parent' ? claimCard(blocked) : ''}
-        <p class="px-2 text-center text-[12px] font-medium text-slate-500">规范昵称全平台唯一 · 注销后昵称永久保留</p>
+        ${renderArchivedSection()}
+        <p class="px-2 text-center text-[12px] font-medium text-slate-500">规范昵称全平台唯一 · 归档或删除后昵称永久保留</p>
       </div>`;
     }
 
@@ -1727,27 +2129,62 @@
       const cls = standalone
         ? 'rounded-2xl border border-slate-300 bg-slate-50/70 p-3'
         : `border-b border-slate-100 last:border-0 ${active ? 'bg-white' : ''}`;
-      return `<button data-action="open-profile" data-id="${p.id}" class="flex w-full items-center gap-3 ${cls} px-3.5 py-3 text-left transition hover:bg-slate-50 active:bg-slate-50">
-        ${avatar(p, 'h-11 w-11', 'text-[16px]')}
-        <div class="min-w-0 flex-1">
-          <div class="flex flex-wrap items-center gap-1.5">
-            <span class="truncate font-mono text-[16px] font-bold text-slate-900">${esc(p.nickname)}</span>
-            <span class="shrink-0 rounded-full border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(p.tag || '宝贝')}</span>
-            ${statusChip(p.status)}
+      return `<div class="${cls}">
+        <div data-action="open-profile" data-id="${p.id}" role="button" tabindex="0" class="flex w-full cursor-pointer items-center gap-3 px-3.5 py-3 text-left transition hover:bg-slate-50 active:bg-slate-50">
+          ${avatar(p, 'h-11 w-11', 'text-[16px]')}
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="truncate font-mono text-[16px] font-bold text-slate-900">${esc(p.nickname)}</span>
+              <span class="shrink-0 rounded-full border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(p.tag || '宝贝')}</span>
+              ${statusChip(p.status, 'parent', p.archiveType)}
+            </div>
+            <div class="mt-0.5 truncate text-[14px] font-medium text-slate-600">${esc(p.realName)} · ${genderLabel(p.gender)} · ${p.age}岁</div>
+            <div class="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] font-medium">
+              <span class="text-amber-700">待上 ${p.stats.upcoming}</span>
+              <span class="text-slate-300">|</span>
+              <span class="text-indigo-700">待排: ${pendingTsOf(p)} TS</span>
+              ${pendingTsOf(p) ? `<span class="text-slate-300">|</span>
+              <span class="font-mono text-slate-500">${pendingTierText(p)}</span>` : ''}
+              <span class="text-slate-300">|</span>
+              <span class="text-slate-500">在学课件 ${cwCount(p)}/6</span>
+            </div>
           </div>
-          <div class="mt-0.5 truncate text-[14px] font-medium text-slate-600">${esc(p.realName)} · ${genderLabel(p.gender)} · ${p.age}岁</div>
-          <div class="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] font-medium">
-            <span class="text-amber-700">待上 ${p.stats.upcoming}</span>
-            <span class="text-slate-300">|</span>
-            <span class="text-indigo-700">待排: ${pendingTsOf(p)} TS</span>
-            ${pendingTsOf(p) ? `<span class="text-slate-300">|</span>
-            <span class="font-mono text-slate-500">${pendingTierText(p)}</span>` : ''}
-            <span class="text-slate-300">|</span>
-            <span class="text-slate-500">在学课件 ${cwCount(p)}/6</span>
-          </div>
+          ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
         </div>
-        ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
-      </button>`;
+        <div class="px-3.5 pb-3 text-[12px] font-medium text-slate-500"><span class="font-semibold text-slate-600">学生备注：</span>${compactNoteBlock(p.notes, 38)}</div>
+      </div>`;
+    }
+
+    /* 家长 Tab 4【已归档宝贝】：仅正式暂别归档，折叠收口，绝不混入试课失效归档。 */
+    function renderArchivedSection() {
+      const list = archivedFormalProfiles().sort((a, b) => String(b.archivedAt || '').localeCompare(String(a.archivedAt || '')));
+      if (!list.length) return '';
+      const activeCount = activeProfiles().length;
+      const blocked = activeCount >= 10;
+      return `<details class="group rounded-2xl border border-slate-300 bg-slate-50/70">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <span class="flex min-w-0 items-center gap-2">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">${icon('package', 'h-4 w-4')}</span>
+            <span class="truncate text-[16px] font-bold text-slate-900">已归档宝贝 (${list.length})</span>
+          </span>
+          <span class="shrink-0 text-[12px] font-bold text-slate-500"><span class="group-open:hidden">▾</span><span class="hidden group-open:inline">▴</span></span>
+        </summary>
+        <div class="space-y-2 px-3 pb-3">
+          ${list.map((p) => `<div class="rounded-xl border border-dashed border-slate-400 bg-white px-3 py-2.5">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="truncate font-mono text-[14px] font-bold text-slate-900">${esc(p.nickname)}</span>
+              ${statusChip(p.status, 'parent', p.archiveType)}
+            </div>
+            <div class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${esc(p.realName)} · 归档于 ${esc(p.archivedAt || '—')}</div>
+            <div class="mt-1 text-[12px] font-medium text-slate-500">历史已结课 ${historyTsOf(p)} 节 · 历史购课单 ${historyOrdersOf(p)} 张 · 昵称永久锁定</div>
+            <div class="mt-2 flex items-center justify-between gap-2">
+              <button data-action="toast" data-message="已打开历史账单与课表（只读）" class="text-[12px] font-semibold text-indigo-600 hover:underline">历史记录只读查看</button>
+              <button data-action="reactivate-profile" data-id="${p.id}" ${blocked || state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 text-[12px] font-bold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40">🔄 重新激活</button>
+            </div>
+            ${blocked ? `<div class="mt-1 text-[12px] font-medium text-rose-700">名下激活档案已达上限 (10/10)，请先归档或删除其他孩子。</div>` : ''}
+          </div>`).join('')}
+        </div>
+      </details>`;
     }
 
     function claimCard(blocked) {
@@ -1811,6 +2248,8 @@
     function renderDetail() {
       const p = activeProfile();
       if (!p) return renderEmpty();
+      const canDelete = historyTsOf(p) === 0 && historyOrdersOf(p) === 0;
+      const archived = p.status === 'ARCHIVED';
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3 pb-10">
         ${embedBackRow()}
         ${identityCard(p, 'parent')}
@@ -1820,11 +2259,15 @@
         ${lessonHistoryCard()}
         ${infoCard(p, 'parent')}
         ${p.trialHistory ? `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">试课记录已并入：历史结课 ${p.stats.completed} 节，学生备注与试课购课单均可查。</div>` : ''}
-        <div class="flex gap-2">
-          <button data-action="open-edit" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>
-          <button data-action="open-guard" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300">注销档案</button>
-        </div>
-        <p class="text-center text-[12px] font-medium text-slate-500">注销前需清零课次资产</p>
+        ${archived
+          ? `<div class="rounded-xl border border-dashed border-slate-400 bg-slate-50/60 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${statusChip('ARCHIVED', 'parent', p.archiveType)} 已于 ${esc(p.archivedAt || '—')} 归档 · 昵称永久锁定</div>
+             <button data-action="reactivate-profile" data-id="${p.id}" ${activeProfiles().length >= 10 || state.online === 'off' ? 'disabled' : ''} class="h-11 w-full rounded-xl border border-emerald-200 bg-emerald-50 text-[14px] font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">🔄 重新激活</button>`
+          : `<div class="flex gap-2">
+            <button data-action="open-edit" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>
+            <button data-action="open-archive" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-amber-300 bg-amber-50 text-[14px] font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40">归档档案</button>
+          </div>
+          <button data-action="open-delete" ${!canDelete || state.online === 'off' ? 'disabled' : ''} class="h-11 w-full rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400">删除档案</button>
+          <p class="text-center text-[12px] font-medium ${canDelete ? 'text-slate-500' : 'text-rose-700'}">${canDelete ? '从未产生课次与购课单，可删除（不可恢复）或归档封存（可再激活）' : '已有历史课次或购课单，不支持删除，请使用归档'}</p>`}
       </div>`;
     }
 
@@ -1840,7 +2283,7 @@
             <div class="flex flex-wrap items-center gap-1.5">
               <span class="truncate font-mono text-[18px] font-bold tracking-tight text-slate-900">${esc(p.nickname)}</span>
               ${tag}
-              ${statusChip(p.status, isTrial ? 'admin' : 'parent')}
+              ${statusChip(p.status, isTrial ? 'admin' : 'parent', p.archiveType)}
             </div>
             <div class="mt-1 text-[14px] font-medium text-slate-600">${state.role === 'teacher' ? `${esc(p.englishName)} · ${genderLabel(p.gender)} · ${p.age}岁` : `${esc(p.realName)} · ${genderLabel(p.gender)} · ${p.age}岁`}</div>
             ${mode === 'staff' && !isTrial && state.role !== 'teacher' ? leaveBadge(p) : ''}
@@ -1852,7 +2295,7 @@
       </section>`;
     }
 
-    function assetCard(p) {
+    function assetCard(p, options = {}) {
       const t = TONES.emerald;
       const pending = pendingTsOf(p);
       const tierText = pendingTierText(p);
@@ -1866,6 +2309,7 @@
           </div>
           <span class="text-[12px] font-medium text-slate-600">财课分离 · 按节核销</span>
         </div>
+        ${options.showTransfer ? `<button data-action="open-transfer" data-id="${p.id}" data-kind="${options.kind || 'enrolled'}" class="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70">↔️ 划转给同家庭孩子</button>` : ''}
         <div class="mt-2.5 rounded-xl bg-white px-3 py-2.5">
           <div class="flex items-center justify-between gap-2">
             <span class="text-[12px] font-medium text-slate-600">1v1 待排期</span>
@@ -1893,11 +2337,9 @@
       const staff = mode === 'staff' && p.status !== 'ARCHIVED';
       const selfActive = mode === 'parent' && p.status === 'ACTIVE' && (state.role === 'parent' || state.role === 'admin');
       const editable = staff || selfActive;
-      const maintainHint = state.role === 'parent'
-        ? '进度备注（Process Note）选填，最多 64 字；管理员、班长、老师与家长均可维护'
-        : '支持 1~6 门课件与就读级别维护；进度备注（Process Note）选填，最多 64 字';
+      const maintainHint = '配置课件仅负责新增/移除（新增可选初始级别）；改级与 2000 字进度备注请使用各课件行【更新进度】';
       const readonlyHint = p.status === 'UNBOUND'
-        ? '待认领试课档案由负责班长或平台管理员维护'
+        ? '待认领试课档案由建档/关联班长或平台管理员维护'
         : p.status === 'ARCHIVED'
           ? '已归档档案只读 · 不支持调整'
           : maintainHint;
@@ -1909,7 +2351,7 @@
             <span class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-500">${list.length}/6</span>
           </div>
           ${editable
-            ? `<button data-action="open-courseware" data-kind="${kind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">配置课件</button>`
+            ? `<button data-action="open-courseware" data-kind="${kind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40">配置课件</button>`
             : `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`}
         </div>
         <p class="mt-0.5 text-[12px] font-medium text-slate-500">${editable ? maintainHint : readonlyHint}</p>
@@ -1918,7 +2360,6 @@
             const cw = cwById(item.cwId);
             const stale = isStaleCourseware(item, p);
             const mainTeacher = mainTeacherInfo(item);
-            const isEditingInline = state.inlineCw && state.inlineCw.kind === kind && state.inlineCw.id === p.id && state.inlineCw.index === idx;
             const lastUpdater = item.lastUpdatedBy
               ? `最后更新：${esc(item.lastUpdatedBy)} (${esc(item.lastUpdatedRole || '教务')}) · ${relativeDaysLabel(item.lastUpdatedAt)}`
               : '暂无进度更新记录';
@@ -1936,28 +2377,15 @@
                   </div>
                   <div class="truncate text-[12px] font-medium text-slate-500">${esc(cw.nameCn)}</div>
                 </div>
-                ${editable && !isEditingInline
-                  ? `<button data-action="inline-cw-open" data-kind="${kind}" data-id="${p.id}" data-index="${idx}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-40">进度备注</button>`
+                ${editable
+                  ? `<button data-action="open-progress" data-kind="${kind}" data-id="${p.id}" data-index="${idx}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">更新进度</button>`
                   : ''}
               </div>
-              <div class="mt-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 text-[12px]">
-                <span class="font-semibold text-slate-500">进度备注：</span>
-                <span class="font-semibold ${item.progressText ? 'text-slate-800' : 'text-slate-500'}">${esc(item.progressText || '暂未记录（如 Unit 3 · Page 24）')}</span>
+              <div class="mt-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 text-[12px] font-semibold ${item.progressText ? 'text-slate-800' : 'text-slate-500'}">
+                <span class="font-semibold text-slate-500">进度备注：</span>${expandableTextBlock(item.progressText, '暂未记录（如 Unit 3 · Page 24）')}
               </div>
-              ${isEditingInline ? `<div class="mt-2 space-y-2 rounded-xl border border-indigo-200 bg-indigo-50/40 p-2.5">
-                <div class="flex items-center justify-between text-[12px]">
-                  <span class="font-semibold text-indigo-950">更新进度备注</span>
-                  <span id="inlineCwCount" class="font-mono font-semibold text-slate-500">${(state.inlineCw.text || '').length}/64</span>
-                </div>
-                <input id="inlineCwInput" value="${esc(state.inlineCw.text)}" maxlength="64" placeholder="如 Unit 3 · Page 24 / 第4单元第12页" class="h-10 w-full rounded-lg border border-indigo-200 bg-white px-3 text-[14px] text-slate-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15">
-                <div class="flex justify-end gap-2">
-                  <button data-action="inline-cw-cancel" class="h-8 rounded-lg border border-slate-300 bg-white px-3 text-[12px] font-semibold text-slate-700 hover:bg-slate-50">取消</button>
-                  <button data-action="inline-cw-save" class="h-8 rounded-lg bg-indigo-600 px-3 text-[12px] font-semibold text-white hover:bg-indigo-700">保存进度</button>
-                </div>
-              </div>` : ''}
               <div class="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] font-medium text-slate-500">
-                <span>${lastUpdater}</span>
-                <span>${mainTeacherLabel}</span>
+                ${state.role === 'teacher' ? '' : `<span>${lastUpdater}</span><span>${mainTeacherLabel}</span>`}
               </div>
             </div>`;
           }).join('') : `<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-[12px] font-medium text-slate-500">尚未配置在学课件</div>`}
@@ -1974,10 +2402,16 @@
         ['英文名', esc(p.englishName)],
         ['年龄', `${p.age} 岁`],
         ['性别', genderLabel(p.gender)],
+        ...(teacherView ? [] : [['常态作息偏好 <span class="font-normal text-slate-400">选填</span>', esc(preferredSlotsText(p))]]),
         ...(teacherView ? [] : [['建档时间', esc(p.createdAt)]])
       ];
       if (mode === 'staff' && !teacherView) {
-        rows.push(['负责班长', counselorLabel(p.responsible)]);
+        const monitors = associatedMonitors(p);
+        rows.push(['关联班长', esc(monitors.length ? monitors.join('、') : '平台未划拨')]);
+      }
+      if (p.status === 'ARCHIVED' && !teacherView) {
+        rows.push(['归档类型', esc(statusLabel('ARCHIVED', p.archiveType))]);
+        rows.push(['归档日期', esc(p.archivedAt || '—')]);
       }
       if (isTrial && !teacherView) {
         rows.push(
@@ -1999,7 +2433,7 @@
 
     function notesCard(p, mode, kind) {
       const staffView = mode === 'staff';
-      const editable = staffView && p.status !== 'ARCHIVED';
+      const editable = p.status !== 'ARCHIVED' && (staffView || (state.role === 'parent' && p.status === 'ACTIVE'));
       const note = (p.notes || '').trim();
       return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <div class="flex items-center justify-between gap-2">
@@ -2008,13 +2442,14 @@
             <h2 class="truncate text-[16px] font-bold text-slate-900">学生备注</h2>
           </div>
           ${editable
-            ? `<button data-action="open-notes" data-kind="${kind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">编辑学生备注</button>`
+            ? `<button data-action="open-notes" data-kind="${kind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">编辑备注</button>`
             : `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`}
         </div>
-        <p class="mt-0.5 text-[12px] font-medium text-slate-500">Student Note · 跨教材学情、性格偏好与长期教学注意事项</p>
-        <div class="mt-2.5 rounded-xl border border-slate-200/80 bg-white px-3 py-2.5">
-          <p class="break-words text-[14px] font-medium leading-relaxed ${note ? 'text-slate-800' : 'text-slate-500'}">${note ? esc(note) : '暂无学生备注'}</p>
+        <p class="mt-0.5 text-[12px] font-medium text-slate-500">Student Note · 最多 2000 字 · 默认折叠 2 行</p>
+        <div class="mt-2.5 rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-[14px] font-medium leading-relaxed ${note ? 'text-slate-800' : 'text-slate-500'}">
+          ${expandableTextBlock(note, '暂无学生备注')}
         </div>
+        <p class="mt-1.5 text-[12px] font-medium text-slate-500">💡 请尽量填写英文，便于老师看懂（如 Shy at first, needs encouragement）</p>
       </section>`;
     }
 
@@ -2046,13 +2481,16 @@
       </section>`;
     }
 
-    function logStatusLabel(status) {
-      return { UNBOUND: '待认领', TRIALING: '试课中', ACTIVE: '在读', ARCHIVED: '已归档' }[status] || status;
+    function logStatusLabel(status, archiveType = '') {
+      if (!status) return '—';
+      if (status === 'UNBOUND') return '待认领试课';
+      if (status === 'ARCHIVED') return statusLabel('ARCHIVED', archiveType);
+      return STATUS_LABELS[status] || String(status);
     }
 
-    function logStatusChip(status) {
-      const tone = { UNBOUND: 'amber', TRIALING: 'indigo', ACTIVE: 'emerald', ARCHIVED: 'slate' }[status] || 'slate';
-      return `<span class="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${TONES[tone].chip}"><span class="font-mono">${esc(status)}</span><span>${esc(logStatusLabel(status))}</span></span>`;
+    function logStatusChip(status, archiveType = '') {
+      const tone = { UNBOUND: 'amber', ACTIVE: 'emerald', ARCHIVED: 'slate', DELETED: 'slate' }[status] || 'slate';
+      return `<span class="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${TONES[tone].chip}">${esc(logStatusLabel(status, archiveType))}</span>`;
     }
 
     function logEntry(a) {
@@ -2064,11 +2502,11 @@
             ${time}
           </div>
           <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-            ${logStatusChip(a.from)}
+            ${logStatusChip(a.from, a.archiveType)}
             <span class="text-[12px] font-bold text-slate-500" aria-hidden="true">→</span>
-            ${logStatusChip(a.to)}
+            ${logStatusChip(a.to, a.archiveType)}
           </div>
-          <p class="mt-1.5 break-words text-[12px] font-medium leading-relaxed text-slate-600">原因：${esc(a.reason || '—')}</p>
+          <div class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-600"><span class="font-bold">原因：</span>${expandableTextBlock(a.reason || '—', '—')}</div>
         </div>`;
       }
       return `<div class="rounded-xl border border-slate-200/80 bg-white px-3 py-2.5">
@@ -2078,21 +2516,23 @@
         </div>
         <div class="mt-1.5 text-[14px] font-bold text-slate-900">${esc(a.field || '档案字段')}</div>
         <div class="mt-1.5 space-y-1">
-          <div class="rounded-lg bg-slate-50 px-2 py-1.5">
+          <div class="rounded-lg bg-slate-50 px-2 py-1.5 text-[12px] font-medium leading-relaxed text-slate-700">
             <span class="text-[12px] font-bold text-slate-600">变更前</span>
-            <p class="mt-0.5 break-words text-[12px] font-medium leading-relaxed text-slate-700">${esc(a.before || '（空）')}</p>
+            <div class="mt-0.5">${expandableTextBlock(a.before || '（空）', '（空）')}</div>
           </div>
-          <div class="rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+          <div class="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-medium leading-relaxed text-slate-900">
             <span class="text-[12px] font-bold text-indigo-700">变更后</span>
-            <p class="mt-0.5 break-words text-[12px] font-medium leading-relaxed text-slate-900">${esc(a.after || '（空）')}</p>
+            <div class="mt-0.5">${expandableTextBlock(a.after || '（空）', '（空）')}</div>
           </div>
         </div>
       </div>`;
     }
 
     function logSummary(a) {
-      if (a.type === 'status') return `状态流转：${a.from} → ${a.to}`;
-      return `${a.field || '档案字段'}：${a.before || '（空）'} → ${a.after || '（空）'}`;
+      if (a.type === 'status') return `状态流转：${logStatusLabel(a.from, a.archiveType)} → ${logStatusLabel(a.to, a.archiveType)}`;
+      const before = compactText(a.before || '（空）', 64);
+      const after = compactText(a.after || '（空）', 64);
+      return `${a.field || '档案字段'}：${before} → ${after}`;
     }
 
     function auditCard(p) {
@@ -2111,7 +2551,7 @@
             ${icon('chevron-down', 'h-4 w-4 text-slate-500 transition group-open:rotate-180')}
           </span>
         </summary>
-        <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-600">仅管理员与负责班长可查看 · 状态流转与字段变动全量留痕</p>
+        <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-600">仅管理员与关联班长可查看 · 状态流转与字段变动全量留痕</p>
         <div class="mt-2.5 space-y-2" data-log-list="${esc(p.id)}">
           ${logs.length
             ? `${head.map(logEntry).join('')}${tail.map((a) => `<div data-log-extra="${esc(p.id)}" class="hidden">${logEntry(a)}</div>`).join('')}`
@@ -2128,13 +2568,13 @@
      * 家长 · 认领试课
      * ------------------------------------------------------------------ */
     function renderClaimModal() {
-      const blocked = state.online === 'off' || state.profiles.length >= 10;
+      const blocked = state.online === 'off' || activeProfiles().length >= 10;
       const t = state.trials.find((x) => x.id === state.claim.matchedId);
       if (state.claim.step === 2 && !t) state.claim.step = 1;
       const blockedMsg = state.online === 'off'
         ? '离线模式下不可认领，请联网后重试'
-        : state.profiles.length >= 10
-          ? '名下档案已达上限 (10/10)，请先注销不再使用的档案'
+        : activeProfiles().length >= 10
+          ? '名下档案已达上限 (10/10)，请先归档或删除不再使用的档案'
           : '';
       return `<div class="absolute inset-0 z-50">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
@@ -2208,9 +2648,9 @@
           <ul class="mt-1.5 space-y-0.5 font-medium text-slate-600">
             <li>① 学员档案本身（转为在读并开放基础信息与头像编辑）</li>
             <li>② 全部 TS 课次资产（待排期 / 已排期 / 已结课 TS 全量归入）</li>
-            <li>③ 试课购课单与清退记录（原收款人 holder_id 保持不变）</li>
+            <li>③ 试课购课单与清退记录（原资金持有人保持不变）</li>
             <li>④ 在学课件进度（1~6 门课件、就读级别与进度备注同步继承）</li>
-            <li>⑤ 公开教学备忘（内部备忘与档案变动日志仍对家长隐藏）</li>
+            <li>⑤ 学生备注（内部档案变动日志仍对家长隐藏）</li>
           </ul>
         </div>
         ${state.claim.error ? `<div id="claimError" class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(state.claim.error)}</div>` : ''}
@@ -2236,11 +2676,14 @@
       const isMonitor = state.role === 'monitor';
       const isTeacher = state.role === 'teacher';
       const base = visibleEnrolled().filter(counselorMatch);
+      const allowedTabs = isMonitor ? ['all', 'trial', 'group', 'holder'] : ['all', 'active'];
+      if (!allowedTabs.includes(state.staffTab)) state.staffTab = 'all';
       const counts = {
         all: base.length,
         trial: base.filter((x) => x.staffKind === 'trial').length,
-        active: base.filter((x) => x.staffKind !== 'trial' && x.status === 'ACTIVE').length,
-        archived: base.filter((x) => x.staffKind !== 'trial' && x.status === 'ARCHIVED').length
+        group: base.filter((x) => x.staffKind !== 'trial' && relationsOf(x).includes('本组在读')).length,
+        holder: base.filter((x) => x.staffKind !== 'trial' && relationsOf(x).includes('持有未排课次')).length,
+        active: base.filter((x) => x.staffKind !== 'trial' && x.status === 'ACTIVE').length
       };
       const indexBase = visibleEnrolled().filter(counselorMatch).filter(staffTabMatch);
       const showLetterIndex = indexBase.length > 10;
@@ -2261,18 +2704,18 @@
       const counselorActive = state.staffCounselor !== 'all';
       const counselorTrigger = isAdmin
         ? `<div class="flex items-center justify-between gap-2">
-            <span class="text-[12px] font-medium text-slate-500">按班长筛选</span>
+            <span class="text-[12px] font-medium text-slate-500">按关联班长</span>
             <button data-action="open-counselor" class="flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1.5 text-[12px] font-medium transition ${counselorActive ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}">
               <span>${esc(counselorFilterLabel(state.staffCounselor))}</span>
               <span class="text-slate-500" aria-hidden="true">▾</span>
             </button>
           </div>`
         : '';
-      const seg = (key, label, count) => `<button data-action="staff-tab" data-tab="${key}" class="h-8 shrink-0 whitespace-nowrap rounded-full border-0 px-3 text-[12px] transition ${state.staffTab === key ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}${count ? ` (${count})` : ''}</button>`;
+      const seg = (key, label, count) => `<button data-action="staff-tab" data-tab="${key}" class="h-7 shrink-0 whitespace-nowrap rounded-full border-0 px-2 text-[11px] transition ${state.staffTab === key ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}${count ? ` (${count})` : ''}</button>`;
       const listHeader = state.embed ? '' : `<div class="flex items-center justify-between gap-3 px-1">
           <div class="min-w-0">
             <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${isAdmin ? '全员学员' : isTeacher ? '我的学员' : '所辖学员'}</h1>
-            <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isAdmin ? '可按班长筛选' : isTeacher ? '本轮授课进度 · 在学课件与学生备注' : '管理在读学员与未注册试听学员'}</p>
+            <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isAdmin ? '可按关联班长筛选' : isTeacher ? '本轮授课进度 · 在学课件与学生备注' : '按试课建档 / 本组授课 / 持有课次动态关联'}</p>
           </div>
           ${isMonitor
             ? `<button data-action="open-trial" ${state.online === 'off' ? 'disabled' : ''} class="h-10 shrink-0 rounded-xl bg-indigo-600 px-3.5 text-[14px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 新建试课学员</button>`
@@ -2304,11 +2747,12 @@
           </div>` : ''}
           ${counselorTrigger}
         </div>
-        <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+        <div class="flex items-center gap-1 overflow-x-auto py-0.5">
           ${seg('all', '全部', counts.all)}
           ${isMonitor ? seg('trial', '试课待认领', counts.trial) : ''}
-          ${seg('active', '在读', counts.active)}
-          ${seg('archived', '已归档', counts.archived)}
+          ${isMonitor ? seg('group', '本组在读', counts.group) : ''}
+          ${isMonitor ? seg('holder', '持有课次', counts.holder) : ''}
+          ${!isMonitor ? seg('active', '正式在读', counts.active) : ''}
         </div>
         ${!isTeacher && items.some((p) => scheduleChild(p).demo) ? `<div class="flex items-start gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2 text-[12px] font-medium text-slate-600">
           <span class="mt-0.5 shrink-0 text-slate-500">${icon('info', 'h-3.5 w-3.5')}</span>
@@ -2332,16 +2776,17 @@
       const archived = p.status === 'ARCHIVED';
       const isTrial = p.staffKind === 'trial';
       const isTeacher = state.role === 'teacher';
-      return `<article class="rounded-2xl border ${archived ? 'border-dashed border-slate-400 bg-slate-50/60 opacity-60' : 'border-slate-300 bg-slate-50/70'} p-3">
-        <button data-action="staff-open" data-kind="${p.staffKind}" data-id="${p.id}" class="flex w-full items-center gap-3 text-left">
+      const relationChips = (isTeacher || isTrial) ? [] : relationsOf(p);
+      return `<article class="rounded-2xl border ${archived ? 'border-dashed border-slate-400 bg-slate-50/60 opacity-70' : 'border-slate-300 bg-slate-50/70'} p-3">
+        <div data-action="staff-open" data-kind="${p.staffKind}" data-id="${p.id}" role="button" tabindex="0" class="flex w-full cursor-pointer items-center gap-3 text-left">
           ${avatar(p, 'h-11 w-11', 'text-[16px]')}
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-1.5">
               <span class="truncate font-mono text-[16px] font-bold text-slate-900">${esc(p.nickname)}</span>
-              ${isTrial
+              ${isTrial && !archived
                 ? `<span class="inline-flex shrink-0 items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">试课待认领</span>`
-                : statusChip(p.status, 'parent')}
-              ${!isTeacher ? `<span class="shrink-0 rounded-full border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-600">${esc(counselorLabel(p.responsible))}</span>` : ''}
+                : (archived ? statusChip(p.status, 'parent', p.archiveType) : '')}
+              ${relationChips.map((r) => `<span class="shrink-0 rounded-full border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-600">${esc(r)}</span>`).join('')}
             </div>
             <div class="mt-0.5 truncate text-[14px] font-medium text-slate-600">${isTeacher ? `${esc(p.englishName)} · ${genderLabel(p.gender)} · ${p.age}岁` : `${esc(p.realName)} · ${genderLabel(p.gender)} · ${p.age}岁`}</div>
             <div class="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] font-medium text-slate-500">
@@ -2353,13 +2798,19 @@
                 ? `<span>预留 ${maskContact(p.contact)}</span>`
                 : `<span class="font-semibold text-indigo-700">待排: ${pendingTsOf(p)} TS</span>${pendingTsOf(p) ? `<span class="text-slate-300">·</span><span class="font-mono text-slate-600">${pendingTierText(p)}</span>` : ''}`}`}
             </div>
-            ${cw ? `<div class="mt-0.5 truncate text-[12px] font-medium text-slate-500">在学课件 ${esc(cw.nameEn)} ${esc(cwItem.level || '')}${cwItem.progressText ? ` · ${esc(cwItem.progressText)}` : ''}</div>` : ''}
+            ${cw ? `<div class="mt-0.5 text-[12px] font-medium text-slate-500">在学课件 ${esc(cw.nameEn)} ${esc(cwItem.level || '')}</div>` : ''}
           </div>
           ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
-        </button>
+        </div>
+        <div class="mt-1.5 space-y-0.5 text-[12px] font-medium text-slate-500">
+          ${cwItem && cwItem.progressText ? `<div><span class="font-semibold text-slate-600">进度备注：</span>${compactNoteBlock(cwItem.progressText, 38, '暂未记录')}</div>` : ''}
+          <div><span class="font-semibold text-slate-600">学生备注：</span>${compactNoteBlock(p.notes, 38)}</div>
+        </div>
         <div class="mt-2 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2">
-          ${isTeacher ? `
-            <button data-action="open-courseware" data-kind="${p.staffKind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="inline-flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">进度备注</button>
+          ${archived ? `
+            <span class="inline-flex h-7 shrink-0 items-center gap-1 rounded-full border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}已归档只读</span>
+            <button data-action="staff-open" data-kind="${p.staffKind}" data-id="${p.id}" class="ml-auto whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">档案 / 学情 →</button>
+          ` : isTeacher ? `
             <button data-action="open-notes" data-kind="${p.staffKind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="inline-flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-40">学生备注</button>
             <button data-action="staff-open" data-kind="${p.staffKind}" data-id="${p.id}" class="ml-auto whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">档案 / 学情 →</button>
           ` : `
@@ -2390,50 +2841,78 @@
     /* ------------------------------------------------------------------
      * 班长 / 管理员 · 档案详情
      * ------------------------------------------------------------------ */
+    function familySiblings(p) {
+      if (!p || !p.familyId) return [];
+      return state.enrolled.filter((x) => x.id !== p.id && x.familyId === p.familyId && x.status === 'ACTIVE');
+    }
+
+    function transferEligible(p) {
+      if (!['monitor', 'admin'].includes(state.role)) return false;
+      if (!p || p.status !== 'ACTIVE' || pendingTsOf(p) <= 0) return false;
+      if (!familySiblings(p).length) return false;
+      if (state.role === 'admin') return true;
+      return p.holderMonitor === operatorName();
+    }
+
     function renderStaffDetail() {
       const p = staffTarget();
       if (!p) return renderStaffList();
       const isTrial = p.staffKind === 'trial';
       const isTeacher = state.role === 'teacher';
-      const canBind = isTrial && !isTeacher && (p.status === 'UNBOUND' || p.status === 'TRIALING');
+      const canBind = isTrial && !isTeacher && p.status === 'UNBOUND';
       const schedule = scheduleChild(p);
+      const showTransfer = !isTeacher && !isTrial && transferEligible(p);
+      const canLifecycle = !isTeacher && (isTrial ? ['monitor', 'admin'].includes(state.role) : state.role === 'admin');
+      const canDelete = historyTsOf(p, p.staffKind) === 0 && historyOrdersOf(p, p.staffKind) === 0;
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3 pb-10">
         ${embedBackRow()}
         ${identityCard(p, 'staff')}
         ${isTeacher ? teacherRoundCard(p) : ''}
         ${!isTeacher ? leaveRiskCard(p) : ''}
         ${canBind ? bindCard(p) : ''}
-        ${!isTrial && !isTeacher ? assetCard(p) : ''}
+        ${!isTrial && !isTeacher ? assetCard(p, { showTransfer, kind: p.staffKind }) : ''}
         ${coursewareCard(p, 'staff', p.staffKind)}
         ${infoCard(p, 'staff')}
         ${notesCard(p, 'staff', p.staffKind)}
         ${!isTeacher ? lessonHistoryCard() : ''}
         ${isTrial && p.status === 'ACTIVE' ? `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium text-slate-600">已认领并绑定至家长账号${p.claimedAt ? ` · ${esc(p.claimedAt)}` : ''}</div>` : ''}
-        ${isTrial && p.status === 'ARCHIVED' ? `<div class="rounded-xl border border-dashed border-slate-400 bg-slate-50/60 px-3 py-2.5 text-[12px] font-medium text-slate-600 opacity-60">已于 ${esc(p.archivedAt || '—')} 归档 · 昵称仍保持占用</div>` : ''}
+        ${isTrial && p.status === 'ARCHIVED' ? `<div class="rounded-xl border border-dashed border-slate-400 bg-slate-50/60 px-3 py-2.5 text-[12px] font-medium text-slate-600">${statusChip('ARCHIVED', 'admin', p.archiveType)} 已于 ${esc(p.archivedAt || '—')} 归档 · 昵称永久锁定</div>` : ''}
         ${!isTeacher ? auditCard(p) : ''}
         ${!isTeacher && schedule.demo ? `<div class="flex items-start gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2 text-[12px] font-medium text-slate-600">
           <span class="mt-0.5 shrink-0 text-slate-500">${icon('info', 'h-3.5 w-3.5')}</span>
           <span>演示数据：该学员课表展示 Alice 的周课表</span>
         </div>` : ''}
-        <div class="flex gap-2">
-          ${isTeacher
-            ? `<button data-action="open-courseware" data-kind="${p.staffKind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-40">${icon('book-open-check', 'h-4 w-4')}进度备注</button>
-            <button data-action="open-notes" data-kind="${p.staffKind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50 disabled:opacity-40">${icon('notebook-pen', 'h-4 w-4')}学生备注</button>`
-            : `<a href="${scheduleUrl(p)}" target="_blank" rel="noopener" title="${schedule.demo ? '演示数据：该学员课表统一展示 Alice 的周课表' : '查看该学员周课表'}" class="flex h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">${icon('calendar-days', 'h-4 w-4 shrink-0')}查看课表</a>
-            ${isTrial
-              ? `<button data-action="toast" data-message="已打开 1v1 临时课代约" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${icon('calendar-plus', 'h-4 w-4')}代约试课</button>`
-              : `<button data-action="buy4" data-nick="${esc(p.nickname)}" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${icon('plus', 'h-4 w-4')}买4排4</button>`}`}
-        </div>
+        ${isTeacher
+          ? `<p class="text-center text-[12px] font-medium text-slate-500">学生备注与各课件进度均可在上方区块直接更新，本轮仅展示本人授课进度。</p>`
+          : p.status === 'ARCHIVED'
+            ? `<p class="text-center text-[12px] font-medium text-slate-500">已归档档案只读：不支持约课、购课、代约试课或查看课表。</p>`
+            : `<div class="flex gap-2">
+              <a href="${scheduleUrl(p)}" target="_blank" rel="noopener" title="${schedule.demo ? '演示数据：该学员课表统一展示 Alice 的周课表' : '查看该学员周课表'}" class="flex h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">${icon('calendar-days', 'h-4 w-4 shrink-0')}查看课表</a>
+              ${isTrial
+                ? `<button data-action="toast" data-message="已打开 1v1 临时课代约" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${icon('calendar-plus', 'h-4 w-4')}代约试课</button>`
+                : `<button data-action="buy4" data-nick="${esc(p.nickname)}" class="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${icon('plus', 'h-4 w-4')}买4排4</button>`}
+            </div>`}
+        ${canLifecycle ? (p.status === 'ARCHIVED'
+          ? (isTrial
+            ? `<button data-action="reactivate-trial" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 w-full rounded-xl border border-emerald-200 bg-emerald-50 text-[14px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40">🔄 重新激活（自激活日重算 30 天）</button>`
+            : `<button data-action="reactivate-profile" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 w-full rounded-xl border border-emerald-200 bg-emerald-50 text-[14px] font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40">🔄 重新激活（恢复正式在读）</button>`)
+          : `<div class="flex gap-2">
+            <button data-action="open-archive" data-kind="${p.staffKind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-amber-300 bg-amber-50 text-[14px] font-semibold text-amber-800 transition hover:bg-amber-100 disabled:opacity-40">${isTrial ? '归档试课' : '归档档案'}</button>
+            <button data-action="open-delete" data-kind="${p.staffKind}" data-id="${p.id}" ${!canDelete || state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400">删除档案</button>
+          </div>
+          <p class="text-center text-[12px] font-medium ${canDelete ? 'text-slate-500' : 'text-rose-700'}">${canDelete ? '从未产生课次与购课单，可删除（不可恢复）或归档封存' : '已有历史课次或购课单，不支持删除，请使用归档'}</p>`)
+          : ''}
       </div>`;
     }
 
     function bindCard(t) {
-      const expiring = t.status === 'UNBOUND' && t.daysLeft <= 7;
+      const expiring = t.status === 'UNBOUND' && trialUncompletedTs(t) === 0 && Number(t.daysLeft) <= 7;
+      const trialing = trialUncompletedTs(t) > 0;
       return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
-            <h2 class="text-[16px] font-bold text-slate-900">${t.status === 'TRIALING' ? '试课中 · 可绑定家长' : '待认领试课档案'}</h2>
-            <p class="mt-0.5 text-[12px] font-medium text-slate-500">档案暂归平台托管 · 绑定后历史课表、学生备注与订单完整继承</p>
+            <h2 class="text-[16px] font-bold text-slate-900">${trialing ? '试课中 · 可绑定家长' : '待认领试课档案'}</h2>
+            <p class="mt-0.5 text-[12px] font-medium text-slate-500">档案暂由平台待归集 · 绑定后历史课表、学生备注与订单完整继承</p>
           </div>
           ${expiring ? `<span class="shrink-0 text-[12px] font-medium text-rose-700">(剩 ${t.daysLeft} 天归档)</span>` : ''}
         </div>
@@ -2447,25 +2926,24 @@
     /* ------------------------------------------------------------------
      * 管理员 · 试课档案
      * ------------------------------------------------------------------ */
-    function trialSortRank(t) {
-      if (t.status === 'UNBOUND' || t.status === 'TRIALING') return 0;
-      if (t.status === 'ACTIVE') return 1;
-      return 2;
-    }
+    const TRIAL_RANK = { unbound: 0, trialing: 1, converted: 2, archived: 3 };
 
     function compareTrial(a, b) {
-      const ra = trialSortRank(a);
-      const rb = trialSortRank(b);
+      const ba = trialBucket(a);
+      const bb = trialBucket(b);
+      const ra = TRIAL_RANK[ba] ?? 9;
+      const rb = TRIAL_RANK[bb] ?? 9;
       if (ra !== rb) return ra - rb;
-      if (ra === 0) {
+      if (ba === 'unbound') {
         const da = Number(a.daysLeft) || 0;
         const db = Number(b.daysLeft) || 0;
         if (da !== db) return da - db;
-        const la = String(a.lastLessonDate || a.createdAt || '');
-        const lb = String(b.lastLessonDate || b.createdAt || '');
-        return lb.localeCompare(la) || compareNickname(a, b);
+        return String(b.activatedAt || b.lastLessonDate || b.createdAt || '').localeCompare(String(a.activatedAt || a.lastLessonDate || a.createdAt || '')) || compareNickname(a, b);
       }
-      if (ra === 1) return String(b.claimedAt || '').localeCompare(String(a.claimedAt || '')) || compareNickname(a, b);
+      if (ba === 'trialing') {
+        return lastActivityOf(b).localeCompare(lastActivityOf(a)) || compareNickname(a, b);
+      }
+      if (ba === 'converted') return String(b.claimedAt || '').localeCompare(String(a.claimedAt || '')) || compareNickname(a, b);
       return String(b.archivedAt || '').localeCompare(String(a.archivedAt || '')) || compareNickname(a, b);
     }
 
@@ -2474,18 +2952,17 @@
     }
 
     function renderTrials() {
-      const all = state.trials;
-      const map = { all: null, unbound: 'UNBOUND', trialing: 'TRIALING', active: 'ACTIVE', archived: 'ARCHIVED' };
+      const all = state.trials.filter((t) => trialBucket(t));
       const counts = {
         all: all.length,
-        unbound: all.filter((t) => t.status === 'UNBOUND').length,
-        trialing: all.filter((t) => t.status === 'TRIALING').length,
-        active: all.filter((t) => t.status === 'ACTIVE').length,
-        archived: all.filter((t) => t.status === 'ARCHIVED').length
+        unbound: all.filter((t) => trialBucket(t) === 'unbound').length,
+        trialing: all.filter((t) => trialBucket(t) === 'trialing').length,
+        converted: all.filter((t) => trialBucket(t) === 'converted').length,
+        archived: all.filter((t) => trialBucket(t) === 'archived').length
       };
       const q = state.trialQuery.trim().toLowerCase();
       const list = sortTrialItems(all.filter((t) => {
-        if (map[state.adminTab] && t.status !== map[state.adminTab]) return false;
+        if (state.adminTab !== 'all' && trialBucket(t) !== state.adminTab) return false;
         if (!q) return true;
         const nick = String(t.nickname || '').toLowerCase();
         const fields = [t.realName, t.englishName, t.contact].map((v) => String(v || '').toLowerCase());
@@ -2493,12 +2970,12 @@
         return nick.includes(q) || fields.some((v) => v.includes(q));
       }), !!q);
       const tablet = state.device === 'tablet';
-      const seg = (key, label, count) => `<button data-action="set-admin-tab" data-tab="${key}" class="h-6 shrink-0 whitespace-nowrap rounded-full border-0 px-2.5 text-[11px] transition ${state.adminTab === key ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}${count ? ` (${count})` : ''}</button>`;
+      const seg = (key, label, count) => `<button data-action="set-admin-tab" data-tab="${key}" class="h-6 shrink-0 whitespace-nowrap rounded-full border-0 px-2 text-[11px] transition ${state.adminTab === key ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}${count ? ` (${count})` : ''}</button>`;
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         <div class="flex items-center justify-between gap-3 px-1">
           <div class="min-w-0">
             <h1 class="text-[18px] font-bold tracking-tight text-slate-900">试课学员管理</h1>
-            <p class="mt-0.5 text-[12px] font-medium text-slate-500">免注册代建 · 30 天未认领自动归档</p>
+            <p class="mt-0.5 text-[12px] font-medium text-slate-500">免注册代建 · 未结课 TS 为 0 且超 30 天未认领自动归档</p>
           </div>
           <button data-action="open-trial" ${state.online === 'off' ? 'disabled' : ''} class="h-11 shrink-0 rounded-xl bg-indigo-600 px-4 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 新建试课</button>
         </div>
@@ -2506,12 +2983,12 @@
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
           <input id="trialSearch" value="${esc(state.trialQuery)}" placeholder="搜索规范昵称(如 L / Le)或小名" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
         </div>
-        <p class="px-1 text-[12px] font-medium text-slate-500">${q ? '搜索中 · 按昵称 A-Z' : '默认按防流失优先级排序：临期归档 → 已转正 → 已归档'}</p>
-        <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+        <p class="px-1 text-[12px] font-medium text-slate-500">${q ? '搜索中 · 按昵称 A-Z' : '默认按防流失优先级排序：待认领 → 试课中 → 已转正 → 已归档'}</p>
+        <div class="flex items-center gap-1 overflow-x-auto py-0.5">
           ${seg('all', '全部', counts.all)}
           ${seg('unbound', '待认领', counts.unbound)}
           ${seg('trialing', '试课中', counts.trialing)}
-          ${seg('active', '已认领', counts.active)}
+          ${seg('converted', '已转正', counts.converted)}
           ${seg('archived', '已归档', counts.archived)}
         </div>
         <div class="${tablet ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">
@@ -2526,33 +3003,45 @@
     }
 
     function trialCard(t) {
-      const expiring = t.status === 'UNBOUND' && t.daysLeft <= 7;
-      const archived = t.status === 'ARCHIVED';
-      return `<article class="rounded-2xl border ${archived ? 'border-dashed border-slate-400 bg-slate-50/60 opacity-60' : 'border-slate-300 bg-slate-50/70'} p-3">
-        <button data-action="staff-open" data-kind="trial" data-id="${t.id}" class="flex w-full items-center gap-2.5 text-left">
+      const bucket = trialBucket(t);
+      const archived = bucket === 'archived';
+      const trialing = bucket === 'trialing';
+      const converted = bucket === 'converted';
+      const expiring = bucket === 'unbound' && trialUncompletedTs(t) === 0 && Number(t.daysLeft) <= 7;
+      const mainBadge = archived
+        ? statusChip('ARCHIVED', 'admin', '试课失效归档')
+        : converted
+          ? `<span class="inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${TONES.emerald.chip}">已转正</span>`
+          : statusChip('UNBOUND', 'admin');
+      return `<article class="rounded-2xl border ${archived ? 'border-dashed border-slate-400 bg-slate-50/60 opacity-70' : 'border-slate-300 bg-slate-50/70'} p-3">
+        <div data-action="staff-open" data-kind="trial" data-id="${t.id}" role="button" tabindex="0" class="flex w-full cursor-pointer items-center gap-2.5 text-left">
           ${avatar(t, 'h-10 w-10', 'text-[14px]', 'slate')}
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-1.5">
               <span class="truncate font-mono text-[16px] font-bold text-slate-900">${esc(t.nickname)}</span>
-              ${statusChip(t.status, 'admin')}
+              ${mainBadge}
+              ${trialing ? `<span class="shrink-0 rounded-full border border-indigo-200 bg-indigo-100 px-1.5 py-0.5 text-[12px] font-bold text-indigo-800">试课中</span>` : ''}
             </div>
             <div class="mt-0.5 truncate text-[14px] font-medium text-slate-600">${esc(t.realName)} · ${genderLabel(t.gender)} · ${t.age}岁</div>
-            <div class="mt-0.5 truncate text-[12px] font-medium text-slate-500">${esc(t.notes ? t.notes : `建档于 ${t.createdAt} · ${t.createdBy || 'Sarah'}`)}</div>
           </div>
           ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
-        </button>
+        </div>
+        <div class="mt-1 text-[12px] font-medium text-slate-500"><span class="font-semibold text-slate-600">学生备注：</span>${compactNoteBlock(t.notes, 38, `建档于 ${t.createdAt} · ${t.createdBy || 'Sarah'}`)}</div>
         <div class="mt-2 space-y-1 border-t border-slate-100 pt-2 text-[12px] font-medium text-slate-500">
           <div class="flex items-center justify-between gap-3"><span class="shrink-0">家长联系方式</span><span class="truncate text-right font-semibold text-slate-700">${maskContact(t.contact)}</span></div>
           <div class="flex items-center justify-between gap-3"><span class="shrink-0">试课进度</span><span class="truncate text-right font-semibold text-slate-700">${esc(t.trialProgress || `${t.trialLessons} 节`)}</span></div>
           <div class="flex items-center justify-between gap-3"><span class="shrink-0">最近试课</span><span class="truncate text-right font-semibold text-slate-700">${t.lastLessonDate ? esc(t.lastLessonDate.slice(5)) : '待排'}</span></div>
-          <div class="flex items-center justify-between gap-3"><span class="shrink-0">负责班长</span><span class="truncate text-right font-semibold text-slate-700">${esc(counselorLabel(t.responsible))}</span></div>
+          <div class="flex items-center justify-between gap-3"><span class="shrink-0">关联班长</span><span class="truncate text-right font-semibold text-slate-700">${esc(counselorLabel(t.responsible))}</span></div>
           <div class="flex items-center justify-between gap-3"><span class="shrink-0">建档人</span><span class="truncate text-right font-semibold text-slate-700">${esc(t.createdBy || 'Sarah')}</span></div>
+          ${archived ? `<div class="text-right font-medium text-slate-600">归档于 ${esc(t.archivedAt || '—')} · 昵称永久锁定</div>` : ''}
+          ${trialing ? `<div class="text-right font-medium text-slate-600">存在未结课 TS ${trialUncompletedTs(t)} 节 · 暂不触发归档</div>` : ''}
           ${expiring ? `<div class="text-right font-medium text-rose-700">(剩 ${t.daysLeft} 天归档)</div>` : ''}
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-2">
-          ${t.status === 'UNBOUND' || t.status === 'TRIALING' ? `<button data-action="open-bind" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-40">绑定家长 Email</button>` : ''}
-          ${t.status === 'UNBOUND' || t.status === 'TRIALING' ? `<button data-action="toast" data-message="已打开 1v1 临时课代约" class="whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">代约试课 →</button>` : ''}
-          <button data-action="staff-open" data-kind="trial" data-id="${t.id}" class="ml-auto whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">综合档案详情 →</button>
+          ${(bucket === 'unbound' || trialing) ? `<button data-action="open-bind" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-40">绑定家长 Email</button>` : ''}
+          ${(bucket === 'unbound' || trialing) ? `<button data-action="toast" data-message="已打开 1v1 临时课代约" class="whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">代约试课 →</button>` : ''}
+          ${archived ? `<button data-action="reactivate-trial" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 text-[12px] font-bold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40">🔄 重新激活</button>` : ''}
+          <button data-action="staff-open" data-kind="trial" data-id="${t.id}" class="ml-auto whitespace-nowrap text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">${converted ? '查看在读档案 →' : '综合档案详情 →'}</button>
         </div>
       </article>`;
     }
@@ -2588,6 +3077,8 @@
       if (state.overlay.type === 'bind') return renderBindModal();
       if (state.overlay.type === 'claim') return renderClaimModal();
       if (state.overlay.type === 'courseware') return renderCoursewareSheet();
+      if (state.overlay.type === 'progress') return renderProgressSheet();
+      if (state.overlay.type === 'transfer') return renderTransferSheet();
       if (state.overlay.type === 'notes') return renderNotesModal();
       return '';
     }
@@ -2608,22 +3099,22 @@
           <div class="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-300"></div>
           <div class="flex shrink-0 items-center justify-between px-4 py-2.5">
             <div class="min-w-0">
-              <h2 class="text-[16px] font-bold text-slate-900">按班长筛选</h2>
-              <p class="truncate text-[12px] font-medium text-slate-500">共 ${people.length} 位班长可筛选</p>
+              <h2 class="text-[16px] font-bold text-slate-900">按关联班长筛选</h2>
+              <p class="truncate text-[12px] font-medium text-slate-500">共 ${people.length} 位关联班长可筛选</p>
             </div>
             <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
             <div class="space-y-1">
-              ${row('all', '全部班长', '不限制负责班长')}
-              ${row('mine', '我直管', '仅看当前管理员直接负责的学员')}
-              ${row('platform', '平台未划拨', '尚未分配负责班长的学员')}
+              ${row('all', '全部关联班长', '不限制关联班长')}
+              ${row('mine', '我关联', '仅看与当前管理员存在动态关联的学员')}
+              ${row('platform', '平台未划拨', '尚未建立试课建档 / 授课 / 持课关联的学员')}
               <div class="my-1 border-t border-slate-100"></div>
               ${people.map((k) => row(k, `班长 ${k}`)).join('')}
             </div>
           </div>
           <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3">
-            <button data-action="reset-counselor" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">重置为全部班长</button>
+            <button data-action="reset-counselor" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">重置为全部关联班长</button>
           </div>
         </div>
       </div>`;
@@ -2684,8 +3175,8 @@
               </div>
 
               <div>
-                <label for="fSuffix" class="mb-1 block text-[14px] font-semibold text-slate-700">微调后缀 <span class="font-normal text-[12px] text-slate-500">（可选，重名时使用）</span></label>
-                <input id="fSuffix" value="${esc(f.suffix)}" placeholder="b" maxlength="3" autocomplete="off" class="${inputCls} w-36 font-mono lowercase">
+                <label for="fSuffix" class="mb-1 block text-[14px] font-semibold text-slate-700">微调字母 <span class="font-normal text-[12px] text-slate-500">（可选，1-2 位小写字母，仅重名时使用）</span></label>
+                <input id="fSuffix" value="${esc(f.suffix)}" placeholder="b" maxlength="2" autocomplete="off" ${isEdit ? 'disabled' : ''} class="${inputCls} w-36 font-mono lowercase ${isEdit ? 'opacity-50' : ''}">
               </div>
 
               <div>
@@ -2696,17 +3187,37 @@
               </div>
             </section>
 
-            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-2.5">
               <div class="flex items-center gap-2">
                 <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">2</span>
+                <h3 class="text-[14px] font-bold text-slate-900">常态作息偏好 <span class="text-[12px] font-normal text-slate-500">选填</span></h3>
+              </div>
+              <p class="text-[12px] font-medium leading-relaxed text-slate-500">默认留空，不阻断保存；仅供排课高亮参考，对老师端严格隐藏。</p>
+              <div class="space-y-1.5">
+                ${SLOT_DAYS.map((day) => `<div class="flex items-start gap-2">
+                  <span class="w-9 shrink-0 pt-1.5 text-[12px] font-semibold text-slate-600">${day.label}</span>
+                  <div class="flex min-w-0 flex-1 flex-wrap gap-1">
+                    ${SLOT_PERIODS.map((period) => {
+                      const key = `${day.id}:${period.id}`;
+                      const on = (f.preferredSlots || []).includes(key);
+                      return `<button data-action="toggle-slot" data-day="${day.id}" data-period="${period.id}" class="h-7 shrink-0 rounded-full px-2 text-[11px] transition ${on ? 'bg-indigo-600 font-bold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${period.label}</button>`;
+                    }).join('')}
+                  </div>
+                </div>`).join('')}
+              </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
+              <div class="flex items-center gap-2">
+                <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">3</span>
                 <h3 class="text-[14px] font-bold text-slate-900">规范昵称</h3>
               </div>
               <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                 <div class="flex items-center justify-between">
-                  <span class="text-[12px] font-semibold text-slate-700">系统生成规范昵称</span>
+                  <span class="text-[12px] font-semibold text-slate-700">${isEdit ? '规范昵称（永久锁定）' : '系统生成规范昵称'}</span>
                   <span class="flex items-center gap-1 text-[12px] font-medium text-slate-500">${icon('lock', 'h-3.5 w-3.5')}全平台唯一</span>
                 </div>
-                <div id="nickPreview" class="mt-0.5 break-all font-mono text-[18px] font-bold ${computeNickname(f) ? 'text-slate-900' : 'text-slate-500'}">${esc(computeNickname(f) || '英文名+首字母+年龄')}</div>
+                <div id="nickPreview" class="mt-0.5 break-all font-mono text-[18px] font-bold ${(lockedNicknameOf(f) || computeNickname(f)) ? 'text-slate-900' : 'text-slate-500'}">${esc(lockedNicknameOf(f) || computeNickname(f) || '英文名+姓首字母+可选小写字母+年龄')}</div>
                 <div id="nickStatus" class="mt-0.5 text-[12px] font-medium"></div>
               </div>
             </section>
@@ -2755,7 +3266,7 @@
               <div>
                 <label for="fTrialQuickNick" class="mb-1 block text-[14px] font-semibold text-slate-700">① 规范英文名</label>
                 <input id="fTrialQuickNick" value="${esc(f.quickNick)}" placeholder="如 MarkL10" maxlength="30" autocomplete="off" class="${inputCls} font-mono">
-                <p class="mt-1 text-[12px] font-medium text-slate-500">格式：英文名 + 大写姓首字母 + 年龄（小名将默认同步填入规范英文名）</p>
+                <p class="mt-1 text-[12px] font-medium text-slate-500">格式：英文名 + 大写姓首字母 + 可选 1-2 位小写字母 + 年龄（小名将默认同步填入规范英文名）</p>
               </div>
               <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                 <div class="flex items-center justify-between">
@@ -2770,7 +3281,9 @@
                 <input id="fTrialContact" value="${esc(f.contact)}" placeholder="13800138000 / WeChat_ID" maxlength="32" class="${inputCls}">
                 <p class="mt-1 text-[12px] font-medium text-slate-500">必填，至少 4 位有效字符；用于认领核验与排课通知</p>
               </div>
+              <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">规范昵称格式：英文名 + 大写姓首字母 + 可选 1-2 位小写字母 + 1-2 位年龄（如 MarkL10 / MarkLa10）。</div>
             </section>
+            ${slotPickerSection(f.preferredSlots, '3')}
             ` : `
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
               <div class="flex items-center gap-2">
@@ -2795,6 +3308,11 @@
                   <label for="fTrialAge" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">年龄</label>
                   <input id="fTrialAge" type="number" min="1" max="99" value="${esc(f.age)}" placeholder="8" inputmode="numeric" class="${inputCls} text-center">
                 </div>
+              </div>
+
+              <div>
+                <label for="fTrialSuffix" class="mb-1 block text-[14px] font-semibold text-slate-700">微调字母 <span class="font-normal text-[12px] text-slate-500">（可选，1-2 位小写字母）</span></label>
+                <input id="fTrialSuffix" value="${esc(f.suffix || '')}" placeholder="a" maxlength="2" autocomplete="off" class="${inputCls} w-36 font-mono lowercase">
               </div>
             </section>
 
@@ -2824,6 +3342,7 @@
                 <p class="mt-1 text-[12px] font-medium text-slate-500">用于认领核验与线下排课通知</p>
               </div>
             </section>
+            ${slotPickerSection(f.preferredSlots, '4')}
             `}
 
             ${f.error ? `<div id="trialError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(f.error)}</div>` : ''}
@@ -2838,28 +3357,91 @@
     }
 
     function renderGuardModal() {
-      const p = state.profiles.find((x) => x.id === state.overlay.targetId);
+      const o = state.overlay;
+      const kind = o.kind || 'profile';
+      const p = lifecycleTarget(kind, o.targetId);
       if (!p) return '';
-      const pending = pendingTsOf(p);
-      const tierText = pendingTierText(p);
-      const sched = scheduledBreakdown(p);
-      const hasAssets = pending > 0 || sched.upcoming > 0;
+      const mode = o.mode || 'archive';
+      const isTrial = kind === 'trial';
+      const archiveType = isTrial ? '试课失效归档' : '正式暂别归档';
+      const historyTs = historyTsOf(p, kind);
+      const historyOrders = historyOrdersOf(p, kind);
+      const canDelete = historyTs === 0 && historyOrders === 0;
+      const assets = archiveAssetsOf(p, kind);
+      const blocking = assets.filter((a) => a.count > 0);
+      const closeBtn = `<button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>`;
 
-      if (!hasAssets) {
+      if (mode === 'delete') {
+        if (!canDelete) {
+          return `<div class="absolute inset-0 z-50">
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+            <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-2xl">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-[12px] font-bold text-rose-700">删除已被禁用</div>
+                  <h2 class="mt-1 text-[16px] font-bold text-slate-900">无法删除 ${esc(p.nickname)}</h2>
+                </div>
+                ${closeBtn}
+              </div>
+              <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-700">已有历史课次或购课单，不支持删除，请使用归档。</p>
+              <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600">历史课次 ${historyTs} 节 · 历史购课单 ${historyOrders} 张（含已结课、已取消、已作废记录）。</div>
+              <div class="mt-4 flex gap-2">
+                <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+                <button data-action="open-archive" data-kind="${kind}" data-id="${p.id}" class="h-11 flex-[2] rounded-xl bg-amber-600 text-[14px] font-semibold text-white transition hover:bg-amber-700">改用归档</button>
+              </div>
+            </div>
+          </div>`;
+        }
         return `<div class="absolute inset-0 z-50">
           <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
           <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-2xl">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <h2 class="text-[16px] font-bold text-slate-900">注销 ${esc(p.nickname)}？</h2>
-                <p class="mt-1 text-[12px] font-medium text-slate-500">${esc(p.realName)} · ${p.age}岁</p>
+                <h2 class="text-[16px] font-bold text-slate-900">删除 ${esc(p.nickname)}？</h2>
+                <p class="mt-1 text-[12px] font-medium text-slate-500">${esc(p.realName)} · ${p.age}岁 · 0 历史课次 / 0 历史购课单</p>
               </div>
-              <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+              ${closeBtn}
             </div>
-            <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">注销后昵称永久保留、不可再次使用；历史学生备注与财务单据只读封存。</p>
+            <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">删除后档案从所有列表与【已归档】区彻底隐藏，<span class="font-bold text-rose-700">不可再激活</span>；规范昵称仍永久锁定。也可选择【归档封存】保留历史并支持再激活。</p>
             <div class="mt-4 flex gap-2">
-              <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
-              <button data-action="guard-delete" data-id="${p.id}" class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white">确认注销</button>
+              <button data-action="open-archive" data-kind="${kind}" data-id="${p.id}" class="h-11 flex-1 rounded-xl border border-amber-300 bg-amber-50 text-[14px] font-semibold text-amber-800 transition hover:bg-amber-100">归档封存</button>
+              <button data-action="guard-confirm-delete" data-kind="${kind}" data-id="${p.id}" class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white transition hover:bg-rose-700">确认删除</button>
+            </div>
+          </div>
+        </div>`;
+      }
+
+      if (blocking.length) {
+        return `<div class="absolute inset-0 z-50">
+          <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+          <div class="absolute inset-x-4 top-1/2 max-h-[86%] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-[12px] font-bold text-rose-700">五项资产未全清零</div>
+                <h2 class="mt-1 text-[16px] font-bold text-slate-900">无法归档 ${esc(p.nickname)}</h2>
+              </div>
+              ${closeBtn}
+            </div>
+            <p class="mt-2 text-[14px] font-medium text-slate-600">检测到名下仍有未完结资产或待处理单据：</p>
+            <div class="mt-2.5 space-y-1.5">
+              ${assets.map((a) => `<div class="rounded-xl border ${a.count > 0 ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-slate-50'} px-3 py-2">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-[12px] font-bold ${a.count > 0 ? 'text-rose-700' : 'text-slate-600'}">${esc(a.label)}</span>
+                  <span class="font-mono text-[14px] font-bold ${a.count > 0 ? 'text-rose-900' : 'text-slate-600'}">${a.count}</span>
+                </div>
+                ${a.count > 0 ? `<div class="mt-0.5 text-[12px] font-medium text-rose-800">${esc(a.hint)}</div>` : ''}
+              </div>`).join('')}
+            </div>
+            <div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">
+              <p class="font-bold">处置指引</p>
+              <p class="mt-1">1. 待排期课次：办理【课次划转】给同家庭孩子，或申请【课次清退/扣减】核销。</p>
+              <p>2. 已排期课程：更换实际上课学员、同师挪位或请假退回待排期后处理。</p>
+              <p>3. 在途 HOLD / 待付款单 / 异常回退：先取消待续费、待付单并完成异常回退处置。</p>
+              <p class="mt-1">五项全清零后方可归档；后续需要时可随时按原类型重新激活。</p>
+            </div>
+            <div class="mt-4 flex gap-2">
+              <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">知道了</button>
+              <button data-action="contact-monitor" class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[14px] font-semibold text-white transition hover:bg-indigo-700">联系对应班长</button>
             </div>
           </div>
         </div>`;
@@ -2867,37 +3449,19 @@
 
       return `<div class="absolute inset-0 z-50">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
-        <div class="absolute inset-x-4 top-1/2 max-h-[86%] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+        <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-2xl">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <div class="text-[12px] font-bold text-rose-700">课次资产未清零</div>
-              <h2 class="mt-1 text-[16px] font-bold text-slate-900">无法注销 ${esc(p.nickname)}</h2>
+              <h2 class="text-[16px] font-bold text-slate-900">归档 ${esc(p.nickname)}？</h2>
+              <p class="mt-1 text-[12px] font-medium text-slate-500">${esc(p.realName)} · ${p.age}岁 · 归档类型 ${archiveType}</p>
             </div>
-            <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+            ${closeBtn}
           </div>
-
-          <p class="mt-2 text-[14px] font-medium text-slate-600">检测到名下仍有未完结的课次资产：</p>
-          <div class="mt-2.5 space-y-1.5">
-            <div class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-              <div class="text-[12px] font-bold text-rose-700">待排期 TS 课次（统一待排池）</div>
-              <div class="mt-0.5 text-[14px] font-semibold text-rose-900">待排期 ${pending} 节 TS（需清退或转排）</div>
-              ${pending ? `<div class="mt-0.5 text-[12px] font-medium text-rose-800">价位：${esc(tierText)}</div>` : ''}
-            </div>
-            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-              <div class="text-[12px] font-bold text-amber-800">已排期课程</div>
-              <div class="mt-0.5 text-[14px] font-semibold text-amber-900">未来仍有 ${sched.upcoming} 节 · 🟠 固定位 ${sched.fixed} · 🟡 临时课 ${sched.temp}</div>
-            </div>
-          </div>
-
-          <div class="mt-3 text-[12px] font-medium leading-relaxed text-slate-500">
-            <p class="font-bold text-slate-700">清算指引</p>
-            <p class="mt-1">1. 更换实际上课学员：在课表格直接调整给二宝或其他学员</p>
-            <p>2. 申请课次清退：由负责班长执行课次清退 / 扣减并填写财务备注</p>
-          </div>
-
+          <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">五项在途资产已全清零。归档后档案转为只读，规范昵称永久锁定；${isTrial ? '移入试课【已归档】列表，仅可按原类型重新激活' : '移入家长【已归档宝贝】，可按原类型重新激活并恢复历史记录'}。</p>
+          <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600">历史课次 ${historyTs} 节 · 历史购课单 ${historyOrders} 张 · 学生备注与课件进度只读留存。</div>
           <div class="mt-4 flex gap-2">
-            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">知道了</button>
-            <button data-action="contact-monitor" class="h-11 flex-1 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white">联系班长清退</button>
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button data-action="guard-confirm-archive" data-kind="${kind}" data-id="${p.id}" class="h-11 flex-[2] rounded-xl bg-amber-600 text-[14px] font-semibold text-white transition hover:bg-amber-700">确认归档</button>
           </div>
         </div>
       </div>`;
@@ -2924,8 +3488,8 @@
           </div>
 
           <div class="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-2.5 text-[11px] leading-relaxed text-slate-700">
-            <div class="font-bold text-indigo-950">绑定转正后 5 类数据无缝归属家长（holder_id / monitor_id 不变）：</div>
-            <div class="mt-1 font-medium text-slate-600">① 学员档案 · ② 全部 TS 课次资产 · ③ 试课购课单与清退记录 · ④ 在学课件进度 · ⑤ 公开教学备忘（内部备忘与档案变动日志仍对家长隐藏）</div>
+            <div class="font-bold text-indigo-950">绑定转正后 5 类数据无缝归属家长（资金持有人保持不变）：</div>
+            <div class="mt-1 font-medium text-slate-600">① 学员档案 · ② 全部 TS 课次资产 · ③ 试课购课单与清退记录 · ④ 在学课件进度 · ⑤ 学生备注（内部档案变动日志仍对家长隐藏）</div>
           </div>
 
           ${state.bind.error ? `<div id="bindError" class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(state.bind.error)}</div>` : ''}
@@ -2946,6 +3510,7 @@
       const available = COURSEWARE_LIB.filter((x) => !draft.some((d) => d.cwId === x.id));
       const picked = COURSEWARE_LIB.find((x) => x.id === cw.pickCw);
       const canAdd = state.online === 'on' && available.length > 0 && draft.length < 6 && !!cw.pickCw && !!cw.pickLevel;
+      const showAudit = state.role === 'admin' || state.role === 'monitor';
       return `<div class="absolute inset-0 z-50">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
         <div class="absolute inset-x-0 bottom-0 flex max-h-[88%] flex-col rounded-t-3xl bg-white shadow-2xl">
@@ -2959,34 +3524,22 @@
           </div>
 
           <div class="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-4 pb-3">
-            <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">支持管理员、负责班长、授课老师与所属家长维护；家长仅可调整本人名下在读孩子；保存后同步至老师日历并提醒负责班长与授课老师。</div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">配置课件仅负责新增/移除（新增时可选初始级别）；改级与 2000 字进度备注请使用各课件行【更新进度】。支持管理员、关联班长、授课老师与所属家长维护；家长仅可调整本人名下在读孩子。</div>
 
             ${draft.length ? draft.map((item, i) => {
               const info = cwById(item.cwId);
-              const progLen = (item.progressText || '').length;
               return `<div class="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
                 <div class="flex items-center gap-2.5">
                   <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-700">${icon('book-open', 'h-4 w-4')}</span>
                   <div class="min-w-0 flex-1">
                     <div class="truncate text-[14px] font-bold text-slate-900">${esc(info.nameEn)}</div>
-                    <div class="truncate text-[12px] font-medium text-slate-500">${esc(info.nameCn)}</div>
+                    <div class="truncate text-[12px] font-medium text-slate-500">${esc(info.nameCn)} · 初始级别 ${esc(item.level || '标准')}</div>
                   </div>
-                  ${info.levels.length ? '' : `<span class="shrink-0 text-[12px] font-medium text-slate-500">标准</span>`}
                   <button data-action="cw-remove" data-index="${i}" ${state.online === 'off' ? 'disabled' : ''} class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40" aria-label="移除">
                     ${icon('x', 'h-4 w-4')}
                   </button>
                 </div>
-                ${info.levels.length ? `<div class="flex flex-wrap items-center gap-1">
-                  <span class="mr-0.5 shrink-0 text-[12px] font-medium text-slate-500">级别</span>
-                  ${info.levels.map((l) => `<button data-action="cw-level-inline" data-index="${i}" data-level="${esc(l)}" class="h-6 shrink-0 whitespace-nowrap rounded-full px-2.5 text-[11px] transition ${l === item.level ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${esc(l)}</button>`).join('')}
-                </div>` : ''}
-                <div>
-                  <div class="mb-1 flex items-center justify-between text-[12px] font-medium text-slate-500">
-                    <span>进度备注 · Process Note（选填，最多 64 字）</span>
-                    <span id="cwProgCount-${i}" class="font-mono">${progLen}/64</span>
-                  </div>
-                  <input id="cwProg-${i}" value="${esc(item.progressText || '')}" maxlength="64" placeholder="如 Unit 3 · Page 24 / 第4单元第12页" class="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 text-[13px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
-                </div>
+                <p class="text-[12px] font-medium text-slate-500">改级与进度备注请在档案页对应课件行点击【更新进度】。</p>
               </div>`;
             }).join('') : `<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-500">尚未配置在学课件</div>`}
 
@@ -3012,7 +3565,7 @@
                 <button data-action="cw-add" ${canAdd ? '' : 'disabled'} class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">添加到在学课件</button>
               </div>`}
 
-            ${target.audit && target.audit.length ? `<details class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            ${showAudit && target.audit && target.audit.length ? `<details class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
               <summary class="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
                 <span class="flex min-w-0 items-center gap-1.5">
                   <span class="truncate text-[14px] font-bold text-slate-800">档案变动日志</span>
@@ -3056,6 +3609,112 @@
         })() : ''}
         ${cw.picking === 'cw' ? renderCwPickDrawer() : ''}
         ${cw.picking === 'level' ? renderCwLevelDrawer() : ''}
+      </div>`;
+    }
+
+    function renderProgressSheet() {
+      const pe = state.progressEdit;
+      if (!pe) return '';
+      const target = findCwTarget(pe.kind, pe.id);
+      if (!target || !target.courseware || !target.courseware[pe.index]) return '';
+      const item = target.courseware[pe.index];
+      const info = cwById(item.cwId);
+      const text = String(pe.text || '').slice(0, 2000);
+      return `<div class="absolute inset-0 z-50">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-0 bottom-0 flex max-h-[88%] flex-col rounded-t-3xl bg-white shadow-2xl">
+          <div class="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-300"></div>
+          <div class="flex shrink-0 items-center justify-between px-4 py-2.5">
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">更新进度</h2>
+              <p class="truncate text-[12px] font-medium text-slate-500">${esc(target.nickname)} · ${esc(info.nameEn)} · ${esc(info.nameCn)}</p>
+            </div>
+            <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-3">
+            <div>
+              <div class="mb-1 text-[12px] font-semibold text-slate-600">当前就读级别</div>
+              ${info.levels.length
+                ? `<div class="flex flex-wrap items-center gap-1.5">${info.levels.map((l) => `<button data-action="progress-level" data-level="${esc(l)}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${l === pe.level ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${esc(l)}</button>`).join('')}</div>`
+                : `<div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-500">该课件无分级，按标准级别维护</div>`}
+            </div>
+            <div>
+              <div class="mb-1 flex items-center justify-between text-[12px] font-medium text-slate-500">
+                <span>进度备注 · Process Note（选填，最多 2000 字）</span>
+                <span id="progressCount" class="font-mono font-semibold">${text.length}/2000</span>
+              </div>
+              <textarea id="progressNote" maxlength="2000" rows="5" placeholder="如 Unit 3 · Page 24&#10;Reviewed sight words and read the story aloud." class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(text)}</textarea>
+              <p class="mt-1 text-[12px] font-medium text-slate-500">请尽量填写英文，便于老师看懂（如 Reviewed sight words, needs more speaking practice）</p>
+            </div>
+            ${item.lastUpdatedBy ? `<div class="text-[12px] font-medium text-slate-500">最后更新：${esc(item.lastUpdatedBy)} (${esc(item.lastUpdatedRole || '教务')}) · ${relativeDaysLabel(item.lastUpdatedAt)}</div>` : ''}
+          </div>
+          <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button data-action="save-progress" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">保存进度</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function renderTransferSheet() {
+      const source = state.enrolled.find((x) => x.id === state.transfer.sourceId);
+      if (!source) return '';
+      const siblings = familySiblings(source);
+      const maxCount = Math.max(1, Math.min(3, pendingTsOf(source)));
+      const count = Math.max(1, Math.min(maxCount, Number(state.transfer.count) || 1));
+      const target = siblings.find((x) => x.id === state.transfer.targetId) || siblings[0];
+      const note = String(state.transfer.note || '').slice(0, 200);
+      const noteLen = note.trim().length;
+      const noteOk = noteLen >= 1 && noteLen <= 200;
+      return `<div class="absolute inset-0 z-50">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-0 bottom-0 flex max-h-[88%] flex-col rounded-t-3xl bg-white shadow-2xl">
+          <div class="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-slate-300"></div>
+          <div class="flex shrink-0 items-center justify-between px-4 py-2.5">
+            <div class="min-w-0">
+              <h2 class="text-[16px] font-bold text-slate-900">↔️ 划转给同家庭孩子</h2>
+              <p class="truncate text-[12px] font-medium text-slate-500">${esc(source.nickname)} · 待排 ${pendingTsOf(source)} 节 · 资金持有人 ${esc(source.holderMonitor || '平台')} 不变</p>
+            </div>
+            <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
+          </div>
+          <div class="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-3">
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">仅限同一家长账号下的「正式在读」孩子；按价位先购先扣（FIFO）划转，原购课单、单节积分快照、价位档位与资金持有人保持不变。家长端与老师端不开放此操作。</div>
+            <div>
+              <div class="mb-1 text-[12px] font-semibold text-slate-600">选择接收孩子</div>
+              <div class="space-y-1">
+                ${siblings.map((s) => `<button data-action="pick-transfer-target" data-id="${s.id}" class="flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition ${target && target.id === s.id ? 'border-indigo-500 bg-indigo-50/60 ring-1 ring-indigo-500' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+                  <span class="min-w-0">
+                    <span class="block truncate font-mono text-[14px] font-bold text-slate-900">${esc(s.nickname)}</span>
+                    <span class="block truncate text-[12px] font-medium text-slate-500">${esc(s.realName)} · 待排 ${pendingTsOf(s)} 节</span>
+                  </span>
+                  <span class="shrink-0 text-[12px] font-semibold text-slate-600">${pendingTsOf(s) ? esc(pendingTierText(s)) : '暂无待排'}</span>
+                </button>`).join('')}
+              </div>
+            </div>
+            <div>
+              <div class="mb-1 text-[12px] font-semibold text-slate-600">划转节数（本次演示最多 3 节）</div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                ${Array.from({ length: maxCount }).map((_, i) => {
+                  const n = i + 1;
+                  return `<button data-action="transfer-count" data-count="${n}" class="h-8 shrink-0 rounded-full px-3 text-[12px] font-bold transition ${n === count ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'}">${n} 节</button>`;
+                }).join('')}
+              </div>
+            </div>
+            <div>
+              <div class="mb-1 flex items-center justify-between text-[12px] font-medium text-slate-500">
+                <span>划转备注（必填，1-200 字）</span>
+                <span id="transferNoteCount" class="font-mono font-semibold">${note.length}/200</span>
+              </div>
+              <textarea id="transferNote" maxlength="200" rows="3" placeholder="如：家长要求把 1 节待排课转给二宝" class="w-full resize-none rounded-xl border ${noteOk || !note ? 'border-slate-200' : 'border-rose-300'} bg-slate-50/70 px-3.5 py-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(note)}</textarea>
+              <p class="mt-1 text-[12px] font-medium ${noteOk ? 'text-slate-500' : 'text-rose-700'}">请填写 1-200 字划转原因；无需上传截图。</p>
+            </div>
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-emerald-900">演示：划转 1 节或所选节数后，资金持有人仍为 ${esc(source.holderMonitor || '平台')}，原购课单与积分快照不变；将写入「待排期 → 待排期」同家庭课次划转日志。</div>
+          </div>
+          <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button data-action="confirm-transfer" ${!target || !noteOk || state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认划转 ${count} 节</button>
+          </div>
+        </div>
       </div>`;
     }
 
@@ -3138,9 +3797,12 @@
             </div>
             <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
-          <label for="notesInput" class="mt-3 mb-1 block text-[14px] font-semibold text-slate-700">教学注意事项</label>
-          <textarea id="notesInput" maxlength="300" rows="5" placeholder="记录孩子的性格偏好、教学注意事项等" class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(e.text)}</textarea>
-          <p class="mt-1 text-[12px] font-medium text-slate-500">纯文本 · 最多 300 字</p>
+          <div class="flex items-center justify-between gap-2">
+            <label for="notesInput" class="mt-3 mb-1 block text-[14px] font-semibold text-slate-700">学生备注</label>
+            <span id="notesCount" class="mt-3 font-mono text-[12px] font-semibold text-slate-500">${String(e.text || '').slice(0, 2000).length}/2000</span>
+          </div>
+          <textarea id="notesInput" maxlength="2000" rows="6" placeholder="记录孩子的性格偏好、学习习惯与教学注意事项（可换行）" class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(String(e.text || '').slice(0, 2000))}</textarea>
+          <p class="mt-1 text-[12px] font-medium text-slate-500">纯文本 · 最多 2000 字 · 请尽量填写英文，便于老师看懂（如 Shy at first, needs encouragement）</p>
           <div class="mt-4 flex gap-2">
             <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
             <button data-action="save-notes" class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">保存备注</button>
@@ -3161,8 +3823,8 @@
       const f = state.form;
       const nickEl = $('nickPreview');
       if (!nickEl) return;
-      const nick = computeNickname(f);
-      nickEl.textContent = nick || '英文名+首字母+年龄';
+      const nick = lockedNicknameOf(f) || computeNickname(f);
+      nickEl.textContent = nick || '英文名+姓首字母+可选小写字母+年龄';
       nickEl.className = `mt-0.5 break-all font-mono text-[18px] font-bold ${nick ? 'text-slate-900' : 'text-slate-500'}`;
 
       const statusEl = $('nickStatus');
@@ -3255,7 +3917,7 @@
           state.navTab = state.role === 'teacher' ? 'students' : 'ops';
         }
         state.overlay = null;
-        state.inlineCw = null;
+        state.progressEdit = null;
         return renderAll();
       }
       if (action === 'switch-profile') {
@@ -3273,24 +3935,32 @@
       if (action === 'open-edit') return openEdit();
       if (action === 'open-claim') {
         if (state.online === 'off') return showToast('离线模式下不可认领');
-        if (state.profiles.length >= 10) return showToast('名下档案已达上限 (10/10)');
+        if (activeProfiles().length >= 10) return showToast('名下档案已达上限 (10/10)');
         return openClaimModal();
       }
       if (action === 'claim-query') return claimQuery();
       if (action === 'claim-back') { state.claim.step = 1; state.claim.error = ''; return renderAll(); }
       if (action === 'claim-confirm') return claimConfirm();
-      if (action === 'open-guard') {
-        if (state.online === 'off') return showToast('离线模式下不可注销档案');
-        const p = activeProfile();
-        if (!p) return;
-        state.overlay = { type: 'guard', targetId: p.id };
+      if (action === 'open-archive' || action === 'open-delete') {
+        if (state.online === 'off') return showToast('离线模式下不可调整档案生命周期');
+        const kind = el.dataset.kind || 'profile';
+        let id = el.dataset.id;
+        if (!id) {
+          const p = activeProfile();
+          if (!p) return;
+          id = p.id;
+        }
+        state.overlay = { type: 'guard', mode: action === 'open-delete' ? 'delete' : 'archive', kind, targetId: id };
         return renderAll();
       }
-      if (action === 'guard-delete') return deleteProfile(el.dataset.id);
+      if (action === 'guard-confirm-archive') return archiveLifecycle(el.dataset.kind || 'profile', el.dataset.id);
+      if (action === 'guard-confirm-delete') return deleteLifecycle(el.dataset.kind || 'profile', el.dataset.id);
+      if (action === 'reactivate-profile') return reactivateProfile(el.dataset.id);
+      if (action === 'reactivate-trial') return reactivateTrial(el.dataset.id);
       if (action === 'contact-monitor') {
         state.overlay = null;
         renderAll();
-        return showToast('已向负责班长发送课次清退协助请求');
+        return showToast('已向关联班长发送课次清退协助请求');
       }
       if (action === 'open-trial') return openTrial();
       if (action === 'trial-mode') {
@@ -3300,25 +3970,45 @@
         updateTrialPreview();
         return;
       }
-      if (action === 'inline-cw-open') {
-        if (state.online === 'off') return showToast('离线模式下不可更新进度备注');
+      if (action === 'open-progress') {
+        if (state.online === 'off') return showToast('离线模式下不可更新进度');
         const target = findCwTarget(el.dataset.kind, el.dataset.id);
         const idx = Number(el.dataset.index);
         if (!target || !target.courseware || !target.courseware[idx]) return;
-        state.inlineCw = { kind: el.dataset.kind, id: el.dataset.id, index: idx, text: target.courseware[idx].progressText || '' };
+        const item = target.courseware[idx];
+        state.progressEdit = { kind: el.dataset.kind, id: el.dataset.id, index: idx, level: item.level || '', text: item.progressText || '' };
+        state.overlay = { type: 'progress' };
         renderAll();
-        const input = $('inlineCwInput');
+        const input = $('progressNote');
         if (input) {
           input.focus();
           input.setSelectionRange(input.value.length, input.value.length);
         }
         return;
       }
-      if (action === 'inline-cw-cancel') {
-        state.inlineCw = null;
+      if (action === 'progress-level') {
+        if (state.progressEdit) state.progressEdit.level = el.dataset.level || '';
+        return renderOverlayOnly();
+      }
+      if (action === 'save-progress') return saveProgress();
+      if (action === 'open-transfer') {
+        const source = state.enrolled.find((x) => x.id === el.dataset.id);
+        if (!source) return;
+        const siblings = familySiblings(source);
+        if (!siblings.length) return showToast('同一家庭下暂无可接收的正式在读孩子');
+        state.transfer = { sourceId: source.id, targetId: siblings[0].id, count: 1, note: '' };
+        state.overlay = { type: 'transfer' };
         return renderAll();
       }
-      if (action === 'inline-cw-save') return saveInlineProgress();
+      if (action === 'pick-transfer-target') {
+        state.transfer.targetId = el.dataset.id;
+        return renderOverlayOnly();
+      }
+      if (action === 'transfer-count') {
+        state.transfer.count = Number(el.dataset.count) || 1;
+        return renderOverlayOnly();
+      }
+      if (action === 'confirm-transfer') return confirmTransfer();
       if (action === 'open-bind') {
         if (state.online === 'off') return showToast('离线模式下不可绑定');
         state.bind = { targetId: el.dataset.id, email: '', error: '' };
@@ -3449,7 +4139,11 @@
       }
       if (action === 'cw-save') return cwSave();
       if (action === 'close-overlay') {
+        if (state.overlay && state.overlay.type === 'transfer') {
+          state.transfer = { sourceId: null, targetId: '', count: 1, note: '' };
+        }
         state.overlay = null;
+        state.progressEdit = null;
         return renderOverlayOnly();
       }
       if (action === 'toggle-gender') {
@@ -3460,6 +4154,15 @@
           b.className = `h-11 rounded-xl border px-2 text-[14px] font-semibold transition ${on ? 'border-indigo-500 bg-indigo-50/60 text-indigo-950 ring-1 ring-indigo-500' : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'}`;
         });
         return;
+      }
+      if (action === 'toggle-slot') {
+        const key = `${el.dataset.day}:${el.dataset.period}`;
+        const targetForm = state.overlay && state.overlay.type === 'trial' ? state.trialForm : state.form;
+        const list = clone(targetForm.preferredSlots || []);
+        const at = list.indexOf(key);
+        if (at >= 0) list.splice(at, 1); else list.push(key);
+        targetForm.preferredSlots = list;
+        return renderOverlayOnly();
       }
       if (action === 'submit-profile') return submitProfile();
       if (action === 'submit-trial') return submitTrial();
@@ -3486,8 +4189,8 @@
       if (id === 'fInitial' || id === 'fTrialInitial') {
         e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 1).toUpperCase();
       }
-      if (id === 'fSuffix') {
-        e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 3);
+      if (id === 'fSuffix' || id === 'fTrialSuffix') {
+        e.target.value = e.target.value.toLowerCase().replace(/[^a-z]/g, '').slice(0, 2);
       }
       if (id === 'fRealName') { state.form.realName = e.target.value; clearProfileError(); updateProfilePreview(); }
       if (id === 'fEnglish') { state.form.englishName = e.target.value; clearProfileError(); updateProfilePreview(); }
@@ -3499,18 +4202,12 @@
       if (id === 'fTrialEnglish') { state.trialForm.englishName = e.target.value; clearTrialError(); updateTrialPreview(); }
       if (id === 'fTrialInitial') { state.trialForm.initial = e.target.value; clearTrialError(); updateTrialPreview(); }
       if (id === 'fTrialAge') { state.trialForm.age = e.target.value; clearTrialError(); updateTrialPreview(); }
+      if (id === 'fTrialSuffix') { state.trialForm.suffix = e.target.value; clearTrialError(); updateTrialPreview(); }
       if (id === 'fTrialContact') { state.trialForm.contact = e.target.value; clearTrialError(); updateTrialPreview(); }
-      if (id === 'inlineCwInput' && state.inlineCw) {
-        state.inlineCw.text = e.target.value.slice(0, 64);
-        const cnt = $('inlineCwCount');
-        if (cnt) cnt.textContent = `${state.inlineCw.text.length}/64`;
-      }
-      if (id.startsWith('cwProg-')) {
-        const index = Number(id.split('-')[1]);
-        const val = e.target.value.slice(0, 64);
-        if (state.cw.draft[index]) state.cw.draft[index].progressText = val;
-        const cnt = $(`cwProgCount-${index}`);
-        if (cnt) cnt.textContent = `${val.length}/64`;
+      if (id === 'progressNote' && state.progressEdit) {
+        state.progressEdit.text = e.target.value.slice(0, 2000);
+        const cnt = $('progressCount');
+        if (cnt) cnt.textContent = `${state.progressEdit.text.length}/2000`;
       }
       if (id === 'claimNickname') { state.claim.nickname = e.target.value; clearClaimError(); }
       if (id === 'claimLast4') {
@@ -3519,7 +4216,18 @@
         clearClaimError();
       }
       if (id === 'bindEmail') { state.bind.email = e.target.value; clearBindError(); }
-      if (id === 'notesInput') { state.noteEdit.text = e.target.value; }
+      if (id === 'transferNote') {
+        state.transfer.note = e.target.value.slice(0, 200);
+        const cnt = $('transferNoteCount');
+        if (cnt) cnt.textContent = `${state.transfer.note.length}/200`;
+        const btn = document.querySelector('[data-action="confirm-transfer"]');
+        if (btn) btn.disabled = !state.transfer.note.trim() || state.transfer.note.trim().length > 200 || state.online === 'off';
+      }
+      if (id === 'notesInput') {
+        state.noteEdit.text = e.target.value.slice(0, 2000);
+        const cnt = $('notesCount');
+        if (cnt) cnt.textContent = `${state.noteEdit.text.length}/2000`;
+      }
       if (id === 'cwPickSearch') {
         state.cw.pickQuery = e.target.value;
         const val = e.target.value;
@@ -3572,9 +4280,34 @@
     /* ------------------------------------------------------------------
      * 业务动作
      * ------------------------------------------------------------------ */
+    function enrolledMirrorOf(p) {
+      return state.enrolled.find((x) => x.id === p.id || String(x.nickname || '').toLowerCase() === String(p.nickname || '').toLowerCase());
+    }
+
+    function profileMirrorOf(p) {
+      return state.profiles.find((x) => x.id === p.id || String(x.nickname || '').toLowerCase() === String(p.nickname || '').toLowerCase());
+    }
+
+    function mirrorProfileFields(p) {
+      const t = enrolledMirrorOf(p);
+      if (!t) return;
+      ['realName', 'englishName', 'surnameInitial', 'age', 'gender', 'preferredSlots', 'avatarDataUrl', 'notes', 'courseware', 'nickname'].forEach((key) => {
+        if (p[key] !== undefined) t[key] = clone(p[key]);
+      });
+    }
+
+    function mirrorProfileMirrorStatus(p) {
+      const t = enrolledMirrorOf(p);
+      if (!t) return;
+      t.status = p.status;
+      t.archiveType = p.archiveType;
+      t.archivedAt = p.archivedAt;
+      t.audit = clone(p.audit || t.audit || []);
+    }
+
     function openCreate(reason = '') {
       if (state.online === 'off') return showToast('离线模式下无法创建档案');
-      if (state.profiles.length >= 10) return showToast('名下档案已达上限 (10/10)');
+      if (activeProfiles().length >= 10) return showToast('名下档案已达上限 (10/10)');
       state.form = { ...emptyProfileForm(), reason };
       state.overlay = { type: 'profile' };
       renderAll();
@@ -3585,11 +4318,13 @@
       if (state.online === 'off') return showToast('离线模式下无法编辑档案');
       const p = activeProfile();
       if (!p) return;
+      if (p.status !== 'ACTIVE') return showToast('已归档或已删除档案只读');
       state.form = {
-        mode: 'edit', editingId: p.id,
+        mode: 'edit', editingId: p.id, editingNickname: p.nickname,
         realName: p.realName, englishName: p.englishName, initial: p.surnameInitial,
         age: String(p.age), suffix: p.suffix || '', gender: p.gender,
-        avatarDataUrl: p.avatarDataUrl || '', error: '', reason: ''
+        avatarDataUrl: p.avatarDataUrl || '', preferredSlots: clone(p.preferredSlots || []),
+        error: '', reason: ''
       };
       state.overlay = { type: 'profile' };
       renderAll();
@@ -3620,34 +4355,38 @@
         if (!p) return;
         const before = {
           nickname: p.nickname, realName: p.realName, englishName: p.englishName,
-          age: p.age, avatar: p.avatarDataUrl || ''
+          age: p.age, avatar: p.avatarDataUrl || '',
+          slots: clone(p.preferredSlots || [])
         };
         Object.assign(p, {
-          nickname: nick, realName: f.realName.trim(), englishName: f.englishName.trim(),
+          realName: f.realName.trim(), englishName: f.englishName.trim(),
           surnameInitial: f.initial.trim().toUpperCase(), age: Number(f.age),
-          suffix: f.suffix.trim(), gender: f.gender,
+          gender: f.gender, preferredSlots: clone(f.preferredSlots || []),
           avatarDataUrl: f.avatarDataUrl
         });
         const by = operatorName();
-        recordFieldChange(p, '规范昵称', before.nickname, p.nickname, by);
         recordFieldChange(p, '学员姓名或小名', before.realName, p.realName, by);
         recordFieldChange(p, '英文名', before.englishName, p.englishName, by);
         recordFieldChange(p, '年龄', `${before.age} 岁`, `${p.age} 岁`, by);
+        recordFieldChange(p, '常态作息偏好', before.slots.map(preferredSlotLabel).filter(Boolean).join(' · ') || '未填写', (p.preferredSlots || []).map(preferredSlotLabel).filter(Boolean).join(' · ') || '未填写', by);
         if (before.avatar !== (p.avatarDataUrl || '')) {
           recordFieldChange(p, '头像', before.avatar ? '已设置头像' : '未设置头像', p.avatarDataUrl ? '已更新头像（1:1 裁切）' : '已移除头像', by);
         }
+        mirrorProfileFields(p);
         state.overlay = null;
         renderAll();
-        return showToast('档案已更新');
+        return showToast('档案已更新（规范昵称保持不变）');
       }
       const p = {
         id: `sp_${Math.random().toString(36).slice(2, 11).padEnd(9, '0')}`,
         nickname: nick, realName: f.realName.trim(), englishName: f.englishName.trim(),
         surnameInitial: f.initial.trim().toUpperCase(), age: Number(f.age), suffix: f.suffix.trim(),
-        gender: f.gender, tag: `宝贝 ${state.profiles.length + 1}`,
-        status: 'ACTIVE', createdAt: TODAY, responsible: 'Leo',
+        gender: f.gender, tag: `宝贝 ${activeProfiles().length + 1}`,
+        status: 'ACTIVE', createdAt: TODAY, responsible: 'Leo', holderMonitor: 'Leo',
+        familyId: `fam_${Math.random().toString(36).slice(2, 9)}`,
+        preferredSlots: clone(f.preferredSlots || []), historyTs: 0, historyOrders: 0,
         courseware: [],
-        stats: { upcoming: 0, pendingTs: 0, completed: 0, fixed: 0, temp: 0, pendingTiers: [] },
+        stats: { upcoming: 0, pendingTs: 0, completed: 0, fixed: 0, temp: 0, hold: 0, pendingOrders: 0, exceptionRollback: 0, pendingTiers: [] },
         notes: '', audit: [],
         avatarDataUrl: f.avatarDataUrl
       };
@@ -3684,11 +4423,18 @@
         contact: f.contact.trim(),
         status: 'UNBOUND',
         createdAt: TODAY,
+        activatedAt: TODAY,
         lastLessonDate: null,
         trialLessons: 0,
+        uncompletedTs: 0,
+        historyTs: 0,
+        historyOrders: 0,
+        archiveType: null,
         daysLeft: 30,
         createdBy: operatorName(),
         responsible: state.role === 'monitor' ? operatorName() : 'Leo',
+        familyId: `fam_${Math.random().toString(36).slice(2, 9)}`,
+        preferredSlots: clone(f.preferredSlots || []),
         trialProgress: '待排',
         notes: '',
         courseware: [],
@@ -3717,8 +4463,12 @@
         nickname: t.nickname, realName: t.realName, englishName: t.englishName,
         surnameInitial: t.surnameInitial, age: t.age, gender: t.gender,
         status: 'ACTIVE', createdAt: TODAY, responsible: t.responsible || operatorName(), teacher: '待安排',
+        holderMonitor: t.responsible || operatorName(), familyId: t.familyId,
+        preferredSlots: clone(t.preferredSlots || []),
+        historyTs: Number(t.trialLessons) || 0, historyOrders: Number(t.historyOrders) || 0,
+        relations: [{ type: 'group', monitor: t.responsible || operatorName() }],
         courseware: clone(t.courseware || []),
-        stats: { upcoming: 0, pendingTs: 0, completed: t.trialLessons || 0, fixed: 0, temp: 0, pendingTiers: [] },
+        stats: { upcoming: 0, pendingTs: 0, completed: t.trialLessons || 0, fixed: 0, temp: 0, hold: 0, pendingOrders: 0, exceptionRollback: 0, pendingTiers: [] },
         notes: t.notes || '',
         audit: clone(t.audit || [])
       });
@@ -3736,17 +4486,18 @@
       };
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('请输入有效的家长邮箱');
       if (!REGISTERED_EMAILS.includes(email)) return fail('该邮箱尚未注册，请核对');
+      if (activeProfiles().length >= 10) return fail('名下档案已达上限 (10/10)，请先归档或删除不再使用的档案');
       const t = state.trials.find((x) => x.id === state.bind.targetId);
-      if (!t || (t.status !== 'UNBOUND' && t.status !== 'TRIALING')) return fail('该档案当前不可绑定');
+      if (!t || t.status !== 'UNBOUND') return fail('该档案当前不可绑定');
       const from = t.status;
-      const prevParent = t.parentEmail ? `家长 ${t.parentEmail}` : '平台托管（未绑定）';
+      const prevParent = t.parentEmail ? `家长 ${t.parentEmail}` : '待归集（未绑定）';
       t.status = 'ACTIVE';
       t.parentEmail = email;
       t.claimedAt = TODAY;
       recordFieldChange(t, '所属家长', prevParent, `家长 ${email}`, operatorName());
       recordStatusChange(t, from, 'ACTIVE', `管理员 ${operatorName()} 绑定家长 ${email}，档案认领转正`, operatorName());
       enrollTrial(t);
-      if (state.role === 'admin' && state.page === 'trials') state.adminTab = 'active';
+      if (state.role === 'admin' && state.page === 'trials') state.adminTab = 'converted';
       state.overlay = null;
       renderAll();
       showToast(`已绑定至 ${email}，档案已认领并纳入全员学员`);
@@ -3754,7 +4505,7 @@
 
     function claimQuery() {
       if (state.online === 'off') return showToast('离线模式下不可认领');
-      if (state.profiles.length >= 10) return showToast('名下档案已达上限 (10/10)');
+      if (activeProfiles().length >= 10) return showToast('名下档案已达上限 (10/10)');
       const nick = state.claim.nickname.trim();
       const last4 = state.claim.last4.trim();
       const fail = (msg) => {
@@ -3764,7 +4515,7 @@
       if (!nick) return fail('请输入孩子的规范昵称');
       if (last4.length !== 4) return fail('请输入预留联系方式后四位');
       const t = state.trials.find((x) =>
-        (x.status === 'UNBOUND' || x.status === 'TRIALING')
+        x.status === 'UNBOUND'
         && x.nickname.toLowerCase() === nick.toLowerCase()
         && x.contact.replace(/\s/g, '').toLowerCase().endsWith(last4.toLowerCase())
       );
@@ -3777,7 +4528,7 @@
 
     function claimConfirm() {
       if (state.online === 'off') return showToast('离线模式下不可认领');
-      if (state.profiles.length >= 10) return showToast('名下档案已达上限 (10/10)');
+      if (activeProfiles().length >= 10) return showToast('名下档案已达上限 (10/10)');
       const t = state.trials.find((x) => x.id === state.claim.matchedId);
       if (!t) {
         state.claim.step = 1;
@@ -3785,19 +4536,23 @@
         return renderAll();
       }
       const from = t.status;
-      recordFieldChange(t, '所属家长', '平台托管（未绑定）', '家长 Amy · amy@example.com', '系统');
+      recordFieldChange(t, '所属家长', '待归集（未绑定）', '家长 Amy · amy@example.com', '系统');
       recordStatusChange(t, from, 'ACTIVE', '家长 Amy 通过规范昵称与预留联系方式后四位认领，绑定 amy@example.com', '系统');
       const p = {
         id: `sp_${Math.random().toString(36).slice(2, 11).padEnd(9, '0')}`,
         nickname: t.nickname, realName: t.realName, englishName: t.englishName,
         surnameInitial: t.surnameInitial, age: t.age, gender: t.gender, tag: '试课认领',
-        suffix: '', status: 'ACTIVE', createdAt: TODAY, responsible: t.responsible || 'Leo',
+        suffix: '', status: 'ACTIVE', archiveType: null, createdAt: TODAY,
+        responsible: t.responsible || 'Leo', holderMonitor: t.responsible || 'Leo', familyId: t.familyId,
+        preferredSlots: clone(t.preferredSlots || []),
+        historyTs: Number(t.trialLessons) || 0, historyOrders: Number(t.historyOrders) || 0,
         courseware: clone(t.courseware || []),
-        stats: { upcoming: 0, pendingTs: 0, completed: t.trialLessons, fixed: 0, temp: 0, pendingTiers: [] },
+        stats: { upcoming: 0, pendingTs: 0, completed: t.trialLessons, fixed: 0, temp: 0, hold: 0, pendingOrders: 0, exceptionRollback: 0, pendingTiers: [] },
         notes: t.notes || '', trialHistory: true,
         audit: clone(t.audit || [])
       };
       t.status = 'ACTIVE';
+      t.archiveType = null;
       t.parentEmail = 'amy@example.com';
       t.claimedAt = TODAY;
       enrollTrial(t);
@@ -3811,20 +4566,130 @@
       showToast(`已认领 ${p.nickname}，历史记录已并入`);
     }
 
-    function deleteProfile(id) {
-      const p = state.profiles.find((x) => x.id === id);
+    function lifecycleTarget(kind, id) {
+      if (kind === 'trial') return state.trials.find((x) => x.id === id) || null;
+      if (kind === 'enrolled') return state.enrolled.find((x) => x.id === id) || null;
+      return state.profiles.find((x) => x.id === id) || null;
+    }
+
+    function archiveLifecycle(kind, id) {
+      const p = lifecycleTarget(kind, id);
       if (!p) return;
-      if (p.stats.pendingTs > 0 || p.stats.upcoming > 0) {
-        return showToast('仍有有效课次，无法注销');
+      if (p.status === 'ARCHIVED') return showToast('该档案已归档');
+      const archiveType = kind === 'trial' ? '试课失效归档' : '正式暂别归档';
+      const from = p.status;
+      p.status = 'ARCHIVED';
+      p.archiveType = archiveType;
+      p.archivedAt = TODAY;
+      recordStatusChange(p, from, 'ARCHIVED', `五项资产清零，${currentRoleLabel()} ${operatorName()} 手工归档（${archiveType}）；昵称永久锁定`, operatorName(), archiveType);
+      if (kind === 'profile') mirrorProfileMirrorStatus(p);
+      if (kind === 'enrolled') {
+        const mirrored = profileMirrorOf(p);
+        if (mirrored) {
+          mirrored.status = p.status;
+          mirrored.archiveType = p.archiveType;
+          mirrored.archivedAt = p.archivedAt;
+          mirrored.audit = clone(p.audit || []);
+        }
       }
-      state.profiles = state.profiles.filter((x) => x.id !== id);
-      state.lockedNicknames.push(p.nickname);
-      if (state.activeId === id) state.activeId = state.profiles[0] ? state.profiles[0].id : '';
       state.overlay = null;
-      state.page = 'center';
-      state.navTab = 'me';
+      if (kind === 'profile' && state.activeId === p.id) {
+        const next = activeProfiles()[0];
+        state.activeId = next ? next.id : '';
+        if (!next) { state.page = 'center'; state.navTab = 'me'; }
+      }
       renderAll();
-      showToast(`${p.nickname} 已注销，昵称永久保留`);
+      showToast(`${p.nickname} 已归档（${archiveType}），昵称永久保留`);
+    }
+
+    function reactivateProfile(id) {
+      if (state.online === 'off') return showToast('离线模式下不可激活');
+      const enrolled = state.enrolled.find((x) => x.id === id);
+      if (!enrolled) {
+        const p = state.profiles.find((x) => x.id === id);
+        if (!p || p.status !== 'ARCHIVED') return;
+        if (p.archiveType !== '正式暂别归档') return showToast('仅正式暂别归档可按原类型激活');
+        if (activeProfiles().length >= 10) return showToast('名下激活档案已达上限 (10/10)');
+        p.status = 'ACTIVE';
+        p.archiveType = null;
+        p.archivedAt = null;
+        recordStatusChange(p, 'ARCHIVED', 'ACTIVE', '家长手工重新激活（原归档类型：正式暂别归档），历史课次、购课单与备注无缝恢复', operatorName());
+        mirrorProfileMirrorStatus(p);
+        state.activeId = p.id;
+        state.page = 'center';
+        state.navTab = 'me';
+        renderAll();
+        showToast(`${p.nickname} 已重新激活，历史记录完整保留`);
+        return;
+      }
+      if (enrolled.status !== 'ARCHIVED') return;
+      if (enrolled.archiveType !== '正式暂别归档') return showToast('仅正式暂别归档可按原类型激活');
+      if (activeProfiles().length >= 10) return showToast('名下激活档案已达上限 (10/10)');
+      enrolled.status = 'ACTIVE';
+      enrolled.archiveType = null;
+      enrolled.archivedAt = null;
+      recordStatusChange(enrolled, 'ARCHIVED', 'ACTIVE', '管理员手工重新激活（原归档类型：正式暂别归档），历史课次、购课单与备注无缝恢复', operatorName());
+      const pm = profileMirrorOf(enrolled);
+      if (pm) {
+        pm.status = 'ACTIVE';
+        pm.archiveType = null;
+        pm.archivedAt = null;
+        pm.audit = clone(enrolled.audit || []);
+      }
+      renderAll();
+      showToast(`${enrolled.nickname} 已重新激活，历史记录完整保留`);
+    }
+
+    function reactivateTrial(id) {
+      if (state.online === 'off') return showToast('离线模式下不可激活');
+      const t = state.trials.find((x) => x.id === id);
+      if (!t || t.status !== 'ARCHIVED') return;
+      if (t.archiveType !== '试课失效归档') return showToast('仅试课失效归档可按原类型激活');
+      t.status = 'UNBOUND';
+      t.archiveType = null;
+      t.archivedAt = null;
+      t.activatedAt = TODAY;
+      t.daysLeft = 30;
+      recordStatusChange(t, 'ARCHIVED', 'UNBOUND', '关联班长/管理员手工重新激活，自激活日起重算 30 天认领窗口', operatorName());
+      state.overlay = null;
+      renderAll();
+      showToast(`${t.nickname} 已恢复为待认领试课，30 天窗口重新起算`);
+    }
+
+    function deleteLifecycle(kind, id) {
+      const p = lifecycleTarget(kind, id);
+      if (!p) return;
+      if (historyTsOf(p, kind) > 0 || historyOrdersOf(p, kind) > 0) {
+        return showToast('已有历史课次或购课单，不支持删除，请使用归档');
+      }
+      const nick = p.nickname;
+      recordStatusChange(p, p.status, 'DELETED', '0 历史课次且 0 历史购课单，执行空档软删除；昵称永久锁定', operatorName());
+      if (kind === 'trial') {
+        state.trials = state.trials.filter((x) => x.id !== id);
+      } else if (kind === 'enrolled') {
+        state.enrolled = state.enrolled.filter((x) => x.id !== id);
+        const mirrored = profileMirrorOf(p);
+        if (mirrored) state.profiles = state.profiles.filter((x) => x.id !== mirrored.id);
+      } else {
+        state.profiles = state.profiles.filter((x) => x.id !== id);
+        const mirrored = enrolledMirrorOf(p);
+        if (mirrored) state.enrolled = state.enrolled.filter((x) => x.id !== mirrored.id);
+        if (state.activeId === id) {
+          const next = activeProfiles()[0];
+          state.activeId = next ? next.id : '';
+          if (!next) { state.page = 'center'; state.navTab = 'me'; }
+        }
+      }
+      state.lockedNicknames.push(nick);
+      state.overlay = null;
+      state.page = state.role === 'parent' ? 'center' : (state.role === 'admin' && kind === 'trial' ? 'trials' : 'staffList');
+      state.navTab = state.role === 'parent' ? 'me' : (state.role === 'teacher' ? 'students' : state.role === 'admin' && kind === 'trial' ? 'settings' : 'ops');
+      renderAll();
+      showToast(`${nick} 已删除，不可恢复；昵称永久保留`);
+    }
+
+    function deleteProfile(id) {
+      deleteLifecycle('profile', id);
     }
 
     function openNotes(kind, id) {
@@ -3849,7 +4714,7 @@
         state.overlay = null;
         return renderAll();
       }
-      const text = state.noteEdit.text.trim();
+      const text = state.noteEdit.text.trim().slice(0, 2000);
       const before = target.notes || '';
       state.overlay = null;
       if (before === text) {
@@ -3858,6 +4723,13 @@
       }
       target.notes = text;
       recordFieldChange(target, '学生备注', before, text, operatorName());
+      if (state.noteEdit.kind === 'profile') {
+        const em = enrolledMirrorOf(target);
+        if (em) em.notes = text;
+      } else if (state.noteEdit.kind === 'enrolled') {
+        const pm = profileMirrorOf(target);
+        if (pm) pm.notes = text;
+      }
       renderAll();
       showToast('学生备注已保存');
     }
@@ -3868,7 +4740,7 @@
       if (kind === 'trial' && target.status === 'ARCHIVED') return showToast('已归档档案不可调整课件');
       if (state.role === 'parent') {
         if (kind !== 'profile') return;
-        if (target.status === 'UNBOUND') return showToast('待认领试课档案由负责班长或平台管理员维护');
+        if (target.status === 'UNBOUND') return showToast('待认领试课档案由建档/关联班长或平台管理员维护');
         if (target.status !== 'ACTIVE') return showToast('仅可调整本人名下在读孩子的在学课件');
       }
       state.cw = {
@@ -3908,64 +4780,76 @@
       renderOverlayOnly();
     }
 
+    function mirrorCoursewareOf(target, kind) {
+      if (kind === 'profile') {
+        const em = enrolledMirrorOf(target);
+        if (em) em.courseware = clone(target.courseware || []);
+      } else if (kind === 'enrolled') {
+        const pm = profileMirrorOf(target);
+        if (pm) pm.courseware = clone(target.courseware || []);
+      }
+    }
+
     function cwSave() {
       if (state.online === 'off') return showToast('离线模式下不可保存课件');
       const cw = state.cw;
       const target = findCwTarget(cw.targetKind, cw.targetId);
       if (!target) return;
       const beforeList = clone(target.courseware || []);
-      const beforeSnap = coursewareSnapshot(beforeList);
-      const nextDraft = clone(cw.draft).map((item, idx) => {
+      const beforeIds = beforeList.map((x) => x.cwId).join(',');
+      const draftIds = cw.draft.map((x) => x.cwId).join(',');
+      const nextDraft = cw.draft.map((item) => {
         const old = beforeList.find((b) => b.cwId === item.cwId);
-        const changed = !old || old.level !== item.level || (old.progressText || '') !== (item.progressText || '');
-        if (!changed) return item;
-        const updates = clone(item.teacherUpdates || {});
-        if (state.role === 'teacher') {
-          updates[operatorName()] = (Number(updates[operatorName()]) || 0) + 1;
-        }
+        if (old) return clone(old);
         return {
-          ...item,
-          progressText: (item.progressText || '').trim().slice(0, 64),
+          cwId: item.cwId,
+          level: item.level || '标准',
+          progressText: '',
           lastUpdatedAt: TODAY,
           lastUpdatedBy: operatorName(),
           lastUpdatedRole: currentRoleLabel(),
-          teacherUpdates: updates
+          teacherUpdates: {}
         };
       });
-      const afterSnap = coursewareSnapshot(nextDraft);
-      if (beforeSnap === afterSnap && beforeList.length === nextDraft.length) {
+      if (beforeIds === draftIds) {
         state.overlay = null;
         renderAll();
         return showToast('在学课件未变更');
       }
       target.courseware = nextDraft;
-      recordFieldChange(target, '在学课件与进度备注', beforeSnap, afterSnap, operatorName());
+      const beforeSnap = coursewareSnapshot(beforeList);
+      const afterSnap = coursewareSnapshot(nextDraft);
+      recordFieldChange(target, '在学课件（新增/移除）', beforeSnap, afterSnap, operatorName());
+      mirrorCoursewareOf(target, cw.targetKind);
       state.overlay = null;
       renderAll();
-      showToast(state.role === 'parent'
-        ? '已保存并同步，已提醒负责班长与有待上课次的授课老师'
-        : `在学课件已保存，共 ${nextDraft.length} 门，已同步至老师日历与家长端`);
+      showToast(`在学课件已保存，共 ${nextDraft.length} 门；进度请使用各课件行【更新进度】`);
     }
 
-    function saveInlineProgress() {
+    function saveProgress() {
       if (state.online === 'off') return showToast('离线模式下不可保存进度');
-      const icw = state.inlineCw;
-      if (!icw) return;
-      const target = findCwTarget(icw.kind, icw.id);
-      if (!target || !target.courseware || !target.courseware[icw.index]) {
-        state.inlineCw = null;
+      const pe = state.progressEdit;
+      if (!pe) return;
+      const target = findCwTarget(pe.kind, pe.id);
+      if (!target || !target.courseware || !target.courseware[pe.index]) {
+        state.progressEdit = null;
+        state.overlay = null;
         return renderAll();
       }
-      const item = target.courseware[icw.index];
+      const item = target.courseware[pe.index];
       const cwInfo = cwById(item.cwId);
-      const before = item.progressText || '';
-      const after = (icw.text || '').trim().slice(0, 64);
-      state.inlineCw = null;
-      if (before === after) {
+      const beforeText = item.progressText || '';
+      const beforeLevel = item.level || '';
+      const afterText = String(pe.text || '').trim().slice(0, 2000);
+      const afterLevel = pe.level || beforeLevel;
+      state.progressEdit = null;
+      state.overlay = null;
+      if (beforeText === afterText && beforeLevel === afterLevel) {
         renderAll();
-        return showToast('进度备注未变更');
+        return showToast('进度未变更');
       }
-      item.progressText = after;
+      item.level = afterLevel;
+      item.progressText = afterText;
       item.lastUpdatedAt = TODAY;
       item.lastUpdatedBy = operatorName();
       item.lastUpdatedRole = currentRoleLabel();
@@ -3973,11 +4857,59 @@
       if (state.role === 'teacher') {
         item.teacherUpdates[operatorName()] = (Number(item.teacherUpdates[operatorName()]) || 0) + 1;
       }
-      recordFieldChange(target, `进度备注 (${cwInfo.nameEn})`, before || '暂未记录', after || '已清空', operatorName());
+      if (beforeLevel !== afterLevel) {
+        recordFieldChange(target, `当前就读级别 (${cwInfo.nameEn})`, beforeLevel || '标准', afterLevel || '标准', operatorName());
+      }
+      recordFieldChange(target, `进度备注 (${cwInfo.nameEn})`, beforeText || '暂未记录', afterText || '已清空', operatorName());
+      mirrorCoursewareOf(target, pe.kind);
       renderAll();
       showToast(state.role === 'parent'
-        ? '进度备注已更新，已提醒负责班长与授课老师'
-        : '进度备注已更新并记入档案变动日志');
+        ? '进度已更新，已提醒关联班长与授课老师'
+        : '进度已更新并记入档案变动日志');
+    }
+
+    function confirmTransfer() {
+      if (state.online === 'off') return showToast('离线模式下不可划转');
+      const source = state.enrolled.find((x) => x.id === state.transfer.sourceId);
+      const target = state.enrolled.find((x) => x.id === state.transfer.targetId);
+      if (!source || !target || source.id === target.id) return showToast('请选择同家庭的另一位在读孩子');
+      const maxCount = Math.min(3, pendingTsOf(source));
+      const count = Math.max(1, Math.min(maxCount, Number(state.transfer.count) || 1));
+      if (count > pendingTsOf(source)) return showToast('划转节数超过待排课次');
+      const note = String(state.transfer.note || '').trim();
+      if (note.length < 1 || note.length > 200) return showToast('请填写 1-200 字划转备注');
+      const holder = source.holderMonitor || '平台';
+      let remaining = count;
+      const movedTiers = [];
+      source.stats.pendingTiers = (source.stats.pendingTiers && source.stats.pendingTiers.length ? source.stats.pendingTiers : [{ price: 16, count: pendingTsOf(source) }])
+        .map((t) => {
+          const take = Math.min(remaining, Number(t.count) || 0);
+          if (take > 0) {
+            remaining -= take;
+            movedTiers.push({ price: Number(t.price), count: take });
+          }
+          return { ...t, count: Math.max(0, Number(t.count) - take) };
+        })
+        .filter((t) => t.count > 0);
+      source.stats.pendingTs = Math.max(0, pendingTsOf(source) - count);
+      target.stats.pendingTiers = clone(target.stats.pendingTiers || []);
+      movedTiers.forEach((m) => {
+        const hit = target.stats.pendingTiers.find((t) => Number(t.price) === m.price);
+        if (hit) hit.count = Number(hit.count) + m.count;
+        else target.stats.pendingTiers.push({ price: m.price, count: m.count });
+      });
+      target.stats.pendingTs = pendingTsOf(target) + count;
+      const tierText = movedTiers.map((t) => `${t.price}积分×${t.count}`).join(' · ');
+      recordStatusChange(source, '待排期', '待排期', `同家庭课次划转：向 ${target.nickname} 划转 ${count} 节待排 1v1 TS（${tierText}）；价位、积分快照、原购课单与资金持有人 ${holder} 均不变；备注：${note}`, operatorName());
+      recordFieldChange(target, '待排课次（同家庭划转接收）', `${pendingTsOf(target) - count} 节`, `${pendingTsOf(target)} 节`, operatorName());
+      const sp = profileMirrorOf(source);
+      const tp = profileMirrorOf(target);
+      if (sp) { sp.stats = clone(source.stats); sp.audit = clone(source.audit || []); }
+      if (tp) { tp.stats = clone(target.stats); tp.audit = clone(target.audit || []); }
+      state.overlay = null;
+      state.transfer = { sourceId: null, targetId: '', count: 1, note: '' };
+      renderAll();
+      showToast(`已从 ${source.nickname} 向 ${target.nickname} 划转 ${count} 节，资金持有人 ${holder} 不变，已通知家长`);
     }
 
     function handleAvatar(e) {

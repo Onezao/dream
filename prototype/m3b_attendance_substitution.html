@@ -187,6 +187,7 @@
       { id: 'lsn_bob_wed', studentKey: 'bob', student: 'BobZ10', type: 'temp', date: '2026-11-11', time: '17:00', teacher: 'Linda Chen', room: 'B-105', courseware: 'Power Up 3 · Unit 3', order: 'CO-20261108-012', payer: 'Amy', status: 'SCHEDULED' },
       { id: 'lsn_bob_thu', studentKey: 'bob', student: 'BobZ10', type: 'fixed', date: '2026-11-13', time: '16:00', teacher: 'David Miller', room: 'A-301', courseware: 'Power Up 3 · Unit 4', order: 'CO-20261027-009', payer: 'Amy', status: 'SCHEDULED' },
       { id: 'lsn_carol_thu', studentKey: 'carol', student: 'CarolL09', type: 'temp', date: '2026-11-13', time: '15:00', teacher: 'Sarah Jenkins', room: 'C-201', courseware: 'Phonics 2 · Unit 5', order: 'CO-20261105-015', payer: 'Carol 家长', status: 'SCHEDULED' },
+      { id: 'lsn_group_today', studentKey: null, student: 'KET 冲刺精讲小班', type: 'group', group: true, classId: 'ket1', size: '3/4 人', date: '2026-11-10', time: '14:00', teacher: 'David Miller', room: 'A-302', courseware: 'KET 冲刺讲义 · Unit 6', order: '—', payer: '—', status: 'SCHEDULED' },
       { id: 'lsn_bob_mon', studentKey: 'bob', student: 'BobZ10', type: 'temp', date: '2026-11-09', time: '18:00', teacher: 'David Miller', room: 'A-301', courseware: 'Power Up 3 · Unit 2', order: 'CO-20261101-004', payer: 'Amy', status: 'COMPLETED', settled: false }
     ];
 
@@ -235,7 +236,7 @@
       { key: 'all', label: '全部' }
     ];
 
-    /* [时间, 经办人, 分类, 操作, 对象, 课次日期, 时段, 变更前, 变更后, 归属老师, 原因, 批量周期, 节数, 临期] */
+    /* [时间, 经办人, 分类, 操作, 对象, 课次日期, 时段, 变更前, 变更后, 归属老师, 原因, 批量周期, 节数, 临期, 跨组驰援, 原负责班长] */
     const RECORD_SEEDS = [
       ['2026-11-10T21:40', 'Leo', 'schedule', '批量排课', 'alice', '2026-11-10', '19:00-19:30', '未排', '4 周固定位 · 8 节', 'David Miller', '家长确认续费，固定位续排', '11-10 ~ 12-05', 8, false],
       ['2026-11-10T20:15', 'Amy', 'schedule', '批量排课', 'ket', '2026-11-09', '10:00-11:00', '未排', '4 周小班 · 12 节', 'David Miller', '小班秋季轮次续排', '11-09 ~ 12-04', 12, false],
@@ -295,10 +296,12 @@
       ['2026-11-06T14:05', 'Leo', 'schedule', '批量排课', 'bob', '2026-11-09', '18:00-18:30', '未排', '4 周固定位 · 8 节', 'David Miller', '固定位新轮次批量排入', '11-09 ~ 12-04', 8, false],
       ['2026-11-05T19:25', 'Leo', 'exception', '异常未上课回退补生', 'daniel', '2026-11-04', '18:00-18:30', '已结课', '作废原课次 · 补生 1 节', 'David Miller', '网络故障未正常开课，原单补生', '', 1, false],
       ['2026-11-05T13:50', 'Leo', 'leave', '同师代挪位', 'alice', '2026-11-08', '19:00-19:30', '11-08 19:00', '11-10 19:00', 'David Miller', '家长临期沟通同师挪位', '', 1, true],
-      ['2026-11-04T20:30', 'Leo', 'sub', '撤销代课指派', 'bob', '2026-11-08', '10:00-10:30', 'Chris Park', '恢复原任老师', 'David Miller', '原任老师提前返岗恢复授课', '', 1, false]
+      ['2026-11-04T20:30', 'Leo', 'sub', '撤销代课指派', 'bob', '2026-11-08', '10:00-10:30', 'Chris Park', '恢复原任老师', 'David Miller', '原任老师提前返岗恢复授课', '', 1, false],
+      ['2026-11-10T23:05', 'Leo', 'sub', '指派代课', 'alice', '2026-11-10', '19:00-19:30', 'David Miller', 'Elena Wright', 'David Miller', '距开课不足 3 小时，跨组紧急驰援指派熟客代课', '', 1, true, true, 'Amy'],
+      ['2026-11-10T22:58', 'Mia', 'leave', '代学员请假', 'bob', '2026-11-10', '10:00-10:30', '已排课', '退回待排期', 'David Miller', '距开课不足 3 小时，跨组紧急驰援代学员退回待排期', '', 1, true, true, 'Leo']
     ];
 
-    const INITIAL_RECORDS = RECORD_SEEDS.map(([ts, operator, type, action, target, lessonDate, timeLabel, from, to, owner, reason, period, count, lastMinute], index) => {
+    const INITIAL_RECORDS = RECORD_SEEDS.map(([ts, operator, type, action, target, lessonDate, timeLabel, from, to, owner, reason, period, count, lastMinute, crossGroup, originOwner], index) => {
       const group = RECORD_GROUPS[target];
       const student = RECORD_STUDENTS[target];
       return {
@@ -322,7 +325,9 @@
         period: period || '',
         count: count || 1,
         batch: !!period,
-        lastMinute: !!lastMinute
+        lastMinute: !!lastMinute,
+        crossGroup: !!crossGroup,
+        originOwner: originOwner || null
       };
     });
 
@@ -557,6 +562,7 @@
     const CLASS_HANDOVER = {
       courseware: 'KET 冲刺讲义 · Unit 6',
       level: 'KET 冲刺',
+      progress: 'Unit 6 · Reading Part 2',
       note: '本班 4 人，2 人已掌握 Unit 5 词汇；需带纸质讲义。',
       updatedAt: '11-10 18:40',
       by: 'David Miller'
@@ -580,7 +586,7 @@
     const TEACHER_LEAVE_SLOTS = [
       { key: 't1', time: '10:00', lessonId: 'lsn_bob_today' },
       { key: 't2', time: '11:00' },
-      { key: 't3', time: '14:00' },
+      { key: 't3', time: '14:00', lessonId: 'lsn_group_today' },
       { key: 't4', time: '15:00' },
       { key: 't5', time: '16:00' },
       { key: 't6', time: '17:00', lessonId: 'lsn_carol_today' },
@@ -593,6 +599,11 @@
     ];
 
     const LEAVE_REASON_TAGS = ['身体不适', '突发停电', '家庭急事', '交通中断'];
+
+    const NOTE_MAX = 2000;
+    const NOTE_HINT = '请尽量填写英文，便于老师看懂';
+    const GROUP_HANDOVER_KEY = '__group_ket1__';
+    const PROGRESS_QUICK_CHIPS = ['Unit 3 · Page 24', 'Lesson 5', 'Review Unit 2'];
 
     const TEACHER_TARGETS = {
       'David Miller': [
@@ -702,6 +713,31 @@
 
     function icon(name, cls = 'h-4 w-4') {
       return `<i data-lucide="${name}" class="${cls}" aria-hidden="true"></i>`;
+    }
+
+    function noteSummary(value, max = 40) {
+      const text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+      return text.length > max ? `${text.slice(0, max)}…` : text;
+    }
+
+    function noteCounter(holderId, value) {
+      const length = String(value || '').slice(0, NOTE_MAX).length;
+      return `<div class="mt-1 flex items-start justify-between gap-2">
+        <span class="min-w-0 text-[12px] font-medium leading-relaxed text-slate-500">${NOTE_HINT}</span>
+        <span class="shrink-0 text-[12px] font-semibold text-slate-500" data-counter-for="${esc(holderId)}">${length}/${NOTE_MAX}</span>
+      </div>`;
+    }
+
+    function progressQuickChips(key) {
+      return `<div class="mt-1.5 flex flex-wrap gap-1.5">
+        ${PROGRESS_QUICK_CHIPS.map((text) => `<button type="button" data-action="handover-progress-chip" data-key="${esc(key)}" data-text="${esc(text)}" class="h-7 shrink-0 rounded-lg border border-slate-300 bg-white px-2 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50 active:bg-slate-100">${esc(text)}</button>`).join('')}
+      </div>`;
+    }
+
+    function syncNoteCounter(el) {
+      if (!el || !el.id) return;
+      const counter = document.querySelector(`[data-counter-for="${el.id}"]`);
+      if (counter) counter.textContent = `${el.value.length}/${NOTE_MAX}`;
     }
 
     const TONE = {
@@ -814,6 +850,8 @@
       period = '',
       count = 1,
       lastMinute = false,
+      crossGroup = false,
+      originOwner = null,
       operator,
       ts = '2026-11-10T23:59'
     }) {
@@ -840,7 +878,9 @@
         period,
         count,
         batch: !!period,
-        lastMinute
+        lastMinute,
+        crossGroup: !!crossGroup,
+        originOwner: originOwner || null
       });
     }
 
@@ -1446,7 +1486,7 @@
           ${infoRow('出资人', `${lesson.payer} · 资金归属不变`)}
           ${infoRow('当前学员', lesson.student)}
         </div>
-        <div class="mt-2">${neutralNote('资金与单据保持不变', '仅变更该课次的实际授课学员档案；原购课单金额、出资人与资金持有人不变。线下家长结算由双方自行完成，例如微信转账。', 'shield-check')}</div>
+        <div class="mt-2">${neutralNote('资金与单据保持不变', '仅变更该课次的实际授课学员档案；原购课单、出资人与资金持有人不变。线下家长结算由双方自行完成，例如微信转账。', 'shield-check')}</div>
         <div class="relative mt-3">
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
           <input id="studentSearch" value="${esc(query)}" placeholder="按姓名或规范昵称检索" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-[16px] font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15" autocomplete="off">
@@ -1831,6 +1871,20 @@
       return list;
     }
 
+    function leaveAffectedGroupLessons(selectedKeys) {
+      const seen = {};
+      const list = [];
+      (selectedKeys || []).forEach((key) => {
+        const slot = TEACHER_LEAVE_SLOTS.find((item) => item.key === key);
+        if (!slot || !slot.lessonId) return;
+        const lesson = lessonById(slot.lessonId);
+        if (!lesson || !isGroupLesson(lesson) || seen[lesson.id]) return;
+        seen[lesson.id] = true;
+        list.push(lesson);
+      });
+      return list;
+    }
+
     function ensureTeacherLeaveHandovers() {
       if (!state.teacherLeave) return;
       const next = {};
@@ -1844,6 +1898,14 @@
           note: existing && typeof existing.note === 'string' ? existing.note : (base.note || '')
         };
       });
+      if (leaveAffectedGroupLessons(state.teacherLeave.selected).length) {
+        const existingGroup = state.teacherLeave.handovers[GROUP_HANDOVER_KEY];
+        next[GROUP_HANDOVER_KEY] = {
+          courseware: (existingGroup && existingGroup.courseware) || CLASS_HANDOVER.courseware || '',
+          level: (existingGroup && existingGroup.level) || CLASS_HANDOVER.level || '',
+          progress: existingGroup && typeof existingGroup.progress === 'string' ? existingGroup.progress : (CLASS_HANDOVER.progress || '')
+        };
+      }
       state.teacherLeave.handovers = next;
     }
 
@@ -1870,6 +1932,7 @@
       if (!draft) return '';
       ensureTeacherLeaveHandovers();
       const affected = leaveAffectedLessons(draft.selected);
+      const affectedGroups = leaveAffectedGroupLessons(draft.selected);
       const scheduledSlots = TEACHER_LEAVE_SLOTS.filter((slot) => slot.lessonId);
       const freeCount = TEACHER_LEAVE_SLOTS.length - scheduledSlots.length;
       const selectedScheduled = draft.selected.filter((key) => TEACHER_LEAVE_SLOTS.find((slot) => slot.key === key && slot.lessonId)).length;
@@ -1905,10 +1968,10 @@
         <div class="mt-2.5 rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
           <div class="flex items-center justify-between gap-2">
             <span class="text-[14px] font-bold text-slate-900">交接信息（选填）</span>
-            <span class="text-[12px] font-medium text-slate-600">${affected.length} 位受影响学员</span>
+            <span class="text-[12px] font-medium text-slate-600">${affected.length} 位受影响学员${affectedGroups.length ? ` · ${affectedGroups.length} 个小班` : ''}</span>
           </div>
-          <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">按已勾选的已排课次去重；提交后同步学员档案并在指派代课面板透传。</p>
-          ${affected.length ? affected.map((lesson) => {
+          <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">按已勾选的已排课次去重；提交后同步学员或小班档案，并在指派代课面板透传。</p>
+          ${affected.map((lesson) => {
             const student = studentByKey(lesson.studentKey);
             const handover = draft.handovers[lesson.studentKey] || {};
             const options = leaveHandoverOptions(lesson.studentKey);
@@ -1922,11 +1985,13 @@
                 <span class="shrink-0 text-[12px] font-medium text-slate-600">${esc(student.tag)}</span>
               </div>
               <div class="mt-2 rounded-xl border border-indigo-200 bg-indigo-50/50 px-2.5 py-2">
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex items-start justify-between gap-2">
                   <label for="handoverProgress-${lesson.studentKey}" class="min-w-0 text-[12px] font-bold text-slate-900">更新进度备注 <span class="font-semibold text-slate-600">Process Note</span></label>
-                  <span class="shrink-0 text-[12px] font-medium text-slate-600">当前 ${esc(handover.progress || '未填写')}</span>
+                  <span class="min-w-0 shrink-0 text-right text-[12px] font-medium text-slate-600">最近进度 ${esc(noteSummary(handover.progress) || '未填写')}</span>
                 </div>
-                <input id="handoverProgress-${lesson.studentKey}" data-handover-progress="${lesson.studentKey}" maxlength="64" value="${esc(handover.progress || '')}" placeholder="Unit 3 · Page 24" class="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15">
+                <textarea id="handoverProgress-${lesson.studentKey}" data-handover-progress="${lesson.studentKey}" data-note-counter="true" rows="5" maxlength="2000" placeholder="Unit 3 · Page 24" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[16px] font-medium leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15">${esc(handover.progress || '')}</textarea>
+                ${noteCounter(`handoverProgress-${lesson.studentKey}`, handover.progress)}
+                ${progressQuickChips(lesson.studentKey)}
               </div>
               <div class="mt-2">
                 <span class="text-[12px] font-semibold text-slate-600">在学课件</span>
@@ -1948,12 +2013,32 @@
                 ${noteExpanded
                   ? `<label class="mt-1.5 block">
                       <span class="text-[12px] font-semibold text-slate-600">学生备注 <span class="font-semibold text-slate-500">Student Note</span></span>
-                      <textarea data-handover-note="${lesson.studentKey}" rows="2" placeholder="选填，如发音、注意力或下节课提醒" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 py-2 text-[14px] font-medium leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(handover.note || '')}</textarea>
+                      <textarea id="handoverNote-${lesson.studentKey}" data-handover-note="${lesson.studentKey}" data-note-counter="true" rows="5" maxlength="2000" placeholder="选填，如发音、注意力或下节课提醒" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 py-2 text-[16px] font-medium leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(handover.note || '')}</textarea>
+                      ${noteCounter(`handoverNote-${lesson.studentKey}`, handover.note)}
                     </label>`
                   : (handover.note ? `<div class="mt-1 line-clamp-2 text-[12px] font-medium leading-relaxed text-slate-600">${esc(handover.note)}</div>` : '')}
               </div>
             </div>`;
-          }).join('') : `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-center text-[12px] font-medium text-slate-600">勾选含已排课次的时段后，这里会按学员逐一展开交接信息。</div>`}
+          }).join('')}
+          ${affectedGroups.map((lesson) => {
+            const handover = draft.handovers[GROUP_HANDOVER_KEY] || {};
+            return `<div data-group-handover="true" class="mt-2 rounded-xl border border-purple-200 bg-white p-2.5">
+              <div class="flex min-w-0 items-center justify-between gap-2">
+                <span class="min-w-0 truncate text-[14px] font-bold text-slate-900">[G] ${esc(lesson.student)}</span>
+                <span class="shrink-0 text-[12px] font-medium text-slate-600">小班 · ${esc(lesson.size || '—')}</span>
+              </div>
+              <div class="mt-2 rounded-xl border border-indigo-200 bg-indigo-50/50 px-2.5 py-2">
+                <div class="flex items-start justify-between gap-2">
+                  <label for="handoverProgressGroup" class="min-w-0 text-[12px] font-bold text-slate-900">更新进度备注 <span class="font-semibold text-slate-600">Process Note</span></label>
+                  <span class="min-w-0 shrink-0 text-right text-[12px] font-medium text-slate-600">最近进度 ${esc(noteSummary(handover.progress) || '未填写')}</span>
+                </div>
+                <textarea id="handoverProgressGroup" data-handover-progress="${GROUP_HANDOVER_KEY}" data-note-counter="true" rows="5" maxlength="2000" placeholder="如 Unit 6 · Reading Part 2" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[16px] font-medium leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15">${esc(handover.progress || '')}</textarea>
+                ${noteCounter('handoverProgressGroup', handover.progress)}
+                ${progressQuickChips(GROUP_HANDOVER_KEY)}
+              </div>
+            </div>`;
+          }).join('')}
+          ${!affected.length && !affectedGroups.length ? `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-center text-[12px] font-medium text-slate-600">勾选含已排课次的时段后，这里会按学员或小班逐一展开交接信息。</div>` : ''}
         </div>
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">取消</button>
@@ -1999,6 +2084,7 @@
       if (!draft.reason.trim()) return showToast('请填写请假原因', true);
       ensureTeacherLeaveHandovers();
       const affected = leaveAffectedLessons(draft.selected);
+      const affectedGroups = leaveAffectedGroupLessons(draft.selected);
       affected.forEach((lesson) => {
         const handover = draft.handovers[lesson.studentKey];
         if (!handover) return;
@@ -2011,6 +2097,29 @@
           by: 'David Miller',
           fresh: true
         };
+      });
+      const groupHandover = draft.handovers[GROUP_HANDOVER_KEY];
+      if (affectedGroups.length && groupHandover) {
+        CLASS_HANDOVER.courseware = groupHandover.courseware || CLASS_HANDOVER.courseware;
+        CLASS_HANDOVER.level = groupHandover.level || CLASS_HANDOVER.level;
+        CLASS_HANDOVER.progress = groupHandover.progress || '';
+        CLASS_HANDOVER.updatedAt = '11-10 21:05';
+        CLASS_HANDOVER.by = 'David Miller';
+      }
+      affectedGroups.forEach((lesson) => {
+        addRecord({
+          type: 'leave',
+          action: '代老师请假',
+          groupName: lesson.student,
+          classId: lesson.classId || groupIdForName(lesson.student),
+          lessonDate: lesson.date,
+          timeLabel: `${lesson.time}-${endTime(lesson.time, 60)}`,
+          from: '已排课',
+          to: '已请假 · 待代课',
+          owner: 'David Miller',
+          reason: draft.reason.trim(),
+          ts: '2026-11-10T21:05'
+        });
       });
       draft.selected.forEach((key) => {
         const slot = TEACHER_LEAVE_SLOTS.find((item) => item.key === key);
@@ -2026,6 +2135,20 @@
       state.cellView = 'main';
       renderAll();
       showToast('已提交请假，交接信息已同步');
+    }
+
+    function appendProgressChip(key, text) {
+      if (!state.teacherLeave || !state.teacherLeave.handovers[key]) return;
+      const handover = state.teacherLeave.handovers[key];
+      const current = handover.progress || '';
+      const next = current.trim() ? `${current.replace(/\s+$/, '')}\n${text}` : text;
+      handover.progress = next.slice(0, NOTE_MAX);
+      const textarea = Array.from(document.querySelectorAll('[data-handover-progress]'))
+        .find((node) => node.dataset.handoverProgress === key);
+      if (textarea) {
+        textarea.value = handover.progress;
+        syncNoteCounter(textarea);
+      }
     }
 
     /* ------------------------------------------------------------------
@@ -2061,7 +2184,7 @@
       ensureGroupLesson();
       const alicePair = [lessonById('lsn_alice_tue'), lessonById('lsn_alice_tue2')].filter(Boolean);
       const bobLesson = lessonById('lsn_bob_today');
-      const groupLesson = lessonById('lsn_ket_sat');
+      const groupLesson = lessonById('lsn_group_today') || lessonById('lsn_class_cell');
       const items = [
         alicePair.length ? {
           id: alicePair[0].id,
@@ -2082,7 +2205,7 @@
         groupLesson ? {
           id: groupLesson.id,
           ids: [groupLesson.id],
-          title: `${groupLesson.student} · 11-14 10:00-11:00 (小班双格)`,
+          title: `${groupLesson.student} · ${fmtDate(groupLesson.date)} ${groupLesson.time}-${endTime(groupLesson.time, 60)} (小班双格)`,
           lesson: groupLesson,
           handover: CLASS_HANDOVER,
           group: true
@@ -2104,14 +2227,14 @@
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
                   <div class="text-[14px] font-bold text-slate-900">${esc(item.title)}</div>
-                  <div class="mt-0.5 text-[12px] font-medium text-slate-600">原任老师 David Miller · ${subbed ? `已指派 ${esc(lesson.subTeacher)} 代课` : pending ? '已退回待排期' : '待应急调度'}</div>
+                  <div class="mt-0.5 text-[12px] font-medium text-slate-600">原任老师 David Miller · ${item.group ? '主理人/班长应急调度' : subbed ? `已指派 ${esc(lesson.subTeacher)} 代课` : pending ? '已退回待排期' : '待应急调度'}</div>
                 </div>
                 ${state.hours < 3 ? chip('临期 <3h', 'rose') : subbed ? chip('已代课', 'purple') : pending ? chip('已退回', 'slate') : chip('待调度', 'amber')}
               </div>
               ${item.handover ? `<div class="mt-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[12px]">
                 <div class="font-semibold text-slate-800">在学课件：${esc(item.handover.courseware)} · ${esc(item.handover.level)}</div>
-                ${item.handover.progress ? `<div class="mt-0.5 line-clamp-1 font-medium text-slate-700">进度备注：${esc(item.handover.progress)}</div>` : ''}
-                <div class="mt-0.5 line-clamp-1 font-medium text-slate-600">学生备注：${esc(item.handover.note || '—')}</div>
+                ${item.handover.progress ? `<div class="mt-0.5 line-clamp-1 font-medium text-slate-700">进度备注：${esc(noteSummary(item.handover.progress))}</div>` : ''}
+                ${item.group ? '' : `<div class="mt-0.5 line-clamp-1 font-medium text-slate-600">学生备注：${esc(noteSummary(item.handover.note) || '—')}</div>`}
               </div>` : ''}
               <div class="mt-2.5 flex flex-wrap gap-1.5">
                 ${item.group
@@ -2404,7 +2527,7 @@
       const ids = card.segments.map((item) => item.id).join(',');
       return `<button data-action="history-note" data-ids="${esc(ids)}" data-note="${noteType}" class="flex w-full items-start gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left transition hover:border-indigo-300 hover:bg-indigo-50/40 active:bg-indigo-50">
         <span class="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[12px] font-bold ring-1 ${isProgress ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-indigo-50 text-indigo-700 ring-indigo-100'}">${icon(isProgress ? 'book-open' : 'pencil-line', 'h-3 w-3')}${label}</span>
-        <span class="line-clamp-2 min-w-0 flex-1 text-[12px] font-medium leading-relaxed ${note ? 'text-slate-700' : 'text-slate-500'}">${esc(note || '尚未补录，点击补充')}</span>
+        <span class="line-clamp-1 min-w-0 flex-1 text-[12px] font-medium leading-relaxed ${note ? 'text-slate-700' : 'text-slate-500'}">${esc(noteSummary(note) || '尚未补录，点击补充')}</span>
         <span class="mt-0.5 shrink-0 text-indigo-600">${icon('chevron-right', 'h-3.5 w-3.5')}</span>
       </button>`;
     }
@@ -2591,7 +2714,7 @@
       if (!segments.length) return;
       const type = noteType === 'progress' ? 'progress' : 'student';
       const primary = segments[segments.length - 1];
-      state.historyNoteDraft = historyNoteOf(primary, type);
+      state.historyNoteDraft = String(historyNoteOf(primary, type) || '').slice(0, NOTE_MAX);
       state.overlay = {
         type: 'historyNote',
         lessonIds: segments.map((item) => item.id),
@@ -2630,7 +2753,8 @@
           <label for="historyNoteInput" class="text-[12px] font-bold text-slate-800">${label}内容</label>
           <span class="text-[12px] font-medium text-slate-500">${isProgress ? '如 Unit 4 · Page 32' : '学情 / 注意事项'}</span>
         </div>
-        <textarea id="historyNoteInput" rows="4" ${editable ? '' : 'readonly'} placeholder="${isProgress ? '填写当前在学课件进度，如 Unit 4 · Page 32' : '填写课后学情、发音或注意力提醒'}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[16px] font-medium leading-relaxed outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 ${editable ? 'bg-slate-50/70 text-slate-900' : 'bg-slate-100 text-slate-600'}">${esc(state.historyNoteDraft)}</textarea>
+        <textarea id="historyNoteInput" rows="5" maxlength="2000" data-note-counter="true" ${editable ? '' : 'readonly'} placeholder="${isProgress ? '填写当前在学课件进度，如 Unit 4 · Page 32' : '填写课后学情、发音或注意力提醒'}" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-[16px] font-medium leading-relaxed outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 ${editable ? 'bg-slate-50/70 text-slate-900' : 'bg-slate-100 text-slate-600'}">${esc(state.historyNoteDraft)}</textarea>
+        ${noteCounter('historyNoteInput', state.historyNoteDraft)}
         <div class="mt-2 rounded-xl border px-3 py-2.5 ${editable ? 'border-emerald-200 bg-emerald-50/60 text-emerald-900' : 'border-slate-200 bg-slate-50 text-slate-600'}">
           <div class="flex items-start gap-2">
             <span class="mt-0.5 shrink-0">${icon(editable ? 'circle-check' : 'lock', 'h-4 w-4')}</span>
@@ -2658,7 +2782,7 @@
         return;
       }
       segments.forEach((item) => {
-        state.historyNotes[historyNoteKey(item, overlay.noteType)] = state.historyNoteDraft.trim();
+        state.historyNotes[historyNoteKey(item, overlay.noteType)] = state.historyNoteDraft.trim().slice(0, NOTE_MAX);
       });
       state.overlay = null;
       state.historyNoteDraft = '';
@@ -2710,12 +2834,13 @@
 
     function renderRecordCard(rec) {
       const meta = RECORD_TYPE_META[rec.type] || RECORD_TYPE_META.schedule;
-      return `<article class="box-border w-full rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
+      return `<article data-rec-id="${esc(rec.id)}" data-record-cross-group="${rec.crossGroup ? 'true' : 'false'}" class="box-border w-full rounded-2xl border ${rec.crossGroup ? 'border-amber-300 border-l-4 border-l-amber-500' : 'border-slate-300'} bg-slate-50/70 p-3.5">
         <div class="flex items-start justify-between gap-2">
           <div class="flex min-w-0 flex-wrap items-center gap-1.5">
             ${chip(meta.label, meta.tone)}
             ${chip(rec.action, 'slate')}
             ${rec.lastMinute ? chip('临期 <3h', 'rose') : ''}
+            ${rec.crossGroup ? `<span data-cross-group-badge="true" class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[12px] font-bold text-amber-900">${icon('siren', 'h-3 w-3')}跨组紧急驰援 · 原负责: ${esc(rec.originOwner || '—')}</span>` : ''}
           </div>
           <span class="shrink-0 text-[12px] font-medium text-slate-600">${esc(recordTimeLabel(rec.ts))}</span>
         </div>
@@ -3928,6 +4053,7 @@
         return;
       }
       if (action === 'submit-teacher-leave') return submitTeacherLeave();
+      if (action === 'handover-progress-chip') return appendProgressChip(el.dataset.key, el.dataset.text);
       if (action === 'handover-courseware') {
         if (!state.teacherLeave) return;
         ensureTeacherLeaveHandovers();
@@ -4066,7 +4192,8 @@
 
     document.getElementById('frame').addEventListener('input', (event) => {
       if (event.target.id === 'historyNoteInput') {
-        state.historyNoteDraft = event.target.value;
+        state.historyNoteDraft = event.target.value.slice(0, NOTE_MAX);
+        syncNoteCounter(event.target);
         return;
       }
       if (event.target.id === 'studentSearch') {
@@ -4094,12 +4221,14 @@
       }
       if (event.target.matches('[data-handover-progress]') && state.teacherLeave) {
         const key = event.target.dataset.handoverProgress;
-        if (state.teacherLeave.handovers[key]) state.teacherLeave.handovers[key].progress = event.target.value;
+        if (state.teacherLeave.handovers[key]) state.teacherLeave.handovers[key].progress = event.target.value.slice(0, NOTE_MAX);
+        syncNoteCounter(event.target);
         return;
       }
       if (event.target.matches('[data-handover-note]') && state.teacherLeave) {
         const key = event.target.dataset.handoverNote;
-        if (state.teacherLeave.handovers[key]) state.teacherLeave.handovers[key].note = event.target.value;
+        if (state.teacherLeave.handovers[key]) state.teacherLeave.handovers[key].note = event.target.value.slice(0, NOTE_MAX);
+        syncNoteCounter(event.target);
       }
     });
 

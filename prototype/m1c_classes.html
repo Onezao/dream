@@ -116,18 +116,37 @@
      * ------------------------------------------------------------------ */
     const TODAY = '2026-11-10';
     const CURRENT_MONITOR_ID = 'mn_leo000001';
-    const ONE_TO_ONE_COUNT = 18;
+    const ADMIN_MONITOR_ID = 'mn_sarah0003';
     const TEACHERS = [
       { id: 'tc_david0001', name: 'David Miller', price: 21, active: true },
       { id: 'tc_linda0003', name: 'Linda Chen', price: 16, active: true },
       { id: 'tc_sarah0002', name: 'Sarah Jenkins', price: 18, active: true },
       { id: 'tc_emma00001', name: 'Emma Stone', price: 21, active: true },
-      { id: 'tc_micha0006', name: 'Michael Chen', price: 18, active: true }
+      { id: 'tc_micha0006', name: 'Michael Chen', price: 18, active: true, leaveDate: '2026-11-25' }
     ];
 
     const MONITORS = [
       { id: 'mn_leo000001', name: 'Leo', active: true },
-      { id: 'mn_amy000002', name: 'Amy', active: true }
+      { id: 'mn_amy000002', name: 'Amy', active: true },
+      { id: 'mn_sarah0003', name: 'Sarah', active: true }
+    ];
+
+    /* 复用平台课件库（0~6 门可绑定），级别默认取库内 defaultLevel */
+    const COURSEWARE_LIBRARY = [
+      { id: 'cw_ketcomplete', name: 'KET Complete', defaultLevel: 'Level B1' },
+      { id: 'cw_ketvocab', name: 'KET Vocabulary', defaultLevel: 'Level A2' },
+      { id: 'cw_oxforddis2', name: 'Oxford Discover 2', defaultLevel: 'Level 2' },
+      { id: 'cw_razkids', name: 'Raz-Kids', defaultLevel: 'Level 1' },
+      { id: 'cw_wondersg1', name: 'Wonders G1', defaultLevel: 'Level 1' },
+      { id: 'cw_think1', name: 'Think 1', defaultLevel: 'Level B1' },
+      { id: 'cw_phonicsw3', name: 'Oxford Phonics World 3', defaultLevel: 'Level 3' }
+    ];
+
+    const PROGRESS_PHRASES = [
+      { label: 'Warm-up review', text: 'Warm-up: reviewed last lesson vocabulary and homework.' },
+      { label: 'Unit covered', text: 'Covered the unit reading and listening exercises.' },
+      { label: 'Homework', text: 'Homework: Workbook pages 18-19, exercises 1-3.' },
+      { label: 'Needs review', text: 'Needs review: irregular past tense and spelling next lesson.' }
     ];
 
     const DISSOLVE_REASONS = [
@@ -150,6 +169,18 @@
         teacherId: 'tc_david0001', ownerMonitorId: 'mn_leo000001',
         max: 3, salary: 30, total: 80,
         status: 'active', futureTs: 8, unsettledTs: 2, pendingTs: 2, remainingLessons: 10, completedTs: 6, createdAt: '2026-10-12',
+        coursewares: [
+          {
+            id: 'cw_ketcomplete', name: 'KET Complete', level: 'Level B1',
+            processNote: 'Covered Unit 5 reading and listening.\nClass was slow on Part 4; review word formation next week.',
+            updatedBy: 'David Miller', updatedByRole: '老师', updatedAt: '2026-11-08', daysAgo: 2, topTeacher: 'David Miller', topCount: 6
+          },
+          {
+            id: 'cw_ketvocab', name: 'KET Vocabulary', level: 'Level A2',
+            processNote: 'Topic vocabulary list 1-60 assigned; students finished about half in class.',
+            updatedBy: 'David Miller', updatedByRole: '老师', updatedAt: '2026-04-25', daysAgo: 199, topTeacher: 'David Miller', topCount: 3
+          }
+        ],
         auditLog: [
           { at: '2026-10-12 10:20', action: '新建小班', operator: 'Leo', summary: '创建小班 · 主理人 Leo · 容量 Max 3' },
           { at: '2026-10-12 10:21', kind: 'status', from: 'pending_open', to: 'active', operator: 'Leo', reason: '创建生效' },
@@ -162,7 +193,14 @@
         id: 'cls_phon0002', name: '自然拼读启蒙班',
         teacherId: 'tc_sarah0002', ownerMonitorId: 'mn_leo000001',
         max: 3, salary: 25, total: 60,
-        status: 'active', futureTs: 4, unsettledTs: 0, pendingTs: 0, remainingLessons: 4, completedTs: 5, createdAt: '2026-10-20',
+        status: 'active', futureTs: 0, unsettledTs: 4, pendingTs: 4, remainingLessons: 4, completedTs: 5, createdAt: '2026-10-20',
+        coursewares: [
+          {
+            id: 'cw_phonicsw3', name: 'Oxford Phonics World 3', level: 'Level 3',
+            processNote: 'Practised long vowel sounds and blending; most students can read the new words.',
+            updatedBy: 'Sarah Jenkins', updatedByRole: '老师', updatedAt: '2026-11-07', daysAgo: 3, topTeacher: 'Sarah Jenkins', topCount: 4
+          }
+        ],
         auditLog: [
           { at: '2026-10-20 14:05', action: '新建小班', operator: 'Leo', summary: '创建小班 · 主理人 Leo · 容量 Max 3' },
           { at: '2026-10-20 14:06', kind: 'status', from: 'pending_open', to: 'active', operator: 'Leo', reason: '创建生效' },
@@ -175,6 +213,7 @@
         teacherId: null, ownerMonitorId: 'mn_leo000001',
         max: 3, salary: 28, total: 55,
         status: 'active', futureTs: 0, unsettledTs: 0, pendingTs: 0, remainingLessons: 0, completedTs: 0, createdAt: '2026-11-08',
+        coursewares: [],
         auditLog: [
           { at: '2026-11-08 16:20', action: '新建小班', operator: 'Leo', summary: '创建小班 · 主理人 Leo · 暂未委任主讲老师' },
           { at: '2026-11-08 16:21', kind: 'status', from: 'pending_open', to: 'active', operator: 'Leo', reason: '创建生效 · 待委任老师' }
@@ -182,13 +221,20 @@
       },
       {
         id: 'cls_ket00010', name: 'KET 入门小班',
-        teacherId: 'tc_david0001', ownerMonitorId: 'mn_leo000001',
+        teacherId: 'tc_micha0006', ownerMonitorId: 'mn_leo000001',
         max: 3, salary: 30, total: 70,
-        status: 'active', futureTs: 0, unsettledTs: 0, pendingTs: 0, remainingLessons: 0, completedTs: 0, hasOrder: false, createdAt: '2026-11-09',
+        status: 'active', futureTs: 0, unsettledTs: 0, pendingTs: 0, remainingLessons: 0, completedTs: 0, hasOrder: true, hasInFlightOrder: true, startedUnfinished: 1, anomalyRollbacks: 1, createdAt: '2026-11-09',
+        coursewares: [
+          {
+            id: 'cw_think1', name: 'Think 1', level: 'Level B1',
+            processNote: 'First lesson: introduced Unit 1 and set speaking pairs for next week.',
+            updatedBy: 'Michael Chen', updatedByRole: '老师', updatedAt: '2026-11-09', daysAgo: 1, topTeacher: 'Michael Chen', topCount: 1
+          }
+        ],
         auditLog: [
           { at: '2026-11-09 09:10', action: '新建小班', operator: 'Leo', summary: '创建小班 · 主理人 Leo · 容量 Max 3' },
           { at: '2026-11-09 09:11', kind: 'status', from: 'pending_open', to: 'active', operator: 'Leo', reason: '创建生效' },
-          { at: '2026-11-09 09:15', action: '委任老师', operator: 'Leo', summary: '主讲老师: 待委任 → David Miller' }
+          { at: '2026-11-09 09:15', action: '委任老师', operator: 'Leo', summary: '主讲老师: 待委任 → Michael Chen（将于 11-25 离职）' }
         ]
       },
       {
@@ -196,6 +242,13 @@
         teacherId: 'tc_emma00001', ownerMonitorId: 'mn_leo000001',
         max: 3, salary: 34, total: 75,
         status: 'active', futureTs: 2, unsettledTs: 1, pendingTs: 1, remainingLessons: 3, completedTs: 3, createdAt: '2026-11-03',
+        coursewares: [
+          {
+            id: 'cw_oxforddis2', name: 'Oxford Discover 2', level: 'Level 2',
+            processNote: 'Finished the Unit 3 project posters; next lesson starts Unit 4 vocabulary.',
+            updatedBy: 'Emma Stone', updatedByRole: '老师', updatedAt: '2026-11-06', daysAgo: 4, topTeacher: 'Emma Stone', topCount: 5
+          }
+        ],
         auditLog: [
           { at: '2026-11-03 11:10', action: '新建小班', operator: 'Leo', summary: '创建小班 · 主理人 Leo · 容量 Max 3' },
           { at: '2026-11-03 11:11', kind: 'status', from: 'pending_open', to: 'active', operator: 'Leo', reason: '创建生效' },
@@ -208,6 +261,18 @@
         teacherId: 'tc_linda0003', ownerMonitorId: 'mn_leo000001',
         max: 6, salary: 30, total: 100,
         status: 'active', futureTs: 3, unsettledTs: 4, pendingTs: 4, remainingLessons: 7, completedTs: 6, createdAt: '2026-10-26',
+        coursewares: [
+          {
+            id: 'cw_razkids', name: 'Raz-Kids', level: 'Level 1',
+            processNote: 'Students read two short books aloud; accuracy is improving steadily.',
+            updatedBy: 'Linda Chen', updatedByRole: '老师', updatedAt: '2026-11-05', daysAgo: 5, topTeacher: 'Linda Chen', topCount: 7
+          },
+          {
+            id: 'cw_wondersg1', name: 'Wonders G1', level: 'Level 1',
+            processNote: 'Covered the weekly story and key sentence patterns.',
+            updatedBy: 'Linda Chen', updatedByRole: '老师', updatedAt: '2026-11-04', daysAgo: 6, topTeacher: 'Linda Chen', topCount: 2
+          }
+        ],
         auditLog: [
           { at: '2026-10-26 09:35', action: '新建小班', operator: 'Leo', summary: '创建小班 · 主理人 Leo · 容量 Max 6' },
           { at: '2026-10-26 09:36', kind: 'status', from: 'pending_open', to: 'active', operator: 'Leo', reason: '创建生效' },
@@ -233,10 +298,19 @@
         teacherId: 'tc_sarah0002', ownerMonitorId: 'mn_leo000001',
         max: 3, salary: 32, total: 70,
         status: 'early_terminated', futureTs: 0, unsettledTs: 5, pendingTs: 0, remainingLessons: 0, completedTs: 6, createdAt: '2026-09-18',
+        coursewares: [
+          {
+            id: 'cw_think1', name: 'Think 1', level: 'Level B1',
+            processNote: 'Covered Units 1-4 listening strategies before the class was closed.',
+            updatedBy: 'Sarah Jenkins', updatedByRole: '老师', updatedAt: '2026-10-30', daysAgo: 11, topTeacher: 'Sarah Jenkins', topCount: 6
+          }
+        ],
         termination: {
           reason: 'TEACHER_RESIGNED', disposition: 'REOPEN_NEW_CLASS',
           note: '老师长期请假，已与全班家长协商结转到新班，差额线下结清',
-          at: '2026-11-06', releasedTs: 4, completedTs: 6, voidedTs: 4, remainingLessons: 5, refundTotal: 350, perCapita: 116.67, screenshots: 0
+          at: '2026-11-06', releasedTs: 4, completedTs: 6, voidedTs: 5, remainingLessons: 5,
+          voidedFutureTs: 4, voidedPoolTs: 1, remainingPoints: 350,
+          clearRecordId: 'CD-20261106-01', clearRecordStatus: '已生成'
         },
         auditLog: [
           { at: '2026-09-18 13:30', action: '新建小班', operator: 'Leo', summary: '创建小班 · 主理人 Leo · 容量 Max 3' },
@@ -251,6 +325,13 @@
         teacherId: 'tc_david0001', ownerMonitorId: 'mn_amy000002',
         max: 3, salary: 30, total: 80,
         status: 'active', futureTs: 6, unsettledTs: 3, pendingTs: 3, remainingLessons: 9, completedTs: 4, createdAt: '2026-10-15',
+        coursewares: [
+          {
+            id: 'cw_ketcomplete', name: 'KET Complete', level: 'Level B1',
+            processNote: 'Weekly mock test reviewed; focus on writing Part 2 next session.',
+            updatedBy: 'David Miller', updatedByRole: '老师', updatedAt: '2026-11-09', daysAgo: 1, topTeacher: 'David Miller', topCount: 4
+          }
+        ],
         auditLog: [
           { at: '2026-10-15 15:00', action: '新建小班', operator: 'Amy', summary: '创建小班 · 主理人 Amy · 容量 Max 3' },
           { at: '2026-10-15 15:01', kind: 'status', from: 'pending_open', to: 'active', operator: 'Amy', reason: '创建生效' },
@@ -269,6 +350,24 @@
           { at: '2026-09-01 09:26', action: '委任老师', operator: 'Amy', summary: '主讲老师: 待委任 → Sarah Jenkins' },
           { at: '2026-10-20 17:40', action: '归档小班', operator: 'Amy', summary: '课程自然结束 · 小班归档，不再新开购课单' },
           { at: '2026-10-20 17:41', kind: 'status', from: 'active', to: 'archived', operator: 'Amy', reason: '4 周履约完结 · 主理人归档' }
+        ]
+      },
+      {
+        id: 'cls_sarah001', name: '剑桥少儿英语班',
+        teacherId: 'tc_david0001', ownerMonitorId: 'mn_sarah0003',
+        max: 3, salary: 28, total: 80,
+        status: 'active', futureTs: 2, unsettledTs: 0, pendingTs: 0, remainingLessons: 2, completedTs: 2, createdAt: '2026-10-28',
+        coursewares: [
+          {
+            id: 'cw_wondersg1', name: 'Wonders G1', level: 'Level 1',
+            processNote: 'Covered the weekly story and practised short answers.',
+            updatedBy: 'David Miller', updatedByRole: '老师', updatedAt: '2026-11-08', daysAgo: 2, topTeacher: 'David Miller', topCount: 2
+          }
+        ],
+        auditLog: [
+          { at: '2026-10-28 10:15', action: '新建小班', operator: 'Sarah', summary: '创建小班 · 主理人 Sarah · 容量 Max 3' },
+          { at: '2026-10-28 10:16', kind: 'status', from: 'pending_open', to: 'active', operator: 'Sarah', reason: '创建生效' },
+          { at: '2026-10-28 10:20', action: '委任老师', operator: 'Sarah', summary: '主讲老师: 待委任 → David Miller' }
         ]
       }
     ];
@@ -325,7 +424,7 @@
     }
 
     function emptyDissolve() {
-      return { reason: '', disposition: '', note: '', screenshots: 0, confirmed: false };
+      return { reason: '', disposition: '', note: '', confirmed: false };
     }
 
     function emptyEdit(c) {
@@ -349,12 +448,14 @@
       classes: clone(INITIAL_CLASSES),
       activeClassId: 'cls_ket00001',
       filter: 'all',
+      ownerFilter: 'all',
       teacherFilter: 'all',
       search: '',
       create: emptyCreate(),
       dissolve: emptyDissolve(),
       edit: null,
       appoint: { classId: '', selected: '' },
+      progress: null,
       logOpen: false,
       overlay: null,
       picker: null,
@@ -368,6 +469,7 @@
     }
     if (params.get('page')) state.page = params.get('page');
     if (params.get('filter')) state.filter = params.get('filter');
+    if (params.get('owner')) state.ownerFilter = params.get('owner');
     if (params.get('q')) state.search = params.get('q');
     if (params.get('class_id')) state.activeClassId = params.get('class_id');
     if (params.get('log') === '1') state.logOpen = true;
@@ -402,6 +504,10 @@
       return state.role === 'admin' ? 'Sarah' : 'Leo';
     }
 
+    function currentOperatorRole() {
+      return isAdmin() ? '管理员' : '主理人';
+    }
+
     function allClasses() {
       return state.classes;
     }
@@ -414,20 +520,22 @@
       return isAdmin() || c.ownerMonitorId === CURRENT_MONITOR_ID;
     }
 
-    /* 小班归属：班长仅可见并持有自己作为小班主理人的小班；管理员可见全平台 */
+    /* 小班归属：班长仅可见并持有自己作为小班主理人的小班；管理员可见全平台并可按主理人收敛 */
     function scopeClasses() {
-      if (isAdmin()) return allClasses();
-      return state.classes.filter((c) => c.ownerMonitorId === CURRENT_MONITOR_ID);
+      if (!isAdmin()) return state.classes.filter((c) => c.ownerMonitorId === CURRENT_MONITOR_ID);
+      if (state.ownerFilter === 'all') return allClasses();
+      const ownerId = state.ownerFilter === 'mine' ? ADMIN_MONITOR_ID : state.ownerFilter;
+      return state.classes.filter((c) => c.ownerMonitorId === ownerId);
     }
 
     function viewableClasses() {
       return scopeClasses();
     }
 
-    /* 老师筛选条：全平台参与过小班课授课的在职老师，不收敛到当前主理人私域 */
+    /* 老师筛选条：随主理人筛选/班长归属联动收敛，仅展示当前范围内参与过小班课授课的在职老师 */
     function teacherFilterOptions() {
-      const participating = TEACHERS.filter((t) => t.active && state.classes.some((c) => c.teacherId === t.id));
       const scoped = scopeClasses();
+      const participating = TEACHERS.filter((t) => t.active && scoped.some((c) => c.teacherId === t.id));
       return participating.map((t) => ({
         ...t,
         count: scoped.filter((c) => c.teacherId === t.id).length
@@ -564,7 +672,7 @@
       if (!c || c.status !== 'active') return '4';
       if (!c.teacherId) return '1';
       const tsCount = (Number(c.futureTs) || 0) + (Number(c.unsettledTs) || 0) + (Number(c.completedTs) || 0);
-      if (tsCount + (c.hasOrder ? 1 : 0) === 0) return '2';
+      if (tsCount + (c.hasOrder ? 1 : 0) + (c.hasInFlightOrder ? 1 : 0) === 0) return '2';
       return '3';
     }
 
@@ -584,12 +692,123 @@
       return `<span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${TONES[tone].chip}">${esc(label)}</span>`;
     }
 
+    /* ---------------------------- 在学课件与进度 ---------------------------- */
+    function coursewareById(id) {
+      return COURSEWARE_LIBRARY.find((x) => x.id === id) || null;
+    }
+
+    function classCoursewares(c) {
+      return Array.isArray(c && c.coursewares) ? c.coursewares : [];
+    }
+
+    function isCoursewareStale(cw) {
+      return (Number(cw && cw.daysAgo) || 0) > 180;
+    }
+
+    function flattenProcessNote(text) {
+      return String(text || '').replace(/\s+/g, ' ').trim();
+    }
+
+    /* 折叠为 1 行且总长度不超过 max（含省略号） */
+    function processNotePreview(text, max = 40) {
+      const flat = flattenProcessNote(text);
+      if (!flat) return '未填写进度备注';
+      return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+    }
+
+    function coursewareLevels(cw) {
+      const def = coursewareById(cw && cw.id)?.defaultLevel;
+      return [...new Set([cw && cw.level, def, 'Level 1', 'Level 2', 'Level 3'].filter(Boolean))];
+    }
+
+    function coursewareCardLine(c) {
+      const list = classCoursewares(c);
+      if (!list.length) return '未配置';
+      const first = list[0];
+      const extra = list.length > 1 ? ` +${list.length - 1}门` : '';
+      return `${first.name} (${first.level}) · ${processNotePreview(first.processNote)}${extra}`;
+    }
+
+    /* ---------------------------- 剩余资产快照 ---------------------------- */
+    function residualSnapshot(c) {
+      const future = Number(c.futureTs) || 0;
+      const pool = classPendingTs(c);
+      const totalLessons = future + pool;
+      return {
+        future,
+        pool,
+        totalLessons,
+        remainingPoints: totalLessons * (Number(c.total) || 0),
+        completed: Number(c.completedTs) || 0
+      };
+    }
+
+    function residualTsRows(c) {
+      const snap = residualSnapshot(c);
+      const perTs = Number(c.total) || 0;
+      const dateCode = String(c.createdAt || TODAY).replace(/-/g, '') || '20261110';
+      const orderNo = `CO-${dateCode}-01`;
+      const rows = [];
+      const takeFuture = Math.min(snap.future, 2);
+      for (let i = 0; i < takeFuture; i += 1) {
+        rows.push({ id: `TS-${dateCode}-${String(i + 1).padStart(2, '0')}`, form: '未来已排', orderNo, points: perTs });
+      }
+      const takePool = Math.min(snap.pool, 4 - rows.length);
+      for (let i = 0; i < takePool; i += 1) {
+        rows.push({ id: `TS-${dateCode}-${String(rows.length + 1).padStart(2, '0')}`, form: '待排池', orderNo, points: perTs });
+      }
+      return { ...snap, rows, hidden: Math.max(0, snap.totalLessons - rows.length) };
+    }
+
+    function nextClearRecordId() {
+      const prefix = `CD-${TODAY.replace(/-/g, '')}`;
+      const used = state.classes.filter((c) => c.termination && String(c.termination.clearRecordId || '').startsWith(prefix)).length;
+      return `${prefix}-${String(used + 1).padStart(2, '0')}`;
+    }
+
+    /* ---------------------------- 归档五项资产守卫 ---------------------------- */
+    function archiveGuards(c) {
+      const future = Number(c.futureTs) || 0;
+      const pool = classPendingTs(c);
+      const inFlight = Number(c.inFlightOrders) || (c.hasInFlightOrder ? 1 : 0);
+      const gHold = Number(c.gHold) || 0;
+      const started = Number(c.startedUnfinished) || 0;
+      const anomaly = Number(c.anomalyRollbacks) || 0;
+      return [
+        { label: '未来「已排期」课次', count: future, pass: future === 0 },
+        { label: '小班待排池', count: pool, pass: pool === 0 },
+        { label: '在途「待付款确认」单 / G-HOLD', count: inFlight + gHold, pass: inFlight + gHold === 0 },
+        { label: '已过开课时间未结课/待考勤', count: started, pass: started === 0 },
+        { label: '待处理异常回退', count: anomaly, pass: anomaly === 0 }
+      ];
+    }
+
+    function archiveReady(c) {
+      return archiveGuards(c).every((g) => g.pass);
+    }
+
     function newClassId() {
       return `cls_${Math.random().toString(36).slice(2, 10).padEnd(8, '0')}`;
     }
 
+    /* 全平台在职老师全量保留；已设预约离职日的老师仅以禁用项展示 */
     function teacherOptions() {
       return TEACHERS.filter((t) => t.active);
+    }
+
+    function teacherSelectable(t) {
+      return !!t && t.active && !t.leaveDate;
+    }
+
+    function teacherLeaveLabel(t) {
+      return t && t.leaveDate ? `将于 ${t.leaveDate.slice(5)} 离职` : '';
+    }
+
+    function teacherLeaveChip(t) {
+      const label = teacherLeaveLabel(t);
+      return label
+        ? `<span class="shrink-0 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">${esc(label)}</span>`
+        : '';
     }
 
     function monitorOptions() {
@@ -657,9 +876,11 @@
       state.page = 'classes';
       state.navTab = role === 'admin' ? 'settings' : 'ops';
       state.filter = 'all';
+      state.ownerFilter = 'all';
       state.teacherFilter = 'all';
       state.search = '';
       state.logOpen = false;
+      state.progress = null;
       state.overlay = null;
       ensureActiveClass();
       renderAll();
@@ -697,12 +918,14 @@
       state.classes = clone(INITIAL_CLASSES);
       state.activeClassId = 'cls_ket00001';
       state.filter = 'all';
+      state.ownerFilter = 'all';
       state.teacherFilter = 'all';
       state.search = '';
       state.create = emptyCreate();
       state.dissolve = emptyDissolve();
       state.edit = null;
       state.appoint = { classId: '', selected: '' };
+      state.progress = null;
       state.logOpen = false;
       state.overlay = null;
       renderAll();
@@ -842,16 +1065,41 @@
       </div>`;
     }
 
-    function infoItem(label, value) {
+    function infoItem(label, value, suffixHtml = '') {
       return `<div class="min-w-0">
         <div class="text-[12px] font-medium text-slate-500">${esc(label)}</div>
-        <div class="mt-0.5 truncate text-[14px] font-semibold text-slate-900">${esc(value)}</div>
+        <div class="mt-0.5 flex flex-wrap items-center gap-1 text-[14px] font-semibold text-slate-900"><span class="min-w-0 truncate">${esc(value)}</span>${suffixHtml}</div>
       </div>`;
     }
 
     /* ------------------------------------------------------------------
      * 小班列表
      * ------------------------------------------------------------------ */
+    /* 管理员专属：主理人收敛胶囊条，与授课老师筛选 AND 复合 */
+    function renderOwnerPills() {
+      const items = [
+        { id: 'all', name: '全部主理人', count: state.classes.length },
+        { id: 'mine', name: '我亲自管的', count: state.classes.filter((c) => c.ownerMonitorId === ADMIN_MONITOR_ID).length, star: true },
+        ...monitorOptions().map((m) => ({
+          id: m.id,
+          name: `${m.name} 班`,
+          count: state.classes.filter((c) => c.ownerMonitorId === m.id).length
+        }))
+      ];
+      return `<div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="flex shrink-0 items-center gap-1 text-[12px] font-medium text-slate-500">${icon('user-check', 'h-3.5 w-3.5')}主理人</span>
+          <span class="shrink-0 text-[12px] font-medium text-slate-500">管理员专属筛选</span>
+        </div>
+        <div class="mt-1 flex min-w-0 items-center gap-1.5 overflow-x-auto py-0.5">
+          ${items.map((item) => {
+            const on = state.ownerFilter === item.id;
+            return `<button data-action="set-owner" data-owner="${item.id}" class="h-8 shrink-0 whitespace-nowrap rounded-full border-0 px-3 text-[12px] transition ${on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${item.star ? '⭐ ' : ''}${esc(item.name)} (${item.count})</button>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
+
     function renderTeacherPills() {
       const total = scopeClasses().length;
       const items = [
@@ -944,25 +1192,17 @@
         <div class="flex items-center justify-between gap-2">
           <div class="min-w-0 text-[12px] font-medium leading-relaxed text-slate-500">
             ${isAdmin()
-              ? `全平台 ${scoped.length} 个小班 · 4 周轮次滚动`
+              ? `${state.ownerFilter === 'all' ? '全平台' : '当前主理人'} ${scoped.length} 个小班 · 4 周轮次滚动`
               : `我主理 ${scoped.length} 个小班 · 4 周轮次滚动`}
           </div>
           <button data-action="open-create" ${offline ? 'disabled' : ''} class="h-10 shrink-0 rounded-lg bg-indigo-600 px-3 text-[14px] font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 创建小班课</button>
         </div>
         <div id="kpiZone">${renderKpi()}</div>
         ${renderSearchBar()}
+        ${isAdmin() ? renderOwnerPills() : ''}
         ${renderTeacherPills()}
         <div id="statusTabsZone">${renderStatusTabs()}</div>
         <div id="classesBody" class="${tablet ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">${renderClassBodyInner()}</div>
-        ${isAdmin() ? `<section class="rounded-xl border border-slate-300 bg-slate-50/70 p-3">
-          <div class="flex items-start gap-2.5">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-indigo-600">${icon('eye-off', 'h-4 w-4')}</span>
-            <div class="min-w-0">
-              <div class="text-[14px] font-bold text-slate-900">1v1 静默实体（后台）</div>
-              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">当前 ${ONE_TO_ONE_COUNT} 个 · 系统在购课或首次排课环节自动建班；家长端与老师端仅呈现授课老师（+ 价位）及学员信息，不出现小班字样。</p>
-            </div>
-          </div>
-        </section>` : ''}
         <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">小班课不关联学员档案与家长账号；招生、沟通与补课由主理人在线下完成。建班即生效。</div>
       </div>`;
     }
@@ -1002,7 +1242,10 @@
         <div class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-slate-100 pt-2">
           <div class="min-w-0">
             <div class="text-[12px] font-medium text-slate-500">主讲老师</div>
-            <div class="mt-0.5 text-[14px] font-semibold leading-tight ${pending ? 'text-rose-700' : 'text-slate-800'}">${esc(teacherLine)}</div>
+            <div class="mt-0.5 flex flex-wrap items-center gap-1 text-[14px] font-semibold leading-tight ${pending ? 'text-rose-700' : 'text-slate-800'}">
+              <span class="min-w-0 truncate">${esc(teacherLine)}</span>
+              ${pending ? '' : teacherLeaveChip(t)}
+            </div>
           </div>
           <div class="min-w-0">
             <div class="text-[12px] font-medium text-slate-500">小班主理人</div>
@@ -1026,6 +1269,11 @@
           <span class="min-w-0">待排/待补排 <span class="font-mono font-bold ${classPendingTs(c) > 0 ? 'text-amber-700' : 'text-slate-900'}">${classPendingTs(c)}</span> 节 · 剩余 <span class="font-mono font-bold text-slate-900">${classRemainingTs(c)}</span> 节</span>
           <span class="shrink-0">未来已排 <span class="font-mono font-bold text-slate-900">${c.futureTs}</span> 节</span>
         </div>` : `<div class="mt-2 rounded-lg bg-white px-2 py-1.5 text-[12px] font-medium leading-relaxed text-slate-600">单节待上交 ${points(fin.total)} 积分 · 老师课酬 ${points(fin.salary)} 积分</div>`}
+
+        <div class="mt-1.5 flex items-start gap-1 rounded-lg bg-white px-2 py-1.5 text-[12px] font-medium leading-relaxed text-slate-600">
+          <span class="shrink-0 text-slate-500">在学课件:</span>
+          <span class="min-w-0 flex-1 truncate ${classCoursewares(c).length ? 'font-semibold text-slate-800' : 'text-slate-500'}">${esc(coursewareCardLine(c))}</span>
+        </div>
 
         ${pending && active ? `<div class="mt-2 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-[12px] font-medium leading-relaxed text-rose-800">
           ${icon('alert-triangle', 'h-3.5 w-3.5 shrink-0')}待委任主讲老师 · 为本班购课与小班排课暂不可用
@@ -1093,7 +1341,7 @@
           </div>
           <div class="mt-0.5 truncate font-mono text-[12px] font-medium text-slate-500">${esc(c.id)}</div>
           <div class="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
-            ${infoItem('主讲老师', pending ? '待委任' : `${t.name} · ${t.price}积分`)}
+            ${infoItem('主讲老师', pending ? '待委任' : `${t.name} · ${t.price}积分`, pending ? '' : teacherLeaveChip(t))}
             ${infoItem('小班主理人', owner.name)}
             ${infoItem('小班规模', `Max ${c.max} 人`)}
             ${infoItem('履约轮次', '4 周滚动')}
@@ -1102,7 +1350,7 @@
             ${infoItem('未来排课', `${c.futureTs} 节`)}
             ${infoItem('待排课', `${c.unsettledTs} 节`)}` : ''}
           </div>
-          <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-500">小班以 4 周为一个履约轮次滚动运营；老师日历中按 50 分钟连续双格 56px 呈现，与 1v1 固定位合并排布。</p>
+          <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-500">小班以 4 周为一个履约轮次滚动运营；老师日历中按每节 50 分钟连续双格（56px）呈现小班课次。</p>
         </section>
 
         ${pending && active ? `<div class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
@@ -1117,6 +1365,8 @@
         </div>` : ''}
 
         ${financeCard(fin, '小班运营核算', true)}
+
+        ${renderCoursewareSection(c)}
 
         ${active && canWrite ? `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
           <h2 class="text-[16px] font-bold text-slate-900">小班操作</h2>
@@ -1149,19 +1399,31 @@
           ${c.status === 'archived'
             ? `<div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">已归档于 ${esc(c.archivedAt || '—')} · 不可新开购课单；历史排课与财务记录只读。</div>`
             : `<div class="mt-2 space-y-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-rose-700">
-                <div class="flex items-center justify-between gap-2"><span>解散原因</span><span class="font-bold">${esc(reasonLabel(termination?.reason))}</span></div>
-                <div class="flex items-center justify-between gap-2"><span>处置流向</span><span class="font-bold">${esc(dispositionLabel(termination?.disposition))}</span></div>
-                <div class="flex items-center justify-between gap-2"><span>解散时间</span><span class="font-bold">${esc(termination?.at || '—')}</span></div>
-                <div class="flex items-center justify-between gap-2"><span>已结课</span><span class="font-bold">${points(termination?.completedTs ?? c.completedTs ?? 0)} 节</span></div>
-                <div class="flex items-center justify-between gap-2"><span>作废节数</span><span class="font-bold">${points(termination?.voidedTs || 0)} 节</span></div>
-                <div class="flex items-center justify-between gap-2"><span>未来取消释放</span><span class="font-bold">${points(termination?.releasedTs || 0)} 节</span></div>
-                ${termination?.disposition === 'PERMANENT_TERMINATE' ? `<div class="flex items-center justify-between gap-2"><span>建议退还总额</span><span class="font-bold">${points(termination?.refundTotal || 0)} 积分</span></div>
-                <div class="flex items-center justify-between gap-2"><span>人均应退（按 Max 测算）</span><span class="font-bold">${points(termination?.perCapita || 0)} 积分</span></div>
-                ${termination?.screenshots ? `<div class="flex items-center justify-between gap-2"><span>打款截图凭证</span><span class="font-bold">${points(termination.screenshots)} 张</span></div>` : ''}
+                <div class="flex items-center justify-between gap-2"><span>解散原因</span><span class="font-bold text-rose-950">${esc(reasonLabel(termination?.reason))}</span></div>
+                <div class="flex items-center justify-between gap-2"><span>处置流向</span><span class="font-bold text-rose-950">${esc(dispositionLabel(termination?.disposition))}</span></div>
+                <div class="flex items-center justify-between gap-2"><span>解散时间</span><span class="font-bold text-rose-950">${esc(termination?.at || '—')}</span></div>
+                <div class="border-t border-rose-200/70 pt-1.5"></div>
+                <div class="flex items-center justify-between gap-2"><span>剩余未上课总节数</span><span class="font-mono font-bold text-rose-950">${points((termination?.voidedFutureTs || 0) + (termination?.voidedPoolTs || 0))} 节</span></div>
+                <div class="flex items-center justify-between gap-2"><span>未来已排 / 待排池</span><span class="font-mono font-bold text-rose-950">${points(termination?.voidedFutureTs || 0)} / ${points(termination?.voidedPoolTs || 0)} 节</span></div>
+                <div class="flex items-center justify-between gap-2"><span>剩余待上交总积分</span><span class="font-mono font-bold text-rose-950">${points(termination?.remainingPoints || 0)} 积分</span></div>
+                <div class="flex items-center justify-between gap-2"><span>已结课</span><span class="font-bold text-rose-950">${points(termination?.completedTs ?? c.completedTs ?? 0)} 节</span></div>
                 <div class="border-t border-rose-200/70 pt-1.5 text-rose-900/85">${esc(termination?.note || '—')}</div>
-                <p class="text-rose-700">已线下结清，系统不生成退款单。</p>` : `<div class="flex items-center justify-between gap-2"><span>结转剩余课次</span><span class="font-bold">${points(c.unsettledTs)} 节</span></div>
-                ${termination?.screenshots ? `<div class="flex items-center justify-between gap-2"><span>打款截图凭证</span><span class="font-bold">${points(termination.screenshots)} 张</span></div>` : ''}
-                <div class="border-t border-rose-200/70 pt-1.5 text-rose-900/85">${esc(termination?.note || '—')}</div>`}
+              </div>
+              <div class="mt-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex min-w-0 items-center gap-1.5">
+                    <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">${icon('receipt-text', 'h-3.5 w-3.5')}</span>
+                    <span class="text-[14px] font-bold text-slate-900">清退记录</span>
+                  </div>
+                  ${chip(termination?.clearRecordStatus || '已生成', 'slate')}
+                </div>
+                <div class="mt-1.5 space-y-1 text-[12px] font-medium text-slate-600">
+                  <div class="flex items-center justify-between gap-2"><span>记录编号</span><span class="font-mono font-bold text-slate-900">${esc(termination?.clearRecordId || '—')}</span></div>
+                  <div class="flex items-center justify-between gap-2"><span>作废未来已排</span><span class="font-mono font-bold text-slate-900">${points(termination?.voidedFutureTs || 0)} 节</span></div>
+                  <div class="flex items-center justify-between gap-2"><span>作废待排池</span><span class="font-mono font-bold text-slate-900">${points(termination?.voidedPoolTs || 0)} 节</span></div>
+                  <div class="flex items-center justify-between gap-2"><span>剩余待上交积分</span><span class="font-mono font-bold text-slate-900">${points(termination?.remainingPoints || 0)} 积分</span></div>
+                </div>
+                <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">系统已同事务生成小班解散清退记录，作为线下退费 / 结转新班的核对依据。</p>
               </div>
               <div class="mt-2 flex gap-1.5">
                 <a href="m3a_calendar_grid.html?class_id=${c.id}" target="_blank" rel="noopener" class="flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 hover:bg-slate-50">查看历史排课</a>
@@ -1172,6 +1434,53 @@
         ${renderAuditLog(c)}
 
         <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">小班课不关联学员档案与家长账号；单节待上交费用积分录入多少即按多少上交，全额计入周度转账单。</div>
+      </div>`;
+    }
+
+    /* 详情页「在学课件与进度」：仅主理人/管理员可配置；终态只读 */
+    function renderCoursewareSection(c) {
+      const list = classCoursewares(c);
+      const editable = c.status === 'active' && ownsClass(c);
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex min-w-0 items-center gap-2">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-indigo-600">${icon('book-open', 'h-4 w-4')}</span>
+            <div class="min-w-0">
+              <h2 class="truncate text-[16px] font-bold text-slate-900">在学课件与进度</h2>
+              <p class="text-[12px] font-medium text-slate-500">平台课件库 · 进度备注最多 2000 字符</p>
+            </div>
+          </div>
+          <span class="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-0.5 font-mono text-[12px] font-bold text-slate-700">${list.length}/6</span>
+        </div>
+        ${editable && list.length ? `<div class="mt-2 flex justify-end"><button data-action="open-courseware-config" data-id="${c.id}" class="h-9 rounded-xl border border-indigo-200 bg-indigo-50/80 px-3 text-[12px] font-bold text-indigo-700 hover:bg-indigo-100/70">配置课件</button></div>` : ''}
+        ${list.length
+          ? `<div class="mt-2 space-y-1.5">${list.map((cw) => coursewareDetailCard(c, cw, editable)).join('')}</div>`
+          : `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-center">
+              <p class="text-[14px] font-semibold text-slate-700">尚未配置在学课件</p>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">配置后老师可在本页更新级别与进度备注</p>
+              ${editable ? `<button data-action="open-courseware-config" data-id="${c.id}" class="mt-2 h-9 rounded-xl border border-indigo-200 bg-indigo-50/80 px-3 text-[12px] font-bold text-indigo-700 hover:bg-indigo-100/70">配置课件</button>` : ''}
+            </div>`}
+      </section>`;
+    }
+
+    function coursewareDetailCard(c, cw, editable) {
+      const stale = isCoursewareStale(cw);
+      return `<div class="rounded-xl border border-slate-200 bg-white p-2.5">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="min-w-0 truncate text-[14px] font-bold text-slate-900">${esc(cw.name)}</span>
+              ${chip(cw.level, 'slate')}
+              ${stale ? `<span class="shrink-0 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">近 6 个月没有更新（仅计老师角色更新）</span>` : ''}
+            </div>
+            <p class="mt-1 truncate text-[12px] font-medium leading-relaxed text-slate-600">${esc(processNotePreview(cw.processNote))}</p>
+            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] font-medium text-slate-500">
+              <span>最后更新：${esc(cw.updatedBy)} · ${esc(cw.updatedAt)}</span>
+              <span class="shrink-0">主力更新老师: ${esc(cw.topTeacher)}（${points(cw.topCount)} 次）</span>
+            </div>
+          </div>
+          ${editable ? `<button data-action="open-progress" data-id="${c.id}" data-courseware-id="${cw.id}" class="h-8 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50">更新进度</button>` : ''}
+        </div>
       </div>`;
     }
 
@@ -1189,9 +1498,9 @@
           ${financeTile('老师单节课酬积分', `${points(fin.salary)} 积分`)}
         </div>
         <div class="mt-2 space-y-1 rounded-xl bg-white px-2.5 py-2 text-[12px] font-medium text-slate-600">
-          <div class="flex items-center justify-between gap-2"><span>周度单节上交金额</span><span class="font-mono font-bold text-slate-900">${points(fin.transfer)} 积分</span></div>
+          <div class="flex items-center justify-between gap-2"><span>周度单节上交积分</span><span class="font-mono font-bold text-slate-900">${points(fin.transfer)} 积分</span></div>
         </div>
-        ${showFormula ? `<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">录入多少即按多少上交，按录入金额全额计入周度转账单。</p>` : ''}
+        ${showFormula ? `<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">录入多少即按多少上交，按录入积分全额计入周度转账单。</p>` : ''}
       </section>`;
     }
 
@@ -1335,7 +1644,7 @@
                 <div>
                   <label for="fTotal" class="mb-1 block text-[14px] font-semibold text-slate-700">单节待上交费用积分 <span class="text-rose-500">*</span></label>
                   <input id="fTotal" type="number" min="1" step="1" value="${esc(f.total)}" class="${inputCls}">
-                  <p id="totalHint" class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">录入多少即按多少上交，按录入金额全额计入周度转账单。</p>
+                  <p id="totalHint" class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">录入多少即按多少上交，按录入积分全额计入周度转账单。</p>
                 </div>
               </div>
             </section>
@@ -1368,7 +1677,10 @@
       const name = f.name.trim();
       if (!name) return '请填写班级名称';
       if (name.length > 64) return '班级名称不能超过 64 字符';
-      if (f.teacherId && !teacherOptions().some((t) => t.id === f.teacherId)) return '请选择全平台在职授课老师或暂不绑定';
+      if (f.teacherId) {
+        const picked = teacherById(f.teacherId);
+        if (!teacherSelectable(picked)) return '请选择无离职预约的全平台在职老师，或暂不绑定';
+      }
       if (!monitorOptions().some((m) => m.id === f.ownerMonitorId)) return '请选择在职主理人';
       const max = Number(f.max);
       if (!Number.isInteger(max) || max < 2 || max > 20) return '最大学生数 (Max) 需为 2~20 的整数';
@@ -1488,7 +1800,10 @@
       if (name.length > 64) return '班级名称不能超过 64 字符';
       const stage = classStage(c);
       if (stage === '3' || stage === '4') return null;
-      if (f.teacherId && !teacherOptions().some((t) => t.id === f.teacherId)) return '请选择全平台在职授课老师或待委任老师';
+      if (f.teacherId) {
+        const picked = teacherById(f.teacherId);
+        if (!teacherSelectable(picked)) return '请选择无离职预约的全平台在职老师或待委任老师';
+      }
       return editFinanceError();
     }
 
@@ -1506,7 +1821,7 @@
         </div>
         ${err
           ? `<p class="mt-2 flex items-start gap-1 rounded-lg bg-white/70 px-2 py-1.5 text-[12px] font-semibold leading-relaxed text-rose-700">${icon('alert-triangle', 'h-3.5 w-3.5 shrink-0')}<span>${esc(err)}</span></p>`
-          : `<p class="mt-2 text-[12px] font-medium text-slate-500">录入多少即按多少上交，按录入金额全额计入周度转账单。</p>`}
+          : `<p class="mt-2 text-[12px] font-medium text-slate-500">录入多少即按多少上交，按录入积分全额计入周度转账单。</p>`}
       </div>`;
     }
 
@@ -1705,6 +2020,8 @@
       if (state.overlay.type === 'appoint') return renderAppointModal();
       if (state.overlay.type === 'blocked') return renderBlockedModal();
       if (state.overlay.type === 'edit') return renderEditSheet();
+      if (state.overlay.type === 'courseware-config') return renderCoursewareConfigModal();
+      if (state.overlay.type === 'progress') return renderProgressModal();
       return '';
     }
 
@@ -1735,7 +2052,15 @@
           noneLabel: isEdit ? '待委任老师' : '暂不绑定老师（待委任老师）',
           noneMeta: isEdit ? '暂不委任将受购课与排课双阻断' : '建班后可再委任',
           resetLabel: '重置为待委任老师',
-          options: teacherOptions().map((t) => ({ value: t.id, name: t.name, meta: `全平台在职老师 · 每节 ${t.price} 积分` }))
+          options: teacherOptions().map((t) => ({
+            value: t.id,
+            name: t.name,
+            meta: t.leaveDate
+              ? `全平台在职老师 · 每节 ${t.price} 积分 · 已设预约离职日`
+              : `全平台在职老师 · 每节 ${t.price} 积分`,
+            disabled: !!t.leaveDate,
+            tag: teacherLeaveLabel(t)
+          }))
         };
       }
       if (kind === 'owner-create') {
@@ -1753,6 +2078,18 @@
     }
 
     function renderPickerRow(cfg, option, on) {
+      if (option.disabled) {
+        return `<div aria-disabled="true" data-disabled-option="${esc(option.value)}" class="flex min-h-12 w-full cursor-not-allowed items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-100 px-3 py-1.5 text-left">
+          <span class="min-w-0">
+            <span class="flex flex-wrap items-center gap-1.5">
+              <span class="block truncate text-[14px] font-semibold text-slate-500">${esc(option.name)}</span>
+              ${option.tag ? `<span class="shrink-0 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">${esc(option.tag)}</span>` : ''}
+            </span>
+            ${option.meta ? `<span class="mt-0.5 block truncate text-[12px] font-medium text-slate-500">${esc(option.meta)}</span>` : ''}
+          </span>
+          <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-slate-300 text-slate-400">${icon('lock', 'h-3 w-3')}</span>
+        </div>`;
+      }
       return `<button type="button" data-action="${cfg.action}" data-value="${esc(option.value)}" class="flex h-12 w-full items-center justify-between gap-3 rounded-xl border px-3 text-left transition ${on ? 'border-indigo-500 bg-indigo-50/60' : 'border-slate-200 bg-white hover:bg-slate-50'}">
         <span class="min-w-0">
           <span class="block truncate text-[14px] font-semibold ${on ? 'text-indigo-950' : 'text-slate-900'}">${esc(option.name)}</span>
@@ -1863,15 +2200,30 @@
     function renderArchiveModal() {
       const c = classById(state.overlay.classId);
       if (!c) return '';
-      const hasFuture = c.futureTs > 0;
+      const guards = archiveGuards(c);
+      const allPass = guards.every((g) => g.pass);
+      const blocked = guards.filter((g) => !g.pass).length;
       return modalShell(`
         ${modalHeader(`归档小班：${c.name}`, '归档后不再允许新开购课单；历史排课与财务记录保留只读')}
-        ${hasFuture
-          ? `<div class="mt-3 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-rose-800">${icon('alert-triangle', 'h-4 w-4 shrink-0 text-rose-700')}<span>该小班仍有 ${c.futureTs} 节未来已排课，请先执行【暂停待排】或待课次结课后再归档。</span></div>`
-          : `<div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-slate-600">当前小班无未来已排课，归档不会影响历史排课与财务数据。确认归档？</div>`}
+        <div class="mt-3 flex items-center justify-between gap-2">
+          <span class="text-[14px] font-bold text-slate-900">五项资产全清零校验</span>
+          <span class="text-[12px] font-medium ${allPass ? 'text-emerald-700' : 'text-rose-700'}">${allPass ? '全部通过' : `${blocked} 项未清零`}</span>
+        </div>
+        <div class="mt-1.5 space-y-1">
+          ${guards.map((g) => `<div class="flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5 ${g.pass ? 'border-emerald-200 bg-emerald-50/60' : 'border-rose-200 bg-rose-50/60'}">
+            <div class="flex min-w-0 items-center gap-1.5">
+              <span class="shrink-0 text-[14px] font-bold ${g.pass ? 'text-emerald-700' : 'text-rose-700'}">${g.pass ? '✓' : '✗'}</span>
+              <span class="min-w-0 truncate text-[12px] font-semibold ${g.pass ? 'text-emerald-900' : 'text-rose-900'}">${esc(g.label)}</span>
+            </div>
+            <span class="shrink-0 font-mono text-[12px] font-bold ${g.pass ? 'text-emerald-800' : 'text-rose-800'}">${g.count}</span>
+          </div>`).join('')}
+        </div>
+        ${allPass
+          ? `<div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">五项资产已清零，归档不会影响历史排课与财务数据。确认归档？</div>`
+          : `<div class="mt-2 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-rose-800">${icon('alert-triangle', 'h-4 w-4 shrink-0 text-rose-700')}<span>名下尚有未排/待处理资产，请先完成排课/清退，或改走【提前结课解散】。</span></div>`}
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
-          <button data-action="archive-confirm" data-id="${c.id}" ${state.online === 'off' || hasFuture ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认归档</button>
+          <button data-action="archive-confirm" data-id="${c.id}" ${state.online === 'off' || !allPass ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认归档</button>
         </div>
       `);
     }
@@ -1880,7 +2232,8 @@
       const d = state.dissolve;
       if (!c || state.online === 'off') return false;
       if (!d.reason || !d.disposition) return false;
-      if (d.disposition === 'PERMANENT_TERMINATE' && !d.note.trim()) return false;
+      const noteLen = d.note.trim().length;
+      if (noteLen < 1 || noteLen > 200) return false;
       if (!d.confirmed) return false;
       return true;
     }
@@ -1889,10 +2242,7 @@
       const c = classById(state.overlay.classId);
       if (!c) return '';
       const d = state.dissolve;
-      const remaining = c.futureTs + c.unsettledTs;
-      const refundTotal = remaining * Number(c.total || 0);
-      const perCapita = c.max > 0 ? refundTotal / c.max : 0;
-      const showRefund = d.disposition === 'PERMANENT_TERMINATE';
+      const snap = residualTsRows(c);
       const valid = dissolveValid(c);
       return modalShell(`
         ${modalHeader(`提前结课解散：${c.name}`, '换师方案 2 · 仅限主理人或管理员操作 · 线下核算完成后提交')}
@@ -1900,7 +2250,7 @@
           <div class="flex items-start gap-2">
             ${icon('alert-triangle', 'h-4 w-4 shrink-0 text-rose-700')}
             <div class="min-w-0 text-[12px] font-medium leading-relaxed text-rose-900/85">
-              未来已排 ${c.futureTs} 节将批量取消并释放日历；历史已结课正常进入结算；系统不生成退款单，不参与线上划扣与垫付。
+              未来已排 ${points(snap.future)} 节与待排池 ${points(snap.pool)} 节将批量作废并释放日历；历史已结课正常进入结算；提交后同事务生成 1 笔小班解散清退记录（线下退费 / 结转核对依据）。
             </div>
           </div>
         </div>
@@ -1910,6 +2260,35 @@
             <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-indigo-600">${icon('repeat', 'h-3.5 w-3.5')}</span>
             <p class="min-w-0 text-[12px] font-medium leading-relaxed text-indigo-900"><span class="font-bold">换师方案 2</span>：长期换师（老师离职、长期请假 ≥3 节或家长集体换师）必须通过本流程办理，不允许在原班直接更换老师。短期 1–2 节应急代课请走代课指派，不解散小班。</p>
           </div>
+        </div>
+
+        <div class="mt-3 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-[14px] font-bold text-slate-900">剩余资产快照</div>
+            <span class="text-[12px] font-medium text-slate-500">提交后不可篡改</span>
+          </div>
+          <div class="mt-1.5 grid grid-cols-2 gap-1.5">
+            <div class="rounded-lg bg-white px-2 py-1.5">
+              <div class="text-[12px] font-medium text-slate-500">剩余未上课总节数</div>
+              <div class="mt-0.5 font-mono text-[16px] font-bold text-slate-900">${points(snap.totalLessons)} <span class="text-[12px] font-medium">节</span></div>
+            </div>
+            <div class="rounded-lg bg-white px-2 py-1.5">
+              <div class="text-[12px] font-medium text-slate-500">剩余待上交总积分</div>
+              <div class="mt-0.5 font-mono text-[16px] font-bold text-slate-900">${points(snap.remainingPoints)} <span class="text-[12px] font-medium">积分</span></div>
+            </div>
+          </div>
+          <div class="mt-1.5 flex flex-wrap items-center justify-between gap-1 text-[12px] font-medium text-slate-600">
+            <span>未来已排 <span class="font-mono font-bold text-slate-900">${points(snap.future)}</span> 节 / 待排池 <span class="font-mono font-bold text-slate-900">${points(snap.pool)}</span> 节</span>
+            <span>已结课 <span class="font-mono font-bold text-slate-900">${points(snap.completed)}</span> 节</span>
+          </div>
+          ${snap.rows.length ? `<div class="mt-1.5 space-y-1">${snap.rows.map((row) => `<div class="rounded-lg bg-white px-2 py-1 text-[12px] font-medium leading-relaxed text-slate-600">
+            <div class="flex items-center justify-between gap-2">
+              <span class="min-w-0 truncate font-mono font-bold text-slate-900">${esc(row.id)}</span>
+              <span class="shrink-0 font-mono font-bold text-slate-900">${points(row.points)} 积分/节</span>
+            </div>
+            <div class="truncate text-slate-500">${esc(row.form)} · 原购课单 ${esc(row.orderNo)}</div>
+          </div>`).join('')}</div>` : `<p class="mt-1.5 rounded-lg bg-white px-2 py-1.5 text-[12px] font-medium text-slate-500">当前无未来已排与待排池课次。</p>`}
+          ${snap.hidden > 0 ? `<p class="mt-1 text-[12px] font-medium text-slate-500">另有 ${snap.hidden} 节未展开</p>` : ''}
         </div>
 
         <div class="mt-3">
@@ -1938,39 +2317,20 @@
           </div>
         </div>
 
-        ${showRefund ? `<div class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-          <div class="text-[14px] font-bold text-rose-950">线下退费清算参考</div>
-          <div class="mt-1.5 space-y-1 text-[12px] font-medium text-rose-900/85">
-            <div class="flex items-center justify-between gap-2"><span>剩余未上课次</span><span class="font-mono font-bold text-rose-950">${points(remaining)} 节</span></div>
-            <div class="flex items-center justify-between gap-2"><span>单节待上交费用</span><span class="font-mono font-bold text-rose-950">${points(c.total)} 积分</span></div>
-            <div class="flex items-center justify-between gap-2 border-t border-rose-200/70 pt-1"><span>建议退还全班总额</span><span class="font-mono font-bold text-rose-950">${points(refundTotal)} 积分</span></div>
-            <div class="flex items-center justify-between gap-2"><span>人均应退（按 Max ${c.max} 人测算）</span><span class="font-mono font-bold text-rose-950">${points(perCapita)} 积分</span></div>
-            <p class="pt-1 text-rose-700">仅供主理人对账参考；系统不生成退款单，不参与线上划扣与垫付。</p>
-          </div>
-        </div>` : d.disposition === 'REOPEN_NEW_CLASS' ? `<div class="mt-3 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">
-          剩余 ${points(c.unsettledTs)} 节将结转新班。提交后可在小班详情中点击【委任新老师创建新小班】，原班购课单封存归档。
+        ${d.disposition === 'REOPEN_NEW_CLASS' ? `<div class="mt-3 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">
+          剩余 ${points(snap.totalLessons)} 节将结转新班。提交后可在小班详情中点击【委任新老师创建新小班】，原班购课单封存归档。
+        </div>` : d.disposition === 'PERMANENT_TERMINATE' ? `<div class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-rose-800">
+          小班将彻底终止并标记 [已退费结案]；剩余 ${points(snap.remainingPoints)} 积分为线下原路退费核对依据，不参与线上划扣与垫付。
         </div>` : ''}
 
         <div class="mt-3">
-          <label for="fDissolveNote" class="mb-1 block text-[14px] font-semibold text-slate-700">${showRefund ? '退费说明及审计备注' : '结转备注（选填）'} ${showRefund ? '<span class="text-rose-500">*</span>' : ''}</label>
-          <textarea id="fDissolveNote" rows="3" placeholder="${showRefund ? '如：已于微信群向全班家长原路结清剩余学费，小班彻底终止不再开班' : '如：已与家长协商，剩余课次与差额结转到新班'}" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[14px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(d.note)}</textarea>
-        </div>
-
-        ${showRefund ? `<div class="mt-3">
           <div class="flex items-center justify-between gap-2">
-            <span class="text-[14px] font-semibold text-slate-700">打款截图凭证（选填）</span>
-            <span class="text-[12px] font-medium text-slate-500">${d.screenshots}/3 张</span>
+            <label for="fDissolveNote" class="text-[14px] font-semibold text-slate-700">解散备注（1–200 字） <span class="text-rose-500">*</span></label>
+            <span id="dissolveNoteCount" class="text-[12px] font-medium text-slate-500">${d.note.length}/200</span>
           </div>
-          <div class="mt-1.5 grid grid-cols-3 gap-1.5">
-            ${Array.from({ length: d.screenshots }).map((_, i) => `<div class="flex h-16 flex-col items-center justify-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 text-[12px] font-medium text-emerald-700">
-              ${icon('image', 'h-4 w-4')}截图 ${i + 1}
-              <button data-action="dissolve-remove-shot" class="text-[12px] font-bold text-rose-600">移除</button>
-            </div>`).join('')}
-            ${d.screenshots < 3 ? `<button data-action="dissolve-add-shot" class="flex h-16 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-[12px] font-medium text-slate-500 hover:bg-slate-100">
-              ${icon('plus', 'h-4 w-4')}添加截图
-            </button>` : ''}
-          </div>
-        </div>` : ''}
+          <textarea id="fDissolveNote" rows="3" maxlength="200" placeholder="如：余 6 节共 300 积分，已微信多退少补后筹备新班" class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[14px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(d.note)}</textarea>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">无需上传任何截图凭证；备注将随解散日志与清退记录只读留存。</p>
+        </div>
 
         <button data-action="dissolve-toggle-confirm" class="mt-3 flex w-full items-start gap-2 rounded-xl border px-3 py-2.5 text-left transition ${d.confirmed ? 'border-indigo-600 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
           <span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border ${d.confirmed ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 text-transparent'}">${icon('check', 'h-3.5 w-3.5')}</span>
@@ -2020,17 +2380,18 @@
         <div class="mt-3 space-y-1.5">
           ${teachers.length ? teachers.map((t) => {
             const on = state.appoint.selected === t.id;
-            return `<button data-action="appoint-select" data-teacher="${t.id}" class="w-full rounded-xl border px-3 py-2.5 text-left transition ${on ? 'border-indigo-600 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+            const blocked = !!t.leaveDate;
+            return `<button data-action="appoint-select" data-teacher="${t.id}" ${blocked ? 'disabled aria-disabled="true"' : ''} class="w-full rounded-xl border px-3 py-2.5 text-left transition ${blocked ? 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-70' : (on ? 'border-indigo-600 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50')}">
               <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0">
                   <div class="flex flex-wrap items-center gap-1.5">
-                    <span class="text-[14px] font-bold text-slate-900">${esc(t.name)}</span>
+                    <span class="text-[14px] font-bold ${blocked ? 'text-slate-500' : 'text-slate-900'}">${esc(t.name)}</span>
                     <span class="rounded-full border-0 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${t.price}积分</span>
-                    ${on ? chip('已选择', 'indigo') : ''}
+                    ${blocked ? `<span class="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">${esc(teacherLeaveLabel(t))}</span>` : (on ? chip('已选择', 'indigo') : '')}
                   </div>
-                  <div class="mt-0.5 text-[12px] font-medium text-slate-500">全平台在职老师 · 家长每节应付 ${t.price}积分</div>
+                  <div class="mt-0.5 text-[12px] font-medium text-slate-500">${blocked ? '已设预约离职日，不可委任新班' : `全平台在职老师 · 家长每节应付 ${t.price}积分`}</div>
                 </div>
-                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 text-transparent'}">${icon('check', 'h-3.5 w-3.5')}</span>
+                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on && !blocked ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 text-transparent'}">${icon('check', 'h-3.5 w-3.5')}</span>
               </div>
             </button>`;
           }).join('') : `<div class="rounded-xl border border-dashed border-slate-300 px-3 py-5 text-center text-[14px] font-medium leading-relaxed text-slate-500">暂无在职老师，请稍后再试</div>`}
@@ -2038,7 +2399,7 @@
         ${selected ? `<div class="mt-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">已选择 <span class="font-bold text-slate-900">${esc(selected.name)}</span>（${selected.price}积分）；委任后即可为本班购课与排课。</div>` : ''}
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
-          <button data-action="appoint-confirm" data-id="${c.id}" ${selected && teachers.length && state.online !== 'off' ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认委任</button>
+          <button data-action="appoint-confirm" data-id="${c.id}" ${selected && !selected.leaveDate && teachers.length && state.online !== 'off' ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认委任</button>
         </div>
       `);
     }
@@ -2057,6 +2418,82 @@
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">知道了</button>
           ${ownsClass(c) ? `<button data-action="blocked-appoint" data-id="${c.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[1.6] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">去委任老师</button>` : ''}
+        </div>
+      `);
+    }
+
+    function renderCoursewareConfigModal() {
+      const c = classById(state.overlay.classId);
+      if (!c) return '';
+      const bound = classCoursewares(c);
+      const boundIds = bound.map((x) => x.id);
+      const available = COURSEWARE_LIBRARY.filter((x) => !boundIds.includes(x.id));
+      const full = bound.length >= 6;
+      return modalShell(`
+        ${modalHeader('配置在学课件', `${c.name} · 最多 6 门，同一课件不可重复`)}
+        <div class="mt-3 flex items-center justify-between gap-2">
+          <span class="text-[12px] font-semibold text-slate-500">已配置</span>
+          <span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 font-mono text-[12px] font-bold text-slate-700">${bound.length}/6</span>
+        </div>
+        <div class="mt-1.5 space-y-1.5">
+          ${bound.length ? bound.map((cw) => `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="min-w-0 truncate text-[14px] font-semibold text-slate-900">${esc(cw.name)}</span>
+                ${chip(cw.level, 'slate')}
+              </div>
+              <div class="mt-0.5 truncate text-[12px] font-medium text-slate-500">${esc(processNotePreview(cw.processNote))}</div>
+            </div>
+            <button data-action="courseware-remove" data-id="${c.id}" data-courseware-id="${cw.id}" class="h-8 shrink-0 rounded-lg border border-rose-200 bg-rose-50 px-2.5 text-[12px] font-bold text-rose-700 hover:bg-rose-100">移除</button>
+          </div>`).join('') : `<div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-center text-[12px] font-medium text-slate-500">尚未配置在学课件</div>`}
+        </div>
+        <div class="mt-3 flex items-center justify-between gap-2">
+          <span class="text-[12px] font-semibold text-slate-500">可选课件库</span>
+          <span class="text-[12px] font-medium text-slate-500">新增后默认使用库内级别</span>
+        </div>
+        <div class="mt-1.5 space-y-1.5">
+          ${available.length ? available.map((x) => `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2">
+            <div class="flex min-w-0 items-center gap-1.5">
+              <span class="min-w-0 truncate text-[14px] font-semibold text-slate-900">${esc(x.name)}</span>
+              ${chip(x.defaultLevel, 'slate')}
+            </div>
+            <button data-action="courseware-add" data-id="${c.id}" data-courseware-id="${x.id}" ${full ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">+ 添加</button>
+          </div>`).join('') : `<div class="rounded-xl border border-dashed border-slate-300 px-3 py-3 text-center text-[12px] font-medium text-slate-500">课件库已全部配置</div>`}
+        </div>
+        ${full ? `<p class="mt-2 text-[12px] font-medium text-slate-500">已达 6 门上限，如需更换请先移除。</p>` : ''}
+        <div class="mt-3"><button data-action="close-overlay" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">完成</button></div>
+      `);
+    }
+
+    function renderProgressModal() {
+      const c = classById(state.overlay.classId);
+      if (!c) return '';
+      const cw = classCoursewares(c).find((x) => x.id === state.overlay.coursewareId);
+      if (!cw) return '';
+      const p = state.progress || { level: cw.level, note: cw.processNote || '' };
+      const levels = coursewareLevels(cw);
+      return modalShell(`
+        ${modalHeader('更新进度', `${c.name} · ${cw.name}`)}
+        <div class="mt-2">
+          <div class="text-[14px] font-semibold text-slate-700">当前级别</div>
+          <div class="mt-1.5 flex flex-wrap gap-1.5">
+            ${levels.map((lv) => `<button data-action="progress-level" data-level="${esc(lv)}" class="h-8 rounded-full border px-3 text-[12px] font-bold transition ${p.level === lv ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}">${esc(lv)}</button>`).join('')}
+          </div>
+        </div>
+        <div class="mt-3">
+          <div class="flex items-center justify-between gap-2">
+            <label for="fProgressNote" class="text-[14px] font-semibold text-slate-700">进度备注 (Process Note)</label>
+            <span id="progressCount" class="text-[12px] font-medium text-slate-500">${p.note.length}/2000</span>
+          </div>
+          <textarea id="fProgressNote" rows="6" maxlength="2000" placeholder="例如：Covered Unit 6 reading and listening. Review irregular verbs next week." class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[14px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500">${esc(p.note)}</textarea>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">请尽量填写英文，便于老师看懂</p>
+          <div class="mt-1.5 flex flex-wrap gap-1.5">
+            ${PROGRESS_PHRASES.map((ph) => `<button data-action="progress-phrase" data-phrase="${esc(ph.text)}" class="rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[12px] font-medium text-slate-700 hover:bg-slate-50">${esc(ph.label)}</button>`).join('')}
+          </div>
+        </div>
+        <div class="mt-3 flex gap-2">
+          <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
+          <button data-action="progress-save" data-id="${c.id}" data-courseware-id="${cw.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">保存进度</button>
         </div>
       `);
     }
@@ -2120,7 +2557,11 @@
         state.pickerSearch = '';
         return renderPickerOnly();
       }
-      if (action === 'pick-teacher-create' || action === 'pick-teacher-edit') return applyTeacherPick(el.dataset.value || '');
+      if (action === 'pick-teacher-create' || action === 'pick-teacher-edit') {
+        const picked = teacherById(el.dataset.value || '');
+        if (picked && picked.leaveDate) return showToast('该老师已设置预约离职日，不可委任');
+        return applyTeacherPick(el.dataset.value || '');
+      }
       if (action === 'pick-owner-create') return applyOwnerPick(el.dataset.value || '');
       if (action === 'picker-reset') {
         if (!state.picker) return;
@@ -2129,6 +2570,12 @@
       }
       if (action === 'toggle-log') { state.logOpen = !state.logOpen; return renderAll(); }
       if (action === 'set-filter') { state.filter = el.dataset.filter; return renderAll(); }
+      if (action === 'set-owner') {
+        if (!isAdmin()) return;
+        state.ownerFilter = el.dataset.owner || 'all';
+        state.teacherFilter = 'all';
+        return renderAll();
+      }
       if (action === 'set-teacher') { state.teacherFilter = el.dataset.teacher; return renderAll(); }
       if (action === 'show-teacher-all') { state.filter = 'all'; return renderAll(); }
       if (action === 'clear-search') {
@@ -2142,6 +2589,7 @@
         state.search = '';
         state.teacherFilter = 'all';
         state.filter = 'all';
+        if (isAdmin()) state.ownerFilter = 'all';
         renderAll();
         return;
       }
@@ -2194,17 +2642,89 @@
         state.dissolve.disposition = el.dataset.disposition;
         return renderOverlayOnly();
       }
-      if (action === 'dissolve-add-shot') {
-        if (state.dissolve.screenshots < 3) state.dissolve.screenshots += 1;
-        return renderOverlayOnly();
-      }
-      if (action === 'dissolve-remove-shot') {
-        if (state.dissolve.screenshots > 0) state.dissolve.screenshots -= 1;
-        return renderOverlayOnly();
-      }
       if (action === 'dissolve-toggle-confirm') {
         state.dissolve.confirmed = !state.dissolve.confirmed;
         return renderOverlayOnly();
+      }
+      if (action === 'open-courseware-config') {
+        if (state.online === 'off') return showToast('离线模式下不可配置课件');
+        const c = classById(el.dataset.id);
+        if (!c || !ownsClass(c) || c.status !== 'active') return showToast('终态小班全字段只读');
+        state.overlay = { type: 'courseware-config', classId: c.id };
+        return renderAll();
+      }
+      if (action === 'courseware-add') {
+        if (state.online === 'off') return showToast('离线模式下不可配置课件');
+        const c = classById(el.dataset.id);
+        if (!c || !ownsClass(c) || c.status !== 'active') return;
+        const lib = coursewareById(el.dataset.coursewareId);
+        if (!lib) return;
+        const list = classCoursewares(c);
+        if (list.length >= 6) return showToast('每个小班最多配置 6 门在学课件');
+        if (list.some((x) => x.id === lib.id)) return showToast('该课件已配置');
+        c.coursewares = [...list, {
+          id: lib.id, name: lib.name, level: lib.defaultLevel, processNote: '',
+          updatedBy: currentOperatorName(), updatedByRole: currentOperatorRole(), updatedAt: TODAY, daysAgo: 0,
+          topTeacher: currentOperatorName(), topCount: 1
+        }];
+        appendAudit(c, '配置课件', `添加在学课件 ${lib.name}（${lib.defaultLevel}）`);
+        renderAll();
+        return showToast(`已添加 ${lib.name}`);
+      }
+      if (action === 'courseware-remove') {
+        if (state.online === 'off') return showToast('离线模式下不可配置课件');
+        const c = classById(el.dataset.id);
+        if (!c || !ownsClass(c) || c.status !== 'active') return;
+        const cw = classCoursewares(c).find((x) => x.id === el.dataset.coursewareId);
+        if (!cw) return;
+        c.coursewares = classCoursewares(c).filter((x) => x.id !== cw.id);
+        appendAudit(c, '配置课件', `移除在学课件 ${cw.name}`);
+        renderAll();
+        return showToast(`已移除 ${cw.name}`);
+      }
+      if (action === 'open-progress') {
+        if (state.online === 'off') return showToast('离线模式下不可更新进度');
+        const c = classById(el.dataset.id);
+        if (!c || !ownsClass(c) || c.status !== 'active') return showToast('终态小班全字段只读');
+        const cw = classCoursewares(c).find((x) => x.id === el.dataset.coursewareId);
+        if (!cw) return;
+        state.progress = { classId: c.id, coursewareId: cw.id, level: cw.level, note: cw.processNote || '' };
+        state.overlay = { type: 'progress', classId: c.id, coursewareId: cw.id };
+        return renderAll();
+      }
+      if (action === 'progress-level') {
+        if (!state.progress) return;
+        state.progress.level = el.dataset.level;
+        return renderOverlayOnly();
+      }
+      if (action === 'progress-phrase') {
+        if (!state.progress) return;
+        const text = el.dataset.phrase || '';
+        const base = String(state.progress.note || '').replace(/\s+$/, '');
+        state.progress.note = (base ? `${base}\n${text}` : text).slice(0, 2000);
+        return renderOverlayOnly();
+      }
+      if (action === 'progress-save') {
+        if (state.online === 'off') return showToast('离线模式下不可更新进度');
+        const c = classById(el.dataset.id);
+        if (!c || !ownsClass(c) || c.status !== 'active') return;
+        const cw = classCoursewares(c).find((x) => x.id === el.dataset.coursewareId);
+        if (!cw || !state.progress) return;
+        const oldLevel = cw.level;
+        const note = String(state.progress.note || '').slice(0, 2000);
+        cw.level = state.progress.level || cw.level;
+        cw.processNote = note;
+        cw.updatedBy = currentOperatorName();
+        cw.updatedByRole = currentOperatorRole();
+        cw.updatedAt = TODAY;
+        cw.daysAgo = 0;
+        cw.topTeacher = currentOperatorName();
+        cw.topCount = (Number(cw.topCount) || 0) + 1;
+        appendAudit(c, '更新进度', `${cw.name} · 级别: ${oldLevel} → ${cw.level} · 进度备注已更新（${note.length} 字）`);
+        state.overlay = null;
+        state.progress = null;
+        renderAll();
+        return showToast(`已保存 ${cw.name} 进度`);
       }
       if (action === 'open-appoint') {
         if (state.online === 'off') return showToast('离线模式下不可委任老师');
@@ -2238,6 +2758,7 @@
         if (c.status !== 'active') return showToast('仅正式开课小班可委任主讲老师');
         if (c.teacherId) return showToast('该班已委任主讲老师；长期换师请走提前结课解散并创建新小班');
         if (!teacherOptions().some((x) => x.id === t.id)) return showToast('请选择全平台在职老师');
+        if (t.leaveDate) return showToast('该老师已设置预约离职日，不可委任');
         c.teacherId = t.id;
         appendAudit(c, '委任老师', `主讲老师: 待委任 → ${t.name}（全平台直接委任）`);
         state.overlay = null;
@@ -2248,57 +2769,58 @@
         if (state.online === 'off') return showToast('离线模式下不可归档');
         const c = classById(el.dataset.id);
         if (!c || c.status !== 'active' || !ownsClass(c)) return;
-        if (c.futureTs > 0) return showToast(`该小班仍有 ${c.futureTs} 节未来已排课，请先暂停待排后再归档`);
+        if (!archiveReady(c)) {
+          const first = archiveGuards(c).find((g) => !g.pass);
+          return showToast(`尚有未清零资产：${first.label} ${first.count}，请先完成排课/清退，或改走提前结课解散`);
+        }
         c.status = 'archived';
         c.archivedAt = TODAY;
         c.pendingTs = 0;
         c.remainingLessons = 0;
-        appendAudit(c, '归档小班', '课程结束 · 小班归档，不再新开购课单');
-        appendStatus(c, 'active', 'archived', '4 周履约完结 · 主理人归档');
+        appendAudit(c, '归档小班', '五项资产全清零 · 小班归档，不再新开购课单');
+        appendStatus(c, 'active', 'archived', '4 周履约完结 · 五项资产清零 · 主理人归档');
         state.overlay = null;
         renderAll();
-        return showToast(`${c.name} 已归档 · 不可新开购课单`);
+        return showToast('小班已归档');
       }
       if (action === 'dissolve-confirm') {
         if (state.online === 'off') return showToast('离线模式下不可提前结课解散');
         const c = classById(el.dataset.id);
         if (!c || c.status !== 'active' || !ownsClass(c)) return;
-        if (c.futureTs > 0) return showToast(`该小班仍有 ${c.futureTs} 节未来已排课，请先暂停待排后再归档`);
-        if (!dissolveValid(c)) return showToast('请完成解散原因、处置流向与免责确认');
+        if (!dissolveValid(c)) return showToast('请完成解散原因、处置流向、1–200 字备注与免责确认');
         const d = { ...state.dissolve };
-        const released = c.futureTs;
-        const remaining = c.futureTs + c.unsettledTs;
+        const snap = residualSnapshot(c);
         const completed = Number(c.completedTs) || 0;
-        const voided = released + (d.disposition === 'PERMANENT_TERMINATE' ? c.unsettledTs : 0);
-        const refundTotal = remaining * Number(c.total || 0);
-        const perCapita = c.max > 0 ? refundTotal / c.max : 0;
+        const clearRecordId = nextClearRecordId();
         c.status = 'early_terminated';
         c.futureTs = 0;
         c.pendingTs = 0;
         c.remainingLessons = 0;
-        c.voidedTs = voided;
+        c.voidedTs = snap.totalLessons;
         if (d.disposition === 'PERMANENT_TERMINATE') c.unsettledTs = 0;
         c.termination = {
           reason: d.reason,
           disposition: d.disposition,
           note: d.note.trim(),
           at: TODAY,
-          releasedTs: released,
+          releasedTs: snap.future,
           completedTs: completed,
-          voidedTs: voided,
-          remainingLessons: remaining,
-          refundTotal,
-          perCapita,
-          screenshots: d.screenshots
+          voidedTs: snap.totalLessons,
+          remainingLessons: snap.totalLessons,
+          voidedFutureTs: snap.future,
+          voidedPoolTs: snap.pool,
+          remainingPoints: snap.remainingPoints,
+          clearRecordId,
+          clearRecordStatus: '已生成'
         };
         const releasedTeacher = classTeacher(c);
-        appendAudit(c, '提前结课解散', `小班 ${c.id} · 原因: ${reasonLabel(d.reason)} · 流向: ${dispositionLabel(d.disposition)} · 已结课 ${completed} 节 · 作废 ${voided} 节 · 未来 ${released} 节已取消释放${releasedTeacher ? ` · 已向原授课老师 ${releasedTeacher.name} 发送排期释放提醒` : ''} · 备注: ${d.note.trim() || '无'}${d.screenshots ? ` · 凭证 ${d.screenshots} 张` : ''}`);
+        appendAudit(c, '提前结课解散', `小班 ${c.id} · 原因: ${reasonLabel(d.reason)} · 流向: ${dispositionLabel(d.disposition)} · 已结课 ${completed} 节 · 作废 ${snap.totalLessons} 节（未来已排 ${snap.future} / 待排池 ${snap.pool}）· 剩余待上交 ${points(snap.remainingPoints)} 积分 · 清退记录 ${clearRecordId} · 备注: ${d.note.trim()}${releasedTeacher ? ` · 已向原授课老师 ${releasedTeacher.name} 发送排期释放提醒` : ''}`);
         appendStatus(c, 'active', 'early_terminated', `${reasonLabel(d.reason)} · ${dispositionLabel(d.disposition)}`);
         state.overlay = null;
         state.dissolve = emptyDissolve();
         renderAll();
-        const notify = releasedTeacher ? ` · 已向原授课老师 ${releasedTeacher.name} 发送排期释放提醒` : '';
-        return showToast(`已提前结课解散 · 未来 ${released} 节已释放${notify}`);
+        const notify = releasedTeacher ? ` · 已向 ${releasedTeacher.name} 发送排期释放提醒` : '';
+        return showToast(`已提前结课解散 · 已生成小班解散清退记录 ${clearRecordId} · 未来 ${snap.future} 节已释放${notify}`);
       }
       if (action === 'close-overlay') {
         state.overlay = null;
@@ -2329,9 +2851,17 @@
       }
       if (id === 'fDissolveNote') {
         state.dissolve.note = e.target.value;
+        const counter = $('dissolveNoteCount');
+        if (counter) counter.textContent = `${e.target.value.length}/200`;
         const btn = $('dissolveSubmit');
         const c = state.overlay ? classById(state.overlay.classId) : null;
         if (btn && c) btn.disabled = !dissolveValid(c);
+      }
+      if (id === 'fProgressNote') {
+        if (!state.progress) return;
+        state.progress.note = e.target.value;
+        const counter = $('progressCount');
+        if (counter) counter.textContent = `${e.target.value.length}/2000`;
       }
       if (id === 'pickerSearch') { state.pickerSearch = e.target.value; refreshPickerRows(); }
     });
@@ -2365,10 +2895,21 @@
             reason: params.get('reason') || '',
             disposition: params.get('disposition') || '',
             note: params.get('note') || '',
-            screenshots: Math.min(3, Math.max(0, Number(params.get('screenshots') || 0))),
             confirmed: params.get('confirmed') === '1'
           };
           state.overlay = { type: 'dissolve', classId: c.id };
+        }
+      }
+      if (overlay === 'courseware-config') {
+        const c = classById(state.activeClassId);
+        if (c && ownsClass(c)) state.overlay = { type: 'courseware-config', classId: c.id };
+      }
+      if (overlay === 'progress') {
+        const c = classById(state.activeClassId);
+        const cw = c ? (classCoursewares(c).find((x) => x.id === params.get('cw')) || classCoursewares(c)[0]) : null;
+        if (c && cw && ownsClass(c)) {
+          state.progress = { classId: c.id, coursewareId: cw.id, level: cw.level, note: cw.processNote || '' };
+          state.overlay = { type: 'progress', classId: c.id, coursewareId: cw.id };
         }
       }
       if (overlay === 'appoint') {

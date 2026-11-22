@@ -22,7 +22,7 @@
 | **数据库与连接池** | PostgreSQL + `@topeetop/shared-core` (`DatabaseService`, `executeTx`) | 严禁手写 `new Pool(...)`；所有 SQL 必须收敛于 `dream-core` `*Mapper`（继承 `BaseMapper`，支持 DI 注入 `DatabaseService`） |
 | **Schema 与主键规约** | 单 Schema `dream.` + `generateShortUuid()` (`VARCHAR(12)`) + `deleted_at` | 所有 SQL 必须显式写 `dream.` 前缀；严禁使用自增 `SERIAL` 或 36 位 UUID |
 | **服务端缓存** | **无定时器整点分钟内存缓存**（`minuteBucket = Math.floor(now() / 60_000)` + single-flight 锁） | 适用于管理员/班长/老师目录、价位字典、系统运营参数等小体量高频读数据；每分钟 `:00` 秒多节点同步过期，**严禁使用 `setInterval`/`setTimeout`**（保证 Serverless 安全） |
-| **端侧 PWA 缓存** | `vite-plugin-pwa` 四级缓存体系（见 [DESIGN.md](../DESIGN.md#5-pwa-与端侧四级数据缓存策略-pwa--caching-hierarchy)） | L1 `CacheStorage`（壳/静态资源）；L2 `LocalStorage + Pinia`（身份/字典）；L3 `IndexedDB`（`dream_pwa_l3_db` 脱敏只读快照）；L4 `NetworkOnly`（支付/清退/转账/抢位**绝对禁止离线缓存**） |
+| **端侧 PWA 缓存** | `vite-plugin-pwa` 四级缓存体系（见 [DESIGN.md](../DESIGN.md#5-pwa-与端侧四级数据缓存策略-pwa--caching-hierarchy)） | L1 `CacheStorage`（壳/静态资源）；L2 `LocalStorage + Pinia`（身份/字典）；L3 `IndexedDB`（`dream_pwa_l3_db` 脱敏只读快照 + **不可变流水 90 天/2000 条 Keyset 游标增量快照**，支持离线排序筛选）；L4 `NetworkOnly`（支付/清退/转账/抢位提交及在途可变单据**绝对禁止离线缓存与离线写入**） |
 | **静态配置与密钥** | `@topeetop/env-secure-conf` + `zod` (`env.config.ts`) | 启动时强校验环境变量；严禁在代码或注释中明文写入密钥 |
 | **动态运营配置** | `dream.system_configs` 键值表 + 整点分钟缓存 + `dream.audit_logs` | 仅收录已拍板的高频参数（见 [SYSTEM_CONFIG_PARAMETERS_CANDIDATES.md](./SYSTEM_CONFIG_PARAMETERS_CANDIDATES.md)）；变更即时对新操作/新单据生效，**严禁追溯修改已生成单据或已排课格** |
 | **异步与定时任务** | **优先 `@topeetop/task-relay-client`（TaskRelay 服务）** + `dream-worker`（固定 Cron 批处理） | 严禁在 `dream-backend` 中使用裸定时器或 `node-cron`；**所有异步投递与 31 天内精确单次定时任务优先使用 TaskRelay**；仅全校周期性 Cron 扫表归口 `dream-worker`（详见 §2.2） |
@@ -37,13 +37,54 @@
 
 ## 2.1 列表排序与搜索实现选型基线（客户端 vs 服务端）
 
-编写各模块 TDD 时，**禁止一刀切全部走服务端或全部走客户端**，必须按“数据体量上限 + 是否属于 L4 `NetworkOnly` 强实时资金域”三档分流设计：
+编写各模块 TDD 时，**禁止一刀切全部走服务端或全部走客户端**，必须按“数据体量上限 + 是否不可变 Append-Only + 是否属于 L4 `NetworkOnly` 强实时写操作/在途资金域”四档分流设计：
 
 | 实现模式 | 适用条件与缓存策略 | 强制适用列表 | 技术约束 |
 |---|---|---|---|
 | **A. 端侧全量 + 客户端排序/搜索** | 权限范围内总条数有界（通常 $\le 500$ 条，JSON $< 100\text{KB}$），需高频切排序、1–2 字母前缀过滤或首字母索引；可配合服务端整点分钟缓存或端侧 L2/L3 缓存 | **M1A** 自家孩子、所辖/全校学员、试课学员；**M1B** 老师/班长列表；**M1C** 小班列表；**M1E** 课件库 | 前端在 Pinia `computed` 内完成 0ms 过滤与排序；若未来全校在读突破 1000 人阈值，再降级切换为服务端检索 |
 | **B. 周期切片 + 端侧过滤（混合）** | 按自然周/时间窗口切片拉取后单屏行数有限（几十行），但需保证首屏基准顺序与多条件即时过滤 | **M5B** 老师周课酬单看板 | 服务端按周返回并排好 `非常规标红 → 待打款 → 已打款` 基准序；前端在内存中 0ms 完成姓名搜索与“仅看非常规”过滤 |
-| **C. 服务端分页 + SQL 排序/搜索** | 随时间无限增长的历史单据/流水（数千～数万条），或属于 **L4 `NetworkOnly` 禁止离线缓存** 的资金/风控强实时域 | **M2A** 购课单；**M2B** 课次清退记录；**M5A** 周转账单与异常回退 TS；**M3B** 经办记录；**M4** 站内通知（每页 20 条） | 必须由 `dream-core` `*Mapper` 通过索引化 SQL `WHERE` + `ORDER BY` + `LIMIT/OFFSET`（或游标）实现；前端搜索输入需做 300ms 防抖 |
+| **C. 服务端分页 + SQL 排序/搜索** | 高频状态变更的在途业务单据/消息、需要 `SELECT ... FOR UPDATE` 并发防线的实时域，以及模式 D 超出端侧 90 天/2000 条窗口的冷历史补查 | **M2A** 购课单列表；**M5A** 周转账单与异常回退 TS；**M4** 站内通知（每页 20 条）；**超窗口冷历史回退查** | 必须由 `dream-core` `*Mapper` 通过索引化 SQL `WHERE` + `ORDER BY` + `LIMIT/OFFSET`（或游标）实现；前端搜索输入需做 300ms 防抖 |
+| **D. 不可变流水游标增量同步 + 端侧排序/筛选** | 生成后永久不变（D1 纯 Append-Only）或仅极低频撤回/进入不可变终态后不变（D2）的**已脱敏只读流水**；依托 L3 `IndexedDB` Keyset 游标增量拉取后支持 0ms 本地筛选排序与**离线只读浏览** | **D1（`(created_at, id)` 游标）**：**M2B** 课次清退记录、**M3B**【经办记录】、全实体【状态流转历史】与【档案/小班/字典变动日志】；<br>**D2（`(updated_at, id)` 增量覆写）**：**M3B**《出勤异常记录》、**M3B** 老师【授课历史】与已入终态归档单据快照 | 仅缓存当前账号有权的近期窗口（默认 **90 天 / 2,000 条**），遵守 §2.1a 六项强制规范；**新增清退/确认收款/打款等写操作仍严格归 L4 `NetworkOnly` 离线禁用** |
+
+---
+
+## 2.1a PWA 端侧增量缓存与离线只读协议规范 (Pattern D)
+
+所有采用模式 D 的模块 TDD 必须在接口契约、IndexedDB 存储设计与组件销毁中显式落实以下 **6 项工程规范**：
+
+### 1. 数据分类与 L4 写操作零污染红线
+- **D1 纯追加不可变流水**（一经落盘永不改写，如 M2B 课次清退记录、M3B 经办记录、状态流转历史、档案/小班变动日志）：采用 **`(created_at, id)`** 严格追加增量游标，本地 `upsert` 只增不改；
+- **D2 低频撤回 / 终态快照**（极少数场景会改态或补备注，如 M3B《出勤异常记录》销假撤销、M3B 授课历史补录备注、已达终态的 M2A/M5A/M5B 单据）：必须采用 **`(updated_at, id)`** 增量覆写（服务端按 `updated_at` 推进游标下发最新全量脱敏快照行，本地按主键 `id` 覆盖更新）；
+- **写操作严守 L4 隔离**：可离线只读浏览 M2B 历史清退记录，绝不意味着允许离线提交【新增清退】——一切资金、排课与审单写入动作断网时必须置灰阻断（Toast 提示离线不可用）。
+
+### 2. 服务端 Keyset 复合游标契约（兼容 `VARCHAR(12)` · 禁客户端时钟）
+- 由于全库禁用 `SERIAL` 自增主键而使用 12 位短 ID（`VARCHAR(12)`），且客户端系统时钟存在偏移风险，**严禁使用 `Date.now()` 或单字段 `id > lastId` 分页**；
+- 统一在 `dream-core` `*Mapper` 实现复合 Keyset 元组查询（要求对应表建有 `(created_at, id)` 或 `(updated_at, id)` 联合索引）：
+  ```sql
+  SELECT ... FROM dream.<audit_or_ledger_table>
+  WHERE <account_or_scope_filter>
+    AND (created_at, id) > ($1::timestamptz, $2::varchar(12))
+  ORDER BY created_at ASC, id ASC
+  LIMIT $3; -- limit + 1 判断 hasMore
+  ```
+- **统一响应 Zod 结构**：返回 `{ items, nextCursor: { ts, id } | null, hasMore, serverTime }`。若 `hasMore === true`，前端按帧循环追平直到 `hasMore === false` 并记录 `lastSyncAt = serverTime`。
+
+### 3. 有界冷启动与滑动淘汰（防移动浏览器配额溢出）
+- **冷启动截断**：本地尚无游标首次同步时，后端按 **`windowDays = 90`（最多倒推截断 `maxItems = 2000` 条）** 下发起始窗口数据并锚定初始游标，严禁一次拉全库数万条历史日志；
+- **本地容量淘汰**：写入 `dream_pwa_l3_db` 时在同一 IndexedDB 事务内清理超出 **`90 天` 或超出 `2,000 条`** 的最旧记录，保持端侧存储轻量稳定；
+- **超窗口在线回退**：当在线用户在筛选器切至 `全部` 或查询 90 天前的冷历史时，自动穿透调用模式 C 服务端 SQL 分页检索；离线时仅展示本地已缓存窗口并明确提示范围。
+
+### 4. 多账号 / 多角色分区与登出清空隔离
+- `dream_pwa_l3_db` 中模式 D 的记录必须以 **`[accountId, roleScope, storeKey]`** 作为逻辑分区前缀（并维护游标元数据表），杜绝兼职用户切换工作台或跨号登录时发生本地缓存串权；
+- 发生【退出登录】或收到鉴权失效（`401/403` 被封禁/停用）时，必须同步执行清理函数彻底清空当前账号在 `dream_pwa_l3_db` 中的全部模式 D 快照与游标；【清理缓存】仅清 L3 IndexedDB 快照且保留登录凭证。
+
+### 5. 服务端 DTO 层响应前脱敏与权限裁剪（IDOR 防线）
+- 增量同步接口必须从已验签 JWT 读取 `request.user.id` 校验角色范围（例如班长仅能拉取本人经办记录与本人托管清退记录；管理员拉取全校），**严禁把全校记录拉到前端后再按角色隐藏**；
+- PII 敏感字段（手机号、Email 等）与内部敏感字段（如家长不可见的班长强制提交原因、老师不可见的积分与内部单价）**必须在服务端 DTO 返回前完成裁剪与脱敏**，绝不将未脱敏明文落盘至 IndexedDB。
+
+### 6. 前端离线只读交互与同步时效提示
+- 页面加载遵循 **“0ms 渲染本地 L3 快照 + 在线静默增量追平”**，本地筛选、关键字匹配与多列排序全部在内存/IndexedDB 索引中即时完成；
+- 当处于离线态（`!navigator.onLine` 或增量请求网络失败降级）时，列表顶部必须展示醒目轻量状态条：**`离线只读 · 已同步至 YYYY-MM-DD HH:mm（支持筛选与排序缓存数据）`**。
 
 ---
 

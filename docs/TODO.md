@@ -114,7 +114,7 @@
 
 | ID | 待办事项 | 影响 | 负责人 | 状态 | 备注 |
 |---|---|---|---|---|---|
-| M3A-T1 | 日维度多实体应急调度网格（Daily Dispatch Grid）实现 | 管理员/班长快速处理当天突发请假、同屏找当天代课 | 待定 | 未开始 | 2026-11-14 已升格至 [m3a_calendar_grid.md](./prd/m3a_calendar_grid.md) §4.11（`AC-3A-18~20`）：仅保留前 1 后 3 共 5 天胶囊（`[-1d, +3d]`）、极速搜人、2 类纯粹调度异常与同屏对照空闲代课，入口归属首页金刚位与 Tab 3 顶栏 |
+| M3A-T1 | 日维度多实体应急调度网格（Daily Dispatch Grid）实现 | 管理员/班长快速处理当天突发请假、同屏找当天代课 | 待定 | 未开始 | 2026-11-14 已升格至 [m3a_calendar_grid.md](./prd/m3a_calendar_grid.md) §4.11（`AC-3A-15~17`）：仅保留前 1 后 3 共 5 天胶囊（`[-1d, +3d]`）、极速搜人、2 类纯粹调度异常与同屏对照空闲代课，入口归属首页金刚位与 Tab 3 顶栏 |
 
 ---
 
@@ -125,7 +125,7 @@
 | ID | 待办事项 | 影响 | 负责人 | 状态 | 备注 |
 |---|---|---|---|---|---|
 | M3B-T1 | 【高优先级】老师请假时顺便更新学生课件与级别、补录学生备注（非必填），同步传递代课老师 | `M3B` / `M3A` 老师请假抽屉、`M1E` 在学课件进度、`M1A` 学员备注与代课课格直览 | 待定 | 已完成 PRD | 2026-11-15 已写入 [m3b_attendance_substitution.md](./prd/m3b_attendance_substitution.md)（§4.4/§4.5/`AC-3B-16`）、[m3a_calendar_grid.md](./prd/m3a_calendar_grid.md)（§4.8.2 课格抽屉内联直览）、[m1a_student_profile.md](./prd/m1a_student_profile.md) 与 [m1e_courseware.md](./prd/m1e_courseware.md)：按去重受影响学员展示选填交接区，放开授课老师编辑在学课件/级别（记入变动日志），并在紫色代上课抽屉内直接内联展示最新课件与备注 |
-| M3B-T2 | 统一时段覆盖模型（`SlotOverride`）设计与持久化落地（合并原 `RenewalHoldLease`） | `M3A` 加开时段/锁定时段/销假/续费 `HOLD`、`M3B` 纯空闲格请假与小班老师原因暂停待排 | 待定 | 已完成 PRD | 2026-11-16 已写入 [m3a_calendar_grid.md](./prd/m3a_calendar_grid.md)（§4.8.2 & §4.10 & `AC-3A-23`）、[m3b_attendance_substitution.md](./prd/m3b_attendance_substitution.md)（§4.8）与 [BUSINESS_RULES.md](./BUSINESS_RULES.md)：按「老师 + 日期 + 30min 时段」统一承接 `OPEN`（支持同日批量加开、`[恢复为休息]`、被约后保留）、`LOCKED`、`LEAVE`、`HOLD`（合并原 `RenewalHoldLease`，跟随购课单生灭），仅底层建模不对终端用户显露；持久化表结构留待技术设计阶段落地 |
+| M3B-T2 | 统一时段覆盖模型（`SlotOverride`）设计与持久化落地（合并原 `RenewalHoldLease`） | `M3A` 加开时段/锁定时段/销假/续费 `HOLD`、`M3B` 纯空闲格请假与小班老师原因暂停待排 | 待定 | 已完成 PRD | 2026-11-16 已写入 [m3a_calendar_grid.md](./prd/m3a_calendar_grid.md)（§4.8.2 & §4.10 & `AC-3A-20`）、[m3b_attendance_substitution.md](./prd/m3b_attendance_substitution.md)（§4.8）与 [BUSINESS_RULES.md](./BUSINESS_RULES.md)：按「老师 + 日期 + 30min 时段」统一承接 `OPEN`（支持同日批量加开、`[恢复为休息]`、被约后保留）、`LOCKED`、`LEAVE`、`HOLD`（合并原 `RenewalHoldLease`，跟随购课单生灭），仅底层建模不对终端用户显露；持久化表结构留待技术设计阶段落地 |
 
 ---
 
@@ -161,7 +161,7 @@
 | ID | 待办事项 | 影响 | 负责人 | 状态 | 备注 |
 |---|---|---|---|---|---|
 | FLT-T1 | 排课与找老师智能筛选 PRD 落地（1v1/1vN 代课空闲筛师、固定位 4 周全通反选、临时课时间窗反查、挪位防撞课） | 消除盲翻老师课表，实现“按条件直接出人” | 待定 | 已完成 PRD | 已于 2026-11-13 写入 [m3b_attendance_substitution.md](./prd/m3b_attendance_substitution.md)、[m3d_course_scheduling.md](./prd/m3d_course_scheduling.md) 与 [m3a_calendar_grid.md](./prd/m3a_calendar_grid.md)，待前后端排期实现 |
-| FLT-T2 | 日维度应急调度异常聚焦、同屏找代课与快搜代请假（`M3A-T1` 增强） | 班长/管理员 1 秒定位今日异常与目标师生，同屏对照空闲老师指派当天代课 | 待定 | 已完成 PRD | 2026-11-14 已写入 [m3a_calendar_grid.md](./prd/m3a_calendar_grid.md) §4.11 与 `AC-3A-18~20`（聚焦 2 类异常：`请假待代课` + `<3h 临期变动`、28px 三层展示、同屏对照当天空闲代课、快搜老师/学员办临时请假；已移除低频抓学员补课） |
+| FLT-T2 | 日维度应急调度异常聚焦、同屏找代课与快搜代请假（`M3A-T1` 增强） | 班长/管理员 1 秒定位今日异常与目标师生，同屏对照空闲老师指派当天代课 | 待定 | 已完成 PRD | 2026-11-14 已写入 [m3a_calendar_grid.md](./prd/m3a_calendar_grid.md) §4.11 与 `AC-3A-15~17`（聚焦 2 类异常：`请假待代课` + `<3h 临期变动`、28px 三层展示、同屏对照当天空闲代课、快搜老师/学员办临时请假；已移除低频抓学员补课） |
 | FLT-T3 | 学员续费、沉睡资产、试课临期与在学课件智能筛选（`M1A`/`M2A`/`M1E`） | 提升续费转化与课时消化率，支持小班凑伴招生 | 待定 | 未开始 | 包含：① 固定位最后一周待续费 / 48h 临期未付筛选；② 有待排 TS（$\ge 2$ 节）但 7–14 天未约课的沉睡学员筛选；③ 试课未认领及距 30 天归档 $\le 5$ 天筛选；④ 按在学课件/级别筛学员 |
 | FLT-T4 | 小班课即将结轮与待排池归零筛选（`M1C`） | 防止小班断档停课 | 待定 | 未开始 | 自动筛出处于当前 4 周轮次最后 1 周或待排期 TS 已归零的小班，提示主理人及时录新一轮购课单 |
 | FLT-T5 | 财务对账出勤异常与转账逾期预警筛选（`M5A`/`M5B`） | 配合前端宽进宽出，后端算账 1 秒定位高风险流水 | 待定 | 未开始 | 包含：① `M5B` 按“含 `<3h` 临期变更 / 学员或外教旷课 / 异常回退补生”筛选课酬单流水；② `M5A` 筛选周二前未传凭证或已触发平台垫付发薪的班长欠款单 |

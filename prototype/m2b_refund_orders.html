@@ -120,7 +120,7 @@
     // 资产按“价位档位 + 资金持有人”建模：1v1 待排 TS 不分固定/临时。
     const INITIAL_ORDERS = [
       {
-        id: 'CO-20261110-01', studentKey: 'alice', type: '1v1 课次', holder: 'Leo', status: 'PARTIALLY_REFUNDED', scheduled: 2, finished: 5,
+        id: 'CO-20261110-01', studentKey: 'alice', type: '1v1 课次', holder: 'Leo', status: 'PAID', hasClear: true, scheduled: 2, finished: 5,
         tiers: [{ kind: '1v1', price: 16, remaining: 4 }, { kind: '1v1', price: 18, remaining: 1 }]
       },
       {
@@ -128,82 +128,79 @@
         tiers: [{ kind: '1v1', price: 21, remaining: 1 }]
       },
       {
-        id: 'CO-20261025-01', studentKey: 'bob', type: '1v1 课次', holder: 'Leo', status: 'PARTIALLY_REFUNDED', scheduled: 0, finished: 2,
+        id: 'CO-20261025-01', studentKey: 'bob', type: '1v1 课次', holder: 'Leo', status: 'PAID', hasClear: true, scheduled: 0, finished: 2,
         tiers: [{ kind: '1v1', price: 18, remaining: 1 }, { kind: '1v1', price: 21, remaining: 1 }]
       },
       {
-        id: 'CO-20261002-09', studentKey: 'emma', type: '1v1 课次', holder: 'Mia', status: 'PARTIALLY_REFUNDED', scheduled: 1, finished: 8,
+        id: 'CO-20261002-09', studentKey: 'emma', type: '1v1 课次', holder: 'Mia', status: 'PAID', hasClear: true, scheduled: 1, finished: 8,
         tiers: [{ kind: '1v1', price: 16, remaining: 4 }]
       },
       {
-        id: 'CO-20261030-05', studentKey: 'emma', type: '小班课', holder: 'Mia', status: 'PARTIALLY_REFUNDED', scheduled: 0, finished: 2,
+        id: 'CO-20261030-05', studentKey: 'emma', type: '小班课', holder: 'Mia', status: 'PAID', hasClear: true, scheduled: 0, finished: 2,
         tiers: [{ kind: '小班', price: 22, remaining: 2, className: 'KET1' }]
       },
       {
-        id: 'CO-20261112-03', studentKey: 'noah', type: '1v1 课次', holder: '平台', status: 'PARTIALLY_REFUNDED', scheduled: 1, finished: 2,
+        id: 'CO-20261112-03', studentKey: 'noah', type: '1v1 课次', holder: '平台', status: 'PAID', hasClear: true, scheduled: 1, finished: 2,
         tiers: [{ kind: '1v1', price: 20, remaining: 3 }]
       }
     ];
 
     const INITIAL_RECORDS = [
       {
-        id: 'CD-20261119-05', studentKey: 'alice', at: '2026-11-19 19:05', by: 'Leo', isFallback: false,
-        note: '家长临时调整课业安排，线下微信退费 ¥160，退回 1 节 16 积分课次。',
+        id: 'CD-20261119-05', studentKey: 'alice', subjectType: '1v1', at: '2026-11-19 19:05', by: 'Leo', isFallback: false,
+        note: '家长临时调整课业安排，线下微信退费 160 积分，退回 1 节 16 积分课次。',
         items: [{ kind: '1v1', price: 16, n: 1, holder: 'Leo' }],
         n: 1, totalPoints: 16, orderIds: ['CO-20261110-01'], after: 6,
         proofs: [{ name: '微信转账_20261119.png', size: 268 * 1024 }],
-        statusChanges: [{ orderId: 'CO-20261110-01', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+        statusChanges: [{ orderId: 'CO-20261110-01', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' }]
       },
       {
-        id: 'CD-20261116-04', studentKey: 'alice', at: '2026-11-16 18:42', by: 'Leo', isFallback: false,
-        note: '家长工作调整，线下微信退费 ¥320，退回 2 节 16 积分课次。',
+        id: 'CD-20261116-04', studentKey: 'alice', subjectType: '1v1', at: '2026-11-16 18:42', by: 'Leo', isFallback: false,
+        note: '家长工作调整，线下微信退费 320 积分，退回 2 节 16 积分课次。',
         items: [{ kind: '1v1', price: 16, n: 2, holder: 'Leo' }],
         n: 2, totalPoints: 32, orderIds: ['CO-20261110-01'], after: 6,
         proofs: [{ name: '微信转账_20261116.png', size: 236 * 1024 }],
-        statusChanges: [{ orderId: 'CO-20261110-01', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+        statusChanges: [{ orderId: 'CO-20261110-01', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' }]
       },
       {
-        id: 'CD-20261112-03', studentKey: 'bob', at: '2026-11-12 20:16', by: 'Leo', isFallback: false,
-        note: '家长调整周末安排，线下支付宝退费 ¥210，退回 1 节 21 积分课次。',
+        id: 'CD-20261112-03', studentKey: 'bob', subjectType: '1v1', at: '2026-11-12 20:16', by: 'Leo', isFallback: false,
+        note: '家长调整周末安排，线下支付宝退费 210 积分，退回 1 节 21 积分课次。',
         items: [{ kind: '1v1', price: 21, n: 1, holder: 'Leo' }],
         n: 1, totalPoints: 21, orderIds: ['CO-20261025-01'], after: 2,
         proofs: [],
-        statusChanges: [{ orderId: 'CO-20261025-01', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+        statusChanges: [{ orderId: 'CO-20261025-01', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' }]
       },
       {
-        id: 'CD-20261105-02', studentKey: 'emma', at: '2026-11-05 16:40', by: 'Sarah', isFallback: true,
-        note: '管理员兜底：家长移居停课，线下微信退费 ¥900；已与持有人 Mia 与家长三方确认，退回 1v1 16 积分 2 节及小班待排 1 节。',
-        items: [{ kind: '1v1', price: 16, n: 2, holder: 'Mia' }, { kind: '小班', price: 22, n: 1, holder: 'Mia', className: 'KET1' }],
-        n: 3, totalPoints: 54, orderIds: ['CO-20261002-09', 'CO-20261030-05'], after: 6,
-        proofs: [{ name: '微信转账凭证_20261105.png', size: 312 * 1024 }, { name: '家长确认截图_20261105.png', size: 188 * 1024 }],
-        statusChanges: [
-          { orderId: 'CO-20261002-09', from: 'PARTIALLY_REFUNDED', to: 'PARTIALLY_REFUNDED' },
-          { orderId: 'CO-20261030-05', from: 'PAID', to: 'PARTIALLY_REFUNDED' }
-        ]
+        id: 'CD-20261105-02', subjectType: 'small_group', className: 'KET 冲刺精讲小班', classKey: 'ket1', source: '小班解散-退费', at: '2026-11-05 16:40', by: 'Sarah', isFallback: false,
+        note: '家长移居停课，小班提前结课解散；核销待上交积分 22 积分 1 节，按原资金持有人归属留痕，无需截图凭证。',
+        items: [{ kind: '小班', price: 22, n: 1, holder: 'Mia', className: 'KET1' }],
+        n: 1, totalPoints: 22, orderIds: ['CO-20261030-05'], after: 0,
+        proofs: [],
+        statusChanges: [{ orderId: 'CO-20261030-05', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' }]
       },
       {
-        id: 'CD-20261028-01', studentKey: 'noah', at: '2026-10-28 11:08', by: 'Sarah', isFallback: false,
-        note: '平台直管课次，家长转学停课，线下微信退费 ¥400，退回 2 节 20 积分课次。',
+        id: 'CD-20261028-01', studentKey: 'noah', subjectType: '1v1', at: '2026-10-28 11:08', by: 'Sarah', isFallback: false,
+        note: '平台直管课次，家长转学停课，线下微信退费 400 积分，退回 2 节 20 积分课次。',
         items: [{ kind: '1v1', price: 20, n: 2, holder: '平台' }],
         n: 2, totalPoints: 40, orderIds: ['CO-20261112-03'], after: 3,
         proofs: [],
-        statusChanges: [{ orderId: 'CO-20261112-03', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+        statusChanges: [{ orderId: 'CO-20261112-03', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' }]
       },
       {
-        id: 'CD-20260915-09', studentKey: 'alice', at: '2026-09-15 10:22', by: 'Leo', isFallback: false,
-        note: '暑期课程调整，线下微信退费 ¥390，退回 18 积分 1 节与 21 积分 1 节。',
+        id: 'CD-20260915-09', studentKey: 'alice', subjectType: '1v1', at: '2026-09-15 10:22', by: 'Leo', isFallback: false,
+        note: '暑期课程调整，线下微信退费 390 积分，退回 18 积分 1 节与 21 积分 1 节。',
         items: [{ kind: '1v1', price: 18, n: 1, holder: 'Leo' }, { kind: '1v1', price: 21, n: 1, holder: 'Mia' }],
         n: 2, totalPoints: 39, orderIds: ['CO-20260902-01'], after: 8,
         proofs: [{ name: '微信转账_20260915.png', size: 221 * 1024 }],
-        statusChanges: [{ orderId: 'CO-20260902-01', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+        statusChanges: [{ orderId: 'CO-20260902-01', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' }]
       },
       {
-        id: 'CD-20260801-08', studentKey: 'noah', at: '2026-08-01 09:35', by: 'Sarah', isFallback: false,
-        note: '平台课次清退，家长线下现金退费 ¥200，退回 1 节 20 积分课次。',
+        id: 'CD-20260801-08', studentKey: 'noah', subjectType: '1v1', at: '2026-08-01 09:35', by: 'Sarah', isFallback: false,
+        note: '平台课次清退，家长线下现金退费 200 积分，退回 1 节 20 积分课次。',
         items: [{ kind: '1v1', price: 20, n: 1, holder: '平台' }],
         n: 1, totalPoints: 20, orderIds: ['CO-20260725-02'], after: 4,
         proofs: [],
-        statusChanges: [{ orderId: 'CO-20260725-02', from: 'PAID', to: 'PARTIALLY_REFUNDED' }]
+        statusChanges: [{ orderId: 'CO-20260725-02', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' }]
       }
     ];
 
@@ -268,6 +265,7 @@
       range: '30',
       adminHolder: 'all',
       method: 'all',
+      recordType: 'all',
       overlay: null,
       deduct: emptyDeduct(),
       orders: clone(INITIAL_ORDERS),
@@ -289,6 +287,7 @@
     if (['30', '90', 'all'].includes(params.get('range'))) state.range = params.get('range');
     if (['all', 'self', 'Leo', 'Mia', '平台'].includes(params.get('holder'))) state.adminHolder = params.get('holder');
     if (['all', 'self', 'fallback'].includes(params.get('method'))) state.method = params.get('method');
+    if (['all', '1v1', 'small_group', 'fallback'].includes(params.get('type'))) state.recordType = params.get('type');
     if (params.get('q')) state.query = params.get('q');
     const bootOverlay = params.get('overlay');
     const bootPreset = params.get('preset');
@@ -330,6 +329,10 @@
       if (item.kind === '小班') return `小班待排${item.className ? ' · ' + item.className : ''}`;
       return '1v1 待排';
     }
+    function isSmallGroupOrder(o) {
+      return !!o && (o.type === '小班课' || (o.tiers || []).some((t) => t.kind === '小班'));
+    }
+    function isSmallGroupRecord(r) { return !!r && r.subjectType === 'small_group'; }
     function orderRemaining(o) { return (o.tiers || []).reduce((a, t) => a + t.remaining, 0); }
     function orderPoints(o) { return (o.tiers || []).reduce((a, t) => a + t.remaining * t.price, 0); }
     function assetDetailText(o) {
@@ -352,6 +355,7 @@
       const rows = [];
       ordersForStudent(studentKey).forEach((o) => {
         (o.tiers || []).forEach((t, idx) => {
+          if (t.kind === '小班') return;
           if (t.remaining <= 0) return;
           rows.push({
             key: `${o.id}#${idx}`, orderId: o.id, idx, studentKey,
@@ -362,10 +366,8 @@
       });
       const monitor = isMonitorRole();
       const holderRank = (h) => (monitor ? (h === actor() ? 0 : 1) : (h === '平台' ? 0 : 1));
-      const kindRank = (k) => (k === '小班' ? 1 : 0);
       rows.sort((a, b) => holderRank(a.holder) - holderRank(b.holder)
         || a.holder.localeCompare(b.holder, 'zh-CN')
-        || kindRank(a.kind) - kindRank(b.kind)
         || a.price - b.price
         || a.orderId.localeCompare(b.orderId));
       return rows;
@@ -382,7 +384,7 @@
 
     function studentTotals(key) {
       const rows = pendingTierRows(key);
-      const orders = ordersForStudent(key);
+      const orders = ordersForStudent(key).filter((o) => !isSmallGroupOrder(o));
       return {
         pending: rows.reduce((a, r) => a + r.remaining, 0),
         points: rows.reduce((a, r) => a + r.remaining * r.price, 0),
@@ -402,6 +404,7 @@
       if (!r) return false;
       if (state.role === 'admin') return true;
       if (isMonitorRole()) return r.by === actor() || recordHolders(r).includes(actor());
+      if (isSmallGroupRecord(r)) return false;
       return PARENT_CHILDREN.includes(r.studentKey);
     }
 
@@ -425,13 +428,17 @@
           }
           if (state.method === 'self' && r.isFallback) return false;
           if (state.method === 'fallback' && !r.isFallback) return false;
+          if (state.recordType === 'small_group' && !isSmallGroupRecord(r)) return false;
+          if (state.recordType === 'fallback' && !r.isFallback) return false;
+          if (state.recordType === '1v1' && (isSmallGroupRecord(r) || r.isFallback)) return false;
         }
         if (q) {
           const s = studentByKey(r.studentKey);
           const hay = [
             s ? s.name : '', s ? s.nickname : '', r.note, r.by,
+            r.className || '', r.source || '', r.subjectType || '',
             ...(r.orderIds || []),
-            ...(r.items || []).map((i) => `${i.price}积分 ${i.holder} ${i.kind}`)
+            ...(r.items || []).map((i) => `${i.price}积分 ${i.holder} ${i.kind} ${i.className || ''}`)
           ].join(' ').toLowerCase();
           if (!hay.includes(q)) return false;
         }
@@ -449,17 +456,18 @@
     }
 
     function orderStatusMeta(s) {
-      if (s === 'PARTIALLY_REFUNDED') return { label: 'PAID (PARTIALLY_REFUNDED)', cls: 'border-amber-300 bg-amber-100 text-amber-900' };
-      if (s === 'REFUNDED') return { label: 'REFUNDED', cls: 'border-emerald-200 bg-emerald-50 text-emerald-800' };
-      return { label: 'PAID', cls: 'border-slate-300 bg-slate-100 text-slate-700' };
+      return { label: '已付款', cls: 'border-slate-300 bg-slate-100 text-slate-700' };
     }
     function orderStatusLabel(s) { return orderStatusMeta(s).label; }
     function statusPill(status) {
       const m = orderStatusMeta(status);
       return `<span class="inline-flex whitespace-nowrap shrink-0 items-center rounded-full border px-2 py-0.5 text-[12px] font-bold ${m.cls}">${m.label}</span>`;
     }
-    function statusChips(from, to) {
-      return `${statusPill(from)}<span class="text-[12px] font-bold text-slate-500">→</span>${statusPill(to)}`;
+    function clearTag() {
+      return `<span class="inline-flex shrink-0 items-center rounded-md border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">含清退</span>`;
+    }
+    function paidWithClearTag() {
+      return `<span class="inline-flex shrink-0 items-center rounded-md border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">已付款 · 含清退</span>`;
     }
     function proofStatusText(r) {
       const n = (r.proofs || []).length;
@@ -518,6 +526,7 @@
       state.navTab = boardTab();
       state.adminHolder = 'all';
       state.method = 'all';
+      state.recordType = 'all';
       state.query = '';
       state.overlay = null;
       state.back = null;
@@ -564,6 +573,7 @@
       state.range = '30';
       state.adminHolder = 'all';
       state.method = 'all';
+      state.recordType = 'all';
       state.overlay = null;
       state.deduct = emptyDeduct();
       renderAll();
@@ -689,6 +699,12 @@
       { value: 'self', label: '持有人自清退' },
       { value: 'fallback', label: '管理员兜底代清退' }
     ];
+    const RECORD_TYPE_FILTERS = [
+      { value: 'all', label: '全部类型' },
+      { value: '1v1', label: '1v1 手动清退' },
+      { value: 'small_group', label: '小班解散清退' },
+      { value: 'fallback', label: '管理员兜底' }
+    ];
 
     function holderFilterLabel() {
       const found = HOLDER_FILTERS.find((o) => o.value === state.adminHolder);
@@ -722,6 +738,12 @@
                 ${METHOD_FILTERS.map((o) => `<button data-action="set-method" data-method="${o.value}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${state.method === o.value ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${o.label}</button>`).join('')}
               </div>
             </div>
+            <div class="flex items-center gap-2">
+              <span class="shrink-0 text-[12px] font-semibold text-slate-600">清退类型</span>
+              <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                ${RECORD_TYPE_FILTERS.map((o) => `<button data-action="set-record-type" data-type="${o.value}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${state.recordType === o.value ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${o.label}</button>`).join('')}
+              </div>
+            </div>
           </div>`
         : '';
 
@@ -745,7 +767,7 @@
         <div class="space-y-3 px-4 pt-3">
           <div class="relative">
             <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-            <input id="recordSearch" value="${esc(state.query)}" placeholder="搜索学员昵称/小名、购课单号或备注" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-9 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
+            <input id="recordSearch" value="${esc(state.query)}" placeholder="搜索学员昵称/小名、小班名称、购课单号或备注" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-9 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
             ${state.query ? `<button data-action="clear-search" class="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="清除搜索">${icon('x', 'h-4 w-4')}</button>` : ''}
           </div>
 
@@ -785,32 +807,41 @@
 
     function renderRecordCard(r, opts = {}) {
       const showStudent = opts.showStudent !== false;
+      const isSmall = isSmallGroupRecord(r);
       const holders = recordHolders(r);
       const points = recordPoints(r);
-      return `<article data-action="open-record" data-id="${r.id}" role="button" tabindex="0" class="cursor-pointer rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5 transition active:scale-[0.995]">
+      const metricLabel = isSmall ? '核销待上交积分' : '1v1 退款实付积分';
+      const source = r.source || '小班解散-退费';
+      const titleBlock = isSmall
+        ? `<div class="flex min-w-0 flex-wrap items-center gap-1.5">
+             <span class="max-w-full truncate text-[14px] font-bold text-slate-900">🏫 ${esc(r.className || '小班')}</span>
+             <span class="shrink-0 rounded-md border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${esc(source)}</span>
+           </div>
+           <div class="mt-1 font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`
+        : showStudent
+          ? `<button data-action="open-student" data-key="${esc(r.studentKey)}" class="block max-w-full truncate text-left text-[14px] font-bold text-slate-900">
+              ${esc(studentName(r.studentKey))} <span class="ml-1 rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(studentNickname(r.studentKey))}</span>
+            </button>
+            <div class="mt-1 font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`
+          : `<div class="font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`;
+      return `<article data-action="open-record" data-id="${r.id}" data-subject-type="${isSmall ? 'small_group' : '1v1'}" role="button" tabindex="0" class="cursor-pointer rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5 transition active:scale-[0.995]">
         <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            ${showStudent
-              ? `<button data-action="open-student" data-key="${esc(r.studentKey)}" class="block max-w-full truncate text-left text-[14px] font-bold text-slate-900">
-                  ${esc(studentName(r.studentKey))} <span class="ml-1 rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(studentNickname(r.studentKey))}</span>
-                </button>
-                <div class="mt-1 font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`
-              : `<div class="font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`}
-          </div>
+          <div class="min-w-0">${titleBlock}</div>
           <div class="flex shrink-0 flex-wrap justify-end gap-1">
             ${r.isFallback ? `<span class="rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">兜底代清退</span>` : ''}
-            <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-800">清退 ${r.n} 节</span>
+            <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-800">${isSmall ? '核销' : '清退'} ${r.n} 节</span>
           </div>
         </div>
         <p class="mt-1.5 line-clamp-2 text-[12px] font-medium leading-relaxed text-slate-700">${esc(r.note)}</p>
+        ${isSmall ? `<div class="mt-1.5 flex flex-wrap gap-1">${(r.items || []).map((i) => `<span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">持有人 ${esc(i.holder)} · ${i.n} 节 · ${i.price * i.n} 积分</span>`).join('')}</div>` : ''}
         <div class="mt-2 space-y-1 border-t border-slate-200/70 pt-2 text-[12px] font-medium text-slate-600">
           <div class="flex items-center justify-between gap-2">
-            <span class="min-w-0 truncate">经办人 ${esc(r.by)} · 持有人 ${esc(holders.join(' / '))} · 退款总积分 <span class="font-bold text-slate-900">${points}</span></span>
+            <span class="min-w-0 truncate">经办人 ${esc(r.by)} · 持有人 ${esc(holders.join(' / '))} · ${metricLabel} <span class="font-bold text-slate-900">${points}</span></span>
             <span class="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-indigo-600">详情 ${icon('chevron-right', 'h-3.5 w-3.5')}</span>
           </div>
           <div class="flex items-center justify-between gap-2">
             <span class="min-w-0 truncate font-mono">${esc((r.orderIds || []).join(' · '))}</span>
-            <span class="shrink-0 ${(r.proofs || []).length ? 'text-slate-600' : 'text-slate-500'}">凭证 ${proofStatusText(r)}</span>
+            <span class="shrink-0 ${isSmall ? 'text-slate-500' : (r.proofs || []).length ? 'text-slate-600' : 'text-slate-500'}">凭证 ${isSmall ? '无需上传' : proofStatusText(r)}</span>
           </div>
         </div>
       </article>`;
@@ -920,7 +951,7 @@
               return `<button data-action="open-order" data-id="${esc(o.id)}" class="w-full rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-left transition hover:bg-slate-50">
                 <div class="flex items-center justify-between gap-2">
                   <span class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(o.id)}</span>
-                  <span class="shrink-0 rounded-full border px-2 py-0.5 text-[12px] font-bold ${m.cls}">${m.label}</span>
+                  <span class="flex shrink-0 items-center gap-1"><span class="rounded-full border px-2 py-0.5 text-[12px] font-bold ${m.cls}">${m.label}</span>${o.hasClear ? clearTag() : ''}</span>
                 </div>
                 <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-medium text-slate-600">
                   <span class="rounded bg-slate-100 px-1.5 py-0.5 font-bold text-slate-700">${esc(o.type)}</span>
@@ -970,8 +1001,9 @@
       const s = studentByKey(o.studentKey);
       const history = visibleRecordsForOrder(o.id);
       const remaining = orderRemaining(o);
+      const small = isSmallGroupOrder(o);
       const editable = pendingTierRows(o.studentKey).filter(rowEditable);
-      const canDeduct = state.online === 'on' && state.role !== 'parent' && remaining > 0 && editable.length > 0;
+      const canDeduct = !small && state.online === 'on' && state.role !== 'parent' && remaining > 0 && editable.length > 0;
       return `<div class="space-y-3 px-4 py-3 pb-10">
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
           <div class="flex items-start justify-between gap-2">
@@ -980,7 +1012,7 @@
               <button data-action="open-student" data-key="${esc(o.studentKey)}" class="mt-1 block max-w-full truncate text-left text-[16px] font-bold text-slate-900">${esc(s ? s.name : o.studentKey)} · ${esc(s ? s.nickname : '')}</button>
               <div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(o.type)} · 资金持有人 ${esc(o.holder)}</div>
             </div>
-            ${statusPill(o.status)}
+            <span class="flex shrink-0 items-center gap-1">${statusPill(o.status)}${o.hasClear ? clearTag() : ''}</span>
           </div>
           <div class="mt-3 grid grid-cols-3 gap-1.5">
             ${assetTile('待排期', remaining)}
@@ -1031,116 +1063,167 @@
     function renderRecordPage() {
       const r = recordById(state.activeRecordId);
       if (!r || !canViewRecord(r)) return renderNotFound('清退记录不存在', '该记录可能不在当前账号的可见范围内。');
+      const isSmall = isSmallGroupRecord(r);
       const s = studentByKey(r.studentKey);
       const holders = recordHolders(r);
       const changes = r.statusChanges || [];
-      return `<div class="space-y-3 px-4 py-3 pb-10">
-        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-          <div class="flex items-start justify-between gap-2">
+      const source = r.source || '小班解散-退费';
+      const title = isSmall ? `小班解散清退 · ${r.className || '小班'}` : `清退 ${r.n} 节课次`;
+      const pointsLabel = isSmall ? '小班核销待上交积分' : '1v1 退款实付积分';
+      const topMeta = isSmall
+        ? `<div class="mt-1 flex flex-wrap items-center gap-1.5">
+            <span class="rounded-md border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${esc(source)}</span>
+            <span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">只读 · 由小班提前结课解散生成</span>
+          </div>`
+        : `<button data-action="open-student" data-key="${esc(r.studentKey)}" class="mt-0.5 block max-w-full truncate text-left text-[14px] font-semibold text-slate-700">${esc(s ? s.name : r.studentKey)} · ${esc(s ? s.nickname : '')}</button>`;
+      const metricCells = isSmall
+        ? `<div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+            <div class="text-[12px] font-semibold text-slate-600">${pointsLabel}</div>
+            <div class="mt-0.5 text-[18px] font-bold text-slate-900">${recordPoints(r)} <span class="text-[12px] font-semibold text-slate-600">积分</span></div>
+          </div>
+          <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+            <div class="text-[12px] font-semibold text-slate-600">作废课次</div>
+            <div class="mt-0.5 text-[18px] font-bold text-slate-900">${r.n} <span class="text-[12px] font-semibold text-slate-600">节</span></div>
+          </div>
+          <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+            <div class="text-[12px] font-semibold text-slate-600">经办人</div>
+            <div class="mt-0.5 text-[14px] font-bold text-slate-900">${esc(r.by)}</div>
+          </div>
+          <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+            <div class="text-[12px] font-semibold text-slate-600">来源</div>
+            <div class="mt-0.5 text-[12px] font-bold text-slate-900">${esc(source)}</div>
+          </div>`
+        : `<div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+            <div class="text-[12px] font-semibold text-slate-600">${pointsLabel}</div>
+            <div class="mt-0.5 text-[18px] font-bold text-slate-900">${recordPoints(r)} <span class="text-[12px] font-semibold text-slate-600">积分</span></div>
+          </div>
+          <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+            <div class="text-[12px] font-semibold text-slate-600">操作后剩余未排</div>
+            <div class="mt-0.5 text-[18px] font-bold text-slate-900">${r.after} <span class="text-[12px] font-semibold text-slate-600">节</span></div>
+          </div>
+          <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+            <div class="text-[12px] font-semibold text-slate-600">经办人</div>
+            <div class="mt-0.5 text-[14px] font-bold text-slate-900">${esc(r.by)}</div>
+          </div>
+          <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
+            <div class="text-[12px] font-semibold text-slate-600">凭证状态</div>
+            <div class="mt-0.5 text-[14px] font-bold text-slate-900">${(r.proofs || []).length ? `已上传 ${(r.proofs || []).length} 张` : '未上传'}</div>
+          </div>`;
+      const itemRows = (r.items || []).map((i) => isSmall
+        ? `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2" data-holder-item="${esc(i.holder)}">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(i)}</span>
+            </div>
+            <div class="mt-1 text-[14px] font-semibold text-slate-900">持有人 ${esc(i.holder)} · ${i.n} 节 · ${i.price * i.n} 积分</div>
+          </div>`
+        : `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
             <div class="min-w-0">
-              <div class="font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>
-              <h1 class="mt-1 text-[18px] font-bold tracking-tight text-slate-900">清退 ${r.n} 节课次</h1>
-              <button data-action="open-student" data-key="${esc(r.studentKey)}" class="mt-0.5 block max-w-full truncate text-left text-[14px] font-semibold text-slate-700">${esc(s ? s.name : r.studentKey)} · ${esc(s ? s.nickname : '')}</button>
-            </div>
-            <div class="flex shrink-0 flex-col items-end gap-1">
-              <span class="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">只读</span>
-              ${r.isFallback ? `<span class="rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">兜底代清退</span>` : ''}
-            </div>
-          </div>
-          <div class="mt-3 grid grid-cols-2 gap-1.5">
-            <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
-              <div class="text-[12px] font-semibold text-slate-600">退款总积分</div>
-              <div class="mt-0.5 text-[18px] font-bold text-slate-900">${recordPoints(r)} <span class="text-[12px] font-semibold text-slate-600">积分</span></div>
-            </div>
-            <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
-              <div class="text-[12px] font-semibold text-slate-600">操作后剩余未排</div>
-              <div class="mt-0.5 text-[18px] font-bold text-slate-900">${r.after} <span class="text-[12px] font-semibold text-slate-600">节</span></div>
-            </div>
-            <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
-              <div class="text-[12px] font-semibold text-slate-600">经办人</div>
-              <div class="mt-0.5 text-[14px] font-bold text-slate-900">${esc(r.by)}</div>
-            </div>
-            <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
-              <div class="text-[12px] font-semibold text-slate-600">凭证状态</div>
-              <div class="mt-0.5 text-[14px] font-bold text-slate-900">${(r.proofs || []).length ? `已上传 ${(r.proofs || []).length} 张` : '未上传'}</div>
-            </div>
-          </div>
-        </section>
-
-        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
-          <h2 class="text-[16px] font-bold text-slate-900">清退明细</h2>
-          <div class="mt-2 space-y-1.5">
-            ${(r.items || []).map((i) => `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="text-[14px] font-bold text-slate-900">${i.price}积分 × ${i.n} 节</span>
-                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(i)}</span>
-                </div>
-                <div class="mt-0.5 text-[12px] font-medium text-slate-600">资金持有人 ${esc(i.holder)}</div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-[14px] font-bold text-slate-900">${i.price}积分 × ${i.n} 节</span>
+                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(i)}</span>
               </div>
-              <span class="shrink-0 text-[12px] font-bold text-slate-900">${i.price * i.n} 积分</span>
-            </div>`).join('')}
-          </div>
-        </section>
-
-        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
-          <h2 class="text-[16px] font-bold text-slate-900">财务备注</h2>
-          <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-700">${esc(r.note)}</p>
-        </section>
-
-        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
-          <h2 class="text-[16px] font-bold text-slate-900">关联购课单</h2>
-          <div class="mt-2 space-y-1.5">
+              <div class="mt-0.5 text-[12px] font-medium text-slate-600">资金持有人 ${esc(i.holder)}</div>
+            </div>
+            <span class="shrink-0 text-[12px] font-bold text-slate-900">${i.price * i.n} 积分</span>
+          </div>`).join('');
+      const orderSection = isSmall
+        ? `<div class="mt-2 space-y-1.5">
+            ${(r.orderIds || []).map((id) => {
+              const order = orderById(id);
+              return `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2" data-order-readonly="${esc(id)}">
+                <div class="min-w-0 flex-1"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">${order ? `${esc(order.type)} · 持有人 ${esc(order.holder)}` : '历史购课单（只读留痕）'}</div></div>
+                <span class="shrink-0 text-[12px] font-semibold text-slate-600">只读</span>
+              </div>`;
+            }).join('')}
+          </div>`
+        : `<div class="mt-2 space-y-1.5">
             ${(r.orderIds || []).map((id) => {
               const order = orderById(id);
               return order
                 ? `<button data-action="open-order" data-id="${esc(id)}" class="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-left transition hover:bg-slate-50">
                     <div class="min-w-0 flex-1"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(order.type)} · 持有人 ${esc(order.holder)}</div></div>
-                    ${statusPill(order.status)}
+                    <span class="flex shrink-0 items-center gap-1">${statusPill(order.status)}${order.hasClear ? clearTag() : ''}</span>
                   </button>`
                 : `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
                     <div class="min-w-0"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">历史购课单（只读留痕）</div></div>
                     <span class="shrink-0 text-[12px] font-semibold text-slate-600">已归档</span>
                   </div>`;
             }).join('')}
+          </div>`;
+      return `<div class="space-y-3 px-4 py-3 pb-10">
+        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>
+              <h1 class="mt-1 text-[18px] font-bold tracking-tight text-slate-900">${esc(title)}</h1>
+              ${topMeta}
+            </div>
+            <div class="flex shrink-0 flex-col items-end gap-1">
+              <span class="rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">只读</span>
+              ${!isSmall && r.isFallback ? `<span class="rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">兜底代清退</span>` : ''}
+            </div>
           </div>
+          <div class="mt-3 grid grid-cols-2 gap-1.5">${metricCells}</div>
         </section>
 
         <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
-          <h2 class="text-[16px] font-bold text-slate-900">购课单状态变化</h2>
+          <h2 class="text-[16px] font-bold text-slate-900">清退明细</h2>
+          <div class="mt-2 space-y-1.5">${itemRows}</div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+          <h2 class="text-[16px] font-bold text-slate-900">${isSmall ? '解散备注' : '财务备注'}</h2>
+          <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-700">${esc(r.note)}</p>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+          <h2 class="text-[16px] font-bold text-slate-900">清退涉及购课单</h2>
+          ${orderSection}
+        </section>
+
+        <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+          <h2 class="text-[16px] font-bold text-slate-900">关联购课单</h2>
           <div class="mt-2 space-y-1.5">
-            ${changes.length ? changes.map((c) => `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
-              <div class="font-mono text-[12px] font-bold text-slate-900">${esc(c.orderId)}</div>
-              <div class="mt-1 flex flex-wrap items-center gap-1">${statusChips(c.from, c.to)}</div>
-            </div>`).join('') : `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-600">历史记录无状态变化快照</div>`}
+            ${changes.length ? changes.map((c) => `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2" data-mount-order="${esc(c.orderId)}">
+              <div class="flex flex-wrap items-center justify-between gap-1.5">
+                <span class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(c.orderId)}</span>
+                ${paidWithClearTag()}
+              </div>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">${esc(c.note || '主状态保持已付款 · 挂载清退记录')}</p>
+            </div>`).join('') : `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-600">历史记录无挂载留痕快照</div>`}
           </div>
         </section>
 
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
-          <h2 class="text-[16px] font-bold text-slate-900">截图凭证（${(r.proofs || []).length} 张）</h2>
-          ${(r.proofs && r.proofs.length)
-            ? `<div class="mt-2 space-y-1.5">${r.proofs.map((p) => `<button data-action="preview-proof" class="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 text-left hover:bg-slate-50">
-                <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">${icon('image', 'h-5 w-5')}</span>
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-[14px] font-semibold text-slate-800">${esc(p.name)}</span>
-                  <span class="block text-[12px] font-medium text-slate-600">${fmtSize(p.size)} · 点击预览</span>
-                </span>
-                ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
-              </button>`).join('')}</div>`
-            : `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-[12px] font-medium text-slate-600">本笔清退未上传截图凭证</div>`}
+          <h2 class="text-[16px] font-bold text-slate-900">截图凭证${isSmall ? '' : `（${(r.proofs || []).length} 张）`}</h2>
+          ${isSmall
+            ? `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-[12px] font-medium text-slate-600">小班解散清退无需上传截图凭证，由小班提前结课解散同事务生成。</div>`
+            : (r.proofs && r.proofs.length)
+              ? `<div class="mt-2 space-y-1.5">${r.proofs.map((p) => `<button data-action="preview-proof" class="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 text-left hover:bg-slate-50">
+                  <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">${icon('image', 'h-5 w-5')}</span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-[14px] font-semibold text-slate-800">${esc(p.name)}</span>
+                    <span class="block text-[12px] font-medium text-slate-600">${fmtSize(p.size)} · 点击预览</span>
+                  </span>
+                  ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
+                </button>`).join('')}</div>`
+              : `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-[12px] font-medium text-slate-600">本笔清退未上传截图凭证</div>`}
         </section>
 
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
           <h2 class="text-[16px] font-bold text-slate-900">记录信息</h2>
           <div class="mt-2 space-y-1 text-[12px]">
             <div class="flex justify-between gap-2"><span class="shrink-0 font-medium text-slate-600">记录编号</span><span class="truncate font-mono font-semibold text-slate-900">${esc(r.id)}</span></div>
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">记录状态</span><span class="font-semibold text-emerald-700">EFFECTIVE（已生效 · 不可删除）</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">记录状态</span><span class="font-semibold text-slate-900">已生效 · 不可删除</span></div>
             <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">资金持有人</span><span class="truncate font-semibold text-slate-900">${esc(holders.join(' / '))}</span></div>
             <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">清退节数</span><span class="font-semibold text-slate-900">${r.n} 节</span></div>
+            ${isSmall ? `<div class="flex justify-between gap-2"><span class="font-medium text-slate-600">来源</span><span class="truncate font-semibold text-slate-900">${esc(source)}</span></div>` : ''}
           </div>
         </section>
 
-        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">清退记录一经生成不可编辑或删除，仅用于财务审计追溯；已清退 TS 不进入周转账单与老师周课酬单。</div>
+        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${isSmall
+          ? '小班解散清退记录由小班提前结课解散同事务生成，永久只读不可编辑或删除；已清退 TS 不进入周转账单与老师周课酬单。'
+          : '清退记录一经生成不可编辑或删除，仅用于财务审计追溯；已清退 TS 不进入周转账单与老师周课酬单。'}</div>
       </div>`;
     }
 
@@ -1156,7 +1239,7 @@
           <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 pb-2.5">
             <div class="min-w-0">
               <h2 class="text-[16px] font-bold text-slate-900">发起课次清退</h2>
-              <p class="mt-0.5 text-[12px] font-medium text-slate-600">选择存在可清退待排课次的学员</p>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-600">选择存在可清退 1v1 待排课次的学员</p>
             </div>
             <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
@@ -1177,7 +1260,7 @@
                   <span class="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-800">${totals.pending} 节 · ${totals.points} 积分</span>
                 </div>
                 <div class="mt-1.5 flex flex-wrap gap-1">
-                  ${rows.map((r) => `<span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${r.price}积分 × ${r.remaining} 节${r.kind === '小班' ? ' · 小班' : ''}</span>`).join('')}
+                  ${rows.map((r) => `<span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${r.price}积分 × ${r.remaining} 节</span>`).join('')}
                 </div>
               </button>`;
             }).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-10 text-center text-[14px] font-medium text-slate-600">当前身份下没有可清退的学员资产</div>`}
@@ -1238,7 +1321,7 @@
 
     function renderTierRow(row, offline) {
       const disabled = !row.canEdit || offline;
-      const kindLabel = row.kind === '小班' ? `小班待排${row.className ? ' · ' + row.className : ''}` : '1v1 待排';
+      const kindLabel = '1v1 待排';
       return `<div class="rounded-xl border ${row.canEdit ? 'border-slate-200/80 bg-white' : 'border-dashed border-slate-400 bg-slate-50/60 opacity-65'} p-2.5">
         <div class="flex items-center justify-between gap-2">
           <div class="min-w-0 flex-1">
@@ -1271,7 +1354,7 @@
             <div class="mt-0.5 whitespace-nowrap text-[16px] font-bold leading-tight text-slate-900">共 ${ds.totalN} <span class="text-[12px] font-semibold text-slate-600">节</span></div>
           </div>
           <div class="min-w-0 border-l border-slate-200 pl-2">
-            <div class="text-[12px] font-semibold text-slate-600">退款总积分</div>
+            <div class="text-[12px] font-semibold text-slate-600">1v1 退款实付积分</div>
             <div class="mt-0.5 whitespace-nowrap text-[16px] font-bold leading-tight text-indigo-700">${ds.totalPoints} <span class="text-[12px] font-semibold text-slate-600">积分</span></div>
           </div>
           <div class="min-w-0 border-l border-slate-200 pl-2">
@@ -1368,7 +1451,7 @@
                   </div>
                   <button data-action="clear-all" ${offline ? 'disabled' : ''} class="shrink-0 rounded-lg border border-indigo-200 bg-white px-2 py-1 text-[12px] font-bold text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40">[ 全部清零 ]</button>
                 </div>
-                <div class="mt-1 text-[12px] font-medium text-slate-600">按价位与资金持有人分组，可同时填写多个价位。</div>
+                <div class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">仅支持 1v1 待排期课次；小班待排课次请由小班提前结课解散处理。</div>
               </div>
 
               ${groups}
@@ -1378,7 +1461,7 @@
                   <label for="deductNote" class="text-[14px] font-semibold text-slate-700"><span id="deductNoteLabel">${proofRequired ? '财务备注与兜底原因' : '财务备注'}</span> <span class="text-rose-500">*</span></label>
                   <span id="noteCount" class="text-[12px] font-medium text-slate-600">${d.note.length}/200</span>
                 </div>
-                <textarea id="deductNote" rows="3" maxlength="200" ${offline ? 'disabled' : ''} placeholder="例如：线下微信退费 ¥600，家长因故停课" class="mt-1.5 h-24 w-full resize-none rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 disabled:bg-slate-100">${esc(d.note)}</textarea>
+                <textarea id="deductNote" rows="3" maxlength="200" ${offline ? 'disabled' : ''} placeholder="例如：线下微信退费 600 积分，家长因故停课" class="mt-1.5 h-24 w-full resize-none rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 disabled:bg-slate-100">${esc(d.note)}</textarea>
                 <p id="deductNoteError" class="mt-1 text-[12px] font-semibold text-rose-600 ${d.errors.note ? '' : 'hidden'}">${esc(d.errors.note || '')}</p>
               </div>
 
@@ -1510,7 +1593,7 @@
           <div class="mt-3 space-y-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 text-[12px]">
             <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">学员</span><span class="truncate font-semibold text-slate-900">${esc(student.name)} · ${esc(student.nickname)}</span></div>
             ${ds.selected.map((row) => `<div class="flex justify-between gap-2"><span class="font-medium text-slate-600">${row.price}积分 × ${row.n} 节</span><span class="truncate font-semibold text-slate-900">持有人 ${esc(row.holder)}</span></div>`).join('')}
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">退款总积分</span><span class="truncate font-semibold text-slate-900">${ds.totalPoints} 积分</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">1v1 退款实付积分</span><span class="truncate font-semibold text-slate-900">${ds.totalPoints} 积分</span></div>
             <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">清退后剩余未排</span><span class="truncate font-semibold text-slate-900">${ds.after} 节</span></div>
             <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">凭证张数</span><span class="truncate font-semibold text-slate-900">${state.deduct.proofs.length} 张</span></div>
             <div class="flex justify-between gap-2"><span class="shrink-0 font-medium text-slate-600">财务备注</span><span class="truncate text-right font-medium text-slate-700">${esc(state.deduct.note.trim())}</span></div>
@@ -1612,12 +1695,12 @@
       if (preset === 'multi') {
         setRow(rows.find((r) => r.price === 16 && r.kind === '1v1'), 2);
         setRow(rows.find((r) => r.price === 18 && r.kind === '1v1'), 1);
-        d.note = '线下微信退费 ¥150，家长调整课业安排，已与家长确认剩余课次。';
+        d.note = '线下微信退费 150 积分，家长调整课业安排，已与家长确认剩余课次。';
       }
       if (preset === 'fallback') {
         setRow(rows.find((r) => r.price === 16 && r.kind === '1v1'), 2);
-        setRow(rows.find((r) => r.kind === '小班'), 1);
-        d.note = '管理员兜底：家长移居停课，线下微信退费 ¥900，已与持有人及家长三方确认。';
+        setRow(rows.find((r) => r.price === 18 && r.kind === '1v1'), 1);
+        d.note = '管理员兜底：家长移居停课，线下微信退费 50 积分，已与持有人及家长三方确认。';
         d.proofs = [{ name: '微信转账凭证_示例.png', size: 286 * 1024 }];
       }
       if (preset === 'clear') {
@@ -1718,14 +1801,13 @@
       orderIds.forEach((id) => {
         const o = orderById(id);
         if (!o) return;
-        const from = o.status;
         selected.filter((r) => r.orderId === id).forEach((r) => {
           const tier = o.tiers[r.idx];
           if (tier) tier.remaining = Math.max(0, tier.remaining - r.n);
         });
-        const remaining = orderRemaining(o);
-        o.status = (remaining + (o.scheduled || 0)) === 0 ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
-        changes.push({ orderId: id, from, to: o.status });
+        o.status = 'PAID';
+        o.hasClear = true;
+        changes.push({ orderId: id, from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' });
       });
       const holders = [...new Set(selected.map((r) => r.holder))];
       const isFallback = state.role === 'admin' && holders.some((h) => h !== '平台');
@@ -1733,6 +1815,7 @@
       const record = {
         id: nextRecordId(),
         studentKey: d.studentKey,
+        subjectType: '1v1',
         at: formatDateTime(new Date()),
         by: actor(),
         isFallback,
@@ -1754,8 +1837,8 @@
       state.back = null;
       renderAll();
       showToast(isFallback
-        ? `已清退 ${ds.totalN} 节，退款总积分 ${ds.totalPoints} 积分，已向原持有人班长发送只读通知`
-        : `已清退 ${ds.totalN} 节，退款总积分 ${ds.totalPoints} 积分，财务备注已留痕`);
+        ? `已清退 ${ds.totalN} 节，1v1 退款实付积分 ${ds.totalPoints} 积分，已向原持有人班长发送只读通知`
+        : `已清退 ${ds.totalN} 节，1v1 退款实付积分 ${ds.totalPoints} 积分，财务备注已留痕`);
     }
 
     function openRecord(id) {
@@ -1795,6 +1878,7 @@
       state.range = '30';
       state.adminHolder = 'all';
       state.method = 'all';
+      state.recordType = 'all';
       renderAll();
     }
 
@@ -1849,6 +1933,11 @@
       }
       if (action === 'set-method') {
         state.method = el.dataset.method;
+        renderAll();
+        return;
+      }
+      if (action === 'set-record-type') {
+        state.recordType = el.dataset.type;
         renderAll();
         return;
       }
