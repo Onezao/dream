@@ -98,10 +98,9 @@
 ## 5. 全局 Skills 映射 (Global References)
 
 以下指令跨项目通用：
-- **brainstorm**：触发 `brainstorm-master` 进行创意与需求收敛。
 - **design / tdd**：触发 `technical-design-doc-creator` 技能进行符合工程规范的高合规技术方案设计。
 - **prototype**：触发 `prototype` 技能，快速生成与维护高保真单文件 HTML 交互原型，强制管辖 `prototype/` 目录下所有原型文件。
-- **implement**：触发 `subagent-driven-development` 进行多子代理隔离 TDD 代码与单测实现。**[禁用约束] 本项目物理禁用 `implement-master`，由 `subagent-driven-development` 全面替代**（严禁删除或修改全局 `implement-master` 技能文件，确保其他工程正常复用）。
+- **implement**：触发 `subagent-driven-development` 进行多子代理隔离 TDD 代码与单测实现。
 - **fix / debug**：触发 `bug-hunter` 进行侦探式深度排障。
 - **test**：触发 `test-fixer` 运行并自动修复单元测试。
 - **sync**：触发 `dependency-sync` 同步 package.json 依赖。

@@ -121,20 +121,35 @@
     const PLATFORM_MONITOR_ID = 'mn_platform0';
     const UNREAD_COUNT = 3;
     const SAMPLE_VIDEO = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
-    const PRICE_TIERS = [
-      { id: '16', label: '16积分' },
-      { id: '18', label: '18积分' },
-      { id: '21', label: '21积分' }
+    /* 老师价位字典（2 态 · 按积分数升序）。创建后积分数与中英名永久锁定。
+       history / stockTs / stockStudents 为演示用的历史业务引用与存量待排 TS 概况，
+       用于体现「未使用错档可删、已用过仅可停用」与停用影响告知。 */
+    const INITIAL_PRICE_TIERS = [
+      { id: '16', points: 16, label: '16积分', labelEn: '16 Pts', enabled: true, history: 12, stockTs: 6, stockStudents: 2 },
+      { id: '18', points: 18, label: '18积分', labelEn: '18 Pts', enabled: true, history: 5, stockTs: 4, stockStudents: 3 },
+      { id: '21', points: 21, label: '21积分', labelEn: '21 Pts', enabled: true, history: 8, stockTs: 9, stockStudents: 4 },
+      { id: '22', points: 22, label: '22积分', labelEn: '22 Pts', enabled: true, history: 0, stockTs: 0, stockStudents: 0 },
+      { id: '24', points: 24, label: '24积分', labelEn: '24 Pts', enabled: false, history: 4, stockTs: 8, stockStudents: 3 }
     ];
     /* 全局 4 周轮次首日（周一）。生效日必须早于该轮次前一周周一 08:30 完成设置。 */
     const ROUND_STARTS = ['2026-11-16', '2026-11-23', '2026-11-30', '2026-12-07'];
     const ROUND_SETTABLE_FROM = '2026-11-23';
     const ACCOUNTS = {
-      'leo@example.com': { name: 'Leo', kind: 'monitor' },
-      'amy@example.com': { name: 'Amy', kind: 'monitor' },
-      'tom@example.com': { name: 'Tom', kind: 'monitor' },
-      'grace@example.com': { name: 'Grace', kind: 'parent' },
-      'sarah@example.com': { name: 'Sarah', kind: 'admin' }
+      'leo@example.com': { name: 'Leo', kind: 'monitor', status: 'active' },
+      'amy@example.com': { name: 'Amy', kind: 'monitor', status: 'banned' },
+      'tom@example.com': { name: 'Tom', kind: 'monitor', status: 'active' },
+      'grace@example.com': { name: 'Grace', kind: 'parent', status: 'active' },
+      'sarah@example.com': { name: 'Sarah', kind: 'admin', status: 'active' },
+      'david@example.com': { name: 'David Miller', kind: 'teacher', status: 'active' },
+      'sarahj@example.com': { name: 'Sarah Jenkins', kind: 'teacher', status: 'active' },
+      'chris@example.com': { name: 'Chris Wang', kind: 'teacher', status: 'active' },
+      'kevin@example.com': { name: 'Kevin Lin', kind: 'teacher', status: 'active' },
+      'emma@example.com': { name: 'Emma Stone', kind: 'teacher', status: 'banned' },
+      'michael@example.com': { name: 'Michael Chen', kind: 'teacher', status: 'active' },
+      'lucas@example.com': { name: 'Lucas Brown', kind: 'teacher', status: 'active' },
+      'nina@example.com': { name: 'Nina Patel', kind: 'teacher', status: 'active' },
+      'oliver@example.com': { name: 'Oliver Smith', kind: 'teacher', status: 'active' },
+      'zoey@example.com': { name: 'Zoey Adams', kind: 'teacher', status: 'active' }
     };
 
     const TONES = {
@@ -267,7 +282,7 @@
 
     const INITIAL_MONITORS = [
       { id: 'mn_leo000001', name: 'Leo', email: 'leo@example.com', phone: '138 0000 0001', appointedAt: '2026-03-01', status: 'active', unsettledTs: 18, unsettledPoints: 1240, unsettledCompletedTs: 4, unsettledCompletedPoints: 260, pendingOrders: 2, hold: 1, trialProfiles: 1, wechatQr: true, wechatQrDataUrl: '' },
-      { id: 'mn_amy000002', name: 'Amy', email: 'amy@example.com', phone: '139 0000 0002', appointedAt: '2026-05-12', status: 'active', unsettledTs: 6, unsettledPoints: 320, unsettledCompletedTs: 2, unsettledCompletedPoints: 120, pendingOrders: 0, hold: 1, trialProfiles: 0, wechatQr: false, wechatQrDataUrl: '' },
+      { id: 'mn_amy000002', name: 'Amy', email: 'amy@example.com', phone: '139 0000 0002', appointedAt: '2026-05-12', status: 'active', accountBanned: true, unsettledTs: 6, unsettledPoints: 320, unsettledCompletedTs: 2, unsettledCompletedPoints: 120, pendingOrders: 0, hold: 1, trialProfiles: 0, wechatQr: false, wechatQrDataUrl: '' },
       { id: 'mn_ivy000004', name: 'Ivy', email: 'ivy@example.com', phone: '135 0000 0005', appointedAt: '2026-04-10', status: 'frozen', freezeUntil: '2026-11-17', unsettledTs: 2, unsettledPoints: 160, unsettledCompletedTs: 1, unsettledCompletedPoints: 60, pendingOrders: 1, hold: 1, trialProfiles: 1, wechatQr: false, wechatQrDataUrl: '' },
       { id: ADMIN_MONITOR_ID, name: 'Sarah', email: 'sarah@example.com', phone: '136 0000 0004', appointedAt: '2026-01-15', status: 'active', unsettledTs: 0, unsettledPoints: 0, unsettledCompletedTs: 0, unsettledCompletedPoints: 0, pendingOrders: 0, hold: 0, trialProfiles: 0, isAdminSelf: true, wechatQr: true, wechatQrDataUrl: '' },
       { id: PLATFORM_MONITOR_ID, name: '平台直管', email: 'platform@dream.local', phone: '—', appointedAt: '2026-01-01', status: 'active', unsettledTs: 0, unsettledPoints: 0, unsettledCompletedTs: 0, unsettledCompletedPoints: 0, pendingOrders: 0, hold: 0, trialProfiles: 0, isPlatform: true, wechatQr: false, wechatQrDataUrl: '' },
@@ -283,7 +298,7 @@
         avatarDataUrl: DEMO_ALBUMS.david[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.david, avatarPhotoId: DEMO_ALBUMS.david[0].id,
         media: { photo: true, qr: true, video: { name: 'David_Sample_Lesson.mp4', size: '24.6 MB', duration: '01:45', url: SAMPLE_VIDEO } },
-        todayLessons: 4, upcoming: 22, completed: 38, status: 'active', createdAt: '2026-03-12',
+        todayLessons: 4, upcoming: 22, completed: 38, status: 'active', accountEmail: 'david@example.com', createdAt: '2026-03-12',
         pendingPrice: { level: '18', effectiveDate: '2026-12-07' },
         resign: { temp: 3, fixed: 2, classes: 1, sub: 1 },
         resignDetails: {
@@ -312,7 +327,7 @@
         avatarDataUrl: DEMO_ALBUMS.sarah[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.sarah, avatarPhotoId: DEMO_ALBUMS.sarah[0].id,
         media: { photo: true, qr: true, video: { name: 'Sarah_Intro_MP4.mp4', size: '18.2 MB', duration: '01:15', url: SAMPLE_VIDEO } },
-        todayLessons: 2, upcoming: 16, completed: 26, status: 'active', createdAt: '2026-04-08',
+        todayLessons: 2, upcoming: 16, completed: 26, status: 'active', accountEmail: 'sarahj@example.com', createdAt: '2026-04-08',
         resign: { temp: 1, fixed: 1, classes: 1, sub: 0 },
         resignDetails: {
           temp: [{ date: '2026-11-12', time: '17:00', student: 'MiaZ07' }],
@@ -329,7 +344,7 @@
         avatarDataUrl: DEMO_ALBUMS.chris[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.chris, avatarPhotoId: DEMO_ALBUMS.chris[0].id,
         media: { photo: true, qr: false, video: null },
-        todayLessons: 0, upcoming: 3, completed: 14, status: 'active', published: false, createdAt: '2026-06-21',
+        todayLessons: 0, upcoming: 3, completed: 14, status: 'active', accountEmail: '', published: false, createdAt: '2026-06-21',
         resign: { temp: 2, fixed: 0, classes: 0, sub: 0 },
         resignDetails: {
           temp: [
@@ -347,7 +362,7 @@
         avatarDataUrl: DEMO_ALBUMS.emma[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.emma, avatarPhotoId: DEMO_ALBUMS.emma[0].id,
         media: { photo: true, qr: true, video: { name: 'Emma_Intro_MP4.mp4', size: '16.4 MB', duration: '01:08', url: SAMPLE_VIDEO } },
-        todayLessons: 3, upcoming: 17, completed: 21, status: 'active', createdAt: '2026-07-03',
+        todayLessons: 3, upcoming: 17, completed: 21, status: 'active', accountEmail: 'emma@example.com', accountBanned: true, createdAt: '2026-07-03',
         resign: { temp: 0, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [], fixed: [], classes: [], sub: [] }
       },
@@ -359,7 +374,7 @@
         avatarDataUrl: DEMO_ALBUMS.kevin[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.kevin, avatarPhotoId: DEMO_ALBUMS.kevin[0].id,
         media: { photo: true, qr: true, video: { name: 'Kevin_Intro_MP4.mp4', size: '14.8 MB', duration: '01:02', url: SAMPLE_VIDEO } },
-        todayLessons: 2, upcoming: 14, completed: 17, status: 'active', createdAt: '2026-08-15',
+        todayLessons: 2, upcoming: 14, completed: 17, status: 'active', accountEmail: 'kevin@example.com', createdAt: '2026-08-15',
         resignDate: '2026-11-25',
         resign: { temp: 1, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [{ date: '2026-11-13', time: '17:30', student: 'NoahZ11' }], fixed: [], classes: [], sub: [] }
@@ -372,7 +387,7 @@
         avatarDataUrl: DEMO_ALBUMS.michael[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.michael, avatarPhotoId: DEMO_ALBUMS.michael[0].id,
         media: { photo: true, qr: true, video: { name: 'Michael_Intro_MP4.mp4', size: '20.1 MB', duration: '01:32', url: SAMPLE_VIDEO } },
-        todayLessons: 1, upcoming: 18, completed: 19, status: 'active', createdAt: '2026-08-28',
+        todayLessons: 1, upcoming: 18, completed: 19, status: 'active', accountEmail: 'michael@example.com', createdAt: '2026-08-28',
         resign: { temp: 0, fixed: 1, classes: 0, sub: 0 },
         resignDetails: { temp: [], fixed: [{ student: 'EthanZ09', schedule: '每周五 19:00', remaining: 4 }], classes: [], sub: [] }
       },
@@ -384,7 +399,7 @@
         avatarDataUrl: DEMO_ALBUMS.lucas[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.lucas, avatarPhotoId: DEMO_ALBUMS.lucas[0].id,
         media: { photo: true, qr: true, video: { name: 'Lucas_Intro_MP4.mp4', size: '22.3 MB', duration: '01:28', url: SAMPLE_VIDEO } },
-        todayLessons: 5, upcoming: 21, completed: 41, status: 'active', createdAt: '2026-02-18',
+        todayLessons: 5, upcoming: 21, completed: 41, status: 'active', accountEmail: 'lucas@example.com', createdAt: '2026-02-18',
         resign: { temp: 0, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [], fixed: [], classes: [], sub: [] }
       },
@@ -396,7 +411,7 @@
         avatarDataUrl: DEMO_ALBUMS.nina[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.nina, avatarPhotoId: DEMO_ALBUMS.nina[0].id,
         media: { photo: true, qr: true, video: { name: 'Nina_Intro_MP4.mp4', size: '17.6 MB', duration: '01:10', url: SAMPLE_VIDEO } },
-        todayLessons: 3, upcoming: 14, completed: 22, status: 'active', createdAt: '2026-05-06',
+        todayLessons: 3, upcoming: 14, completed: 22, status: 'active', accountEmail: 'nina@example.com', createdAt: '2026-05-06',
         resign: { temp: 0, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [], fixed: [], classes: [], sub: [] }
       },
@@ -408,7 +423,7 @@
         avatarDataUrl: DEMO_ALBUMS.oliver[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.oliver, avatarPhotoId: DEMO_ALBUMS.oliver[0].id,
         media: { photo: true, qr: true, video: { name: 'Oliver_Intro_MP4.mp4', size: '15.9 MB', duration: '01:04', url: SAMPLE_VIDEO } },
-        todayLessons: 2, upcoming: 8, completed: 11, status: 'active', published: false, createdAt: '2026-09-02',
+        todayLessons: 2, upcoming: 8, completed: 11, status: 'active', accountEmail: 'oliver@example.com', published: false, createdAt: '2026-09-02',
         resign: { temp: 0, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [], fixed: [], classes: [], sub: [] }
       },
@@ -420,14 +435,14 @@
         avatarDataUrl: DEMO_ALBUMS.zoey[0].dataUrl, qrDataUrl: '',
         photos: DEMO_ALBUMS.zoey, avatarPhotoId: DEMO_ALBUMS.zoey[0].id,
         media: { photo: true, qr: true, video: { name: 'Zoey_Intro_MP4.mp4', size: '11.4 MB', duration: '00:58', url: SAMPLE_VIDEO } },
-        todayLessons: 0, upcoming: 0, completed: 12, status: 'resigned', createdAt: '2026-01-18', resignedAt: '2026-10-20',
+        todayLessons: 0, upcoming: 0, completed: 12, status: 'resigned', accountEmail: 'zoey@example.com', createdAt: '2026-01-18', resignedAt: '2026-10-20',
         resign: { temp: 0, fixed: 0, classes: 0, sub: 0 },
         resignDetails: { temp: [], fixed: [], classes: [], sub: [] }
       }
     ];
 
     const INITIAL_CLASSES = [
-      { id: 'cl_ket000001', name: 'KET 冲刺小班', monitorId: 'mn_leo000001', teacherId: 'tc_david0001', status: 'active', students: '6/8' },
+      { id: 'cl_ket000001', name: 'KET 冲刺小班', monitorId: 'mn_leo000001', teacherId: 'tc_david0001', status: 'active', students: '6/8', pendingOrder: { id: 'M2A-20261110-018', status: '待付款确认' } },
       { id: 'cl_phonics02', name: '自然拼读小班', monitorId: 'mn_leo000001', teacherId: 'tc_sarah0002', status: 'recruiting', students: '3/6' },
       { id: 'cl_speak0003', name: '口语进阶小班', monitorId: 'mn_amy000002', teacherId: 'tc_emma00001', status: 'active', students: '5/8' },
       { id: 'cl_ielts0004', name: 'KET 语法小班', monitorId: 'mn_amy000002', teacherId: 'tc_micha0006', status: 'active', students: '4/6' },
@@ -491,12 +506,14 @@
       ]
     };
 
+    /* 只读配置审计日志：created / disabled / enabled / deleted 四类动作，按时间倒序。
+       删除仅限全系统零使用的误录档位，日志本身永久不可修改或物理删除。 */
     const INITIAL_DICT_AUDIT = [
-      { id: 'dl_01', category: '老师价位字典', entity: '24积分', action: 'disabled', at: '2026-10-28 09:40', operator: 'Sarah（管理员）', before: '24积分 · 启用（is_active=true）', after: '24积分 · 停用（is_active=false）' },
-      { id: 'dl_02', category: '老师价位字典', entity: '21积分', action: 'updated', at: '2026-09-12 10:18', operator: 'Sarah（管理员）', before: '21积分 · 1v1 档位（21 Pts）', after: '21积分 · 1v1 档位（21 Pts · 启用）' },
-      { id: 'dl_03', category: '老师价位字典', entity: '16积分', action: 'created', at: '2026-03-01 11:02', operator: 'Sarah（管理员）', before: '—', after: '16积分 · 启用（is_active=true）' },
-      { id: 'dl_04', category: '老师价位字典', entity: '18积分', action: 'created', at: '2026-03-01 11:04', operator: 'Sarah（管理员）', before: '—', after: '18积分 · 启用（is_active=true）' },
-      { id: 'dl_05', category: '老师价位字典', entity: '21积分', action: 'created', at: '2026-03-01 11:06', operator: 'Sarah（管理员）', before: '—', after: '21积分 · 启用（is_active=true）' }
+      { id: 'dl_00', entity: '20积分', action: 'deleted', at: '2026-11-23 18:10', operator: 'Sarah（管理员）', before: '20积分 · 启用中 (零使用)', after: '—（已从字典移除）' },
+      { id: 'dl_01', entity: '24积分', action: 'disabled', at: '2026-10-28 09:40', operator: 'Sarah（管理员）', before: '24积分 · 启用中', after: '24积分 · 已停用' },
+      { id: 'dl_02', entity: '21积分', action: 'created', at: '2026-03-01 11:06', operator: 'Sarah（管理员）', before: '—', after: '21积分（21 Pts）· 启用中' },
+      { id: 'dl_03', entity: '18积分', action: 'created', at: '2026-03-01 11:04', operator: 'Sarah（管理员）', before: '—', after: '18积分（18 Pts）· 启用中' },
+      { id: 'dl_04', entity: '16积分', action: 'created', at: '2026-03-01 11:02', operator: 'Sarah（管理员）', before: '—', after: '16积分（16 Pts）· 启用中' }
     ];
 
     /* ------------------------------------------------------------------
@@ -505,6 +522,8 @@
     function emptyTeacherForm() {
       return {
         mode: 'create', id: null, name: '', level: '18', monitorId: CURRENT_MONITOR_ID,
+        accountEmail: '', accountReason: '', origAccountEmail: '',
+        origPendingLevel: '', origPendingDate: '',
         pendingLevel: '', pendingDate: '',
         introZh: '', introEn: '', avatarDataUrl: '', qrDataUrl: '',
         photos: [], avatarPhotoId: null, crop: null,
@@ -525,7 +544,13 @@
       classes: JSON.parse(JSON.stringify(INITIAL_CLASSES)),
       teacherLogs: JSON.parse(JSON.stringify(INITIAL_TEACHER_LOGS)),
       monitorLogs: JSON.parse(JSON.stringify(INITIAL_MONITOR_LOGS)),
+      priceTiers: JSON.parse(JSON.stringify(INITIAL_PRICE_TIERS)),
       dictAudit: JSON.parse(JSON.stringify(INITIAL_DICT_AUDIT)),
+      priceDictTab: 'tiers',
+      priceDictReturnPage: 'teachers',
+      priceDictHighlight: null,
+      newPrice: { value: '', error: '' },
+      priceImpact: null,
       teacherLogCollapsed: false,
       teacherLogShowAll: false,
       monitorLogCollapsed: false,
@@ -559,7 +584,6 @@
     if (params.get('page')) state.page = params.get('page');
     if (params.get('teacher_id')) state.activeTeacherId = params.get('teacher_id');
     if (params.get('device') === 'tablet') state.device = 'tablet';
-    if (state.role === 'admin' && params.get('audit') === 'dict') state.overlay = { type: 'dictAudit' };
     if (state.role === 'admin' && params.get('audit') === 'monitor') {
       state.overlay = { type: 'loadDetail', monitorId: params.get('monitor_id') || 'mn_tom000003' };
     }
@@ -629,7 +653,7 @@
 
     function formMonitorLabel(id) {
       if (id === ADMIN_MONITOR_ID) return '⭐ 我直管';
-      if (id === PLATFORM_MONITOR_ID) return '平台未划拨';
+      if (id === PLATFORM_MONITOR_ID) return '平台直管';
       const m = monitorById(id);
       return m ? `${m.name} 班` : '请选择负责班长';
     }
@@ -684,6 +708,7 @@
       if (!t.media || !t.media.photo) missing.push('个人照片');
       if (!t.media || !t.media.qr) missing.push('ClassIn 二维码');
       if (!t.media || !t.media.video) missing.push('试讲视频');
+      if (!t.accountEmail || t.accountBanned) missing.push('登录账号');
       return missing;
     }
 
@@ -694,6 +719,8 @@
       if (!f.media.photo) missing.push('个人照片');
       if (!f.media.qr) missing.push('ClassIn 二维码');
       if (!f.media.video) missing.push('试讲视频');
+      const account = ACCOUNTS[f.accountEmail.trim().toLowerCase()];
+      if (!f.accountEmail.trim() || !account || account.status !== 'active') missing.push('登录账号');
       return missing;
     }
 
@@ -709,6 +736,8 @@
     function teacherStatusMeta(t) {
       if (t.status === 'resigned') return { label: '已离职', tone: 'slate' };
       if (hasPendingResign(t)) return { label: `将于 ${shortDate(t.resignDate)} 离职`, tone: 'amber' };
+      if (t.accountBanned) return { label: '账号已封禁', tone: 'rose' };
+      if (!t.accountEmail) return { label: '待绑定账号', tone: 'amber' };
       if (t.published === false) return { label: missingMedia(t).length ? '待完善' : '待发布', tone: 'amber' };
       if (missingMedia(t).length) return { label: '待完善', tone: 'amber' };
       if (teacherAvailability(t) === 'leave') return { label: '请假', tone: 'rose' };
@@ -717,7 +746,7 @@
     }
 
     function attributionMeta(t, mode = state.role) {
-      if (t.monitorId === PLATFORM_MONITOR_ID) return { label: '平台未划拨', tone: 'slate' };
+      if (t.monitorId === PLATFORM_MONITOR_ID) return { label: '平台直管', tone: 'slate' };
       if (mode === 'monitor') {
         if (t.monitorId === CURRENT_MONITOR_ID) return { label: '⭐ 我直管', tone: 'indigo' };
         const own = monitorById(t.monitorId);
@@ -763,7 +792,7 @@
       const label = teacherStatusMeta(t).label;
       if (filter === 'normal') return label === '正常可约';
       if (filter === 'leave') return label === '请假' || label === '代课中';
-      if (filter === 'draft') return label === '待完善' || label === '待发布';
+      if (filter === 'draft') return ['待完善', '待发布', '待绑定账号', '账号已封禁'].includes(label);
       return true;
     }
 
@@ -796,7 +825,7 @@
         all: base.length,
         normal: base.filter((t) => teacherStatusMeta(t).label === '正常可约').length,
         leave: base.filter((t) => ['请假', '代课中'].includes(teacherStatusMeta(t).label)).length,
-        draft: base.filter((t) => ['待完善', '待发布'].includes(teacherStatusMeta(t).label)).length
+        draft: base.filter((t) => ['待完善', '待发布', '待绑定账号', '账号已封禁'].includes(teacherStatusMeta(t).label)).length
       };
     }
 
@@ -819,13 +848,72 @@
         : `<span class="shrink-0 rounded-full border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-500">已离职</span>`;
     }
 
+    function sortPriceTiers() {
+      state.priceTiers.sort((a, b) => a.points - b.points);
+    }
+
+    function enabledPriceTiers() {
+      return state.priceTiers.filter((p) => p.enabled).sort((a, b) => a.points - b.points);
+    }
+
+    function disabledPriceTiers() {
+      return state.priceTiers.filter((p) => !p.enabled).sort((a, b) => a.points - b.points);
+    }
+
+    function priceTierByLevel(level) {
+      return state.priceTiers.find((p) => String(p.points) === String(level) || p.id === String(level)) || null;
+    }
+
     function priceTier(level) {
-      return PRICE_TIERS.find((p) => p.id === String(level)) || null;
+      return priceTierByLevel(level);
     }
 
     function priceLabel(level) {
       const tier = priceTier(level);
       return tier ? tier.label : '—';
+    }
+
+    /* 当前引用概况：在职使用老师数、待生效调价引用数，并叠加历史业务引用判定是否可删。 */
+    function priceTierUsage(points) {
+      const active = state.teachers.filter((t) => t.status === 'active');
+      const target = Number(points);
+      const tier = priceTierByLevel(points);
+      const history = tier ? Number(tier.history || 0) : 0;
+      const activeTeachers = active.filter((t) => Number(t.level) === target).length;
+      const pending = active.filter((t) => t.pendingPrice && Number(t.pendingPrice.level) === target).length;
+      const historicalTeachers = state.teachers.filter((t) => Number(t.level) === target).length;
+      return {
+        teachers: activeTeachers,
+        pending,
+        history,
+        used: historicalTeachers > 0 || pending > 0 || history > 0,
+        stockTs: tier ? Number(tier.stockTs || 0) : 0,
+        stockStudents: tier ? Number(tier.stockStudents || 0) : 0
+      };
+    }
+
+    function priceTierDeletable(tier) {
+      if (!tier) return { ok: false, reason: '价位不存在' };
+      const usage = priceTierUsage(tier.points);
+      if (usage.used) return { ok: false, reason: '已有业务使用记录，不可删除，仅可停用' };
+      if (tier.enabled && enabledPriceTiers().length <= 1) return { ok: false, reason: '全平台至少保留 1 个启用价位' };
+      return { ok: true, reason: '' };
+    }
+
+    function appendDictAudit(entry) {
+      state.dictAudit.unshift({
+        id: `dl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        at: nowStamp(),
+        operator: 'Sarah（管理员）',
+        ...entry
+      });
+    }
+
+    function dictActionMeta(action) {
+      if (action === 'created') return { label: '新增', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+      if (action === 'disabled') return { label: '停用', cls: 'border-rose-200 bg-rose-50 text-rose-700' };
+      if (action === 'deleted') return { label: '删除', cls: 'border-amber-200 bg-amber-50 text-amber-800' };
+      return { label: '重新启用', cls: 'border-indigo-200 bg-indigo-50 text-indigo-700' };
     }
 
     function priceBadge(level) {
@@ -845,7 +933,7 @@
     }
 
     function monitorNameOf(id) {
-      if (id === PLATFORM_MONITOR_ID) return '平台未划拨';
+      if (id === PLATFORM_MONITOR_ID) return '平台直管';
       const m = monitorById(id);
       return m ? m.name : '—';
     }
@@ -890,6 +978,7 @@
       return {
         name: clipText(t.name, 50),
         level: priceLabel(t.level),
+        account: t.accountEmail ? `${t.accountEmail}${t.accountBanned ? '（账号已封禁）' : '（正常生效）'}` : '未绑定（待绑定账号）',
         monitor: monitorNameOf(t.monitorId),
         introZh: clipText(t.introZh, 36),
         introEn: clipText(t.introEn, 36),
@@ -902,6 +991,7 @@
     function logFieldDiff(beforeSnap, afterSnap) {
       const defs = [
         ['level', '价位'],
+        ['account', '绑定登录账号'],
         ['monitor', '负责班长'],
         ['name', '英文展示名'],
         ['introZh', '中文简介'],
@@ -1101,7 +1191,13 @@
       state.classes = clone(INITIAL_CLASSES);
       state.teacherLogs = clone(INITIAL_TEACHER_LOGS);
       state.monitorLogs = clone(INITIAL_MONITOR_LOGS);
+      state.priceTiers = clone(INITIAL_PRICE_TIERS);
       state.dictAudit = clone(INITIAL_DICT_AUDIT);
+      state.priceDictTab = 'tiers';
+      state.priceDictReturnPage = 'teachers';
+      state.priceDictHighlight = null;
+      state.newPrice = { value: '', error: '' };
+      state.priceImpact = null;
       state.teacherLogCollapsed = false;
       state.teacherLogShowAll = false;
       state.monitorLogCollapsed = false;
@@ -1156,6 +1252,7 @@
     }
 
     function bannerTitle() {
+      if (state.page === 'priceDict') return '价位字典';
       if (state.page === 'teacherDetail') return '老师详情';
       if (state.page === 'teacherForm') return '老师档案';
       if (state.page === 'monitors' && state.role === 'admin') return '班长管理';
@@ -1173,7 +1270,7 @@
         <header class="relative flex h-16 shrink-0 items-center justify-between gap-2 overflow-hidden bg-gradient-to-br ${b.gradient} px-4 text-white">
           ${b.pattern}
           <div class="relative flex min-w-0 items-center gap-2">
-            ${onRoot ? '' : `<button data-action="${state.page === 'teacherForm' ? 'cancel-teacher-form' : 'back-teachers'}" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="返回">
+            ${onRoot ? '' : `<button data-action="${state.page === 'teacherForm' ? 'cancel-teacher-form' : (state.page === 'priceDict' ? 'close-price-dict' : 'back-teachers')}" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="返回">
               ${icon('chevron-left', 'h-4 w-4 shrink-0')}<span>返回</span>
             </button>`}
             <span class="truncate text-[18px] font-bold tracking-tight">${esc(bannerTitle())}</span>
@@ -1201,6 +1298,7 @@
     }
 
     function renderContent() {
+      if (state.page === 'priceDict') return state.role === 'admin' ? renderPriceDictPage() : renderPriceDictDenied();
       if (state.page === 'placeholder') return renderPlaceholder();
       if (state.page === 'teacherForm') return renderTeacherForm();
       if (state.page === 'monitors' && state.role === 'admin') return renderMonitors();
@@ -1317,7 +1415,7 @@
             <p class="mt-0.5 text-[12px] font-medium text-slate-500">跨班长归属筛选与档案治理</p>
           </div>
           <div class="flex shrink-0 items-center gap-1.5">
-            <button data-action="open-dict-audit" class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 text-[12px] font-bold text-slate-700 hover:bg-slate-50">${icon('scroll-text', 'h-3.5 w-3.5 shrink-0')}配置审计</button>
+            <button data-action="open-price-dict" class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 text-[12px] font-bold text-slate-700 hover:bg-slate-50">${icon('tags', 'h-3.5 w-3.5 shrink-0')}价位字典 / 审计</button>
             <button data-action="create-teacher" ${offline ? 'disabled' : ''} class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${icon('plus', 'h-3.5 w-3.5 shrink-0')}录入新老师</button>
           </div>
         </div>
@@ -1478,55 +1576,419 @@
       </section>`;
     }
 
-    function renderDictAuditModal() {
-      const actionMeta = {
-        created: { label: '新增', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-        updated: { label: '编辑', cls: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
-        disabled: { label: '停用', cls: 'border-rose-200 bg-rose-50 text-rose-700' }
-      };
-      return modalShell(`
-        ${modalHeader('配置审计', '老师价位字典 · 只读变更日志')}
-        <div class="mt-2 flex flex-wrap gap-1.5">
-          <span class="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[12px] font-bold text-indigo-700">老师价位字典</span>
-          <span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-500">只读</span>
-        </div>
-        <div class="mt-2 rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
-          <div class="text-[12px] font-semibold text-slate-700">启用中价位</div>
-          <div class="mt-1.5 flex flex-wrap gap-1.5">
-            ${PRICE_TIERS.map((p) => `<span class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[12px] font-bold text-slate-700">
-              ${p.label}
-              <button data-action="attempt-disable-price" data-level="${p.id}" class="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[12px] font-bold text-rose-700">停用</button>
-            </span>`).join('')}
+    /* ------------------------------------------------------------------
+     * 老师价位字典与审计 · 独立二级页（仅管理员）
+     * ------------------------------------------------------------------ */
+    function renderPriceDictPage() {
+      const tab = state.priceDictTab || 'tiers';
+      return `<div data-page="priceDict" class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
+        <div class="flex items-start justify-between gap-2 px-1">
+          <div class="flex min-w-0 items-start gap-2">
+            <button data-action="close-price-dict" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50" aria-label="返回">${icon('chevron-left', 'h-4 w-4')}</button>
+            <div class="min-w-0">
+              <h1 class="text-[18px] font-bold tracking-tight text-slate-900">老师价位字典与审计</h1>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-500">全局价位档位与只读配置留痕</p>
+            </div>
           </div>
-          <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">若价位仍被老师待生效调价引用，停用将被阻断。</p>
+          <button data-action="create-price-open" class="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-indigo-600 px-2.5 text-[12px] font-bold text-white transition hover:bg-indigo-700">${icon('plus', 'h-3.5 w-3.5 shrink-0')}新增价位</button>
         </div>
-        <div class="mt-3 space-y-2">
-          ${state.dictAudit.map((e) => {
-            const meta = actionMeta[e.action] || actionMeta.updated;
-            const categoryCls = 'border-indigo-100 bg-indigo-50 text-indigo-700';
-            return `<article class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
+
+        <div class="flex gap-1 rounded-xl bg-slate-100 p-1" role="tablist" aria-label="价位字典视图">
+          ${[['tiers', '价位档位'], ['audit', '只读配置审计日志']].map(([key, label]) => `<button data-action="dict-tab" data-tab="${key}" role="tab" aria-selected="${tab === key}" class="h-9 flex-1 whitespace-nowrap rounded-lg text-[12px] transition ${tab === key ? 'bg-white font-bold text-slate-900 shadow-sm' : 'font-medium text-slate-500 hover:text-slate-800'}">${label}</button>`).join('')}
+        </div>
+
+        ${tab === 'audit' ? renderDictAuditList() : renderPriceTierSections()}
+      </div>`;
+    }
+
+    function renderPriceTierSections() {
+      const enabled = enabledPriceTiers();
+      const disabled = disabledPriceTiers();
+      return `<div class="space-y-4">
+        <section class="space-y-2">
+          <div class="flex items-baseline justify-between gap-2 px-1">
+            <h2 class="text-[14px] font-bold text-slate-900">【启用中】<span class="text-slate-500">(${enabled.length})</span></h2>
+          </div>
+          <p class="px-1 text-[12px] font-medium leading-relaxed text-slate-500">全端列表与选价位胶囊按积分数升序固定排列</p>
+          ${enabled.length ? enabled.map(renderPriceTierCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-[14px] font-medium text-slate-500">暂无启用中价位</div>`}
+        </section>
+        <section class="space-y-2">
+          <div class="flex items-baseline justify-between gap-2 px-1">
+            <h2 class="text-[14px] font-bold text-slate-900">【已停用】<span class="text-slate-500">(${disabled.length})</span></h2>
+          </div>
+          <p class="px-1 text-[12px] font-medium leading-relaxed text-slate-500">不再供新录入或新调价选择；存量待排课次仍按原价位快照消费，若再无同价位老师仅可走 M2B 清退或待重新启用/新师入驻</p>
+          ${disabled.length
+            ? disabled.map(renderPriceTierCard).join('')
+            : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-[14px] font-medium text-slate-500">暂无已停用价位</div>`}
+        </section>
+      </div>`;
+    }
+
+    function renderPriceTierCard(tier) {
+      const usage = priceTierUsage(tier.points);
+      const highlight = state.priceDictHighlight === tier.points;
+      const del = priceTierDeletable(tier);
+      const disableBlocked = tier.enabled && (usage.teachers > 0 || usage.pending > 0 || enabledPriceTiers().length <= 1);
+      return `<article data-tier="${tier.points}" data-tier-state="${tier.enabled ? 'enabled' : 'disabled'}" class="rounded-2xl border p-3 ${highlight ? 'border-amber-400 bg-amber-50/50 ring-2 ring-amber-300/60' : 'border-slate-300 bg-slate-50/70'}">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-baseline gap-1.5">
+              <span class="text-[18px] font-bold text-slate-900">${esc(tier.label)}</span>
+              <span class="text-[12px] font-semibold text-slate-500">(${esc(tier.labelEn)})</span>
+            </div>
+            <div class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">在职老师：${usage.teachers} 人 · 待生效调价引用：${usage.pending}</div>
+            ${!usage.used ? `<div class="mt-0.5 text-[12px] font-semibold text-emerald-700">零业务使用 · 可删除</div>` : ''}
+          </div>
+          <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${tier.enabled ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-500'}">${tier.enabled ? '启用中' : '已停用'}</span>
+        </div>
+        <div class="mt-2.5 flex flex-wrap items-center justify-end gap-1.5">
+          ${tier.enabled
+            ? `<button data-action="disable-price" data-tier="${tier.points}" class="h-8 rounded-lg border border-rose-200 bg-rose-50 px-3 text-[12px] font-bold text-rose-700 transition hover:bg-rose-100">停用</button>`
+            : `<button data-action="enable-price" data-tier="${tier.points}" class="h-8 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[12px] font-bold text-emerald-700 transition hover:bg-emerald-100">重新启用</button>`}
+          <button data-action="delete-price" data-tier="${tier.points}" ${del.ok ? '' : 'disabled'} title="${esc(del.ok ? '从字典移除并写入配置审计日志' : del.reason)}" class="h-8 rounded-lg border px-3 text-[12px] font-bold transition ${del.ok ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500'}">删除</button>
+        </div>
+        ${tier.enabled && disableBlocked ? `<p class="mt-1.5 text-right text-[12px] font-medium leading-relaxed text-slate-500">停用被阻断：${usage.teachers > 0 ? '仍有在职老师使用' : (usage.pending > 0 ? '仍有待生效调价引用' : '全平台至少保留 1 个启用价位')}</p>` : ''}
+        ${!del.ok ? `<p class="mt-1 text-right text-[12px] font-medium leading-relaxed text-slate-500">${esc(del.reason)}</p>` : ''}
+      </article>`;
+    }
+
+    function renderDictAuditList() {
+      const entries = state.dictAudit.slice().sort((a, b) => String(b.at).localeCompare(String(a.at)));
+      return `<div class="space-y-2">
+        <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">按操作时间倒序 · 记录新增、停用、重新启用与未使用删除（审计日志永久不可修改或物理删除）</div>
+        ${entries.length
+          ? entries.map((e) => {
+            const meta = dictActionMeta(e.action);
+            return `<article data-action="audit-entry" data-audit-action="${esc(e.action)}" class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3">
               <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
-                  <div class="flex flex-wrap items-center gap-1.5">
-                    <span class="rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${categoryCls}">${esc(e.category)}</span>
-                    <span class="text-[14px] font-bold text-slate-900">${esc(e.entity)}</span>
-                  </div>
+                <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+                  <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${meta.cls}">${meta.label}</span>
+                  <span class="text-[14px] font-bold text-slate-900">${esc(e.entity)}</span>
                 </div>
-                <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${meta.cls}">${meta.label}</span>
+                <span class="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-slate-500">${icon('user-round', 'h-3 w-3 shrink-0')}${esc(e.operator)}</span>
               </div>
-              <div class="mt-1.5 space-y-1">
+              <div class="mt-2 space-y-1">
                 <div class="break-words rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-medium leading-relaxed text-slate-600"><span class="font-bold text-slate-700">变更前</span> · ${esc(e.before)}</div>
+                <div class="text-center text-[12px] font-bold text-slate-400">↓</div>
                 <div class="break-words rounded-lg border border-indigo-100 bg-indigo-50/60 px-2 py-1.5 text-[12px] font-medium leading-relaxed text-indigo-900"><span class="font-bold text-indigo-700">变更后</span> · ${esc(e.after)}</div>
               </div>
-              <div class="mt-1.5 flex flex-wrap items-center justify-between gap-1 text-[12px] font-medium text-slate-500">
-                <span class="inline-flex items-center gap-1">${icon('user-round', 'h-3 w-3 shrink-0')}${esc(e.operator)}</span>
-                <span class="font-mono">${esc(e.at)}</span>
-              </div>
+              <div class="mt-1.5 text-right font-mono text-[12px] font-medium text-slate-500">${esc(e.at)}</div>
             </article>`;
-          }).join('')}
+          }).join('')
+          : `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-[14px] font-medium text-slate-500">暂无配置审计记录</div>`}
+      </div>`;
+    }
+
+    function renderPriceDictDenied() {
+      return `<div data-page="priceDictDenied" class="flex h-full flex-col items-center justify-center px-8 pb-10 text-center">
+        <div class="grid h-14 w-14 place-items-center rounded-2xl bg-white text-rose-600 ring-1 ring-slate-200">${icon('lock', 'h-6 w-6')}</div>
+        <h1 class="mt-4 text-[18px] font-bold text-slate-900">无权限访问</h1>
+        <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-500">价位字典仅限平台管理员维护</p>
+        <button data-action="close-price-dict" class="mt-5 h-11 rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white transition hover:bg-indigo-700">返回</button>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 价位字典 · 跳转与增停启业务逻辑
+     * ------------------------------------------------------------------ */
+    function openPriceDict() {
+      state.priceDictReturnPage = state.page === 'monitors' ? 'monitors' : 'teachers';
+      state.page = 'priceDict';
+      state.priceDictTab = 'tiers';
+      state.priceDictHighlight = null;
+      state.overlay = null;
+      state.navTab = state.role === 'admin' ? 'settings' : 'ops';
+      renderAll();
+    }
+
+    function closePriceDict() {
+      const target = state.role === 'admin' ? (state.priceDictReturnPage || 'monitors') : 'teachers';
+      state.page = target;
+      state.navTab = target === 'monitors' ? 'settings' : 'ops';
+      state.overlay = null;
+      state.priceDictHighlight = null;
+      renderAll();
+    }
+
+    function newPriceValidation(raw) {
+      const trimmed = String(raw == null ? '' : raw).trim();
+      if (!/^\d+$/.test(trimmed)) return { error: '请输入 1～200 的正整数' };
+      const points = Number(trimmed);
+      if (!Number.isInteger(points) || points < 1 || points > 200) return { error: '请输入 1～200 的正整数' };
+      const existing = state.priceTiers.find((t) => Number(t.points) === points);
+      if (existing && existing.enabled) return { error: '该价位已存在' };
+      if (existing && !existing.enabled) {
+        return { error: '该价位已存在历史记录（已停用），请直接重新启用原档位', disabledTier: existing };
+      }
+      return { error: '', points };
+    }
+
+    function updateNewPriceUI() {
+      const raw = state.newPrice.value;
+      const res = newPriceValidation(raw);
+      state.newPrice.error = res.error || '';
+      const err = $('newPriceError');
+      if (err) {
+        err.textContent = state.newPrice.error;
+        err.classList.toggle('hidden', !state.newPrice.error);
+      }
+      const preview = $('newPricePreview');
+      if (preview) {
+        const points = Number(raw);
+        const ok = raw !== '' && /^\d+$/.test(String(raw).trim()) && points >= 1 && points <= 200;
+        preview.textContent = ok ? `${points}积分 / ${points} Pts（自动生成）` : '输入积分数后自动生成标准名称';
+      }
+      const jump = $('btnJumpReenable');
+      if (jump) {
+        const tier = res.disabledTier;
+        jump.classList.toggle('hidden', !tier);
+        if (tier) {
+          jump.dataset.tier = String(tier.points);
+          jump.textContent = `去重新启用 ${tier.label}`;
+        }
+      }
+      const btn = $('btnCreatePrice');
+      if (btn) btn.disabled = raw !== '' && !!res.error;
+    }
+
+    function submitCreatePrice() {
+      if (state.role !== 'admin') return showToast('价位字典仅限平台管理员维护');
+      const res = newPriceValidation(state.newPrice.value);
+      if (res.error) {
+        state.newPrice.error = res.error;
+        updateNewPriceUI();
+        return showToast(res.error);
+      }
+      const points = res.points;
+      state.priceTiers.push({ id: String(points), points, label: `${points}积分`, labelEn: `${points} Pts`, enabled: true });
+      sortPriceTiers();
+      appendDictAudit({ entity: `${points}积分`, action: 'created', before: '—', after: `${points}积分（${points} Pts）· 启用中` });
+      state.overlay = null;
+      state.newPrice = { value: '', error: '' };
+      state.priceDictTab = 'tiers';
+      state.priceDictHighlight = points;
+      renderAll();
+      showToast(`已新增 ${points}积分 档位`);
+    }
+
+    function attemptDisablePrice(points) {
+      if (state.role !== 'admin') return showToast('价位字典仅限平台管理员维护');
+      const tier = priceTierByLevel(points);
+      if (!tier || !tier.enabled) return;
+      if (enabledPriceTiers().length <= 1) return showToast('全平台至少保留 1 个启用价位');
+      const usage = priceTierUsage(tier.points);
+      if (usage.teachers > 0) return showToast(`该价位仍有 ${usage.teachers} 位在职老师使用，暂不可停用`);
+      if (usage.pending > 0) return showToast(`该价位仍被 ${usage.pending} 个待生效调价引用，暂不可停用`);
+      state.overlay = { type: 'priceDisable', points: Number(tier.points) };
+      renderAll();
+    }
+
+    function confirmDisablePrice() {
+      const ov = state.overlay;
+      if (!ov || ov.type !== 'priceDisable') return;
+      const tier = priceTierByLevel(ov.points);
+      if (!tier || !tier.enabled) return;
+      if (enabledPriceTiers().length <= 1) {
+        state.overlay = null;
+        renderAll();
+        return showToast('全平台至少保留 1 个启用价位');
+      }
+      const usage = priceTierUsage(tier.points);
+      if (usage.teachers > 0) {
+        state.overlay = null;
+        renderAll();
+        return showToast(`该价位仍有 ${usage.teachers} 位在职老师使用，暂不可停用`);
+      }
+      if (usage.pending > 0) {
+        state.overlay = null;
+        renderAll();
+        return showToast(`该价位仍被 ${usage.pending} 个待生效调价引用，暂不可停用`);
+      }
+      tier.enabled = false;
+      appendDictAudit({ entity: tier.label, action: 'disabled', before: `${tier.label} · 启用中`, after: `${tier.label} · 已停用` });
+      state.overlay = null;
+      renderAll();
+      showToast(`已停用 ${tier.label} 档位`);
+    }
+
+    function attemptEnablePrice(points) {
+      if (state.role !== 'admin') return showToast('价位字典仅限平台管理员维护');
+      const tier = priceTierByLevel(points);
+      if (!tier || tier.enabled) return;
+      state.overlay = { type: 'priceEnable', points: Number(tier.points) };
+      renderAll();
+    }
+
+    function confirmEnablePrice() {
+      const ov = state.overlay;
+      if (!ov || ov.type !== 'priceEnable') return;
+      const tier = priceTierByLevel(ov.points);
+      if (!tier || tier.enabled) return;
+      tier.enabled = true;
+      sortPriceTiers();
+      appendDictAudit({ entity: tier.label, action: 'enabled', before: `${tier.label} · 已停用`, after: `${tier.label} · 启用中` });
+      state.overlay = null;
+      renderAll();
+      showToast(`已重新启用 ${tier.label} 档位`);
+    }
+
+    function attemptDeletePrice(points) {
+      if (state.role !== 'admin') return showToast('价位字典仅限平台管理员维护');
+      const tier = priceTierByLevel(points);
+      if (!tier) return;
+      const del = priceTierDeletable(tier);
+      if (!del.ok) return showToast(del.reason);
+      state.overlay = { type: 'priceDelete', points: Number(tier.points) };
+      renderAll();
+    }
+
+    function confirmDeletePrice() {
+      const ov = state.overlay;
+      if (!ov || ov.type !== 'priceDelete') return;
+      const tier = priceTierByLevel(ov.points);
+      if (!tier) return;
+      const del = priceTierDeletable(tier);
+      if (!del.ok) {
+        state.overlay = null;
+        renderAll();
+        return showToast(del.reason);
+      }
+      const before = `${tier.label} · ${tier.enabled ? '启用中' : '已停用'} (零使用)`;
+      state.priceTiers = state.priceTiers.filter((p) => Number(p.points) !== Number(tier.points));
+      appendDictAudit({ entity: tier.label, action: 'deleted', before, after: '—（已从字典移除）' });
+      state.overlay = null;
+      state.priceDictHighlight = null;
+      renderAll();
+      showToast(`已删除误录档位 ${tier.label} · 已写入配置审计日志`);
+    }
+
+    function confirmPriceImpact() {
+      if (!state.priceImpact) return;
+      state.overlay = null;
+      performTeacherSave(true);
+    }
+
+    function renderNewPriceModal() {
+      const raw = state.newPrice.value;
+      const res = newPriceValidation(raw);
+      const points = Number(raw);
+      const previewOk = raw !== '' && /^\d+$/.test(String(raw).trim()) && points >= 1 && points <= 200;
+      const errText = state.newPrice.error || '';
+      return modalShell(`
+        ${modalHeader('新增老师价位', '系统按正整数自动生成 N积分 / N Pts 标准名称')}
+        <div class="mt-3 space-y-3">
+          <div>
+            <label for="newPriceInput" class="mb-1 block text-[14px] font-semibold text-slate-700">积分数 <span class="text-rose-500">*</span></label>
+            <div class="flex items-center gap-2">
+              <input id="newPriceInput" type="number" min="1" max="200" step="1" inputmode="numeric" value="${esc(state.newPrice.value)}" placeholder="如 20" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+              <span class="shrink-0 text-[14px] font-semibold text-slate-600">积分</span>
+            </div>
+            <p class="mt-1 text-[12px] font-medium text-slate-500">仅限 1～200 正整数，步长 1</p>
+          </div>
+          <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2">
+            <div class="text-[12px] font-medium text-slate-500">预览标签</div>
+            <div id="newPricePreview" class="mt-0.5 text-[14px] font-bold text-slate-900">${previewOk ? `${points}积分 / ${points} Pts（自动生成）` : '输入积分数后自动生成标准名称'}</div>
+          </div>
+          <p id="newPriceError" class="text-[12px] font-semibold leading-relaxed text-rose-600 ${errText ? '' : 'hidden'}">${esc(errText)}</p>
+          <button id="btnJumpReenable" data-action="jump-reenable" data-tier="${res.disabledTier ? res.disabledTier.points : ''}" class="h-9 w-full rounded-lg border border-indigo-200 bg-indigo-50 text-[12px] font-bold text-indigo-700 ${res.disabledTier ? '' : 'hidden'}">${res.disabledTier ? `去重新启用 ${esc(res.disabledTier.label)}` : '去重新启用'}</button>
+          <div class="rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">
+            <div>· 创建后积分数与中英标准名永久不可修改；</div>
+            <div>· 仅当全系统完全未使用过时支持删除，用过之后只可停用不可删除；</div>
+            <div>· 若同积分档位曾被停用，请直接重新启用原档位，禁止重复新建。</div>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button id="btnCreatePrice" data-action="create-price-submit" ${raw !== '' && res.error ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认新增</button>
+          </div>
         </div>
-        <p class="mt-2.5 text-[12px] font-medium leading-relaxed text-slate-500">仅记录新增、编辑与停用操作；历史记录不可修改，供管理员审计追溯。</p>
-        <button data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition-colors hover:bg-slate-50 active:bg-slate-100">关闭</button>
+      `);
+    }
+
+    function renderDisablePriceModal() {
+      const ov = state.overlay;
+      const tier = ov ? priceTierByLevel(ov.points) : null;
+      if (!tier) return '';
+      const usage = priceTierUsage(tier.points);
+      return modalShell(`
+        ${modalHeader('停用价位', `${tier.label}（${tier.labelEn}）`)}
+        <div class="mt-3 space-y-2">
+          <div class="rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-rose-900">停用后不再供新老师或新调价选用，且当前全平台已无该价位在职老师。确认停用？</div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium text-slate-600">在职老师：${usage.teachers} 人 · 待生效调价引用：${usage.pending}</div>
+          <div class="rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">
+            <div>全校存量待排 TS：<span class="font-bold">${usage.stockTs} 节</span> · 涉及学员 <span class="font-bold">${usage.stockStudents} 人</span></div>
+            <div class="mt-1">停用后存量待排 TS 仅可联系班长通过 M2B 办理清退（或待日后重新启用该价位 / 新入驻同价位老师后再约）。</div>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button id="btnConfirmDisable" data-action="confirm-disable-price" class="h-11 flex-[2] rounded-xl bg-rose-600 text-[16px] font-semibold text-white transition hover:bg-rose-700">确认停用</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function renderDeletePriceModal() {
+      const ov = state.overlay;
+      const tier = ov ? priceTierByLevel(ov.points) : null;
+      if (!tier) return '';
+      const del = priceTierDeletable(tier);
+      return modalShell(`
+        ${modalHeader('删除未使用价位', `${tier.label}（${tier.labelEn}）`)}
+        <div class="mt-3 space-y-2">
+          <div class="rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-amber-900">该档位当前全系统零使用（无老师、无调价计划、无购课单 / TS / 清退记录引用），删除后将从字典列表彻底移除并写入只读配置审计日志。确认删除？</div>
+          ${del.ok
+            ? ''
+            : `<div class="rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-rose-700">${esc(del.reason)}</div>`}
+          <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium text-slate-600">永久锁定铁律：已产生任一业务使用记录的档位不可删除，仅可按三防线停用；删除行为本身永久留痕。</div>
+          <div class="flex gap-2 pt-1">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button id="btnConfirmDeletePrice" data-action="confirm-delete-price" ${del.ok ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-amber-600 text-[16px] font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认删除</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function renderEnablePriceModal() {
+      const ov = state.overlay;
+      const tier = ov ? priceTierByLevel(ov.points) : null;
+      if (!tier) return '';
+      return modalShell(`
+        ${modalHeader('重新启用价位', `${tier.label}（${tier.labelEn}）`)}
+        <div class="mt-3 space-y-2">
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-emerald-900">重新启用后，该价位将恢复供新老师录入与新调价选择，确认重新启用？</div>
+          <div class="flex gap-2 pt-1">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button id="btnConfirmEnable" data-action="confirm-enable-price" class="h-11 flex-[2] rounded-xl bg-emerald-600 text-[16px] font-semibold text-white transition hover:bg-emerald-700">确认重新启用</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function renderPriceImpactModal() {
+      const p = state.priceImpact;
+      if (!p) return '';
+      return modalShell(`
+        ${modalHeader('确认立即改价', '检测到该老师存在有效固定位或未来排期')}
+        <div class="mt-3 space-y-2">
+          <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[14px] font-semibold text-slate-900">老师当前价位：${esc(priceLabel(p.oldLevel))} → ${esc(priceLabel(p.newLevel))}</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <div class="rounded-xl border border-slate-300 bg-white px-2.5 py-2">
+              <div class="text-[12px] font-medium leading-tight text-slate-500">受影响有效固定位</div>
+              <div class="mt-0.5 text-[18px] font-bold text-slate-900">${p.fixed} 个</div>
+            </div>
+            <div class="rounded-xl border border-slate-300 bg-white px-2.5 py-2">
+              <div class="text-[12px] font-medium leading-tight text-slate-500">未来已排课程</div>
+              <div class="mt-0.5 text-[18px] font-bold text-slate-900">${p.future} 节</div>
+            </div>
+          </div>
+          <p class="text-[12px] font-semibold leading-relaxed text-slate-700">受影响有效固定位：${p.fixed} 个 · 未来已排课程：${p.future} 节</p>
+          ${p.pendingPlan ? `<div class="rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-rose-900">保存后将同事务自动作废原待生效调价计划：<span class="font-bold">${esc(p.pendingPlan)}</span></div>` : ''}
+          <div class="rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">立即改价将影响后续新约与新出自动续费单，建议优先使用【待生效调价】在下轮首日生效。</div>
+          <p class="text-[12px] font-medium leading-relaxed text-slate-500">已购未排期课次与已生成的待付款单保持原价不变。</p>
+          <div class="flex gap-2 pt-1">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button id="btnConfirmPriceImpact" data-action="confirm-price-impact" class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">确认立即改价</button>
+          </div>
+        </div>
       `);
     }
 
@@ -1575,6 +2037,14 @@
               <div class="mt-0.5 truncate text-[14px] font-bold text-slate-900">${esc(attributionText(t, state.role))}</div>
             </div>
           </div>
+          <div class="mt-2 rounded-xl border ${t.accountBanned ? 'border-rose-200 bg-rose-50/60' : (t.accountEmail ? 'border-slate-300 bg-white' : 'border-amber-200 bg-amber-50/60')} px-2.5 py-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-[12px] font-medium text-slate-500">登录账号（M0A）</div>
+              <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${t.accountBanned ? 'border-rose-200 bg-rose-100 text-rose-700' : (t.accountEmail ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-100 text-amber-800')}">${t.accountBanned ? '账号已封禁' : (t.accountEmail ? '正常生效' : '待绑定账号')}</span>
+            </div>
+            <div class="mt-0.5 truncate text-[14px] font-semibold text-slate-900">${esc(t.accountEmail || '未绑定登录账号')}</div>
+            <p class="mt-0.5 text-[12px] font-medium leading-relaxed ${t.accountBanned ? 'text-rose-700' : (t.accountEmail ? 'text-slate-500' : 'text-amber-800')}">${t.accountBanned ? '账号已封禁，老师无法登录工作台；请换绑新账号或由管理员办理离职。' : (t.accountEmail ? '底层以 M0A 账号 ID 锚定，邮箱随账号安全换绑自动同步。' : '未绑定账号前档案为内部草稿：不上架选课大厅、不可排课，也不可登录老师工作台。')}</p>
+          </div>
         </section>
 
         ${hasPendingResign(t) ? `<section class="rounded-2xl border border-amber-300 bg-amber-50/50 px-3 py-2.5">
@@ -1593,8 +2063,8 @@
           <div class="flex items-start gap-2">
             ${icon('alert-triangle', 'h-4 w-4 shrink-0 text-amber-700')}
             <div class="min-w-0 flex-1">
-              <div class="text-[14px] font-bold text-amber-950">${readyDraft ? '档案已完善，待发布' : '档案待完善，家长端暂不可见'}</div>
-              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">${readyDraft ? '档案已齐全，开启同步后即可在家长端展示。' : `待补：${missing.join('、')}`}</p>
+              <div class="text-[14px] font-bold text-amber-950">${t.accountBanned ? '账号已封禁 · 老师无法登录工作台' : (!t.accountEmail ? '待绑定账号 · 暂不上架选课大厅' : (readyDraft ? '档案已完善，待发布' : '档案待完善，家长端暂不可见'))}</div>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">${t.accountBanned ? '请在编辑档案中换绑正常生效的 M0A 账号，或由管理员办理离职。' : (!t.accountEmail ? '先建档后补绑：绑定「正常生效」M0A 账号前，物理阻断上架、约课与老师工作台登录。' : (readyDraft ? '档案已齐全，开启同步后即可在家长端展示。' : `待补：${missing.join('、')}`))}</p>
             </div>
           </div>
           ${canManageProfile
@@ -1667,15 +2137,25 @@
         </section>
 
         ${t.status === 'resigned'
-          ? `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
-              <p class="text-[12px] font-medium leading-relaxed text-slate-600">该老师已离职，档案只读可查；历史课酬正常归集，变动日志永久保留。</p>
+          ? `<div class="space-y-2">
+              <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
+                <p class="text-[12px] font-medium leading-relaxed text-slate-600">该老师已离职，档案只读可查；历史课酬正常归集，变动日志永久保留。${isAdmin ? '管理员可执行二次入职复用原档案恢复。' : '二次入职恢复仅平台管理员可操作。'}</p>
+              </div>
+              ${isAdmin ? `<button data-action="open-restore-teacher" ${offline ? 'disabled' : ''} class="h-11 w-full rounded-xl border border-indigo-200 bg-indigo-50/80 text-[14px] font-semibold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">重新入职恢复（复用原档案）</button>` : ''}
             </div>`
-          : (isAdmin || isOwner ? `<div class="flex gap-2">
-              <button data-action="edit-teacher" data-id="${t.id}" ${offline ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>
-              <button data-action="open-resign" ${offline ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300">办理离职</button>
-            </div>` : `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
-              <p class="text-[12px] font-medium leading-relaxed text-slate-600">仅负责班长可编辑人事档案；你可以查看教学档案、查周排期并协调临时代课。</p>
-            </div>`)}
+          : (isAdmin
+            ? `<div class="flex gap-2">
+                <button data-action="edit-teacher" data-id="${t.id}" ${offline ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>
+                <button data-action="open-resign" ${offline ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300">办理离职</button>
+              </div>`
+            : (isOwner
+              ? `<div class="space-y-2">
+                  <button data-action="edit-teacher" data-id="${t.id}" ${offline ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>
+                  <p class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">老师离职、设/改/撤离职日 D 与跨班长改绑仅平台管理员可操作；负责班长可维护资料与绑定登录账号。</p>
+                </div>`
+              : `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
+                  <p class="text-[12px] font-medium leading-relaxed text-slate-600">仅负责班长可编辑人事档案；你可以查看教学档案、查周排期并协调临时代课。</p>
+                </div>`))}
 
         <section class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
           <a href="m1b_teacher_parent.html?role=${state.role}&page=availability&teacher_id=${t.id}" target="_blank" rel="noopener" class="flex items-center justify-between border-b border-slate-100 px-3.5 py-3">
@@ -1711,6 +2191,13 @@
       const albumGrid = tablet ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2';
       const media = f.media;
       const video = media.video;
+      const levelLocked = isEdit && !isAdmin;
+      const levelOptions = enabledPriceTiers();
+      const currentLevelTier = priceTierByLevel(f.level);
+      if (currentLevelTier && !currentLevelTier.enabled && !levelOptions.some((l) => l.id === currentLevelTier.id)) {
+        levelOptions.push(currentLevelTier);
+        levelOptions.sort((a, b) => a.points - b.points);
+      }
 
       return `<div class="flex h-full min-h-0 flex-col bg-slate-50">
         <div class="min-h-0 flex-1 overflow-y-auto">
@@ -1720,7 +2207,7 @@
                 <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${isEdit ? '编辑老师档案' : '录入老师档案'}</h1>
                 ${state.online === 'off' ? `<span class="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[12px] font-bold text-rose-700">离线不可保存</span>` : ''}
               </div>
-              <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isEdit ? '编辑后按发布状态同步至家长端选课大厅' : (isAdmin ? '管理员录入默认由我直管，可指定其他在职班长或平台未划拨' : '新老师默认绑定当前班长 Leo；补齐档案后方可上架')}</p>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isEdit ? '编辑后按发布状态同步至家长端选课大厅' : (isAdmin ? '管理员录入默认⭐ 我直管，可指定其他在职班长或平台直管' : '新老师默认绑定当前班长 Leo；绑定正常生效账号并补齐档案后方可上架')}</p>
             </div>
 
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4">
@@ -1730,12 +2217,29 @@
                   <label for="fTeacherName" class="mb-1 block text-[14px] font-semibold text-slate-700">老师英文姓名 <span class="text-rose-500">*</span></label>
                   <input id="fTeacherName" value="${esc(f.name)}" placeholder="如 David Miller" maxlength="50" class="${inputCls}">
                 </div>
+                <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-2.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <label for="fTeacherAccount" class="text-[14px] font-semibold text-slate-700">绑定登录账号（M0A）</label>
+                    <span class="shrink-0 rounded-full border px-1.5 py-0.5 text-[12px] font-bold ${f.accountEmail ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'}">${f.accountEmail ? '已绑定' : '待绑定账号'}</span>
+                  </div>
+                  <input id="fTeacherAccount" type="email" value="${esc(f.accountEmail)}" placeholder="输入已注册邮箱，可暂不绑定" class="mt-1.5 ${inputCls}">
+                  <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">仅可绑定「正常生效」且未绑定其他在职老师档案的 M0A 账号；未绑定时保存为「待绑定账号」内部草稿，物理阻断上架、排课与老师工作台登录。</p>
+                  ${isEdit && f.accountEmail.trim().toLowerCase() !== String(f.origAccountEmail || '').toLowerCase() ? `<input id="fAccountReason" value="${esc(f.accountReason)}" placeholder="请填写绑定/换绑登录账号的原因（写入档案变动日志）" class="mt-1.5 h-10 w-full rounded-lg border border-amber-200 bg-amber-50/60 px-2.5 text-[14px] text-slate-900 outline-none focus:border-amber-400">` : ''}
+                  ${teacherById(f.id) && teacherById(f.id).accountBanned ? `<p class="mt-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[12px] font-semibold text-rose-700">当前关联账号已封禁：老师无法登录工作台，请换绑新账号或由管理员办理离职。</p>` : ''}
+                </div>
                 <div class="${tablet ? 'grid grid-cols-2 gap-2' : 'space-y-3'}">
                   <div>
-                    <div class="mb-1 block text-[14px] font-semibold text-slate-700">老师价位 <span class="text-rose-500">*</span></div>
-                    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="group" aria-label="老师价位">
-                      ${PRICE_TIERS.map((l) => `<button type="button" data-action="pick-form-level" data-level="${l.id}" aria-pressed="${f.level === l.id}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${f.level === l.id ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${l.label}</button>`).join('')}
-                    </div>
+                    <div class="mb-1 block text-[14px] font-semibold text-slate-700">老师当前价位 <span class="text-rose-500">*</span></div>
+                    ${levelLocked
+                      ? `<div data-price-locked="true" class="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-slate-300 bg-slate-100 px-3 py-2">
+                          <div class="min-w-0">
+                            <div class="text-[14px] font-semibold text-slate-800">${esc(priceLabel(f.level))}</div>
+                            <div class="mt-0.5 flex items-start gap-1 text-[12px] font-medium leading-relaxed text-amber-800">${icon('lock', 'mt-0.5 h-3.5 w-3.5 shrink-0')}在职老师调价请联系管理员操作</div>
+                          </div>
+                        </div>`
+                      : `<div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="group" aria-label="老师当前价位">
+                          ${levelOptions.map((l) => `<button type="button" data-action="pick-form-level" data-level="${l.id}" aria-pressed="${f.level === l.id}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${f.level === l.id ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${l.label}</button>`).join('')}
+                        </div>`}
                   </div>
                   <div>
                     <div class="mb-1 block text-[14px] font-semibold text-slate-700">负责班长</div>
@@ -1761,7 +2265,7 @@
                         <div>
                           <div class="mb-1 block text-[12px] font-semibold text-slate-600">新价位</div>
                           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" role="group" aria-label="新价位">
-                            ${[{ id: '', label: '不调整' }, ...PRICE_TIERS].map((l) => `<button type="button" data-action="pick-form-pending-level" data-level="${l.id}" aria-pressed="${f.pendingLevel === l.id}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${f.pendingLevel === l.id ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${l.label}</button>`).join('')}
+                            ${[{ id: '', label: '不调整' }, ...enabledPriceTiers()].map((l) => `<button type="button" data-action="pick-form-pending-level" data-level="${l.id}" aria-pressed="${f.pendingLevel === l.id}" class="h-8 shrink-0 whitespace-nowrap rounded-full px-3 text-[12px] transition ${f.pendingLevel === l.id ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${l.label}</button>`).join('')}
                           </div>
                         </div>
                         <div>
@@ -1784,7 +2288,7 @@
                           ? `当前待生效：<span class="font-semibold text-indigo-700">${esc(pendingPriceText(teacherById(f.id).pendingPrice))}</span> · 由管理员统一设置`
                           : '暂未设置待生效调价 · 由管理员统一设置'}
                       </div>`}
-                  <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">生效日前按原价位匹配，生效日及之后按新价位匹配；已购未排期课次保持原价，已排定课次不补差。设置须早于目标轮次前一周周一 08:30，已过窗口只能选择再下一轮。</p>
+                  <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">生效日严格限定为未来轮次首日周一 00:00（北京时间 UTC+8）；每位老师最多 1 个待生效计划。设置须早于该轮次前一周周一 08:30（距生效日约 6 天 15.5 小时），已过窗口只能选择再下一轮。已购未排期课次保持原价，已排定课次不补差。</p>
                 </div>
               </div>
             </section>
@@ -1882,6 +2386,7 @@
                 <div class="text-left">
                   <div class="text-[16px] font-semibold text-slate-900">保存后同步至家长端选课大厅</div>
                   <div class="mt-0.5 text-[12px] font-medium text-slate-500">关闭后保存为待完善草稿，不会上架</div>
+                  <div class="mt-1 text-[12px] font-medium leading-relaxed text-amber-800">先建档后补绑：未绑定「正常生效」M0A 账号时，即使开启同步也只保存为「待绑定账号」内部草稿，不上架、不可排课。</div>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                   <span id="publishLabel" class="text-[12px] font-semibold ${f.publish ? 'text-indigo-700' : 'text-slate-500'}">${f.publish ? '已开启' : '已关闭'}</span>
@@ -1898,7 +2403,7 @@
 
         <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3">
           <button data-action="cancel-teacher-form" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition-colors hover:bg-slate-50 active:bg-slate-100">取消</button>
-          <button id="btnSaveTeacher" data-action="save-teacher" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${f.publish ? '保存并发布' : '保存草稿'}</button>
+          <button id="btnSaveTeacher" data-action="save-teacher" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${f.publish ? (f.accountEmail.trim() && ACCOUNTS[f.accountEmail.trim().toLowerCase()] && ACCOUNTS[f.accountEmail.trim().toLowerCase()].status === 'active' ? '保存并发布' : '保存为待绑定草稿') : '保存草稿'}</button>
         </div>
       </div>`;
     }
@@ -1940,7 +2445,7 @@
       const offline = state.online === 'off';
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         ${pageHeader('班长名册', '', `<div class="flex shrink-0 gap-1.5">
-          <button data-action="open-dict-audit" class="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50">${icon('scroll-text', 'h-3.5 w-3.5 shrink-0')}配置审计</button>
+          <button data-action="open-price-dict" class="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50">${icon('tags', 'h-3.5 w-3.5 shrink-0')}价位字典 / 审计</button>
           <button data-action="open-appoint" ${offline ? 'disabled' : ''} class="h-9 shrink-0 rounded-lg bg-indigo-600 px-3 text-[12px] font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 委任班长</button>
         </div>`)}
         <div class="relative">
@@ -1963,7 +2468,7 @@
       const frozen = m.status === 'frozen';
       const cardCls = resigned
         ? 'border-dashed border-slate-400 bg-slate-50/60 opacity-60'
-        : (frozen ? 'border-amber-300 bg-amber-50/40' : 'border-slate-300 bg-slate-50/70');
+        : (frozen ? 'border-amber-300 bg-amber-50/40' : (m.accountBanned ? 'border-rose-200 bg-rose-50/30' : 'border-slate-300 bg-slate-50/70'));
       return `<article class="rounded-2xl border p-3.5 ${cardCls}">
         <div class="flex items-start justify-between gap-2">
           <div class="flex min-w-0 items-center gap-2.5">
@@ -1973,6 +2478,7 @@
                 <span class="truncate text-[16px] font-bold text-slate-900">${esc(m.name)}</span>
                 ${monitorStatusChip(m.status)}
                 ${m.isAdminSelf ? `<span class="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">管理员兼班长</span>` : ''}
+                ${m.accountBanned ? `<span class="shrink-0 rounded-full border border-rose-200 bg-rose-100 px-1.5 py-0.5 text-[12px] font-bold text-rose-700">账号已封禁</span>` : ''}
               </div>
               <div class="mt-0.5 truncate text-[12px] font-medium text-slate-500">${esc(m.email)}</div>
               <div class="truncate font-mono text-[12px] font-medium text-slate-500">${esc(m.phone)} · 委任 ${esc(m.appointedAt)}</div>
@@ -1985,7 +2491,10 @@
           </div>
         </div>
         ${frozen ? `<div class="mt-1.5 flex items-start gap-1.5 rounded-lg border border-amber-200 bg-white/70 px-2 py-1.5 text-[12px] font-medium leading-relaxed text-amber-900">
-          ${icon('lock', 'mt-0.5 h-3.5 w-3.5 shrink-0')}交接冻结中 · 剩余 ${freezeDaysLeft(m)} 天 · 暂停新增老师、小班、试课档案与收款排课
+          ${icon('lock', 'mt-0.5 h-3.5 w-3.5 shrink-0')}交接冻结中 · 剩余 ${freezeDaysLeft(m)} 天 · 暂停新收款/开单及自动续费出单（跳过且不锁新 HOLD）；仅保留只读查看历史与 M5A 发起离职移交权
+        </div>` : ''}
+        ${m.accountBanned ? `<div class="mt-1.5 flex items-start gap-1.5 rounded-lg border border-rose-200 bg-white/70 px-2 py-1.5 text-[12px] font-medium leading-relaxed text-rose-800">
+          ${icon('alert-triangle', 'mt-0.5 h-3.5 w-3.5 shrink-0')}原班长 M0A 账号已封禁无法登录：管理员可直接强制改绑名下试课/老师/小班，并在 M5A 代发起并核销离职移交转账单。
         </div>` : ''}
         <div class="mt-2.5 grid grid-cols-[1.1fr_1.1fr_1.8fr] gap-1.5">
           <div class="rounded-xl border border-slate-300 bg-white px-2 py-2">
@@ -2013,7 +2522,7 @@
             </div>`}
         </div>
         ${resigned ? `<div class="mt-1.5 text-[12px] font-medium text-slate-500">已离职 · 历史单据只读追溯 · 不可再新增老师 / 小班 / 收款</div>` : ''}
-        ${frozen ? `<div class="mt-1.5 text-[12px] font-medium text-amber-800">冻结期间仍可查看历史、发起离职移交转账单与批量改绑，但不能开展新业务。</div>` : ''}
+        ${frozen ? `<div class="mt-1.5 text-[12px] font-medium text-amber-800">冻结期间自动续费跑批自动跳过该班长名下固定位与小班；班长仅保留只读查看历史与 M5A 发起离职移交权，无批量改绑权。</div>` : ''}
       </article>`;
     }
 
@@ -2043,12 +2552,17 @@
       if (state.overlay.type === 'photo') return renderPhotoLightbox();
       if (state.overlay.type === 'avatarCrop') return renderAvatarCropModal();
       if (state.overlay.type === 'resignTeacher') return renderResignTeacherModal();
+      if (state.overlay.type === 'teacherRestore') return renderRestoreTeacherModal();
       if (state.overlay.type === 'appoint') return renderAppointModal();
       if (state.overlay.type === 'rebind') return renderRebindModal();
       if (state.overlay.type === 'dismiss') return renderDismissModal();
       if (state.overlay.type === 'loadDetail') return renderLoadDetailModal();
       if (state.overlay.type === 'singleRebind') return renderSingleRebindModal();
-      if (state.overlay.type === 'dictAudit') return renderDictAuditModal();
+      if (state.overlay.type === 'priceCreate') return renderNewPriceModal();
+      if (state.overlay.type === 'priceDisable') return renderDisablePriceModal();
+      if (state.overlay.type === 'priceDelete') return renderDeletePriceModal();
+      if (state.overlay.type === 'priceEnable') return renderEnablePriceModal();
+      if (state.overlay.type === 'priceImpact') return renderPriceImpactModal();
       return '';
     }
 
@@ -2062,23 +2576,23 @@
         const options = [
           { id: ADMIN_MONITOR_ID, label: '⭐ 我直管', meta: '管理员自管' },
           ...state.monitors
-            .filter((m) => m.status === 'active' && !m.isPlatform && !m.isAdminSelf)
+            .filter((m) => m.status === 'active' && !m.isPlatform && !m.isAdminSelf && !m.accountBanned)
             .map((m) => ({ id: m.id, label: `${m.name} 班`, meta: m.email || '' })),
-          { id: PLATFORM_MONITOR_ID, label: '平台未划拨', meta: '暂不分配班长' }
+          { id: PLATFORM_MONITOR_ID, label: '平台直管', meta: '由平台管理员代管' }
         ];
         return { title: '选择负责班长', options, selected: state.form.monitorId, action: 'pick-form-monitor' };
       }
       if (kind === 'rebindTarget') {
         const m = monitorById(state.rebind.monitorId);
         const options = state.monitors
-          .filter((x) => x.status === 'active' && !x.isPlatform && x.id !== (m && m.id))
+          .filter((x) => x.status === 'active' && !x.isPlatform && !x.accountBanned && x.id !== (m && m.id))
           .map((x) => ({ id: x.id, label: x.name, meta: x.email || '' }));
         return { title: '选择接手班长', options, selected: state.rebind.targetId, action: 'pick-rebind-target' };
       }
       if (kind === 'singleRebindTarget') {
         const t = teacherById(state.singleRebind.teacherId);
         const options = state.monitors
-          .filter((x) => x.status === 'active' && !x.isPlatform && x.id !== (t && t.monitorId))
+          .filter((x) => x.status === 'active' && !x.isPlatform && !x.accountBanned && x.id !== (t && t.monitorId))
           .map((x) => ({ id: x.id, label: x.name, meta: x.email || '' }));
         return { title: '选择接手班长', options, selected: state.singleRebind.targetId, action: 'pick-single-rebind-target' };
       }
@@ -2251,6 +2765,8 @@
       const cleared = state.resignTeacher.cleared;
       const date = state.resignTeacher.date || TODAY;
       const future = date > TODAY;
+      const sameLevelActive = state.teachers.filter((x) => x.status === 'active' && String(x.level) === String(t.level)).length;
+      const isLastSameLevel = sameLevelActive <= 1;
       const allDetails = t.resignDetails || { temp: [], fixed: [], classes: [], sub: [] };
       const afterDate = (items) => (items || []).filter((x) => !x.date || x.date >= date);
       const details = {
@@ -2276,19 +2792,20 @@
           </div>` : ''}
         </div>`;
       return modalShell(`
-        ${modalHeader(`办理老师离职：${t.name}`, `${priceLabel(t.level)} · 需完成全部教务交接后方可离职`)}
+        ${modalHeader(`办理老师离职：${t.name}`, `${priceLabel(t.level)} · 仅平台管理员可操作 · 北京时间 UTC+8 · 四防线全清零后方可离职`)}
         <div class="mt-2.5 rounded-xl border border-slate-300 bg-white p-2.5">
-          <label for="resignDate" class="mb-1 block text-[14px] font-semibold text-slate-700">离职生效日期</label>
+          <label for="resignDate" class="mb-1 block text-[14px] font-semibold text-slate-700">离职生效日期 D</label>
           <input id="resignDate" type="date" min="${TODAY}" value="${esc(date)}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white">
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">${future ? `将于 ${esc(date)} 进入待离职过渡态；该日及当轮剩余/后续日期全不可约，D 前既有课次正常履约。` : '今日立即生效：选课大厅即刻下架，并校验今日及之后全部未执行教务。'}</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">${future ? `将于 ${esc(date)} 00:00 (UTC+8) 进入待离职过渡态；该日及当轮剩余/后续日期全不可约，D 前既有课次正常履约；修改 D 须按新日期重过四防线。` : '今日 00:00 (UTC+8) 立即生效：选课大厅即刻下架，并校验今日及之后全部未执行教务。'}</p>
+          ${t.resignDate && t.resignDate > TODAY ? `<button data-action="revoke-teacher-resign" class="mt-2 h-9 w-full rounded-lg border border-slate-300 bg-white text-[12px] font-bold text-slate-700 transition hover:bg-slate-50">撤销预约离职（移除待离职标记并恢复可约模板）</button>` : ''}
         </div>
-        <p class="mt-2.5 text-[14px] font-medium leading-relaxed text-slate-600">${future ? `需校验 ${esc(date)} 及之后的未执行教务；该日之前既有课次正常履约。` : '该老师尚有未来未执行教务，必须全部交接清零后方可办理离职。'}</p>
+        <p class="mt-2.5 text-[14px] font-medium leading-relaxed text-slate-600">${future ? `需校验 ${esc(date)} 00:00 (UTC+8) 及之后的未执行教务；该日之前既有课次正常履约。` : '该老师尚有未来未执行教务，必须全部交接清零后方可办理离职。'}</p>
         <div class="mt-2.5 space-y-1.5">
-          ${category(`防线 A · ${future ? `${esc(date)} 及之后的` : '未来 1-7 天'}临时课`, details.temp, '节', '去调配代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.student)}`)}
-          ${category('防线 B · 未来固定位 / 预占 HOLD', details.fixed, '名学员', '去协调换师', (x) => `${esc(x.student)} · ${esc(x.schedule)} · 剩余 ${x.remaining} 节`)}
+          ${category(`防线 A · >= D 已排期 1v1 临时课`, details.temp, '节', '去调配代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.student)}`)}
+          ${category('防线 B · >= D 已排 / HOLD 固定位', details.fixed, '名学员', '去协调换师', (x) => `${esc(x.student)} · ${esc(x.schedule)} · 剩余 ${x.remaining} 节`)}
           <div class="rounded-xl border border-slate-200 bg-white p-2.5">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-[14px] font-bold text-slate-800">防线 C · 担任主讲人的小班</div>
+              <div class="text-[14px] font-bold text-slate-800">防线 C · >= D 仍有排期/未结案的正式开课小班</div>
               ${details.classes.length
                 ? `<span class="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">${details.classes.length} 个小班待处理</span>`
                 : `<span class="shrink-0 text-[12px] font-bold text-emerald-700">已清零</span>`}
@@ -2305,7 +2822,12 @@
               </div>`).join('')}
             </div>` : ''}
           </div>
-          ${category('附加校验 · 被指派且未执行的代课任务', details.sub, '节', '去交接代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.className)}`)}
+          ${category('防线 D · >= D 被指派且未执行的代课任务', details.sub, '节', '去改派代课', (x) => `${esc(x.date)} ${esc(x.time)} · ${esc(x.className)}`)}
+        </div>
+        <div class="mt-2.5 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">
+          <div>· 设置未来 D 后，将向 &gt;= D 受影响的 1v1 家长发送站内中性卡提醒（不发 Email；小班家长严禁发送）。</div>
+          ${isLastSameLevel ? `<div class="mt-1 font-semibold">· 该老师为 ${esc(priceLabel(t.level))} 当前最后一位在职老师：将同步向持有该价位待排 TS 的家长发送站内中性卡，引导联系班长通过 M2B 清退或补差重开。</div>` : `<div class="mt-1">· 若该老师为某启用价位最后一位在职老师，将同步向持有该价位待排 TS 的家长发送站内中性卡。</div>`}
+          <div class="mt-1">· 离职生效时将自动作废该老师未生效的预约调价计划。</div>
         </div>
         <label class="mt-2.5 flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5">
           <input id="resignCleared" type="checkbox" ${cleared ? 'checked' : ''} class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-indigo-600">
@@ -2319,11 +2841,53 @@
       `);
     }
 
+    function renderRestoreTeacherModal() {
+      const ov = state.overlay;
+      const t = ov ? teacherById(ov.teacherId) : null;
+      if (!t) return '';
+      const accountOk = !!t.accountEmail && !t.accountBanned;
+      return modalShell(`
+        ${modalHeader('重新入职恢复', `${t.name} · 仅平台管理员可操作`)}
+        <div class="mt-3 space-y-2">
+          <div class="rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-indigo-900">将复用原老师档案恢复「在职」，完整保留过往历史 TS、周课酬单、状态流转日志与档案变动日志，恢复后重新上架选课大厅。</div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">
+            <div>关联账号（M0A）：${esc(t.accountEmail || '未绑定')} · ${t.accountBanned ? '账号已封禁' : (t.accountEmail ? '正常生效' : '待绑定')}</div>
+            <div class="mt-0.5">当前价位：${esc(priceLabel(t.level))} · 原负责班长：${esc(attributionText(t, 'admin'))}（恢复后可在编辑档案中重选启用价位、负责班长与可用模板）</div>
+          </div>
+          ${accountOk ? '' : `<div class="rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2 text-[12px] font-semibold leading-relaxed text-rose-700">恢复前须先绑定处于「正常生效」且未绑定其他在职老师档案的 M0A 账号。</div>`}
+          <div class="flex gap-2 pt-1">
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
+            <button data-action="restore-teacher-confirm" ${accountOk ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认恢复在职</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function restoreTeacher() {
+      if (state.role !== 'admin') return showToast('二次入职恢复仅平台管理员可操作');
+      const ov = state.overlay;
+      const t = ov ? teacherById(ov.teacherId) : null;
+      if (!t || t.status !== 'resigned') return;
+      if (!t.accountEmail || t.accountBanned) return showToast('恢复前须绑定正常生效的 M0A 账号');
+      t.status = 'active';
+      delete t.resignedAt;
+      delete t.resignDate;
+      t.published = missingMedia(t).length === 0;
+      appendTeacherStatus(t, 'resigned', 'active', '管理员复用原档案重新入职恢复');
+      appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
+        { field: '家长端展示', before: '已下架', after: t.published ? '已上架' : '未上架（待完善）' }
+      ] });
+      state.overlay = null;
+      state.page = 'teacherDetail';
+      renderAll();
+      showToast(`${t.name} 已恢复在职 · 历史记录连续保留`);
+    }
+
     function renderAppointModal() {
       const a = state.appoint;
       const isEdit = a.mode === 'edit';
       return modalShell(`
-        ${modalHeader(isEdit ? '编辑班长资料' : '委任新班长', isEdit ? '维护显示名称、联系电话与微信二维码（变更自动写入职务档案变动日志）' : '通过已注册邮箱检索账号，授予班长权限')}
+        ${modalHeader(isEdit ? '编辑班长资料' : '委任新班长', isEdit ? '维护显示名称、联系电话与微信二维码（变更自动写入职务档案变动日志）' : '仅检索 M0A「正常生效」账号，以账号 ID 锚定委任；支持兼任家长/在职老师/管理员')}
         <div class="mt-3 space-y-3">
           <div>
             <label for="appointEmail" class="mb-1 block text-[14px] font-semibold text-slate-700">已注册邮箱 ${isEdit ? '' : '<span class="text-rose-500">*</span>'}</label>
@@ -2362,8 +2926,8 @@
         </div>
         ${isEdit
           ? ''
-          : `<div class="mt-2.5 rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">委任后可进入班长工作台管理所辖老师、小班与托管课次。已离职档案将复用并恢复在职。</div>
-             <div class="mt-1.5 text-[12px] font-medium text-slate-500">输入已注册邮箱后自动匹配账号；已离职班长可复用档案重新委任。</div>`}
+          : `<div class="mt-2.5 rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">委任后可进入班长工作台管理所辖老师、小班与托管课次。已离职档案将复用并恢复在职；同一自然人可兼任家长 / 在职老师 / 平台管理员。</div>
+             <div class="mt-1.5 text-[12px] font-medium text-slate-500">输入已注册邮箱后自动核验账号是否处于「正常生效」；已离职班长可复用档案重新委任。</div>`}
         ${a.error ? `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(a.error)}</div>` : ''}
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition-colors hover:bg-slate-50 active:bg-slate-100">取消</button>
@@ -2377,9 +2941,10 @@
       if (!m) return '';
       const teachers = state.teachers.filter((t) => t.monitorId === m.id && t.status !== 'resigned');
       const classes = state.classes.filter((c) => c.monitorId === m.id && ['recruiting', 'active'].includes(c.status));
-      const targets = state.monitors.filter((x) => x.status === 'active' && !x.isPlatform && x.id !== m.id);
+      const targets = state.monitors.filter((x) => x.status === 'active' && !x.isPlatform && !x.accountBanned && x.id !== m.id);
       return modalShell(`
-        ${modalHeader('批量改绑老师与小班', `原班长：${m.name} · 仅变更教务管辖，历史资金持有人不变`)}
+        ${modalHeader('批量改绑老师与小班', `仅平台管理员可发起 · 原班长：${m.name} · 历史资金持有人不变`)}
+        ${m.accountBanned ? `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-rose-800">原班长 M0A 账号已封禁无法配合：管理员可直接强制改绑名下老师、小班及未认领「待认领试课」档案，无需等待本人操作。</div>` : ''}
         <div class="mt-3">
           <div class="mb-1 block text-[14px] font-semibold text-slate-700">接手班长 <span class="text-rose-500">*</span></div>
           <button type="button" data-action="open-picker" data-kind="rebindTarget" aria-label="选择接手班长" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 outline-none transition hover:bg-slate-50">
@@ -2401,14 +2966,22 @@
         <div class="mt-3">
           <div class="text-[12px] font-bold text-slate-500">小班（仅勾选改绑）</div>
           <div class="mt-1 space-y-1">
-            ${classes.map((c) => `<label class="flex items-center gap-2.5 rounded-lg border border-slate-200 px-2.5 py-2">
-              <input type="checkbox" data-rebind-class="${c.id}" ${state.rebind.classIds.includes(c.id) ? 'checked' : ''} class="h-4 w-4 rounded border-slate-300 accent-indigo-600">
-              <span class="min-w-0 flex-1 truncate text-[14px] font-medium text-slate-800">${esc(c.name)}</span>
-              <span class="shrink-0 text-[12px] font-medium text-slate-500">${esc(c.students)} 人</span>
-            </label>`).join('') || '<p class="text-[12px] font-medium text-slate-500">暂无小班</p>'}
+            ${classes.map((c) => {
+              const blocked = !!c.pendingOrder;
+              return `<label class="flex items-start gap-2.5 rounded-lg border px-2.5 py-2 ${blocked ? 'border-amber-200 bg-amber-50/60' : 'border-slate-200'}">
+              <input type="checkbox" data-rebind-class="${c.id}" ${state.rebind.classIds.includes(c.id) ? 'checked' : ''} ${blocked ? 'disabled' : ''} class="mt-0.5 h-4 w-4 rounded border-slate-300 accent-indigo-600 disabled:cursor-not-allowed">
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center justify-between gap-2">
+                  <span class="truncate text-[14px] font-medium ${blocked ? 'text-amber-900' : 'text-slate-800'}">${esc(c.name)}</span>
+                  <span class="shrink-0 text-[12px] font-medium text-slate-500">${esc(c.students)} 人</span>
+                </span>
+                ${blocked ? `<span class="mt-0.5 block text-[12px] font-semibold leading-relaxed text-amber-800">存在途「待付款确认」小班购课单 ${esc(c.pendingOrder.id)}：请先赴 M2A 完成收款确认或作废释放 G-HOLD 后方可改绑。</span>` : ''}
+              </span>
+            </label>`;
+            }).join('') || '<p class="text-[12px] font-medium text-slate-500">暂无小班</p>'}
           </div>
         </div>
-        <div class="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">仅变更教务管辖；历史购课单与课次资金归属不变，未来排课与教务沟通由接手班长接管。老师归属变更不联动其他主理人的小班，其他主理人的小班保持原样。</div>
+        <div class="mt-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">仅变更教务管辖；历史购课单与课次资金归属不变，未来排课与教务沟通由接手班长接管。老师归属变更不联动其他主理人的小班，其他主理人的小班保持原样。批量改绑在单事务内执行，任一在途单拦截即整批回滚。</div>
         ${state.rebind.error ? `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(state.rebind.error)}</div>` : ''}
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition-colors hover:bg-slate-50 active:bg-slate-100">取消</button>
@@ -2432,8 +3005,13 @@
         ${modalHeader(`解除班长职务：${m.name}`, '仅平台管理员可发起解除，且不可解除本人；两道防线通过后方可解除')}
         <div class="mt-2.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5">
           <div class="flex items-center gap-1.5 text-[14px] font-bold text-amber-950">${icon('lock', 'h-4 w-4 shrink-0')}交接冻结中 · 剩余 ${days} 天</div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-900/85">冻结期间暂停新增老师、小班、试课档案、收款与排课；仍可查看历史、发起离职移交转账单与批量改绑。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-900/85">冻结期间暂停新增老师、小班、试课档案、收款与排课，且 M2A 自动续费跑批自动跳过该班长名下固定位与小班；班长仅保留只读查看历史与在 M5A 发起离职移交权（无批量改绑权）。</p>
         </div>
+        ${m.accountBanned ? `<div class="mt-2.5 rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2.5">
+          <div class="flex items-center gap-1.5 text-[14px] font-bold text-rose-900">${icon('alert-triangle', 'h-4 w-4 shrink-0')}原班长 M0A 账号已封禁</div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-800">无法登录配合清算：平台管理员可在 M5A 代发起并核销「离职移交转账单」，并作废在途未收款单；无需等待本人操作。</p>
+          ${fundsBlocked ? `<button data-action="dismiss-clear-funds" class="mt-2 inline-flex h-8 items-center rounded-lg border border-rose-300 bg-white px-2.5 text-[12px] font-bold text-rose-700 transition hover:bg-rose-50">在 M5A 代发起移交并核销</button>` : ''}
+        </div>` : ''}
         <div class="mt-3 space-y-2">
           <div class="rounded-xl border px-3 py-2.5 ${fundsBlocked && !fundsCleared ? TONES.rose.card : TONES.emerald.card}">
             <div class="flex items-start justify-between gap-2">
@@ -2578,9 +3156,9 @@
     function renderSingleRebindModal() {
       const t = teacherById(state.singleRebind.teacherId);
       if (!t) return '';
-      const targets = state.monitors.filter((m) => m.status === 'active' && !m.isPlatform && m.id !== t.monitorId);
+      const targets = state.monitors.filter((m) => m.status === 'active' && !m.isPlatform && !m.accountBanned && m.id !== t.monitorId);
       return modalShell(`
-        ${modalHeader('改绑负责班长', `${t.name} · 仅变更教务管辖，历史资金持有人不变`)}
+        ${modalHeader('改绑负责班长', `仅平台管理员可发起 · ${t.name} · 历史资金持有人不变`)}
         <div class="mt-3">
           <div class="mb-1 block text-[14px] font-semibold text-slate-700">接手班长 <span class="text-rose-500">*</span></div>
           <button type="button" data-action="open-picker" data-kind="singleRebindTarget" aria-label="选择接手班长" class="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-[16px] text-slate-900 outline-none transition hover:bg-slate-50">
@@ -2611,6 +3189,9 @@
         const photos = clone(t.photos || []);
         state.form = {
           mode: 'edit', id: t.id, name: t.name, level: t.level, monitorId: t.monitorId,
+          accountEmail: t.accountEmail || '', accountReason: '', origAccountEmail: t.accountEmail || '',
+          origPendingLevel: t.pendingPrice ? t.pendingPrice.level : '',
+          origPendingDate: t.pendingPrice ? t.pendingPrice.effectiveDate : '',
           pendingLevel: t.pendingPrice ? t.pendingPrice.level : '',
           pendingDate: t.pendingPrice ? t.pendingPrice.effectiveDate : '',
           classinRoom: t.classinRoom || '',
@@ -2670,7 +3251,7 @@
       const teachers = state.teachers.filter((t) => t.monitorId === m.id && t.status !== 'resigned');
       const classes = state.classes.filter((c) => c.monitorId === m.id && ['recruiting', 'active'].includes(c.status));
       if (!teachers.length && !classes.length) return showToast('该班长名下暂无可改绑的老师或小班');
-      state.rebind = { monitorId: m.id, targetId: '', teacherIds: teachers.map((t) => t.id), classIds: classes.map((c) => c.id), error: '' };
+      state.rebind = { monitorId: m.id, targetId: '', teacherIds: teachers.map((t) => t.id), classIds: classes.filter((c) => !c.pendingOrder).map((c) => c.id), error: '' };
       state.overlay = { type: 'rebind' };
       renderAll();
       updateRebindButton();
@@ -2718,7 +3299,7 @@
     function clearDismissEdu() {
       const m = monitorById(state.dismiss.monitorId);
       if (!m) return;
-      const fallback = state.monitors.find((x) => x.status === 'active' && x.id !== m.id && !x.isPlatform) || monitorById(PLATFORM_MONITOR_ID);
+      const fallback = state.monitors.find((x) => x.status === 'active' && x.id !== m.id && !x.isPlatform && !x.accountBanned) || monitorById(PLATFORM_MONITOR_ID);
       state.teachers.forEach((t) => {
         if (t.monitorId === m.id) {
           const beforeMonitorName = monitorNameOf(t.monitorId);
@@ -2776,7 +3357,10 @@
       if (track) track.className = `relative h-6 w-11 rounded-full transition ${on ? 'bg-indigo-600' : 'bg-slate-300'}`;
       if (knob) knob.className = `absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${on ? 'translate-x-5' : 'translate-x-0'}`;
       const save = document.querySelector('[data-action="save-teacher"]');
-      if (save) save.textContent = on ? '保存并发布' : '保存草稿';
+      if (save) {
+        const accountOk = !!state.form.accountEmail.trim() && ACCOUNTS[state.form.accountEmail.trim().toLowerCase()] && ACCOUNTS[state.form.accountEmail.trim().toLowerCase()].status === 'active';
+        save.textContent = on ? (accountOk ? '保存并发布' : '保存为待绑定草稿') : '保存草稿';
+      }
     }
 
     function updateAppointMatch() {
@@ -2799,7 +3383,9 @@
       } else if (!isEmailValid(email)) {
         html = '请输入有效的邮箱地址'; tone = 'text-rose-600'; blocked = true;
       } else if (!account) {
-        html = '未找到该账号'; tone = 'text-rose-600'; blocked = true;
+        html = '该邮箱未注册或处于未激活/锁定/封禁/注销异常态'; tone = 'text-rose-600'; blocked = true;
+      } else if (account.status !== 'active') {
+        html = '该账号未激活/锁定/封禁/注销，暂不可委任班长'; tone = 'text-rose-600'; blocked = true;
       } else if (active) {
         html = '该账号已有在职班长档案'; tone = 'text-rose-600'; blocked = true;
       } else if (resigned) {
@@ -2834,7 +3420,22 @@
       if (state.online === 'off') return '离线模式下不可保存档案';
       if (!f.name.trim()) return '请填写老师英文姓名';
       if (f.name.trim().length > 50) return '英文姓名不能超过 50 字符';
-      if (!PRICE_TIERS.some((l) => l.id === f.level)) return '请选择老师价位';
+      const accountEmail = f.accountEmail.trim().toLowerCase();
+      const origAccount = String(f.origAccountEmail || '').toLowerCase();
+      const accountChanged = accountEmail !== origAccount;
+      if (accountEmail) {
+        if (!isEmailValid(accountEmail)) return '请输入有效的登录账号邮箱';
+        if (accountChanged) {
+          const account = ACCOUNTS[accountEmail];
+          if (!account || account.status !== 'active') return '目标账号未注册或处于未激活/锁定/封禁/注销异常态';
+          const sameActive = state.teachers.find((t) => t.id !== f.id && t.status === 'active' && String(t.accountEmail || '').toLowerCase() === accountEmail);
+          if (sameActive) return `该账号已绑定在职老师 ${sameActive.name}，禁止重复绑定`;
+          const sameResigned = state.teachers.find((t) => t.id !== f.id && t.status === 'resigned' && String(t.accountEmail || '').toLowerCase() === accountEmail);
+          if (sameResigned) return '该账号已绑定已离职老师档案，请由管理员复用恢复，禁止建重号';
+        }
+      }
+      if (f.mode === 'edit' && accountChanged && !f.accountReason.trim()) return '更换登录账号需填写原因，并写入档案变动日志';
+      if (!priceTierByLevel(f.level)) return '请选择老师价位';
       if (!f.introZh.trim()) return '请填写中文简介';
       if (f.introZh.length > 2000) return '中文简介不能超过 2000 字符';
       if (!f.introEn.trim()) return '请填写英文简介';
@@ -2860,7 +3461,7 @@
         return;
       }
       if (state.role === 'admin' && f.pendingLevel) {
-        if (!PRICE_TIERS.some((l) => l.id === f.pendingLevel)) {
+        if (!enabledPriceTiers().some((l) => l.id === f.pendingLevel)) {
           f.error = '请选择有效的待生效价位';
           renderAll();
           return showToast(f.error);
@@ -2871,6 +3472,29 @@
           return showToast(f.error);
         }
       }
+      /* 管理员立即改价：若存在有效固定位 / 未来已排课程 / 自动续费，先弹二次确认。 */
+      if (f.mode === 'edit' && state.role === 'admin') {
+        const t = teacherById(f.id);
+        if (t && String(f.level) !== String(t.level)) {
+          const fixed = (t.resignDetails && Array.isArray(t.resignDetails.fixed)) ? t.resignDetails.fixed.length : 0;
+          const future = Number(t.upcoming) || 0;
+          const autoRenew = !!t.autoRenew;
+          if (fixed > 0 || future > 0 || autoRenew || t.pendingPrice) {
+            state.priceImpact = {
+              teacherId: t.id, oldLevel: t.level, newLevel: f.level,
+              fixed, future, autoRenew, pendingPlan: t.pendingPrice ? pendingPriceText(t.pendingPrice) : ''
+            };
+            state.overlay = { type: 'priceImpact' };
+            renderAll();
+            return;
+          }
+        }
+      }
+      return performTeacherSave(false);
+    }
+
+    function performTeacherSave(impactConfirmed = false) {
+      const f = state.form;
       const complete = formMissing().length === 0;
       const published = !!(f.publish && complete);
       const status = 'active';
@@ -2883,24 +3507,45 @@
         const beforePending = t.pendingPrice ? pendingPriceText(t.pendingPrice) : '未设置';
         const beforeStatus = t.status;
         const beforePublished = t.published !== false;
+        const priceChanged = state.role === 'admin' && String(f.level) !== String(t.level);
+        const hadPendingBefore = t.pendingPrice ? { ...t.pendingPrice } : null;
+        let pendingAutoVoided = false;
+        const accountEmail = f.accountEmail.trim().toLowerCase();
         Object.assign(t, {
-          name: f.name.trim(), level: f.level,
+          name: f.name.trim(), level: state.role === 'admin' ? f.level : t.level,
           monitorId: state.role === 'admin' ? f.monitorId : t.monitorId,
+          accountEmail,
+          accountBanned: accountEmail && ACCOUNTS[accountEmail] ? ACCOUNTS[accountEmail].status !== 'active' : false,
           introZh: f.introZh, introEn: f.introEn,
           avatarDataUrl: f.avatarDataUrl, qrDataUrl: f.qrDataUrl,
           photos: clone(f.photos), avatarPhotoId: f.avatarPhotoId,
           media: clone(f.media), status, published
         });
         if (state.role === 'admin') {
-          if (f.pendingLevel && f.pendingDate) {
+          const sameAsOriginalPlan = f.pendingLevel && f.origPendingLevel
+            && f.pendingLevel === f.origPendingLevel && f.pendingDate === f.origPendingDate;
+          pendingAutoVoided = !!(priceChanged && hadPendingBefore && (!f.pendingLevel || sameAsOriginalPlan));
+          if (pendingAutoVoided) {
+            delete t.pendingPrice;
+          } else if (f.pendingLevel && f.pendingDate) {
             t.pendingPrice = { level: f.pendingLevel, effectiveDate: f.pendingDate };
           } else {
             delete t.pendingPrice;
           }
+          if (pendingAutoVoided) {
+            appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
+              { field: '待生效调价', before: pendingPriceText(hadPendingBefore), after: '已自动作废（被立即改价替代）' }
+            ] });
+          }
         }
         const afterPending = t.pendingPrice ? pendingPriceText(t.pendingPrice) : '未设置';
         appendTeacherChanges(beforeSnap, t);
-        if (beforePending !== afterPending) {
+        if (accountEmail !== String(f.origAccountEmail || '').toLowerCase() && f.accountReason.trim()) {
+          appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
+            { field: '绑定登录账号原因', before: '—', after: f.accountReason.trim() }
+          ] });
+        }
+        if (beforePending !== afterPending && !pendingAutoVoided) {
           appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
             { field: '待生效调价', before: beforePending, after: afterPending }
           ] });
@@ -2917,14 +3562,21 @@
         state.page = 'teacherDetail';
         state.navTab = 'ops';
         state.overlay = null;
+        state.priceImpact = null;
         renderAll();
-        showToast(published ? '老师档案已保存并同步至家长端' : (complete ? '已保存草稿，暂未上架' : '已保存为待完善档案，暂未上架'));
+        if (impactConfirmed) {
+          showToast('已确认立即改价，并已通知受影响家长；已购未排课次与待付款单保持原价');
+        } else {
+          showToast(published ? '老师档案已保存并同步至家长端' : (complete ? '已保存草稿，暂未上架' : '已保存为待完善档案，暂未上架'));
+        }
         return;
       }
       const monitorId = state.role === 'admin' ? f.monitorId : CURRENT_MONITOR_ID;
       const t = {
         id: newId('tc'),
         name: f.name.trim(), level: f.level, monitorId,
+        accountEmail: f.accountEmail.trim().toLowerCase(),
+        accountBanned: false,
         weeklyCapacity: 30, availability: 'available',
         introZh: f.introZh, introEn: f.introEn,
         avatarDataUrl: f.avatarDataUrl, qrDataUrl: f.qrDataUrl,
@@ -2952,6 +3604,7 @@
     }
 
     function confirmResignTeacher() {
+      if (state.role !== 'admin') return showToast('老师离职仅平台管理员可办理');
       if (!state.resignTeacher.cleared) return;
       const t = teacherById(state.activeTeacherId);
       if (!t) return;
@@ -2968,7 +3621,7 @@
         state.overlay = null;
         state.page = 'teacherDetail';
         renderAll();
-        showToast(`${t.name} 将于 ${date} 离职 · 该日前既有课次正常履约`);
+        showToast(`${t.name} 将于 ${date} 00:00 (UTC+8) 离职 · 已通知 >= D 受影响 1v1 家长 · 历史课次正常履约`);
         return;
       }
       t.status = 'resigned';
@@ -3031,7 +3684,7 @@
       const email = a.email.trim().toLowerCase();
       if (!isEmailValid(email)) return fail('请输入有效的邮箱地址');
       const account = ACCOUNTS[email];
-      if (!account) return fail('该邮箱尚未注册');
+      if (!account || account.status !== 'active') return fail('该邮箱未注册或处于未激活/锁定/封禁/注销异常态');
       const active = state.monitors.find((m) => m.email.toLowerCase() === email && ['active', 'frozen'].includes(m.status));
       if (active) return fail(active.status === 'frozen' ? '该账号已有交接冻结中的班长档案' : '该账号已有在职班长档案');
       if (!name || name.length > 50) return fail('显示名称需为 1-50 字符', 'appointName');
@@ -3088,8 +3741,12 @@
         state.rebind.error = msg;
         renderOverlayOnly();
       };
-      if (!m || !target || target.status !== 'active' || target.isPlatform || target.id === m.id) return fail('接手班长必须为在职、非本人');
+      if (!m || !target || target.status !== 'active' || target.isPlatform || target.accountBanned || target.id === m.id) return fail('接手班长必须为在职、非冻结、非本人且 M0A 账号正常生效');
       if (!r.teacherIds.length && !r.classIds.length) return fail('请至少选择 1 位老师或 1 个小班');
+      const pendingClasses = state.classes.filter((c) => r.classIds.includes(c.id) && c.monitorId === m.id && c.pendingOrder);
+      if (pendingClasses.length) {
+        return fail(`小班「${pendingClasses.map((c) => c.name).join('、')}」仍存在途「待付款确认」购课单，请先赴 M2A 确认收款或作废释放 G-HOLD 后方可改绑`);
+      }
       let teacherCount = 0;
       let classCount = 0;
       const beforeMonitorName = monitorNameOf(m.id);
@@ -3145,7 +3802,7 @@
       m.hold = 0;
       m.trialProfiles = 0;
       appendMonitorLog(m.id, { kind: 'status', at: nowStamp(), operator: operatorLabel(), from: beforeStatus, to: 'resigned', reason: '资金清算与教务交接复检通过，解除职务' });
-      const fallback = state.monitors.find((x) => x.status === 'active' && x.id !== m.id);
+      const fallback = state.monitors.find((x) => x.status === 'active' && x.id !== m.id && !x.accountBanned);
       if (fallback) {
         state.teachers.forEach((t) => {
           if (t.monitorId === m.id) {
@@ -3176,7 +3833,7 @@
         renderOverlayOnly();
       };
       if (!t) return fail('老师不存在');
-      if (!target || target.status !== 'active' || target.isPlatform || target.id === t.monitorId) return fail('接手班长必须为在职、非本人');
+      if (!target || target.status !== 'active' || target.isPlatform || target.accountBanned || target.id === t.monitorId) return fail('接手班长必须为在职、非冻结、非本人且 M0A 账号正常生效');
       const beforeMonitorName = monitorNameOf(t.monitorId);
       t.monitorId = target.id;
       appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
@@ -3512,10 +4169,44 @@
         state.monitorLogCollapsed = !state.monitorLogCollapsed;
         return renderOverlayOnly();
       }
-      if (action === 'open-dict-audit') {
-        state.overlay = { type: 'dictAudit' };
+      if (action === 'open-price-dict') return openPriceDict();
+      if (action === 'close-price-dict') return closePriceDict();
+      if (action === 'dict-tab') {
+        state.priceDictTab = el.dataset.tab === 'audit' ? 'audit' : 'tiers';
+        state.priceDictHighlight = null;
         return renderAll();
       }
+      if (action === 'create-price-open') {
+        if (state.role !== 'admin') return showToast('价位字典仅限平台管理员维护');
+        state.newPrice = { value: '', error: '' };
+        state.overlay = { type: 'priceCreate' };
+        renderAll();
+        return setTimeout(() => $('newPriceInput')?.focus(), 50);
+      }
+      if (action === 'create-price-submit') return submitCreatePrice();
+      if (action === 'jump-reenable') {
+        const tier = priceTierByLevel(el.dataset.tier);
+        state.overlay = null;
+        state.newPrice = { value: '', error: '' };
+        state.priceDictTab = 'tiers';
+        state.priceDictHighlight = tier ? tier.points : null;
+        renderAll();
+        if (tier) {
+          setTimeout(() => {
+            const card = document.querySelector(`[data-tier="${tier.points}"][data-tier-state="disabled"]`);
+            if (card && card.scrollIntoView) card.scrollIntoView({ block: 'center' });
+            showToast(`已定位 ${tier.label}，可直接重新启用`);
+          }, 80);
+        }
+        return;
+      }
+      if (action === 'disable-price') return attemptDisablePrice(el.dataset.tier);
+      if (action === 'delete-price') return attemptDeletePrice(el.dataset.tier);
+      if (action === 'enable-price') return attemptEnablePrice(el.dataset.tier);
+      if (action === 'confirm-disable-price') return confirmDisablePrice();
+      if (action === 'confirm-delete-price') return confirmDeletePrice();
+      if (action === 'confirm-enable-price') return confirmEnablePrice();
+      if (action === 'confirm-price-impact') return confirmPriceImpact();
       if (action === 'create-teacher') return startTeacherForm('create');
       if (action === 'edit-teacher') return startTeacherForm('edit', el.dataset.id);
       if (action === 'teacher-filter') { state.teacherFilter = el.dataset.filter; return renderAll(); }
@@ -3580,6 +4271,7 @@
       }
       if (action === 'open-resign') {
         if (state.online === 'off') return showToast('离线模式下不可办理离职');
+        if (state.role !== 'admin') return showToast('老师离职仅平台管理员可办理');
         const t = teacherById(state.activeTeacherId);
         if (!t || t.status === 'resigned') return showToast('该老师已离职');
         state.resignTeacher.cleared = false;
@@ -3587,6 +4279,27 @@
         state.overlay = { type: 'resignTeacher' };
         return renderAll();
       }
+      if (action === 'revoke-teacher-resign') {
+        if (state.role !== 'admin') return showToast('离职日撤销仅平台管理员可操作');
+        const t = teacherById(state.activeTeacherId);
+        if (!t || !t.resignDate) return;
+        const before = t.resignDate;
+        delete t.resignDate;
+        appendTeacherLog(t.id, { kind: 'field', at: nowStamp(), operator: operatorLabel(), changes: [
+          { field: '离职生效日期', before: `${before}（待离职过渡态）`, after: '已撤销 · 恢复可约模板' }
+        ] });
+        state.overlay = null;
+        renderAll();
+        showToast('已撤销离职并恢复日历可约模板 · 已向此前通知家长补发恢复告知');
+        return;
+      }
+      if (action === 'open-restore-teacher') {
+        if (state.online === 'off') return showToast('离线模式下不可操作');
+        if (state.role !== 'admin') return showToast('二次入职恢复仅平台管理员可操作');
+        state.overlay = { type: 'teacherRestore', teacherId: state.activeTeacherId };
+        return renderAll();
+      }
+      if (action === 'restore-teacher-confirm') return restoreTeacher();
       if (action === 'revoke-pending-price') {
         state.form.pendingLevel = '';
         state.form.pendingDate = '';
@@ -3601,15 +4314,6 @@
         }
         renderAll();
         return showToast('待生效调价计划已撤销');
-      }
-      if (action === 'attempt-disable-price') {
-        const level = el.dataset.level;
-        const users = state.teachers.filter((t) => t.pendingPrice && t.pendingPrice.level === level && t.status !== 'resigned');
-        if (users.length) {
-          const u = users[0];
-          return showToast(`${level}积分仍被 ${u.name} 的待生效调价（${pendingPriceText(u.pendingPrice)}）引用，暂不可停用`);
-        }
-        return showToast(`演示：${level}积分已停用（当前无待生效调价引用）`);
       }
       if (action === 'open-appoint') return openAppoint();
       if (action === 'open-edit-monitor') return openEditMonitor(el.dataset.id);
@@ -3763,7 +4467,20 @@
         }
         return;
       }
+      if (id === 'newPriceInput') { state.newPrice.value = e.target.value; updateNewPriceUI(); return; }
       if (id === 'fTeacherName') { state.form.name = e.target.value; clearFormError(); }
+      if (id === 'fTeacherAccount') {
+        state.form.accountEmail = e.target.value;
+        const boundAccount = ACCOUNTS[state.form.accountEmail.trim().toLowerCase()];
+        if (state.form.mode === 'edit' && !state.form.origAccountEmail && boundAccount && boundAccount.status === 'active') {
+          state.form.publish = true;
+        }
+        clearFormError();
+        renderAll();
+        const input = $('fTeacherAccount');
+        if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+      }
+      if (id === 'fAccountReason') { state.form.accountReason = e.target.value; clearFormError(); }
       if (id === 'fIntroZh') {
         state.form.introZh = e.target.value;
         clearFormError();

@@ -55,6 +55,21 @@
     const DAY_SHORT = ['一', '二', '三', '四', '五', '六', '日'];
     const PRICE_ORDER = { '16': 0, '18': 1, '21': 2 };
     const priceLabel = (price) => price === 'all' ? '全部' : `${price}积分`;
+    /* 待排 TS 按 M2A AC-2A-16 永久正交固化的「原价位档位」汇总，不受强提改价与 +10 备课费影响 */
+    const studentTiers = (student) => student.tiers || { [student.price]: student.credits };
+    const tierSummary = (student) => Object.entries(studentTiers(student))
+      .sort((a, b) => PRICE_ORDER[a[0]] - PRICE_ORDER[b[0]])
+      .map(([price, count]) => `${price}积分×${count}`)
+      .join(' · ');
+    /* 多档位时默认选中剩余待排节数最多的档位；并列按价位字典升序；无待排默认 16积分 */
+    const defaultPriceForStudent = (student) => {
+      const tiers = Object.entries(studentTiers(student));
+      if (!tiers.length) return '16';
+      const max = Math.max(...tiers.map(([, count]) => count));
+      return tiers.filter(([, count]) => count === max)
+        .map(([price]) => price)
+        .sort((a, b) => PRICE_ORDER[a] - PRICE_ORDER[b])[0];
+    };
     const CAPACITY = 28;
     const LOAD_LIMIT = 20;
     const CURRENT_MONITOR = 'leo';
@@ -196,7 +211,8 @@
         nickname: 'Tom',
         short: 'TomZ',
         price: '21',
-        credits: 10,
+        credits: 14,
+        tiers: { '21': 10, '18': 4 }, // 强提改价单 / +10 备课费不改变原价位档位归组
         emoji: '🧒',
         preferences: ['1-24', '4-18']
       },
@@ -271,7 +287,8 @@
         offDays: opts.offDays || [],
         weekendOff: !!opts.weekendOff,
         zeroPeriods: opts.zeroPeriods || [],
-        owner: opts.owner || 'other'
+        owner: opts.owner || 'other',
+        resignWeek: typeof opts.resignWeek === 'number' ? opts.resignWeek : undefined
       };
     }
 
@@ -300,7 +317,7 @@
       makeTeacher('xavier', 'Xavier Lee', '16', 15, [], { start: 8, end: 20, seed: 79 }),
       makeTeacher('zoe', 'Zoe Turner', '16', 20, [], { start: 9, end: 21, seed: 83, zeroPeriods: ['mid'] }),
       makeTeacher('mia', 'Mia Chen', '21', 11, ['alice', 'bob'], { start: 9, end: 21, seed: 89 }),
-      makeTeacher('sofia', 'Sofia Reyes', '21', 20, ['bob'], { start: 10, end: 22, seed: 97, zeroPeriods: ['mid'] }),
+      makeTeacher('sofia', 'Sofia Reyes', '21', 20, ['bob'], { start: 10, end: 22, seed: 97, zeroPeriods: ['mid'], resignWeek: 2 }),
       makeTeacher('olivia', 'Olivia Stone', '21', 14, ['alice'], { start: 8, end: 20, seed: 101 }),
       makeTeacher('lucas', 'Lucas Gray', '21', 17, [], { start: 9, end: 22, seed: 103 }),
       makeTeacher('emma', 'Emma Stone', '18', 10, ['bob'], { start: 8, end: 19, seed: 107 }),
@@ -349,6 +366,9 @@
       scenario: '',
       renewalEdit: false,
       renewalOrderId: '',
+      renewalOrderSize: 8,
+      priceChangeDemo: false,
+      classConflict: null,
       consoleCollapsed: false
     };
 
@@ -396,6 +416,7 @@
       state.releasedHold = false;
       state.justLockedKeys = [];
       state.tempBookingSlot = null;
+      state.classConflict = null;
     }
 
     function resetWeekPlan() {
@@ -421,6 +442,9 @@
       state.highlightHour = null;
       state.shown = 5;
       state.holdMode = 'none';
+      state.renewalEdit = false;
+      state.renewalOrderSize = 8;
+      state.priceChangeDemo = false;
       resetCalRuntime();
       resetContextSheetFilters();
 
@@ -503,6 +527,70 @@
         state.calMode = 'batch';
         state.holdMode = 'conflict';
         state.overlay = 'hold-conflict';
+      } else if (name === 'step2-hold-voucher') {
+        state.view = 'calendar';
+        state.selectedTeacher = 'david';
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.price = '16';
+        state.calMode = 'batch';
+        state.holdMode = 'voucher';
+        state.templateSlots = [{ day: 1, row: 22 }];
+      } else if (name === 'step2-hold-all-conflict') {
+        state.view = 'calendar';
+        state.selectedTeacher = 'david';
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.price = '16';
+        state.calMode = 'batch';
+        state.holdMode = 'all-conflict';
+        state.overlay = 'hold-conflict';
+      } else if (name === 'step2-class-conflict') {
+        state.view = 'calendar';
+        state.selectedTeacher = 'david';
+        state.contextType = 'class';
+        state.classKey = 'ket1';
+        state.price = '16';
+        state.calMode = 'batch';
+        state.templateSlots = [{ day: 6, row: 4 }];
+      } else if (name === 'step2-price-change') {
+        state.view = 'calendar';
+        state.selectedTeacher = 'david';
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.price = '16';
+        state.calMode = 'batch';
+        state.priceChangeDemo = true;
+        state.templateSlots = [{ day: 1, row: 22 }];
+      } else if (name === 'step2-resign') {
+        state.view = 'calendar';
+        state.selectedTeacher = 'sofia';
+        state.contextType = 'student';
+        state.student = 'tom';
+        state.price = '21';
+        state.calMode = 'batch';
+        state.templateSlots = [{ day: 1, row: 22 }];
+      } else if (name === 'renewal-edit') {
+        state.view = 'calendar';
+        state.selectedTeacher = 'david';
+        state.contextType = 'student';
+        state.student = 'alice';
+        state.price = '16';
+        state.calMode = 'batch';
+        state.renewalEdit = true;
+        state.renewalOrderId = 'RN20261114008';
+        state.renewalOrderSize = 8;
+        state.holdMode = 'normal';
+        state.templateSlots = [{ day: 1, row: 22 }];
+      } else if (name === 'student-tom') {
+        state.view = 'board';
+        state.contextType = 'student';
+        state.student = 'tom';
+        state.price = defaultPriceForStudent(STUDENTS.tom);
+        state.period = 'mid';
+        state.week = 0;
+        state.calMode = 'temp';
+        state.renewalEdit = false;
       } else if (name === 'step2-temp') {
         state.view = 'calendar';
         state.selectedTeacher = 'david';
@@ -628,7 +716,7 @@
     if (studentIdMap[params.get('studentId')]) {
       state.contextType = 'student';
       state.student = studentIdMap[params.get('studentId')];
-      if (!priceParam) state.price = STUDENTS[state.student].price;
+      if (!priceParam) state.price = defaultPriceForStudent(STUDENTS[state.student]);
     }
     if (classIdMap[params.get('classId')]) {
       state.contextType = 'class';
@@ -911,11 +999,11 @@
 
     function renderRenewalEditStrip() {
       if (!state.renewalEdit) return '';
-      return `<div class="mt-1 flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50/70 px-2.5 py-1.5">
-        <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-amber-200 bg-white text-amber-700">${icon('repeat', 'h-3.5 w-3.5')}</span>
+      return `<div class="mt-1 flex items-start gap-1.5 rounded-xl border border-amber-300 bg-amber-50/70 px-2.5 py-1.5">
+        <span class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-amber-200 bg-white text-amber-700">${icon('repeat', 'h-3.5 w-3.5')}</span>
         <div class="min-w-0 flex-1">
-          <p class="truncate text-[12px] font-bold text-amber-900">续费改单 · 选择新老师</p>
-          <p class="mt-0.5 truncate text-[11px] font-medium text-amber-800">单号 ${esc(state.renewalOrderId || '未提供')} · 选老师后进入课表复选新时段</p>
+          <p class="truncate text-[12px] font-bold text-amber-900">续费改单 · 选老师与新时段（草稿回传 M2A）</p>
+          <p class="mt-0.5 text-[11px] font-medium leading-relaxed text-amber-800">单号 ${esc(state.renewalOrderId || '未提供')} · 共 ${state.renewalOrderSize} 节 · 回传时校验已选 ≤ 节数；实际释旧锁新须在 M2A 点「保存并更正账单」时复核订单基线、原预占与全量并发独占</p>
         </div>
         <span class="shrink-0 rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200">改单中</span>
       </div>`;
@@ -960,10 +1048,10 @@
           <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-indigo-100 bg-indigo-50 text-[14px]">${student.emoji}</span>
           <span class="min-w-0 flex-1">
             <span class="flex min-w-0 items-center gap-1">
-              <span class="truncate text-[14px] font-bold text-slate-900">${esc(student.nickname)}</span>
+              <span class="truncate text-[14px] font-bold text-slate-900">${esc(student.name)}</span>
               <span class="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[12px] font-bold leading-none text-slate-700">${esc(priceLabel(student.price))}</span>
             </span>
-            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(student.name)} · 待排余 <span class="font-bold text-indigo-700">${student.credits}</span> 节 · 熟客优先</span>
+            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">原价位档位 ${esc(tierSummary(student))} · 熟客优先</span>
           </span>
           <span class="shrink-0 text-[12px] font-semibold text-indigo-600">切换</span>
         </button>`;
@@ -999,13 +1087,14 @@
           ${WEEK_META.map((item) => `<button type="button" data-week-select="${item.value}" aria-pressed="${state.week === item.value}" class="h-6 rounded-md px-3 text-[12px] font-semibold transition ${state.week === item.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}">${item.label}</button>`).join('')}
         </div>
         <span class="text-[12px] font-medium text-slate-600">${weekMeta().range}</span>
-      </div>`;
+      </div>
+      ${state.week === 0 ? '<p class="mt-0.5 text-[11px] font-medium text-slate-500">本周起排最早只可选明日 00:00 (UTC+8) 及以后，当天/已过时段与超 7 天均置灰</p>' : ''}`;
     }
 
     function renderFilters() {
-      return `<div class="mt-1 flex h-6 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="价位筛选">
-        <span class="shrink-0 text-[12px] font-medium text-slate-600">价位</span>
-        ${PRICE_FILTERS.map((item) => `<button type="button" data-filter="price" data-value="${item.value}" aria-pressed="${state.price === item.value}" class="h-6 shrink-0 rounded-full px-2.5 text-[11px] transition ${state.price === item.value ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${item.label}</button>`).join('')}
+      return `<div class="mt-1 flex h-6 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="原价位档位筛选">
+        <span class="shrink-0 text-[12px] font-medium text-slate-600">原价位档位</span>
+        ${PRICE_FILTERS.map((item) => `<button type="button" data-filter="price" data-value="${item.value}" title="按 TS 原价位档位正交归组，不受强提改价 / +10 备课费影响" aria-pressed="${state.price === item.value}" class="h-6 shrink-0 rounded-full px-2.5 text-[11px] transition ${state.price === item.value ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${item.label}</button>`).join('')}
       </div>
       <div class="mt-1 flex h-6 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="时段筛选">
         <span class="shrink-0 text-[12px] font-medium text-slate-600">时段</span>
@@ -1064,7 +1153,7 @@
             <div class="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
               <span data-teacher-name="${teacher.key}" class="max-w-[112px] truncate text-[12px] font-bold leading-none text-slate-900">${esc(teacher.name)}</span>
               <span class="rounded bg-slate-100 px-1 py-0.5 text-[12px] font-bold leading-none text-slate-700">${esc(priceLabel(teacher.price))}</span>
-              ${mine ? '<span class="rounded bg-slate-900 px-1 py-0.5 text-[12px] font-bold leading-none text-white">我负责</span>' : ''}
+              ${mine ? '<span class="rounded bg-slate-900 px-1 py-0.5 text-[12px] font-bold leading-none text-white">我负责</span>' : (state.role === 'monitor' ? '<span title="非本人负责老师：1v1 固定位不可排；临时代约落盘后向目标老师负责班长发送 M4 中性知会" class="rounded bg-sky-50 px-1 py-0.5 text-[12px] font-bold leading-none text-sky-700">跨组</span>' : '')}
               ${familiar ? '<span class="rounded bg-indigo-50 px-1 py-0.5 text-[12px] font-bold leading-none text-indigo-700">教过该学员</span>' : ''}
               ${samePrice ? '<span class="rounded bg-emerald-50 px-1 py-0.5 text-[12px] font-bold leading-none text-emerald-700">同价位</span>' : ''}
               ${focus ? '<span class="rounded bg-indigo-600 px-1 py-0.5 text-[12px] font-bold leading-none text-white">当前</span>' : ''}
@@ -1134,7 +1223,7 @@
         return `<p class="mt-2 text-center text-[12px] font-medium text-slate-500">已显示全部 ${visibleCount} 位老师</p>`;
       }
       if (visibleCount >= LOAD_LIMIT) {
-        return `<div class="mt-2 rounded-lg border border-slate-300 bg-slate-50/70 px-3 py-1.5 text-center text-[12px] font-semibold text-slate-600">已显示 ${visibleCount} 位 · 已达上限</div>`;
+        return `<div class="mt-2 rounded-lg border border-slate-300 bg-slate-50/70 px-3 py-1.5 text-center text-[12px] font-medium leading-relaxed text-slate-600"><span class="font-bold text-slate-800">已显示 ${visibleCount} 位 · 已达上限</span>（轻量化大盘性能取舍）<br>请叠加「价位 + 时段 + 本周/下周」筛选收窄范围，或前往 M1B 老师列表按姓名精确搜索后进入课表</div>`;
       }
       if (visibleCount >= total) {
         return `<p class="mt-2 text-center text-[12px] font-medium text-slate-500">已显示全部 ${visibleCount} 位老师</p>`;
@@ -1218,14 +1307,27 @@
       const teacher = TEACHERS.find((t) => t.key === teacherKey) || TEACHERS[0];
       const hour = CAL_START_HOUR + Math.floor(row / 2);
 
+      /* 老师预约离职日 D 起（含 D 当日）全格熔断，不可排入或手工补入 */
+      if (teacher.resignWeek !== undefined && wInCycle >= teacher.resignWeek) {
+        return { type: 'GRAY', label: '离职', conflictReason: '老师预约离职日 D 起熔断，不可排' };
+      }
+
       // 续费 HOLD 与冲突降级场景 (AC-3D-07, AC-3D-08)
       if (day === 0 && row === 22) { // 周一 19:00
-        if (state.holdMode === 'normal' && !state.releasedHold) {
-          return { type: 'ORANGE_HOLD', label: 'Alic', isHold: true };
+        if ((state.holdMode === 'normal' || state.holdMode === 'voucher') && !state.releasedHold) {
+          return {
+            type: 'ORANGE_HOLD',
+            label: state.holdMode === 'voucher' ? '待核' : 'Alic',
+            isHold: true,
+            voucherPending: state.holdMode === 'voucher'
+          };
         }
         if (state.holdMode === 'conflict') {
           if (wInCycle === 2) return { type: 'RED', label: '假', conflictReason: '第3周老师休假' };
           return { type: 'GREEN', label: '约' };
+        }
+        if (state.holdMode === 'all-conflict') {
+          return { type: 'RED', label: '满', conflictReason: '4 周全冲突 (0/4)' };
         }
       }
 
@@ -1243,6 +1345,7 @@
         '1-22', '3-20', '3-23', '1-23', // 周二19:00, 周四18:00, 周四19:30, 周二19:30
         '5-4', '5-5',   // 周六 10:00-11:00 (小班双格)
         '6-2', '6-3',   // 周日 09:00-10:00 (小班双格)
+        '6-4', '6-5',   // 周日 10:00-11:00 (小班撞已绑学员 1v1 演示 AC-3D-23)
         '6-14', '6-15', // 周日 15:00-16:00 (小班单节补排 AC-3D-12)
         '5-12', '5-13'  // 周六 14:00-15:00 (非第2周空闲)
       ];
@@ -1270,7 +1373,32 @@
       return { type: 'GRAY', label: '休' };
     }
 
+    /* 正式学员已绑定小班的 [G] 已排期双格（1v1 严格禁占；小班自身落盘不受影响） */
+    const STUDENT_BOUND_CLASS_SLOTS = {
+      alice: [
+        { wInCycle: 1, day: 5, row: 4, time: '第2周 周六 10:00' },
+        { wInCycle: 1, day: 5, row: 5, time: '第2周 周六 10:30' }
+      ]
+    };
+
+    function studentBoundClassSlot(studentKey, absWeek, day, row) {
+      const wInCycle = ((absWeek % 4) + 4) % 4;
+      return (STUDENT_BOUND_CLASS_SLOTS[studentKey] || [])
+        .find((entry) => entry.wInCycle === wInCycle && entry.day === day && entry.row === row) || null;
+    }
+
     function cellSelectable(teacherKey, absWeek, day, row, isClass) {
+      /* 跨调价轮次（涨/降同权）：生效日及之后周次不可用 */
+      if (!isClass && state.priceChangeDemo && (((absWeek % 4) + 4) % 4) >= 2) {
+        return { ok: false, reason: '12-07 起调为 18积分，不可跨调价轮次排班（涨/降同权）' };
+      }
+      /* 1v1 临时课与 4 周固定位严禁占用学员已绑定小班 [G] 已排期双格（含半格重叠） */
+      if (!isClass && state.contextType === 'student') {
+        const bound = studentBoundClassSlot(state.student, absWeek, day, row);
+        if (bound) {
+          return { ok: false, reason: `与学员已绑定小班 [G] ${bound.time} 冲突（单周标冲突待补）` };
+        }
+      }
       const c1 = getBaseCalCell(teacherKey, absWeek, day, row);
       if (c1.type === 'ORANGE_HOLD' && c1.isHold && !isClass) {
         return { ok: true };
@@ -1350,10 +1478,15 @@
 
     function renderBatchWeekHint(isBatch, isClass) {
       if (!isBatch) return '';
+      if (state.priceChangeDemo) {
+        return `<div class="mt-1.5 rounded-xl border border-rose-200 bg-rose-50/70 px-2.5 py-1.5">
+          <p class="text-[11px] font-medium leading-relaxed text-rose-800"><span class="font-bold">跨调价轮次熔断</span> · 12-07 起调为 18积分（涨价/降价同权），第 3/4 周已置灰阻断，仅可锁定第 1/2 周；未排节数留存学员待排池。</p>
+        </div>`;
+      }
       const plan = computeWeekPlan(state.calWeek);
       if (state.calWeek === 0) {
         return `<div class="mt-1.5 rounded-xl border border-indigo-200 bg-indigo-50/60 px-2.5 py-1.5">
-          <p class="text-[11px] font-medium leading-relaxed text-indigo-900"><span class="font-bold">模板周</span> · 选格后自动复制到第 2~4 周（${isClass ? '小班连续双格' : '1v1 单格'}）；冲突周留空标「冲突待补」，不阻断整单。</p>
+          <p class="text-[11px] font-medium leading-relaxed text-indigo-900"><span class="font-bold">模板周</span> · 选格后自动复制到第 2~4 周（${isClass ? '小班连续双格' : '1v1 单格'}）；冲突周留空标「冲突待补」，不阻断整单。${isClass ? '<br><span class="font-bold">小班排课仅校验主讲老师双格空闲，不因已绑学员 1v1 阻断；重叠时双方班长/主理人收到 M4 冲突待协调提醒。</span>' : '<br><span class="font-bold">价位：</span>TS 原价位档位须与老师当日生效价位双向严格相等；跨调价轮次（涨/降同）生效日及之后周次置灰。'}</p>
         </div>`;
       }
       if (plan.status === 'adjusted') {
@@ -1381,6 +1514,7 @@
       const absWeek = state.cycleOffset * 4 + state.calWeek;
       const weekDates = ['11.09', '11.16', '11.23', '11.30'];
 
+      const notMyTeacher = state.role === 'monitor' && teacher.owner !== CURRENT_MONITOR;
       const modeButtons = isClass
         ? [
             { key: 'batch', label: '连续4周批量', disabled: cls.credits < 4 },
@@ -1388,7 +1522,7 @@
           ]
         : [
             { key: 'temp', label: '仅排单周/临时课', disabled: false },
-            { key: 'batch', label: '连续4周批量', disabled: false }
+            { key: 'batch', label: notMyTeacher ? '连续4周批量 (仅负责班长)' : '连续4周批量', disabled: notMyTeacher }
           ];
 
       const isBatch = state.calMode === 'batch';
@@ -1406,6 +1540,7 @@
 
       return `<div id="content" class="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-white">
         <div class="mx-auto w-full max-w-[720px] px-2.5 pb-4 pt-2">
+          ${renderRenewalEditStrip()}
           <!-- 对象补选卡 (AC-3D-03) -->
           ${renderCalContextBar(student, cls)}
 
@@ -1415,7 +1550,8 @@
               ${modeButtons.map((m) => `<button type="button" data-cal-mode="${m.key}" ${m.disabled ? 'disabled' : ''} class="h-6 rounded-md px-2 text-[11px] font-semibold transition ${state.calMode === m.key ? 'bg-white text-slate-900 shadow-sm' : m.disabled ? 'cursor-not-allowed text-slate-500 opacity-50' : 'text-slate-600 hover:text-slate-900'}">${m.label}</button>`).join('')}
             </div>
             <div class="flex items-center gap-1 text-[11px] font-medium text-slate-600">
-              ${state.holdMode === 'conflict' && !state.holdResolved ? `<button type="button" data-action="open-hold-conflict" class="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-bold text-rose-700 hover:bg-rose-100">${icon('alert-triangle', 'h-3 w-3')}续费冲突</button>` : ''}
+              <span class="inline rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-bold text-slate-500" title="排课调度批：选格草稿中不锁日历、不扣 TS、不写流水；确认后单事务进入不可逆「已落盘」">草稿中</span>
+              ${(state.holdMode === 'conflict' || state.holdMode === 'all-conflict') && !state.holdResolved ? `<button type="button" data-action="open-hold-conflict" class="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 font-bold text-rose-700 hover:bg-rose-100">${icon('alert-triangle', 'h-3 w-3')}续费冲突</button>` : ''}
               <button type="button" data-action="open-rules" class="rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-700 hover:bg-slate-200">规则</button>
             </div>
           </div>
@@ -1436,12 +1572,17 @@
 
           ${renderBatchWeekHint(isBatch, isClass)}
 
-          ${state.holdMode === 'conflict' && !state.holdResolved ? `<div class="mt-1.5 box-border w-full rounded-xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 px-2.5 py-2">
+          ${state.classConflict ? `<div class="mt-1.5 rounded-xl border border-amber-300 bg-amber-50/80 px-2.5 py-2">
+            <p class="text-[12px] font-bold text-amber-900">小班已落盘 · 与已绑学员 1v1 重叠（不阻断）</p>
+            <p class="mt-0.5 text-[11px] font-medium leading-relaxed text-amber-800">${esc(state.classConflict.student)} ${esc(state.classConflict.time)} 的 1v1 与本次小班重叠：学员个人课表仅显示 1v1，小班仍独立计费履约。已向该 1v1 老师负责班长与本小班主理人各发送 1 条 M4 冲突待协调提醒卡（不直接骚扰家长）。</p>
+          </div>` : ''}
+
+          ${(state.holdMode === 'conflict' || state.holdMode === 'all-conflict') && !state.holdResolved ? `<div class="mt-1.5 box-border w-full rounded-xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 px-2.5 py-2">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-[12px] font-bold text-rose-800">续费预占冲突 · 已跳过冲突周</p>
+              <p class="text-[12px] font-bold text-rose-800">${state.holdMode === 'all-conflict' ? '续费预占 4 周全冲突 (0/4)' : '续费预占冲突 · 已跳过冲突周'}</p>
               <button type="button" data-action="open-hold-conflict" class="shrink-0 rounded-lg bg-rose-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-rose-700">查看方案</button>
             </div>
-            <p class="mt-0.5 text-[11px] font-medium text-rose-700">原周一 19:00 第3周老师休假冲突：系统跳过第3周，仅预占第1/2/4周 HOLD，余1节留存待排池并提醒班长补约。</p>
+            <p class="mt-0.5 text-[11px] font-medium text-rose-700">${state.holdMode === 'all-conflict' ? '系统锁定 0 格 HOLD 并仍生成 0/4 续费单，全部节数确认收款后直接进入待排池；未传凭证逾期按周日 00:00 (UTC+8) 作废。' : '原周一 19:00 第3周老师休假冲突：系统跳过第3周，仅预占第1/2/4周 HOLD，余1节留存待排池并提醒班长补约。'}</p>
           </div>` : ''}
 
           <!-- 7色周度课表冻结网格 -->
@@ -1476,7 +1617,8 @@
         return `<button type="button" data-action="open-context" class="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-2.5 py-1.5 text-left">
           <span class="flex min-w-0 items-center gap-1.5">
             <span class="text-[14px]">${student.emoji}</span>
-            <span class="truncate text-[13px] font-bold text-slate-900">${esc(student.nickname)}</span>
+            <span class="truncate text-[13px] font-bold text-slate-900">${esc(student.name)}</span>
+            <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">原价位 ${student.price}积分</span>
             <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">待排余 ${student.credits} 节</span>
           </span>
           <span class="shrink-0 text-[12px] font-semibold text-indigo-600">切换</span>
@@ -1581,8 +1723,9 @@
             </div>`);
           } else if (cell.type === 'ORANGE_HOLD') {
             const holdClickable = state.calMode === 'batch' && !isClass;
+            const holdVoucher = !!cell.voucherPending;
             cellsHtml.push(`<div class="relative h-[28px] border-l border-slate-100 p-0.5">
-              <button type="button" ${holdClickable ? `data-cal-cell="${day}-${row}"` : 'disabled'} class="flex h-full w-full items-center justify-center rounded-md border border-dashed border-amber-400 bg-amber-50/70 text-[11px] font-bold text-amber-800 ${holdClickable ? pulseCls : 'opacity-70'}">
+              <button type="button" ${holdClickable ? `data-cal-cell="${day}-${row}"` : 'disabled'} title="${holdVoucher ? '已传凭证待核：禁止静默释放或作废，须先赴 M2A 核款' : '未付款 HOLD：提交后释放原预占、同步作废续费单，并从已付款待排池实扣'}" class="flex h-full w-full items-center justify-center rounded-md border ${holdVoucher ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-dashed border-amber-400 bg-amber-50/70 text-amber-800'} text-[11px] font-bold ${holdClickable ? pulseCls : 'opacity-70'}">
                 [预]${esc(cell.label.slice(0, 2))}
               </button>${conflictDot}
             </div>`);
@@ -1610,6 +1753,7 @@
     }
 
     function renderCalendarFooter() {
+      const student = contextStudent();
       const cls = contextClass();
       const isClass = state.contextType === 'class';
       const isBatch = state.calMode === 'batch';
@@ -1618,12 +1762,10 @@
         ? weekPlans.reduce((sum, plan) => sum + plan.slots.length, 0)
         : state.selectedSlots.length;
 
-      // HOLD 预占转正的格子不重复扣减
-      let holdConverted = 0;
-      if (isBatch && !isClass && state.holdMode === 'normal' && !state.releasedHold) {
-        holdConverted = weekPlans.reduce((sum, plan) => sum + plan.slots.filter((s) => s.day === 0 && s.row === 22).length, 0);
-      }
-      const billable = Math.max(0, actualTotal - holdConverted);
+      // 未付款 HOLD 绝不免扣转正：无论是否同格重叠，一律释放原预占并从已付款待排池实扣
+      const billable = actualTotal;
+      const holdActive = isBatch && !isClass && (state.holdMode === 'normal' || state.holdMode === 'voucher') && !state.releasedHold;
+      const holdVoucherPending = holdActive && state.holdMode === 'voucher';
       const credits = availableCredits();
       const potential = isBatch ? state.templateSlots.length * 4 : 0;
       const remaining = isBatch ? Math.max(0, potential - actualTotal) : 0;
@@ -1642,6 +1784,15 @@
         blockedReason = '请在第 1 周模板周点选时段';
       } else if (isBatch && actualTotal === 0) {
         blockedReason = '没有可落单的已选时段';
+      } else if (isBatch && holdVoucherPending) {
+        blockedReason = '关联自动续费单已传付款凭证待核，请先赴 M2A 核实确认收款或驳回作废后再重排';
+        isWarning = true;
+      } else if (isBatch && state.contextType === 'student' && currentCalTeacher().price !== contextStudent().price) {
+        blockedReason = '原价位档位与老师生效价位不一致，禁止跨价位混扣（涨跌双向严格相等）';
+        isWarning = true;
+      } else if (isBatch && state.renewalEdit && actualTotal > state.renewalOrderSize) {
+        blockedReason = `已选 ${actualTotal} 节超过订单购买 ${state.renewalOrderSize} 节，请返回 M2A 上调购买节数或取消多余格`;
+        isWarning = true;
       } else if (isBatch && billable > credits) {
         blockedReason = `该价位待排课次不足（需 ${billable} 节，仅剩 ${credits} 节）`;
         isWarning = true;
@@ -1652,10 +1803,10 @@
       }
 
       let holdHint = '';
-      if (isBatch && !isClass && state.holdMode === 'normal' && !state.releasedHold) {
-        holdHint = holdConverted > 0
-          ? `原预占位转正 ${holdConverted} 格，不重复扣减`
-          : '原预占位 周一 19:00 将在确认后自动释放';
+      if (holdActive) {
+        holdHint = holdVoucherPending
+          ? '关联自动续费单已传付款凭证待核：严禁静默释放或作废，请先赴 M2A 完成确认收款或核验驳回'
+          : '提交后将同步释放原未付款预占位，并自动作废未传凭证在途续费单；全部新选格从已付款待排池按实扣减（未付款 HOLD 绝不免扣转正）';
       }
 
       const weekCards = isBatch ? weekPlans.map((plan, week) => {
@@ -1674,13 +1825,30 @@
 
       const totalCost = state.calMode === 'makeup' ? state.selectedSlots.length : billable;
       const canSubmit = !blockedReason && (isBatch ? actualTotal > 0 : state.selectedSlots.length > 0);
+      const renewalPending = isBatch && state.renewalEdit;
       const btnLabel = canSubmit
-        ? (state.calMode === 'makeup'
-            ? `确认单节补排 (扣 ${totalCost} 节)`
-            : isBatch
-              ? `确认批量锁定可用周 (共扣 ${totalCost} 节)`
-              : '临时课即时预约')
+        ? (renewalPending
+            ? '确认排期并返回 (草稿回传 M2A)'
+            : state.calMode === 'makeup'
+              ? `确认单节补排 (扣 ${totalCost} 节)`
+              : isBatch
+                ? `确认批量锁定可用周 (共扣 ${totalCost} 节)`
+                : '临时课即时预约')
         : blockedReason;
+
+      /* 吸底加粗核对摘要：老师英文名 + 排课类型 + 对象规范英文名/小班名 + 各周落盘明细 */
+      const typeLabel = isClass
+        ? (state.calMode === 'makeup' ? '小班单节补排' : '小班整班')
+        : (state.calMode === 'batch' ? '1v1 固定位' : '1v1 临时课');
+      const objectLabel = student ? student.name : cls ? cls.name : '未选对象';
+      const weekDetail = isBatch
+        ? weekPlans.map((plan, week) => {
+            const times = plan.slots.map((s) => `${DAY_LABELS[s.day]} ${calRowTime(s.row)}`).join('、');
+            return `第${week + 1}周 ${times || weekStatusMeta(week).label}`;
+          }).join(' / ')
+        : (state.selectedSlots[0]
+            ? `${DAY_LABELS[state.selectedSlots[0].day]} ${calRowTime(state.selectedSlots[0].row)}${isClass ? ' 连续双格' : ''}`
+            : '');
 
       const summaryText = isBatch
         ? `实扣 ${totalCost} 节 · ${remaining > 0 ? `${remaining} 节留存待排池` : '无剩余'}`
@@ -1692,9 +1860,14 @@
       return `<footer class="shrink-0 border-t border-slate-200 bg-white px-3 py-2.5 shadow-lg">
         ${isBatch ? `<div class="mb-1.5 grid grid-cols-2 gap-1">${weekCards}</div>` : ''}
         ${chips ? `<div class="mb-1.5 flex flex-wrap items-center gap-1">${chips}</div>` : ''}
+        ${renewalPending ? `<p class="mb-1 text-[11px] font-bold text-indigo-800">已选 ${actualTotal} 节 / 订单共 ${state.renewalOrderSize} 节 · 剩余 ${Math.max(0, state.renewalOrderSize - actualTotal)} 节待排</p>` : ''}
         ${isBatch ? `<p class="mb-1 text-[11px] font-semibold text-slate-700">${summaryText}</p>` : ''}
         ${makeupCost ? `<p class="mb-1.5 text-[11px] font-semibold text-slate-600">${makeupCost}</p>` : ''}
-        ${holdHint ? `<p class="mb-1 text-[11px] font-semibold text-amber-800">${holdHint}</p>` : ''}
+        ${isBatch && actualTotal ? `<div class="mb-1.5 rounded-lg border border-indigo-200 bg-indigo-50/70 px-2 py-1">
+          <p class="text-[11px] font-bold text-indigo-900">📌 核对：${esc(currentCalTeacher().name)} · ${typeLabel} · ${esc(objectLabel)}</p>
+          <p class="mt-0.5 text-[11px] font-medium leading-relaxed text-indigo-800">${esc(weekDetail)}</p>
+        </div>` : ''}
+        ${holdHint ? `<p class="mb-1 rounded-lg border ${holdVoucherPending ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-amber-50 text-amber-800'} px-2 py-1 text-[11px] font-semibold">${holdHint}</p>` : ''}
         ${isWarning ? `<p class="mb-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-700">${blockedReason}</p>` : ''}
         <button type="button" data-action="confirm-cal-schedule" ${canSubmit ? '' : 'disabled'} class="h-11 w-full rounded-xl text-[14px] font-bold transition ${canSubmit ? 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.99]' : 'cursor-not-allowed bg-slate-200 text-slate-500'}">
           ${esc(btnLabel)}
@@ -1703,6 +1876,22 @@
     }
 
     function renderHoldConflictOverlay() {
+      const allConflict = state.holdMode === 'all-conflict';
+      if (allConflict) {
+        return `<div class="space-y-2 pt-2">
+          <div class="box-border w-full rounded-xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 p-2.5">
+            <p class="text-[12px] font-bold text-rose-800">续费预占 · 4 周全冲突（0/4）</p>
+            <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">本轮未来 4 周偶发全部占满/老师请假，系统锁定 <span class="font-bold">0 格</span> HOLD，仍按完整周期生成 <span class="font-bold">0/4</span> 待付款续费单，全部 N 节确认收款后直接进入待排池。</p>
+          </div>
+          <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5 text-[12px] text-slate-700 space-y-1">
+            <p><span class="font-bold text-slate-900">1. 0 格预占：</span>不锁任何课格，也不会静默跳过整单。</p>
+            <p><span class="font-bold text-slate-900">2. 时限锚点：</span>0/4 单据按新轮次首日周一 00:00 倒推：周六 00:00 (UTC+8) 催办、周日 00:00 (UTC+8) 自动作废。</p>
+            <p><span class="font-bold text-slate-900">3. 通知：</span>向资金托管班长 / 小班主理人 / 平台直管管理员发送 M4 浅黄提醒卡与补约提醒邮件。</p>
+          </div>
+          <button type="button" data-action="accept-candidate-hold" class="h-11 w-full rounded-xl bg-indigo-600 text-[14px] font-bold text-white hover:bg-indigo-700">确认收款 · 0 格预占全部入待排池</button>
+          <button type="button" data-action="release-candidate-hold" class="h-10 w-full rounded-xl border border-slate-300 bg-white text-[13px] font-semibold text-slate-700 hover:bg-slate-50">稍后处理 · 查看待排池</button>
+        </div>`;
+      }
       return `<div class="space-y-2 pt-2">
         <div class="box-border w-full rounded-xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 p-2.5">
           <p class="text-[12px] font-bold text-rose-800">续费预占冲突 · 跳过第 3 周冲突</p>
@@ -1710,8 +1899,9 @@
         </div>
         <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5 text-[12px] text-slate-700 space-y-1">
           <p><span class="font-bold text-slate-900">1. 跳过冲突周：</span>仅对可用周（第 1/2/4 周）预占 HOLD，第 3 周不锁位、不阻断。</p>
-          <p><span class="font-bold text-slate-900">2. 余节留存：</span>续费单仍按原 4 节生成并标注「跳过第 3 周，余 1 节待补约」；确认收款后余 1 节进入待排池。</p>
-          <p><span class="font-bold text-slate-900">3. 通知班长：</span>已发送提醒邮件与端内待办，请与家长沟通确认收款后人工补约余下 1 节。</p>
+          <p><span class="font-bold text-slate-900">2. 余节留存：</span>续费单仍按原 4 节生成并标注「跳过第 3 周，余 1 节待补约」；确认收款后尚在未来的 HOLD 周转正，余 1 节进入待排池。</p>
+          <p><span class="font-bold text-slate-900">3. 通知班长：</span>已发送浅黄提醒卡与补约提醒邮件，请与家长沟通确认收款后人工补约余下 1 节。</p>
+          <p><span class="font-bold text-slate-900">4. 逾期清退：</span>未传凭证 1v1 续费单按 min(最早预占开课前 24h, 新轮首日周一 01:00 UTC+8) 作废释放；已传凭证待核豁免；小班 G-HOLD 保持开课前 24h。</p>
         </div>
         <button type="button" data-action="accept-candidate-hold" class="h-11 w-full rounded-xl bg-indigo-600 text-[14px] font-bold text-white hover:bg-indigo-700">确认收款 · 锁定可用周 HOLD (3 周)</button>
         <button type="button" data-action="release-candidate-hold" class="h-10 w-full rounded-xl border border-slate-300 bg-white text-[13px] font-semibold text-slate-700 hover:bg-slate-50">稍后处理 · 查看待排池</button>
@@ -1727,8 +1917,14 @@
       const availCredits = student ? student.credits : 0;
       const options = [1, 2, 3, 4].map((count) => {
         let consecutiveOk = true;
+        let boundConflict = false;
         for (let i = 0; i < count; i += 1) {
           if (slot.row + i >= CAL_ROWS) { consecutiveOk = false; break; }
+          if (student && studentBoundClassSlot(state.student, absWeek, slot.day, slot.row + i)) {
+            boundConflict = true;
+            consecutiveOk = false;
+            break;
+          }
           const c = getBaseCalCell(teacher.key, absWeek, slot.day, slot.row + i);
           if (c.type !== 'GREEN') { consecutiveOk = false; break; }
         }
@@ -1736,17 +1932,21 @@
         const ok = consecutiveOk && enough && state.contextType === 'student';
         const reason = state.contextType !== 'student'
           ? '请先选择学员'
-          : !consecutiveOk
-            ? '后续时段已被占用'
-            : !enough
-              ? '待排课次不足'
-              : `${count * 30} 分钟 · 扣 ${count} 节`;
+          : boundConflict
+            ? '与已绑定小班 [G] 时段冲突'
+            : !consecutiveOk
+              ? '后续时段已被占用'
+              : !enough
+                ? '待排课次不足'
+                : `${count * 30} 分钟 · 扣 ${count} 节`;
         return `<button type="button" data-confirm-temp="${count}" ${ok ? '' : 'disabled'} class="flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left transition ${ok ? 'border-slate-300 bg-slate-50/70 hover:border-indigo-300 hover:bg-indigo-50/60' : 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-60'}">
           <span class="text-[14px] font-bold text-slate-900">${count === 1 ? '单约 1 节' : `连约 ${count} 节`} (${calRowTime(slot.row)}~${calRowTime(slot.row + count)})</span>
           <span class="text-[12px] font-semibold ${ok ? 'text-indigo-700' : 'text-slate-500'}">${reason}</span>
         </button>`;
       }).join('');
-      return `<p class="mt-1 text-[12px] font-medium text-slate-600">${DAY_LABELS[slot.day]} ${calRowTime(slot.row)} · 1v1 临时课抢约 (提前 1-7 天)</p>
+      const crossPrice = student && teacher.price !== student.price;
+      return `<p class="mt-1 text-[12px] font-medium text-slate-600">${DAY_LABELS[slot.day]} ${calRowTime(slot.row)} · 1v1 临时课抢约（提前 1-7 天，最早明日 00:00 UTC+8）</p>
+        ${crossPrice ? `<p class="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold leading-relaxed text-amber-800">跨价位代约软预检（非阻断）：TS 原价位 ${student.price}积分 ≠ 老师生效 ${teacher.price}积分；仍按原单实付积分快照上交，不补退差价</p>` : ''}
         <div class="mt-2 space-y-2">${options}</div>`;
     }
 
@@ -1762,35 +1962,31 @@
       const query = String(state.contextSearch || '').trim().toLowerCase();
       const students = Object.values(STUDENTS);
       if (!query) return students;
-      return students.filter((student) => {
-        const nickname = student.nickname.toLowerCase();
-        const name = student.name.toLowerCase();
-        const short = student.short.toLowerCase();
-        return nickname.startsWith(query) || name.includes(query) || short.includes(query);
-      });
+      /* 全列表仅按规范英文名检索，严禁暴露或搜索学员小名 */
+      return students.filter((student) => student.name.toLowerCase().includes(query));
     }
 
     function renderContextSheetContent() {
       const searchedStudents = filterContextStudents();
       /* 仅当当前可选学员 > 10 人时展示首字母索引（≤10 隐藏） */
       const showLetterIndex = searchedStudents.length > 10;
-      const letters = [...new Set(searchedStudents.map((student) => student.nickname.charAt(0).toUpperCase()))]
+      const letters = [...new Set(searchedStudents.map((student) => student.name.charAt(0).toUpperCase()))]
         .filter((letter) => /^[A-Z]$/.test(letter))
         .sort();
       const effectiveLetter = showLetterIndex && letters.includes(state.contextLetter) ? state.contextLetter : 'all';
       const sortAZ = String(state.contextSearch || '').trim() !== '' || effectiveLetter !== 'all';
       let visibleStudents = effectiveLetter === 'all'
         ? searchedStudents.slice()
-        : searchedStudents.filter((student) => student.nickname.charAt(0).toUpperCase() === effectiveLetter);
-      if (sortAZ) visibleStudents.sort((a, b) => a.nickname.localeCompare(b.nickname));
+        : searchedStudents.filter((student) => student.name.charAt(0).toUpperCase() === effectiveLetter);
+      if (sortAZ) visibleStudents.sort((a, b) => a.name.localeCompare(b.name));
 
       const studentButtons = visibleStudents.map((student) => {
         const active = state.contextType === 'student' && state.student === student.key;
         return `<button type="button" data-pick-context="student" data-key="${student.key}" class="flex min-h-[44px] w-full items-center gap-2 rounded-xl border p-2.5 text-left transition active:scale-[0.99] ${active ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-300 bg-slate-50/70 hover:bg-slate-100'}">
           <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-indigo-100 bg-white text-[16px]">${student.emoji}</span>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[14px] font-bold text-slate-900">${esc(student.nickname)}</span>
-            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(priceLabel(student.price))} · 待排余 ${student.credits} 节</span>
+            <span class="block truncate text-[14px] font-bold text-slate-900">${esc(student.name)}</span>
+            <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">原价位档位 ${esc(tierSummary(student))}</span>
           </span>
           ${active ? `<span class="shrink-0 text-[12px] font-bold text-indigo-600">已选</span>` : ''}
         </button>`;
@@ -1824,10 +2020,10 @@
         </button>`;
       }).join('');
 
-      return `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">选学员后按熟客、价位与当周负荷排序；也可保持无对象，仅查空档。</p>
+      return `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">列表仅显示规范英文名（不露中文小名）；选学员后按熟客、原价位档位与当周负荷排序，也可保持无对象仅查空档。</p>
         <div class="relative mt-2">
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">${icon('search', 'h-4 w-4')}</span>
-          <input type="search" inputmode="search" autocomplete="off" data-context-search value="${esc(state.contextSearch)}" placeholder="搜索规范昵称 1–2 字母 / 英文名 / 小名" aria-label="搜索学员" class="h-11 w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-9 pr-3 text-[13px] font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white" />
+          <input type="search" inputmode="search" autocomplete="off" data-context-search value="${esc(state.contextSearch)}" placeholder="搜索规范英文名 1–2 字母" aria-label="搜索学员规范英文名" class="h-11 w-full rounded-xl border border-slate-300 bg-slate-50/70 pl-9 pr-3 text-[13px] font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white" />
         </div>
         ${letterIndex}
         <div class="mt-2 grid grid-cols-1 gap-2">${studentList}</div>
@@ -1845,7 +2041,7 @@
             <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-indigo-600">${icon('calendar-check', 'h-3.5 w-3.5')}</span>
             <p class="text-[14px] font-bold text-slate-900">固定位与整班排课</p>
           </div>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">以第 1 周为模板周，选格后自动复制到第 2~4 周；冲突周留空标「冲突待补」，不阻断整单，未排节数留存待排池。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">以第 1 周为模板周，选格后自动复制到第 2~4 周；冲突周留空标「冲突待补」，不阻断整单，未排节数留存待排池。老师预约离职日 D 起（含 D 当日 00:00 UTC+8）全格置灰不可排，小班须走 M1C 提前结课解散。</p>
         </div>
         <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
           <div class="flex items-center gap-1.5">
@@ -1860,6 +2056,34 @@
             <p class="text-[14px] font-bold text-slate-900">小班连续双格</p>
           </div>
           <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">按连续双格选取；模板周选好后默认复制后 3 周，可逐周增删并恢复跟随。</p>
+        </div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-emerald-700">${icon('badge-check', 'h-3.5 w-3.5')}</span>
+            <p class="text-[14px] font-bold text-slate-900">价位双向严格相等</p>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">固定位与家长临约均按 TS「原价位档位」（强提改价 / +10 备课费不改变）与老师当日生效价位双向严格相等，涨跌同权，禁止跨价位混扣；跨调价生效日（涨/降）及之后周次置灰，仅可排生效日前周次。</p>
+        </div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-rose-600">${icon('shield-alert', 'h-3.5 w-3.5')}</span>
+            <p class="text-[14px] font-bold text-slate-900">未付款 HOLD 不免扣转正</p>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">用已付款待排池新排固定位覆盖未传凭证 HOLD 时，单事务先释放原 HOLD 并同步作废续费单，再用待排 TS 实扣；若续费单已「已传凭证待核」则强制拦截，须先赴 M2A 核款。未传凭证 1v1 逾期按 min(最早预占开课前 24h, 新轮首日周一 01:00 UTC+8) 作废，已传凭证待核豁免。</p>
+        </div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-amber-600">${icon('users', 'h-3.5 w-3.5')}</span>
+            <p class="text-[14px] font-bold text-slate-900">小班不阻断 + 协同知会</p>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">小班落盘只校验主讲老师双格空闲，不被已绑学员 1v1 阻断；命中时向该 1v1 老师负责班长与小班主理人发 M4 冲突待协调提醒（不扰家长）。跨组代约 1v1 临时课按单次操作合并向目标老师负责班长发 M4 中性知会（不发邮件）。</p>
+        </div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700">${icon('git-branch', 'h-3.5 w-3.5')}</span>
+            <p class="text-[14px] font-bold text-slate-900">排课调度批：草稿零占格 → 已落盘不可逆</p>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">「选格草稿中」不锁日历、不扣 TS、不写流水；确认通过全部硬校验后单事务进入「已落盘」，无整批冲正入口，误排须赴 M3A 单节撤排退池。续费改单「草稿回传」只在 M3D 校验已选 ≤ 订单节数，实际释旧锁新由 M2A 保存时复核订单基线与全量并发。</p>
         </div>
         <div class="rounded-xl border border-slate-300 bg-slate-50/70 p-2.5">
           <div class="flex items-center gap-1.5">
@@ -1885,16 +2109,23 @@
       const scenarios = [
         { value: 'student-alice', label: '学员 Alice' },
         { value: 'student-bob', label: '学员 Bob' },
+        { value: 'student-tom', label: '多价位 Tom (21×10/18×4)' },
         { value: 'class-ket', label: '小班 KET' },
         { value: 'class-unassigned', label: '小班待委任' },
         { value: 'empty', label: '仅查空档' },
         { value: 'step2-david', label: 'Step2 默认单周' },
         { value: 'step2-batch', label: '批量 模板4周' },
+        { value: 'step2-price-change', label: '跨调价轮次熔断' },
+        { value: 'step2-resign', label: '老师离职日熔断' },
         { value: 'step2-charlie', label: '资产不足 (2节)' },
         { value: 'step2-hold', label: 'HOLD 智能平移' },
         { value: 'step2-hold-conflict', label: 'HOLD 冲突跳过' },
+        { value: 'step2-hold-voucher', label: 'HOLD 已传凭证待核' },
+        { value: 'step2-hold-all-conflict', label: 'HOLD 0/4 全冲突' },
+        { value: 'renewal-edit', label: '续费改单草稿回传' },
         { value: 'step2-temp', label: '临时课 (1-7天)' },
         { value: 'step2-class-batch', label: '小班整班4周' },
+        { value: 'step2-class-conflict', label: '小班撞 1v1 告警' },
         { value: 'step2-class-makeup', label: '小班单节补排' },
         { value: 'price-all', label: '全部价位' },
         { value: 'price-16', label: '16积分' },
@@ -1968,7 +2199,7 @@
       if (type === 'student' && STUDENTS[key]) {
         state.contextType = 'student';
         state.student = key;
-        state.price = STUDENTS[key].price;
+        state.price = defaultPriceForStudent(STUDENTS[key]);
       } else if (type === 'class' && CLASSES[key]) {
         state.contextType = 'class';
         state.classKey = key;
@@ -2038,6 +2269,10 @@
       state.selectedTeacher = 'david';
       state.calMode = 'temp';
       state.holdMode = 'none';
+      state.renewalEdit = false;
+      state.renewalOrderId = '';
+      state.renewalOrderSize = 8;
+      state.priceChangeDemo = false;
       resetCalRuntime();
       resetContextSheetFilters();
       state.toast = '';
@@ -2151,6 +2386,20 @@
       render(true);
     }
 
+    /* 已绑正式学员的个人 1v1 课次（小班落盘不阻断，但需 M4 冲突待协调告警） */
+    const CLASS_BOUND_ONEONONE = {
+      ket1: [{ student: 'AliceZ12', day: 6, row: 5, time: '周日 10:30' }],
+      ket1_makeup: [{ student: 'AliceZ12', day: 6, row: 5, time: '周日 10:30' }],
+      mov2: []
+    };
+
+    function firstClassStudentOverlap(plans) {
+      const list = CLASS_BOUND_ONEONONE[state.classKey] || [];
+      const hit = list.find((entry) => plans.some((slot) => slot.day === entry.day
+        && (slot.row === entry.row || slot.row + 1 === entry.row)));
+      return hit || null;
+    }
+
     function confirmCalSchedule() {
       const student = contextStudent();
       const cls = contextClass();
@@ -2171,9 +2420,15 @@
         });
         cls.credits = Math.max(0, cls.credits - state.selectedSlots.length);
         const count = state.selectedSlots.length;
+        const overlap = firstClassStudentOverlap(state.selectedSlots);
         state.selectedSlots = [];
         triggerPulse(pulseKeys);
-        flashToast(`单节补排成功 · 锁定 ${count} 个连续双格，已核销待补排待办`);
+        if (overlap) {
+          state.classConflict = overlap;
+          flashToast(`单节补排成功 · 已锁定 ${count} 个连续双格；检测到与 ${overlap.student} ${overlap.time} 的 1v1 重叠，已发 M4 冲突待协调提醒`);
+        } else {
+          flashToast(`单节补排成功 · 锁定 ${count} 个连续双格，已核销待补排待办`);
+        }
         return;
       }
 
@@ -2182,15 +2437,33 @@
       const actualTotal = weekPlans.reduce((sum, plan) => sum + plan.slots.length, 0);
       if (actualTotal === 0) return;
 
-      let holdConverted = 0;
-      if (!isClass && state.holdMode === 'normal' && !state.releasedHold) {
-        holdConverted = weekPlans.reduce((sum, plan) => sum + plan.slots.filter((s) => s.day === 0 && s.row === 22).length, 0);
+      // 已传凭证待核：严禁静默释放/作废原续费单
+      if (!isClass && state.holdMode === 'voucher' && !state.releasedHold) {
+        flashToast('关联自动续费单已传付款凭证待核，请先赴 M2A 核实确认收款或驳回作废后再重排');
+        return;
       }
-      const billable = Math.max(0, actualTotal - holdConverted);
+      // 双向严格单价位匹配（涨跌同权），禁止跨价位混扣
+      if (!isClass && student && currentCalTeacher().price !== student.price) {
+        flashToast(`原价位档位 ${student.price}积分 与老师生效价位 ${currentCalTeacher().price}积分 不一致，禁止跨价位混扣`);
+        return;
+      }
+      // 续费预排调课模式：仅校验 X <= N 后回传草稿，M3D 不落盘、不动原 HOLD
+      if (state.renewalEdit) {
+        if (actualTotal > state.renewalOrderSize) {
+          flashToast(`已选 ${actualTotal} 节超过订单购买 ${state.renewalOrderSize} 节，请回 M2A 上调节数或取消多余格`);
+          return;
+        }
+        flashToast(`草稿已回传 M2A：已选 ${actualTotal} 节 / 订单 ${state.renewalOrderSize} 节，剩余 ${Math.max(0, state.renewalOrderSize - actualTotal)} 节待排；原预占未变更，需在 M2A 点保存并更正账单后生效`);
+        return;
+      }
+
+      // 未付款 HOLD 绝不免扣转正，一律从已付款待排池实扣
+      const billable = actualTotal;
       if (billable > availableCredits()) {
         flashToast(`该价位待排课次不足（需 ${billable} 节，仅剩 ${availableCredits()} 节）`);
         return;
       }
+      const classOverlap = isClass ? firstClassStudentOverlap(weekPlans.flatMap((plan) => plan.slots)) : null;
 
       weekPlans.forEach((plan) => {
         const absWeek = baseWeek + plan.week;
@@ -2211,11 +2484,13 @@
         });
       });
 
+      let releasedUnpaidHold = false;
       if (!isClass && state.holdMode === 'normal' && !state.releasedHold) {
-        const holdInPlan = weekPlans.some((plan) => plan.slots.some((s) => s.day === 0 && s.row === 22));
-        if (holdInPlan) state.holdMode = 'none';
-        else state.releasedHold = true;
+        releasedUnpaidHold = true;
+        state.holdMode = 'none';
+        state.releasedHold = true;
       }
+      state.classConflict = classOverlap;
 
       if (isClass) {
         cls.credits = Math.max(0, cls.credits - billable);
@@ -2231,7 +2506,11 @@
       state.selectedSlots = [];
       state.calWeek = 0;
       triggerPulse(pulseKeys);
-      flashToast(`已锁定 ${weekCount} 周 · ${actualTotal} 格 · 实扣 ${billable} 节${holdConverted ? `（预占转正 ${holdConverted} 格）` : ''}${remaining ? ` · ${remaining} 节留存待排池` : ''}`);
+      const noticeParts = [`已锁定 ${weekCount} 周 · ${actualTotal} 格 · 实扣 ${billable} 节`];
+      if (releasedUnpaidHold) noticeParts.push('原未付款续费单已同步作废，家长与原资金持有人已收 M4 浅黄提醒（无需重复付款）');
+      if (remaining) noticeParts.push(`${remaining} 节留存待排池`);
+      if (classOverlap) noticeParts.push(`小班与 ${classOverlap.student} 的 1v1 重叠，已发 M4 冲突待协调提醒`);
+      flashToast(noticeParts.join(' · '));
     }
 
     document.addEventListener('input', (event) => {
@@ -2393,7 +2672,9 @@
           state.overlay = null;
           state.tempBookingSlot = null;
           triggerPulse(keys);
-          flashToast(`已预约 1v1 临时课 ${count} 节 (${DAY_LABELS[slot.day]} ${calRowTime(slot.row)})`);
+          const tempTeacher = currentCalTeacher();
+          const crossGroup = tempTeacher.owner !== CURRENT_MONITOR;
+          flashToast(`已预约 1v1 临时课 ${count} 节 (${DAY_LABELS[slot.day]} ${calRowTime(slot.row)})${crossGroup ? ` · 已向 ${tempTeacher.name} 负责班长发送 M4 跨组中性知会（不发邮件）` : ''}`);
         }
         return;
       }
@@ -2430,6 +2711,12 @@
         const keys = [];
         const stu = contextStudent();
         let held = 0;
+        if (state.holdMode === 'all-conflict') {
+          state.holdResolved = true;
+          state.overlay = null;
+          flashToast('4 周全冲突：锁定 0 格 HOLD，仍生成 0/4 续费单，全部节数确认收款后进入待排池');
+          return;
+        }
         for (let w = 0; w < 4; w += 1) {
           const absWeek = baseWeek + w;
           // 跳过第 3 周冲突，仅对可用周（第 1/2/4 周）预占 HOLD

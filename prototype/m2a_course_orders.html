@@ -44,13 +44,14 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <span class="font-medium text-slate-500">续费时效</span>
+        <span class="font-medium text-slate-500">续费截点</span>
         <div class="inline-flex rounded-xl bg-slate-100 p-1">
-          <button data-group="renewal" data-value="normal" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">68h 常规</button>
-          <button data-group="renewal" data-value="warn" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">48h 预警</button>
-          <button data-group="renewal" data-value="overdue" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">24h 逾期</button>
+          <button data-group="renewal" data-value="normal" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">常规期</button>
+          <button data-group="renewal" data-value="warn" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">截点前24h催办</button>
+          <button data-group="renewal" data-value="overdue" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">周一01:00清场</button>
         </div>
-        <button id="btnOverdue" class="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 font-semibold text-rose-700 hover:bg-rose-100">模拟逾期跑批</button>
+        <button id="btnVoucherDemo" class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 font-semibold text-amber-800 hover:bg-amber-100">已传凭证待核</button>
+        <button id="btnOverdue" class="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 font-semibold text-rose-700 hover:bg-rose-100">模拟截点跑批</button>
       </div>
 
       <div class="flex items-center gap-2">
@@ -121,7 +122,7 @@
     const CLASSES = [
       { id: 'cls_ket00001', name: 'KET 冲刺精讲小班', teacherId: 'tc_david0001', teacherName: 'David Miller', max: 3, status: 'active', owner: 'Leo' },
       { id: 'cls_phon0002', name: '自然拼读启蒙班', teacherId: 'tc_sarah0002', teacherName: 'Sarah Jenkins', teacherOwner: 'Amy', leaveDate: '2026-11-25', crossesLeave: true, max: 3, status: 'active', owner: 'Leo' },
-      { id: 'cls_ketcarry3', name: 'KET 冲刺精讲小班 · 承接班', teacherId: 'tc_david0001', teacherName: 'David Miller', max: 3, status: 'active', owner: 'Amy' },
+      { id: 'cls_ketcarry3', name: 'KET 冲刺精讲小班 · 承接班', teacherId: 'tc_david0001', teacherName: 'David Miller', max: 3, status: 'active', owner: 'Amy', consecutiveOverdue: 2, autoRenewalPaused: true },
       { id: 'cls_ketweek9', name: 'KET 周末冲刺班', teacherId: null, teacherName: '待委任', max: 3, status: 'active', pendingTeacher: true, owner: 'Leo' },
       { id: 'cls_ketold01', name: 'KET 周六 A 班', teacherId: 'tc_david0001', teacherName: 'David Miller', max: 3, status: 'early_terminated', remainingLessons: 6, endedAt: '2026-10-31', endReason: '更换主讲老师，提前结课解散', owner: 'Leo' }
     ];
@@ -146,6 +147,18 @@
         holdSkipped: [3], makeupLessons: 2,
         expireHours: 68, hasVoucher: false, voucherCount: 0, voucherPendingReview: false,
         adjustmentStatus: '', adjustmentTags: [], adjustmentNote: '', adjustmentAt: '', cancelReason: ''
+      },
+      {
+        id: 'ord_m3d00001', orderType: '1v1', source: 'AUTO_RENEWAL', student: 'CharlieC09',
+        teacherId: 'tc_david0001', teacherName: 'David Miller', priceTier: 21, previousTier: 21,
+        items: [{ priceTier: 21, lessons: 4 }],
+        lessonCount: 4, extraPrep: false, expectedPoints: 84, paidPoints: 84, status: 'CANCELLED', leaveQuota: 0,
+        createdAt: '2026-11-04 08:00', holder: 'Leo', isForced: false, forceReason: '',
+        preScheduleSlots: '每周三 17:00 - 17:30（共 4 节）', slotTime: '17:00',
+        effectiveFrom: '2026-12-07', cancelReason: 'M3D_REPLACE', cancelledAt: '2026-11-08 10:20',
+        hasVoucher: false, voucherCount: 0, voucherPendingReview: false,
+        adjustmentStatus: '', adjustmentTags: [], adjustmentNote: '', adjustmentAt: '',
+        history: [{ at: '2026-11-08 10:20', title: 'M3D 待排池重排固定位替代', note: '班长用已付款待排池重排 4 周固定位，系统同事务作废本续费单并释放原 HOLD（已传凭证待核单会被强拦截，不静默作废）', actor: '系统' }]
       },
       {
         id: 'ord_manu0001', orderType: '1v1', source: 'MANUAL', student: 'AliceZ12',
@@ -532,7 +545,7 @@
       }
       if (state.sourceFilter !== 'all') list = list.filter((o) => o.source === state.sourceFilter);
       const q = state.query.trim().toLowerCase();
-      if (q) list = list.filter((o) => [o.student, o.id, o.teacherName, o.className || '', itemsSummary(o)].join(' ').toLowerCase().includes(q));
+      if (q) list = list.filter((o) => [o.student, o.id].join(' ').toLowerCase().includes(q));
       return sortOrders(list);
     }
     function statusMeta(status) {
@@ -579,9 +592,11 @@
       return 2;
     }
     function pendingPriority(o) {
-      if (adjustmentPending(o)) return 0;
-      if (o.source === 'AUTO_RENEWAL' && Number(o.expireHours || 99) <= 48) return 1;
-      return 2;
+      // 已传凭证待核的逾期豁免单最靠前，其次家长申请调整，再次临期
+      if (o.voucherPendingReview) return 0;
+      if (adjustmentPending(o)) return 1;
+      if (o.source === 'AUTO_RENEWAL' && Number(o.expireHours || 99) <= 48) return 2;
+      return 3;
     }
     function sortOrders(list) {
       return list.slice().sort((a, b) => {
@@ -621,26 +636,43 @@
       }
       const items = orderItems(order);
       const extra = order.extraPrep ? 10 : 0;
+      const paid = Number(order.paidPoints);
+      const lines = items.map((item) => {
+        const tier = Number(item.priceTier) || 0;
+        const lessons = Math.max(0, Number(item.lessons) || 0);
+        return { tier, lessons, expected: (tier + extra) * lessons };
+      });
+      const totalExpected = lines.reduce((s, l) => s + l.expected, 0);
+      // 强提改价：先按各明细行期望占比向下取整分配实收，余数归最后一行；行内再取整，余数归末节。
+      // 原价位档位（priceTier）保持字典档位不变，仅单节实付快照（points）按分摊结果固化。
+      let allocations;
+      if (totalExpected > 0 && paid !== totalExpected) {
+        allocations = lines.map((l) => Math.floor((paid * l.expected) / totalExpected));
+        const assigned = allocations.reduce((s, n) => s + n, 0);
+        if (allocations.length) allocations[allocations.length - 1] += paid - assigned;
+      } else {
+        allocations = lines.map((l) => l.expected);
+      }
       const list = [];
       let idx = 1;
-      items.forEach((item) => {
-        for (let k = 0; k < Math.max(0, Number(item.lessons) || 0); k += 1) {
+      lines.forEach((line, lineIdx) => {
+        if (!line.lessons) return;
+        const lineTotal = Math.max(0, allocations[lineIdx]);
+        const base = Math.floor(lineTotal / line.lessons);
+        for (let k = 0; k < line.lessons; k += 1) {
+          const isLastOfLine = k === line.lessons - 1;
           list.push({
             index: idx,
             tsId: `ts_${String(order.id).slice(-4)}${String(idx).padStart(5, '0')}`,
-            points: Number(item.priceTier) + extra,
-            priceTier: Number(item.priceTier),
+            points: isLastOfLine ? base + (lineTotal - base * line.lessons) : base,
+            priceTier: line.tier,
             holder: order.holder,
             last: false
           });
           idx += 1;
         }
       });
-      const diff = Number(order.paidPoints) - list.reduce((s, ts) => s + ts.points, 0);
-      if (list.length && diff !== 0) {
-        list[list.length - 1].points += diff;
-        list[list.length - 1].last = true;
-      }
+      if (list.length) list[list.length - 1].last = true;
       return list;
     }
     function studentLabel(o) {
@@ -701,6 +733,7 @@
     });
     $('btnResetDemo').addEventListener('click', resetDemo);
     $('btnOverdue').addEventListener('click', simulateOverdue);
+    $('btnVoucherDemo').addEventListener('click', toggleVoucherDemo);
 
     function setRole(role) {
       state.role = role; if (role === 'admin') state.device = 'mobile';
@@ -718,26 +751,55 @@
       if (o) {
         o.status = 'PENDING_PAYMENT';
         o.cancelReason = '';
+        o.urgentExempt = false;
         o.expireHours = value === 'normal' ? 68 : value === 'warn' ? 40 : 20;
       }
       state.overlay = null;
       renderAll();
-      showToast(value === 'normal' ? '演示场景：距开课 68h 常规期' : value === 'warn' ? '演示场景：距开课 40h · 48h 临期预警' : '演示场景：距开课 20h · 24h 逾期红线');
+      showToast(value === 'normal' ? '演示场景：距作废截点 68h 常规期' : value === 'warn' ? '演示场景：截点前 24h 临期催办（浅黄卡 + Email）' : '演示场景：已到截点 min(T-24h, 周一 01:00 UTC+8) 清场窗口');
+    }
+    function toggleVoucherDemo() {
+      const o = orderById('ord_auto0001');
+      if (!o) return;
+      if (o.status !== 'PENDING_PAYMENT') return showToast('请先重置演示或选择待确认收款单');
+      o.voucherPendingReview = !o.voucherPendingReview;
+      o.hasVoucher = o.voucherPendingReview || (o.voucherCount || 0) > 0;
+      o.voucherCount = o.voucherPendingReview ? Math.max(1, Number(o.voucherCount) || 0) : Number(o.voucherCount) || 0;
+      o.urgentExempt = false;
+      renderAll();
+      showToast(o.voucherPendingReview ? '已切换为「已传凭证待核」：到达截点将豁免自动作废并保留剩余 HOLD' : '已还原为未传凭证：到达截点将自动作废并释放 HOLD');
     }
     function simulateOverdue() {
       if (state.online === 'off') return showToast('离线模式下不可执行跑批');
       const o = orderById('ord_auto0001');
       if (!o) return;
       if (o.status !== 'PENDING_PAYMENT') return showToast('该自动续费单已处理，跑批幂等跳过');
+      // D1-B：已传凭证待核的 1v1 单据豁免作废，保留剩余 HOLD 并派发急核卡片
+      if (o.voucherPendingReview) {
+        o.expireHours = 0;
+        o.urgentExempt = true;
+        o.history = o.history || [];
+        o.history.push({
+          at: '刚刚',
+          title: '截点扫描 · 已传凭证待核豁免作废',
+          note: '保留未来未过点 HOLD，标出「逾期未核·已传凭证待急核」，已向资金持有人班长与唯一永久主管理员发送浅红紧急卡 + Email',
+          actor: '系统'
+        });
+        state.overlay = null;
+        renderAll();
+        return showToast('已传凭证待核 · 豁免自动作废并保留剩余 HOLD；已派发班长与永久主管理员浅红紧急卡 + Email');
+      }
       discardRenewalDraft(o.id);
+      const mondayClear = state.renewal === 'overdue';
       o.status = 'CANCELLED';
-      o.cancelReason = 'EXPIRED_OVERDUE';
+      o.cancelReason = mondayClear ? 'NEW_ROUND_UNPAID' : 'EXPIRED_OVERDUE';
       o.cancelledAt = '刚刚';
       o.expireHours = 0;
       o.voucherPendingReview = false;
+      o.urgentExempt = false;
       state.overlay = null;
       renderAll();
-      showToast('24h 逾期跑批：已传凭证或已申请调整仍照常作废，HOLD 已释放');
+      showToast(mondayClear ? '周一 01:00 清场：新轮开启逾期未付，单据自动作废 · HOLD 已释放' : 'T-24h 截点：未传凭证逾期，单据自动作废 · HOLD 已释放');
     }
     function navTo(tab) {
       const item = navItems().find((n) => n.id === tab);
@@ -863,13 +925,24 @@
           </div>
           <div class="relative min-w-[160px] flex-1">
             <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-            <input id="orderSearch" value="${esc(state.query)}" placeholder="搜索学员 / 单号" class="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
+            <input id="orderSearch" value="${esc(state.query)}" placeholder="搜索规范英文名 / 单号" class="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
           </div>
         </div>
+        ${!isParent ? `<section class="rounded-2xl border border-amber-300 bg-amber-50/60 px-3 py-2.5" data-section="renewal-scan">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex min-w-0 items-center gap-1.5 text-[12px] font-bold text-amber-900">${icon('bell', 'h-3.5 w-3.5 shrink-0')}<span class="truncate">本周一 08:30 自动续费扫描 · UTC+8</span></div>
+            <span class="shrink-0 rounded-md border border-amber-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-amber-900">浅黄提醒</span>
+          </div>
+          <ul class="mt-1.5 space-y-1 text-[12px] font-medium leading-relaxed text-amber-900">
+            <li>交接冻结：Amy 名下 1v1 固定位与小班跳过出单，不锁新 HOLD/G-HOLD（1v1 家长收浅黄卡；小班不向家长发信）</li>
+            <li>常规休息冲突：CharlieC09 周三 17:00 时段已关闭为休息，挂起人工待办</li>
+            <li>小班连续 2 轮逾期：KET 冲刺精讲小班 · 承接班暂停第 3 轮出单，等待归档/解散确认（小班 G-HOLD 保持开课前 24h）</li>
+          </ul>
+        </section>` : ''}
         <div id="orderList" class="${grid}">
           ${list.length ? list.map(renderOrderCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center text-[14px] font-medium text-slate-500">暂无符合条件的购课单</div>`}
         </div>
-        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">${isParent ? '仅展示当前宝贝名下的非小班单据。自动续费待付款单可申请调整、上传凭证或暂不续费，其余单据只读。' : state.role === 'admin' ? '管理员可查看全平台单据、录入或作废任一班长名下待付款单据。' : '班长可查看本人持有及关联老师负责的 1v1 购课单；确认/作废/修改仅限资金持有人。自动续费待付款单可直接【修改】排期，家长调整诉求待付款单已置顶。'}</div>
+        <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-500">${isParent ? '仅展示当前宝贝名下的非小班单据。自动续费待付款单可申请调整、上传凭证或暂不续费，其余单据只读。' : state.role === 'admin' ? '管理员可查看全平台单据、录入或作废任一班长名下待付款单据。' : '班长可查看本人持有及关联老师负责的 1v1 购课单；确认/作废/修改仅限资金持有人或平台管理员。已传凭证待核单置顶急核，自动续费待付款单可直接【修改】排期。'}</div>
       </div>`;
     }
     function childSelector() {
@@ -895,7 +968,9 @@
       // DESIGN.md 2.2.1: 待办=浅黄提醒卡；常态=中性卡；失效=归档卡（零投影）
       let cardCls = 'min-h-[120px] rounded-2xl border border-slate-300 bg-slate-50/70 px-3.5 py-3';
       if (pending) {
-        cardCls = 'min-h-[120px] rounded-2xl border border-amber-300 bg-amber-50/50 px-3.5 py-3';
+        cardCls = o.voucherPendingReview && hours <= 24
+          ? 'min-h-[120px] rounded-2xl border border-rose-300 bg-rose-50/50 px-3.5 py-3'
+          : 'min-h-[120px] rounded-2xl border border-amber-300 bg-amber-50/50 px-3.5 py-3';
       } else if (archived) {
         cardCls = 'min-h-[120px] rounded-2xl border border-dashed border-slate-400 bg-slate-50/60 px-3.5 py-3 opacity-60';
       }
@@ -923,18 +998,32 @@
       let note = '';
       let noteBadge = '';
       let noteTone = 'text-slate-700';
-      if (adjust) {
+      if (o.voucherPendingReview) {
+        noteBadge = isParent ? '' : (red ? '急核' : '');
+        note = isParent
+          ? '已上传付款凭证，等待班长核实到账（豁免自动作废）'
+          : (red ? '逾期未核·已传凭证待急核 · 保留剩余 HOLD' : '已传凭证待核 · 到达截点豁免自动作废');
+        noteTone = red ? 'text-rose-700' : 'text-amber-800';
+      } else if (adjust) {
         noteBadge = isParent ? '' : '家长申请调整';
         note = isParent ? '已提交调整申请，待班长联系处理' : (o.adjustmentNote || o.adjustmentTags.join('、'));
         noteTone = 'text-amber-800';
-      } else if (o.voucherPendingReview) {
-        note = '已传凭证待核';
-        noteTone = 'text-amber-800';
       } else if (urgent) {
-        note = red ? `24h 逾期红线 · 仅剩 ${o.expireHours} 小时` : `48h 临期 · 距自动作废 ${o.expireHours} 小时`;
+        note = isParent
+          ? (red ? `24h 自动释放倒计时 · 仅剩 ${o.expireHours} 小时` : `临期提醒 · 距作废截点 ${o.expireHours} 小时`)
+          : (red ? `距作废截点仅剩 ${o.expireHours} 小时 · 未传凭证将自动作废` : `截点前 24h 临期催办 · 距作废 ${o.expireHours} 小时`);
         noteTone = red ? 'text-rose-700' : 'text-amber-800';
       } else if (archived && o.cancelReason === 'EXPIRED_OVERDUE') {
-        note = '24h 逾期自动作废 · HOLD 已释放';
+        note = 'T-24h 逾期自动作废 · HOLD 已释放';
+        noteTone = 'text-rose-700';
+      } else if (archived && o.cancelReason === 'NEW_ROUND_UNPAID') {
+        note = '新轮周一 01:00 清场作废 · HOLD 已释放';
+        noteTone = 'text-rose-700';
+      } else if (archived && o.cancelReason === 'M3D_REPLACE') {
+        note = 'M3D 重排固定位替代作废 · 原 HOLD 已释放';
+        noteTone = 'text-slate-700';
+      } else if (archived && o.cancelReason === 'REJECT_VOUCHER') {
+        note = '驳回无效凭证作废 · 剩余 HOLD 已释放';
         noteTone = 'text-rose-700';
       } else if (!isParent && priceChanged) {
         note = `价位调整 · ${o.previousTier}积分 → ${shortDate(o.effectiveFrom) || '新轮次'} 起 ${o.priceTier}积分`;
@@ -984,7 +1073,7 @@
           <span class="min-w-0 truncate font-semibold leading-5 text-slate-700">${esc(summaryLine)}</span>
           <span class="shrink-0 font-semibold ${voucherTone}">${voucherText}</span>
         </div>
-        ${note ? `<div class="mt-1.5 flex items-center gap-1.5 overflow-hidden text-[12px] leading-4">${noteBadge ? `<span class="shrink-0 rounded-md bg-amber-100 px-1.5 py-0.5 font-bold text-amber-900">${esc(noteBadge)}</span>` : ''}<span class="truncate font-semibold ${noteTone}">${esc(note)}</span></div>` : ''}
+        ${note ? `<div class="mt-1.5 flex items-center gap-1.5 overflow-hidden text-[12px] leading-4">${noteBadge ? `<span class="shrink-0 rounded-md ${noteBadge === '急核' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-900'} px-1.5 py-0.5 font-bold">${esc(noteBadge)}</span>` : ''}<span class="truncate font-semibold ${noteTone}">${esc(note)}</span></div>` : ''}
         <div class="mt-1 flex items-center justify-between gap-2 border-t border-slate-200/80 pt-2">
           <span class="min-w-0 truncate text-[12px] font-medium text-slate-600" data-role="holder-line">${holderLine}</span>
           <div class="flex shrink-0 items-center gap-1.5">${actions}</div>
@@ -1002,15 +1091,20 @@
       const skippedWeeks = tone === 'emerald' ? [] : (o.holdSkipped || []);
       return `<div class="mt-1.5 grid grid-cols-4 gap-1">${[1, 2, 3, 4].map((w) => {
         const skipped = skippedWeeks.includes(w);
-        const label = skipped ? '冲突跳过' : baseLabel;
-        const cls = skipped ? 'border-rose-200 bg-white text-rose-700' : baseCls;
+        const expired = tone !== 'emerald' && tone !== 'slate' && !!o.urgentExempt && w === 4;
+        const label = skipped ? '冲突跳过' : expired ? '过点·待排池' : baseLabel;
+        const cls = skipped ? 'border-rose-200 bg-white text-rose-700' : expired ? 'border-rose-300 bg-white text-rose-700' : baseCls;
         return `<div class="rounded-lg border px-1 py-1.5 text-center ${cls}"><div class="text-[12px] font-bold">第${w}周</div><div class="text-[12px] font-medium">${label}</div></div>`;
       }).join('')}</div>`;
     }
     function cancelReasonLabel(o) {
       if (o.cancelReason === 'PARENT_DECLINED') return '家长暂不续费';
-      if (o.cancelReason === 'EXPIRED_OVERDUE') return '24h 逾期自动作废';
+      if (o.cancelReason === 'EXPIRED_OVERDUE') return '已逾期自动作废（T-24h）';
+      if (o.cancelReason === 'NEW_ROUND_UNPAID') return '新轮开启逾期未付自动作废';
       if (o.cancelReason === 'MANUAL_CANCEL') return '经办班长作废';
+      if (o.cancelReason === 'OPERATOR_CANCEL_FIXED') return '经办人取消固定并作废';
+      if (o.cancelReason === 'M3D_REPLACE') return 'M3D 待排池重排替代作废';
+      if (o.cancelReason === 'REJECT_VOUCHER') return '驳回无效凭证作废';
       return '单据作废';
     }
     function orderTimeline(o) {
@@ -1030,7 +1124,16 @@
         items.push({ at: o.paidAt || '—', title: '确认收款并裂变课次', note: `生成 ${o.lessonCount} 个待排期课次`, actor: holderLabel(o.holder) });
       }
       if (o.status === 'CANCELLED') {
-        items.push({ at: o.cancelledAt || '—', title: cancelReasonLabel(o), note: '未来 4 周 HOLD 已释放为空闲可约', actor: o.cancelReason === 'PARENT_DECLINED' ? '家长' : o.cancelReason === 'EXPIRED_OVERDUE' ? '系统' : holderLabel(o.holder) });
+        const cancelNote = o.cancelReason === 'PARENT_DECLINED'
+          ? '未来 4 周 HOLD 已释放；第 4 周剩余已排正式课次正常上完，后续不再自动出单'
+          : o.cancelReason === 'OPERATOR_CANCEL_FIXED'
+            ? '未来 HOLD 已释放；经办人取消固定，本序列停止后续自动出单'
+            : o.cancelReason === 'M3D_REPLACE'
+              ? 'M3D 待排池重排固定位已在同事务替代本单，原 HOLD 已释放'
+              : o.cancelReason === 'REJECT_VOUCHER'
+                ? `已驳回无效凭证/未到账${o.rejectReason ? `：${o.rejectReason}` : ''}，剩余 HOLD 全部释放并通知家长`
+                : '未来 4 周 HOLD 已释放为空闲可约';
+        items.push({ at: o.cancelledAt || '—', title: cancelReasonLabel(o), note: cancelNote, actor: o.cancelReason === 'PARENT_DECLINED' ? '家长' : ['EXPIRED_OVERDUE', 'NEW_ROUND_UNPAID', 'M3D_REPLACE'].includes(o.cancelReason) ? '系统' : holderLabel(o.holder) });
       }
       if (o.history) items.push(...o.history);
       return items;
@@ -1093,11 +1196,11 @@
               <div class="mt-0.5 truncate text-[14px] font-semibold text-slate-900">${esc(holderLabel(o.holder))}</div>
             </div>
             <div class="rounded-lg bg-white px-2.5 py-2"><div class="text-[12px] font-medium text-slate-600">创建时间</div><div class="mt-0.5 truncate text-[14px] font-semibold text-slate-900">${esc(o.createdAt)}</div></div>
-            <div class="rounded-lg bg-white px-2.5 py-2"><div class="text-[12px] font-medium text-slate-600">请假额度</div><div class="mt-0.5 text-[14px] font-semibold text-slate-900">${o.leaveQuota} 节</div></div>
+            <div class="rounded-lg bg-white px-2.5 py-2"><div class="text-[12px] font-medium text-slate-600">请假额度</div><div class="mt-0.5 text-[14px] font-semibold text-slate-900">${o.leaveQuota} 节</div><div class="mt-0.5 text-[12px] font-medium leading-tight text-slate-500">按当前仍归属有效课次 × 12.5% 实时重算</div></div>
           </div>
         </section>
 
-        ${o.isTrial ? `<div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">试课档案认领后，该购课单将自动归集至家长账号（只读查阅），状态与积分明细保持原貌。</div>` : ''}
+        ${o.isTrial ? `<div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">“平台公共待认领占位”仅为家长归属为空的隔离状态，不建立任何真实 M0A 登录账号；家长认领转正后，该档案名下全部历史试课购课单将在同一事务归集至家长账号（只读查阅），资金持有人保持不变。</div>` : ''}
 
         ${adjust ? `<section class="rounded-2xl border border-amber-300 bg-amber-50/50 p-3.5">
           <div class="flex items-center justify-between gap-2">
@@ -1135,7 +1238,13 @@
           </div>`}
           ${o.orderType !== 'small_group' ? `<div class="mt-2 flex flex-wrap gap-1.5">${orderItems(o).map((it) => `<span class="rounded-md border border-slate-200 bg-white px-2 py-1 text-[12px] font-semibold text-slate-700">${it.priceTier}积分 × ${it.lessons} 节 = ${it.priceTier * it.lessons} 积分</span>`).join('')}</div>` : ''}
           ${o.extraPrep ? `<div class="mt-1.5 rounded-lg bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700">含额外备课费（+10 积分/节）</div>` : ''}
-          ${o.orderType !== 'small_group' && diff !== 0 ? `<div class="mt-1.5 rounded-lg bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700">实收与期望相差 ${diff > 0 ? '+' : ''}${diff} 积分${!isParent && o.isForced ? ` · 强制提交原因：${esc(o.forceReason)}` : ''}</div>` : ''}
+          ${o.orderType !== 'small_group' && diff !== 0 ? `<div class="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] font-medium leading-relaxed text-slate-700" data-section="ts-orthogonal">
+            <div class="font-bold text-amber-900">强提改价 · 实收与期望相差 ${diff > 0 ? '+' : ''}${diff} 积分（TS 双字段正交分离）</div>
+            <div class="mt-1"><span class="font-bold">原价位档位</span>：${orderItems(o).map((it) => `${it.priceTier}积分${o.extraPrep ? '（含+10备课费标记）' : ''}`).join(' / ')} · 约课匹配、划转与清退分组按此档位</div>
+            <div class="mt-0.5"><span class="font-bold">单节实付积分快照</span>：按明细行期望占比取整分摊（余数入末节），仅用于周结与退费，不跨行均摊覆盖原档位</div>
+            ${!isParent && o.isForced ? `<div class="mt-0.5">强制提交原因：${esc(o.forceReason)}</div>` : ''}
+            ${isParent ? '<div class="mt-1 rounded-lg bg-white px-2 py-1 font-semibold text-slate-800">已按机构优惠/协商口径核准入账</div>' : ''}
+          </div>` : ''}
           ${!isParent && o.isForced && diff === 0 ? `<div class="mt-1.5 rounded-lg bg-white px-2.5 py-1.5 text-[12px] font-medium text-slate-700">强制提交原因：${esc(o.forceReason)}</div>` : ''}
         </section>
 
@@ -1146,7 +1255,7 @@
           </div>
           ${o.orderType === 'small_group' ? '<p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-600">小班购课单已付款后主状态保持「已购课」，不设退费 / 已解散主状态；清退记录由提前解散流程只读挂载。</p>' : ''}
           ${clearRecords.length ? `<div class="mt-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2" data-section="m2b-clear-records">
-            <div class="flex items-center justify-between gap-2"><h3 class="text-[12px] font-bold text-slate-900">清退记录</h3><span class="text-[12px] font-medium text-slate-500">只读挂载</span></div>
+            <div class="flex items-center justify-between gap-2"><h3 class="text-[12px] font-bold text-slate-900">清退记录</h3><span class="text-[12px] font-medium text-slate-500">1 主清退 ↔ 1～N 原单切片</span></div>
             <div class="mt-1.5 space-y-1.5">${clearRecords.map((r) => `<div class="rounded-lg border border-slate-200 bg-slate-50/70 px-2 py-1.5" data-clear-id="${esc(r.id)}"><div class="flex items-center justify-between gap-2"><span class="truncate font-mono text-[12px] font-semibold text-slate-800">${esc(r.id)}</span><span class="shrink-0 text-[12px] font-bold text-slate-700">${Number(r.lessons) || 0} 节 · ${Number(r.points) || 0} 积分</span></div><div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">${esc(r.note || '')}</div></div>`).join('')}</div>
           </div>` : ''}
           ${transferTrace.length ? `<div class="mt-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2" data-section="transfer-trace">
@@ -1165,17 +1274,27 @@
           </div>
           <p class="mt-1.5 rounded-lg bg-white px-2.5 py-2 text-[12px] font-medium leading-relaxed text-slate-700"><span class="font-bold">老师价位：</span>${currTier} 积分/节。${esc(o.priceChangeReason || '')}${priceChanged ? ` 单节${priceDelta > 0 ? '上调' : '下调'} ${Math.abs(priceDelta)} 积分。` : ''}</p>
           <p class="mt-1 text-[12px] font-semibold text-indigo-700">新轮次首日 ${shortDate(o.effectiveFrom) || '下轮'} 起 ${currTier}积分 · 当前 ${prevTier}积分${priceChanged ? ` → 新轮次 ${currTier}积分` : '（无变动）'}</p>
-          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">已生成的待付款单不二次改价；已购未排期课次保留原价位（方案 A）：调价生效日前按原价匹配，生效日起按新价位校验，旧价课次可约同价位老师或走课次清退补差。</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">已生成续费单不自动改写原单实付；若老师在周一 08:30 跑批后【立即改价】，资金持有人可在确认收款前【修改】补差更正实收或换选同价位老师。已购未排期课次保留原价位（方案 A）：调价生效日前按原价匹配，生效日起按新价位校验，旧价课次可约同价位老师或走课次清退补差。</p>
           <p class="mt-1 text-[12px] font-bold text-slate-600">若需更换授课老师，请联系负责班长协助协调，或点击下方【申请调整】。</p>
           <div class="mt-1.5 rounded-lg bg-white px-2.5 py-2 text-[12px] font-medium text-slate-700">${esc(o.preScheduleSlots || '')}</div>
-          <p class="mt-1 text-[12px] font-medium text-slate-600">每轮最后一周周一 08:30 提前 7 天自动预排，并锁定未来 4 周日历。</p>
+          <div class="mt-1.5 rounded-lg border border-indigo-200 bg-indigo-50/60 px-2.5 py-2 text-[12px] font-medium leading-relaxed text-indigo-900" data-section="renewal-restore">
+            <div class="font-bold">常规时段还原 · 4 周全轮次多数决</div>
+            <p class="mt-1">仅计上轮固定位 / 小班课并剔除临时课，代课还原回原任老师；同一「老师 + 星期 + 时段」覆盖 ≥2 周即视为常规；2 周 vs 2 周半途换段取后半轮；全不足 2 周按第 4→3→2→1 周回退最近活跃周。</p>
+          </div>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">每周一 08:30（UTC+8）提前 7 天自动预排并锁定未来 4 周；临期催办锚定作废截点前 24h。1v1 作废截点 = min(最早预占开课前 24h, 新轮首日周一 01:00 UTC+8)，0/4 全冲突按周日 00:00 UTC+8；小班 G-HOLD 保持开课前 24h。</p>
           ${holdGrid(o)}
           ${o.makeupLessons ? `<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-rose-700">第 ${(o.holdSkipped || []).join('、') || '部分'} 周存在冲突已跳过预占 · 待补约 ${o.makeupLessons} 节，确认收款后自动进入待排池人工补约</div>` : ''}
           <p class="mt-1 text-[12px] font-medium text-slate-600">${holdNote}</p>
-          ${urgent ? `<div class="mt-1.5 rounded-lg border px-2.5 py-2 text-[12px] font-bold ${red ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-300 bg-white/70 text-amber-800'}">${red ? `距 24h 自动作废仅剩 ${o.expireHours} 小时` : `48h 临期提醒 · 距自动作废仅剩 ${o.expireHours} 小时`}</div>` : ''}
-          ${o.status === 'CANCELLED' && o.cancelReason === 'EXPIRED_OVERDUE' ? `<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[12px] font-bold text-rose-700">即使已传凭证或已申请调整，24h 逾期仍自动作废 · HOLD 已释放为可约</div>` : ''}
-          ${o.status === 'CANCELLED' && o.cancelReason === 'PARENT_DECLINED' ? `<div class="mt-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-[12px] font-bold text-slate-700">家长暂不续费 · 未来 4 周 HOLD 已释放</div>` : ''}
-          ${!isParent && canOp && pending && red ? `<button data-action="simulate-overdue" ${state.online === 'off' ? 'disabled' : ''} class="mt-2 h-8 w-full rounded-lg border border-rose-200 bg-rose-50 text-[12px] font-bold text-rose-700 disabled:opacity-40">模拟 24h 逾期跑批</button>` : ''}
+          ${o.voucherPendingReview && pending ? `<div class="mt-1.5 rounded-lg border border-rose-300 bg-rose-50 px-2.5 py-2 text-[12px] font-bold leading-relaxed text-rose-700" data-section="voucher-exempt">${isParent ? '已上传付款凭证，等待班长核实到账 · 系统豁免自动作废并保留剩余预占' : '逾期未核·已传凭证待急核 · 已豁免 T-24h 与周一 01:00 自动作废，保留剩余未过点 HOLD；已向资金持有人班长与唯一「永久主管理员」发送浅红紧急卡 + Email'}</div>` : ''}
+          ${urgent && !(o.voucherPendingReview && pending) ? `<div class="mt-1.5 rounded-lg border px-2.5 py-2 text-[12px] font-bold ${red ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-300 bg-white/70 text-amber-800'}">${red ? `已进入作废截点窗口（仅剩 ${o.expireHours} 小时）· 未传凭证将于 min(T-24h, 周一 01:00 UTC+8) 自动作废` : `截点前 24h 临期催办 · 距作废截点 ${o.expireHours} 小时（浅黄卡 + Email）`}</div>` : ''}
+          ${o.status === 'CANCELLED' && o.cancelReason === 'EXPIRED_OVERDUE' ? `<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[12px] font-bold text-rose-700">未传凭证 · T-24h 逾期自动作废 · HOLD 已释放为可约</div>` : ''}
+          ${o.status === 'CANCELLED' && o.cancelReason === 'NEW_ROUND_UNPAID' ? `<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[12px] font-bold text-rose-700">未传凭证 · 新轮周一 01:00 清场作废 · HOLD 已释放为可约</div>` : ''}
+          ${o.status === 'CANCELLED' && o.cancelReason === 'M3D_REPLACE' ? `<div class="mt-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-[12px] font-bold leading-relaxed text-slate-700">M3D 待排池重排固定位替代本单并同步作废 · 原 HOLD 已释放；已传凭证待核单会被强拦截，不作静默替代</div>` : ''}
+          ${o.status === 'CANCELLED' && o.cancelReason === 'REJECT_VOUCHER' ? `<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[12px] font-bold leading-relaxed text-rose-700">驳回无效凭证 / 未到账作废 · 驳回原因必填 1–200 字 · 已向家长发送浅黄提醒卡</div>` : ''}
+          ${o.status === 'CANCELLED' && o.cancelReason === 'PARENT_DECLINED' ? `<div class="mt-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-[12px] font-bold leading-relaxed text-slate-700">家长暂不续费 · 未来 4 周 HOLD 已释放 · 第 4 周剩余正式课次照常上完 · 后续不再自动出单</div>` : ''}
+          ${o.status === 'CANCELLED' && o.cancelReason === 'OPERATOR_CANCEL_FIXED' ? `<div class="mt-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-[12px] font-bold leading-relaxed text-slate-700">经办人取消固定并作废 · 已停止后续自动出单（小班同步标为「已暂停自动续费」）</div>` : ''}
+          ${!isParent && canOp && pending ? `<button data-action="open-cancel" data-id="${o.id}" class="mt-1.5 h-8 w-full rounded-lg border border-rose-200 bg-white text-[12px] font-bold text-rose-700">取消固定并作废（停止后续自动出单）</button>` : ''}
+          ${!isParent && canOp && pending && (red || o.voucherPendingReview) ? `<button data-action="simulate-overdue" ${state.online === 'off' ? 'disabled' : ''} class="mt-2 h-8 w-full rounded-lg border border-rose-200 bg-rose-50 text-[12px] font-bold text-rose-700 disabled:opacity-40">${o.voucherPendingReview ? '模拟截点扫描（凭证豁免）' : '模拟逾期作废扫描'}</button>` : ''}
         </section>` : ''}
 
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
@@ -1184,7 +1303,7 @@
             <div><div class="text-[12px] font-medium text-slate-600">课次数量</div><div class="mt-0.5 font-mono text-[16px] font-bold text-slate-900">${o.lessonCount}</div></div>
             <div><div class="text-[12px] font-medium text-slate-600">${o.orderType === 'small_group' ? '单节基础' : '价位行数'}</div><div class="mt-0.5 font-mono text-[16px] font-bold text-slate-900">${o.orderType === 'small_group' ? Math.floor(o.paidPoints / Math.max(1, o.lessonCount)) : orderItems(o).length}</div></div>
             <div><div class="text-[12px] font-medium text-slate-600">${o.orderType === 'small_group' ? '末节补差' : '实收合计'}</div><div class="mt-0.5 font-mono text-[16px] font-bold text-slate-900">${o.orderType === 'small_group' ? `+${o.paidPoints % Math.max(1, o.lessonCount)}` : o.paidPoints}</div></div>
-          </div><p class="mt-1.5 text-[12px] font-medium text-slate-600">全部课次积分之和 = ${o.paidPoints} 积分；资金持有方永久锁定为 ${esc(holderLabel(o.holder))}。</p>`
+          </div><p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-600">全部课次积分之和 = ${o.paidPoints} 积分；资金持有方永久锁定为 ${esc(holderLabel(o.holder))}。${o.orderType === 'small_group' ? '' : '每节同时固化「原价位档位」与「单节实付积分快照」，两者正交分离、互不覆盖。'}</p>`
             : pending ? `<div class="mt-2 rounded-lg bg-white px-2.5 py-2 text-[12px] font-medium text-slate-700">确认收款后才生成 ${o.lessonCount} 个待排期课次，当前不产生课次。</div>`
               : `<div class="mt-2 rounded-lg bg-white px-2.5 py-2 text-[12px] font-medium text-slate-700">单据已作废，不产生任何课次。</div>`}
         </section>
@@ -1219,7 +1338,7 @@
         ${!isParent ? (readOnly
           ? `<div class="flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-2 text-center text-[14px] font-medium leading-[1.35] text-slate-600" data-role="readonly-actions">仅查看 · 资金持有人 ${esc(holderLabel(o.holder))}，仅资金持有人或管理员可操作</div>`
           : `<div class="flex gap-2">
-          ${pending ? `${auto ? `<button data-action="open-edit" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[1.4] rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 disabled:opacity-40">修改购课单</button>` : ''}<button data-action="open-cancel" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 disabled:opacity-40">作废</button><button data-action="open-confirm" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认收款</button>`
+          ${pending ? `${auto ? `<button data-action="open-edit" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[1.4] rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 disabled:opacity-40">修改购课单</button>` : ''}<button data-action="open-cancel" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 disabled:opacity-40">${auto ? '取消固定并作废' : '作废'}</button><button data-action="open-confirm" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认收款</button>`
             : paid ? `<div class="flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-2 text-center text-[14px] font-medium leading-[1.35] text-slate-600">已购课不可整单作废 · 课次清退请在学员档案或单据详情发起</div>`
               : `<div class="h-11 flex-1 rounded-xl border border-slate-200 bg-slate-50 text-center text-[14px] font-medium leading-[44px] text-slate-600">单据已归档 · 无待处理操作</div>`}
         </div>`) : ''}
@@ -1312,10 +1431,10 @@
         ].join('');
       } else if (picker === 'student') {
         title = '选择上课学员档案';
-        hint = '试课待认领档案仅管理员可选';
-        searchPlaceholder = '搜索学员昵称';
+        hint = '统一按规范英文名即时搜索 · 试课待认领档案仅管理员可选';
+        searchPlaceholder = '搜索规范英文名（含前 1–2 字母）';
         rows = STUDENTS.filter((s) => state.role === 'admin' || !s.trial)
-          .filter((s) => hit(`${s.name} ${s.tag}`))
+          .filter((s) => hit(s.name))
           .map((s) => pickerOption('student', s.name, s.name, s.tag, f.student === s.name)).join('');
       } else if (picker === 'teacher') {
         title = '选择意向老师';
@@ -1420,6 +1539,7 @@
                     <label for="createLessons" class="mb-1 block text-[14px] font-semibold text-slate-700">整班课次数 <span class="text-rose-500">*</span></label>
                     <input id="createLessons" type="number" min="1" value="${esc(f.lessons)}" class="${inputCls} font-bold">
                     <p id="createLessonTip" class="mt-1 ${Number(f.lessons) % 4 !== 0 && Number(f.lessons) > 0 ? '' : 'hidden'} text-[12px] font-medium text-amber-700">建议为 4 的倍数（四周一轮），不影响提交</p>
+                    <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">单节待上交费用与老师单节课酬均按开单时刻 M1C 当前生效并锁定的最新值带出：确认收款后写入 TS 快照，后续老师调价不影响本单。</p>
                   </div>
                 </div>`
                 : `<div class="space-y-2">
@@ -1470,7 +1590,7 @@
                   <label class="mt-2 flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white text-[12px] font-semibold text-slate-600">${icon('upload', 'h-4 w-4 text-slate-500')}选择 JPG/PNG/PDF（≤10MB）<input id="createVoucherInput" type="file" accept="image/jpeg,image/png,application/pdf" multiple class="hidden"></label>
                   <div class="mt-1.5 space-y-1">${f.vouchers.map((v, i) => `<div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px]"><span class="truncate">${esc(v.name)}</span><button data-action="remove-voucher" data-index="${i}" class="shrink-0 font-semibold text-rose-600">移除</button></div>`).join('')}</div>
                 </div>
-                <p class="text-[12px] font-medium leading-relaxed text-slate-600">${small ? '小班课由主理人直接录入待上交总积分（录入多少上交多少），资金持有人锁定为小班主理人，对家长端不可见。' : trial ? '试课待认领档案仅支持 1v1 课次，总节数 1～20 节，严格按所选价位计价并禁止强制改价；家长认领后自动归集家长账号。' : '1v1 课次支持 1～N 条价位明细（同一价位不可重复），选填意向老师可自动带出当前价位；非 4 的倍数仅弱提醒。'}</p>
+                <p class="text-[12px] font-medium leading-relaxed text-slate-600">${small ? '小班课由主理人直接录入待上交总积分（录入多少上交多少），资金持有人锁定为小班主理人，对家长端不可见；老师单节课酬按开单时刻 M1C 当前锁定值写入快照。' : trial ? '试课待认领档案仅支持 1v1 课次，总节数 1～20 节，严格按所选价位计价并禁止强制改价；“平台公共待认领占位”不建立真实登录账号，家长认领后全部历史试课单自动归集家长账号。' : '1v1 课次支持 1～N 条价位明细（同一价位不可重复），选填意向老师可自动带出当前价位；非 4 的倍数仅弱提醒。'}</p>
                 ${f.error ? `<div id="createError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(f.error)}</div>` : ''}
               </section>
             </div>
@@ -1587,7 +1707,7 @@
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
                     <h3 class="text-[14px] font-bold text-slate-900">未来 4 周排期</h3>
-                    <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">${draft ? '课表草稿已回填，保存前原 HOLD 保持不变' : '当前续费预占（HOLD）摘要，可进入课表可视化调整'}</p>
+                    <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">${draft ? '课表草稿已回填，保存前原 HOLD 保持不变' : '当前续费预占（HOLD）摘要，可进入课表可视化调整'} · 续费还原按上轮 4 周多数决（≥2 周），半途换段取后半轮</p>
                   </div>
                   ${badge}
                 </div>
@@ -1608,6 +1728,7 @@
                   <span class="rounded-md border ${conflictCount ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-600'} px-1.5 py-0.5">冲突/待补 ${conflictCount} 节</span>
                   ${priceShift !== 0 ? `<span class="rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-800">${draft ? '当前' : '上轮'} ${draft ? currTier : prevTier}积分 → ${editUnit}积分</span>` : ''}
                 </div>
+                <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">允许选中格数少于购买总节数（差额确认收款后进入待排池）；选中格数超过总节数将即时拦截，提示上调购买节数或取消多余格子。</p>
                 <div class="mt-1.5 flex items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-2 text-[12px] font-semibold">
                   <span class="text-slate-600">重算期望 <b id="editSummaryExpected" class="font-mono text-[14px] text-slate-900">${expected}</b> 积分</span>
                   <span id="editSummaryDiff" class="${mismatch ? 'text-amber-700' : 'text-emerald-700'}">${mismatch ? `差额 ${diff > 0 ? '+' : ''}${diff}` : '与期望相符'}</span>
@@ -1650,8 +1771,8 @@
                 </div>
                 <div id="editForceBox" class="${mismatch ? '' : 'hidden'} rounded-xl border border-amber-200 bg-amber-50 p-3"><div class="text-[14px] font-semibold text-amber-900">实收积分不符：需填写修改原因（1-200 字）</div><input id="editForceReason" value="${esc(e.forceReason)}" maxlength="200" placeholder="如：老学员沟通换师补偿直减 10 积分" class="mt-1.5 h-11 w-full rounded-xl border border-amber-300 bg-white px-3 text-[16px] text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/15"></div>
                 ${e.error ? `<div id="editError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(e.error)}</div>` : ''}
-                <p class="text-[12px] font-medium leading-relaxed text-slate-600">${draft ? '保存后按草稿排期释放旧 HOLD、锁定新 HOLD，并向家长补发更正账单；家长诉求自动闭环为已处理。' : '修改课次或实收后保存，系统按当前老师价位重算并更正账单；家长诉求自动闭环为已处理。'}</p>
-                <button data-action="cancel-renewal" data-id="${o.id}" class="h-10 w-full rounded-xl border border-rose-200 bg-rose-50 text-[12px] font-bold text-rose-700">取消续费并作废（释放 HOLD）</button>
+                <p class="text-[12px] font-medium leading-relaxed text-slate-600">${draft ? '保存后按草稿排期释放旧 HOLD、锁定新 HOLD，并向家长补发更正账单；家长诉求自动闭环为已处理。' : '修改课次或实收后保存，系统按当前老师价位重算并更正账单；家长诉求自动闭环为已处理。'}保存时原子复核单据状态、原 HOLD 及新格独占，并发冲突将回滚并提示刷新核对。</p>
+                <button data-action="cancel-renewal" data-id="${o.id}" class="h-10 w-full rounded-xl border border-rose-200 bg-rose-50 text-[12px] font-bold text-rose-700">取消固定并作废（释放 HOLD · 停止自动出单）</button>
               </section>
             </div>
           </div>
@@ -1707,27 +1828,38 @@
     function renderConfirmModal() {
       const o = orderById(state.overlay.orderId);
       if (!o) return '';
+      const exemptSplit = !!o.voucherPendingReview && (o.urgentExempt || Number(o.expireHours || 99) <= 24);
+      const exemptK = exemptSplit ? Math.max(1, Number(o.holdExpired) || 1) : 0;
+      const exemptM = exemptSplit ? Math.max(0, Number(o.lessonCount) - exemptK - Number(o.makeupLessons || 0)) : 0;
       return modalShell(`${modalHeader('确认收款并生成课次？', `${esc(studentLabel(o))} · ${o.lessonCount} 个课次`)}
         <div class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-slate-700">${o.orderType === 'small_group' ? '确认收到待上交' : '确认收到实收'} <b class="text-slate-900">${o.paidPoints} 积分</b> 后，将在同一事务内生成 ${o.lessonCount} 个待排期课次，资金持有方永久锁定为 <b>${esc(holderLabel(o.holder))}</b>。</div>
-        ${o.source === 'AUTO_RENEWAL' ? `<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">确认后授课日历中的 4 周续费预占（HOLD）原子转为正式固定位。</div>` : ''}
+        ${o.hasVoucher || o.voucherCount ? `<div class="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">${icon('image', 'h-4 w-4')}</span><div class="min-w-0 flex-1 text-[12px] font-medium text-slate-600"><div class="font-bold text-slate-800">付款凭证 ${o.voucherCount || 1} 张</div><div>可返回单据详情查看原图</div></div><span class="shrink-0 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">${o.voucherPendingReview ? '已传凭证待核' : '已上传'}</span></div>` : ''}
+        ${o.source === 'AUTO_RENEWAL' ? `<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">确认后，开课时刻尚在未来的 HOLD 原子转为正式固定位；冲突跳过及已过开课时刻的过期 HOLD 统一进入待排期池供重约，严禁倒流排入过去「已排期」。</div>` : ''}
+        ${exemptSplit ? `<div class="mt-2 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-rose-700">该单为「已传凭证待核」逾期豁免单：其中 ${exemptM} 节未过点转正式固定位，${exemptK} 节已过开课时刻将入待排池供重约。</div>` : ''}
         ${adjustmentPending(o) ? '<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">家长调整诉求将随确认收款自动闭环为已处理。</div>' : ''}
         <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600">余数分配：基础值 ⌊${o.paidPoints} ÷ ${o.lessonCount}⌋，除不尽余数全部加到最后一节。</div>
+        <div class="mt-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium text-slate-500">同一事务原子校验仍为「待付款确认」且编辑基线一致；若已被并发改为已付款/已作废，本次将回滚并提示刷新核对。</div>
         <div class="mt-3 flex gap-2"><button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">暂不确认</button><button data-action="confirm-pay" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认收款</button></div>`);
     }
     function renderCancelModal() {
       const o = orderById(state.overlay.orderId);
       if (!o) return '';
-      return modalShell(`${modalHeader('作废待收款购课单', `${esc(studentLabel(o))} · ${esc(typeLabel(o.orderType))}`)}
+      const isAuto = o.source === 'AUTO_RENEWAL';
+      const reject = o.voucherPendingReview;
+      return modalShell(`${modalHeader(reject ? '驳回凭证并作废？' : isAuto ? '取消固定并作废？' : '作废待收款购课单', `${esc(studentLabel(o))} · ${esc(typeLabel(o.orderType))}`)}
         <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">作废后单据状态变为已作废，不产生任何课次。</p>
-        ${o.source === 'AUTO_RENEWAL' ? '<p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">系统将同步释放授课日历中的续费预占（HOLD）时段为空闲可约。</p>' : ''}
-        <div class="mt-3 flex gap-2"><button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">取消</button><button data-action="confirm-cancel" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认作废</button></div>`);
+        ${reject ? `<div class="mt-2 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-[12px] font-bold leading-relaxed text-rose-700">该单处于「已传凭证待核」：驳回无效凭证或核实未到账时，须填写 1–200 字原因；作废后释放剩余全部 HOLD，并向 1v1 家长发送浅黄提醒卡告知原因。</div>
+          <textarea id="cancelRejectReason" rows="3" maxlength="200" placeholder="驳回原因（1-200 字），如：凭证金额与实收不符，请重新上传" class="mt-2 w-full resize-none rounded-xl border border-rose-300 bg-white p-3 text-[16px] text-slate-900 outline-none focus:ring-2 focus:ring-rose-500/15"></textarea>` : ''}
+        ${isAuto ? '<p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">系统将同步释放授课日历中的续费预占（HOLD/G-HOLD）为空闲可约，并终止本序列后续自动出单；小班同步标为「已暂停自动续费」。</p>' : ''}
+        <div class="mt-3 flex gap-2"><button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">取消</button><button data-action="confirm-cancel" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${reject ? '确认驳回并作废' : '确认作废'}</button></div>`);
     }
     function renderDeclineModal() {
       const o = orderById(state.overlay.orderId);
       if (!o) return '';
       return modalShell(`${modalHeader('暂不续费？', `${esc(studentLabel(o))} · ${esc(o.teacherName)}`)}
         <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">确认后该续费单立即作废，未来 4 周预占释放为空闲可约时段。</p>
-        <p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">如已付款，请先联系负责班长处理退款或补差。</p>
+        <p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">第 4 周剩余已排正式课次照常上完；本序列后续轮次不再自动出单（如需恢复，班长在 M3D 重排 4 周固定位即可自动重入扫描）。</p>
+        <p class="mt-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">如已付款，请先联系负责班长处理退款或补差。</p>
         <div class="mt-3 flex gap-2"><button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">取消</button><button data-action="confirm-decline" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认暂不续费</button></div>`);
     }
     function renderAdjustmentSheet() {
@@ -1756,7 +1888,7 @@
                 <textarea id="adjustNote" rows="3" maxlength="200" placeholder="如：周二 19:00 与学校社团冲突，希望改到 19:30" class="${inputCls}">${esc(a.note)}</textarea>
                 ${a.error ? `<div class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(a.error)}</div>` : ''}
               </section>
-              <p class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">提交后单据保持待确认收款，未来 4 周预占不释放；距开课 24h 仍未确认收款，系统仍会自动作废。</p>
+              <p class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">提交后单据保持待确认收款，未来 4 周预占不释放；未传凭证时仍按 min(T-24h, 周一 01:00 UTC+8) 自动作废，一旦上传凭证转为「已传凭证待核」即豁免作废并保留剩余 HOLD。</p>
             </div>
           </div>
           <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white/95 px-4 py-3">
@@ -1772,11 +1904,12 @@
       const list = generateTSFission(o);
       return `<div class="absolute inset-0 z-50"><div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div><div class="absolute inset-x-0 bottom-0 mx-auto flex max-h-[85%] w-full max-w-[560px] flex-col rounded-t-3xl bg-white p-4 shadow-2xl">
         <div class="mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-slate-300"></div>
-        <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 pb-2.5"><div><h2 class="text-[16px] font-bold text-slate-900">课次明细</h2><p class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(studentLabel(o))} · ${o.lessonCount} 节 · ${o.orderType === 'small_group' ? '余数归入末节' : '按价位逐行裂变 · 末节吸收差额'}</p></div><button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-600 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button></div>
+        <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 pb-2.5"><div><h2 class="text-[16px] font-bold text-slate-900">课次明细</h2><p class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(studentLabel(o))} · ${o.lessonCount} 节 · ${o.orderType === 'small_group' ? '余数归入末节' : '原价位档位与单节实付快照正交分离'}</p></div><button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-600 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button></div>
         <div class="min-h-0 flex-1 space-y-1.5 overflow-y-auto py-3">${list.map((ts) => {
           const extra = o.extraPrep ? 10 : 0;
-          const hasAdjust = o.orderType === 'small_group' ? (ts.last && o.paidPoints % Math.max(1, o.lessonCount) > 0) : (ts.last && ts.points !== ts.priceTier + extra);
-          return `<div class="flex items-center justify-between rounded-xl border ${ts.last ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 bg-slate-50/60'} px-3 py-2"><div class="min-w-0"><div class="truncate font-mono text-[12px] font-semibold text-slate-700">${esc(ts.tsId)}</div><div class="text-[12px] font-medium text-slate-600">持有方 ${esc(holderLabel(ts.holder))}${ts.priceTier ? ` · ${ts.priceTier}积分档` : ''} · 待排期</div></div><div class="text-right"><div class="font-mono text-[14px] font-bold text-indigo-700">${ts.points} 积分</div>${hasAdjust ? `<div class="text-[12px] font-medium text-indigo-600">★ ${o.orderType === 'small_group' ? '含取整余数' : '含末节补差'}</div>` : ''}</div></div>`;
+          const prorated = o.orderType !== 'small_group' && Number(o.paidPoints) !== Number(o.expectedPoints);
+          const hasAdjust = o.orderType === 'small_group' ? (ts.last && o.paidPoints % Math.max(1, o.lessonCount) > 0) : (prorated ? ts.points !== ts.priceTier + extra : (ts.last && ts.points !== ts.priceTier + extra));
+          return `<div class="flex items-center justify-between rounded-xl border ${ts.last ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 bg-slate-50/60'} px-3 py-2"><div class="min-w-0"><div class="truncate font-mono text-[12px] font-semibold text-slate-700">${esc(ts.tsId)}</div>${o.orderType === 'small_group' ? `<div class="text-[12px] font-medium text-slate-600">持有方 ${esc(holderLabel(ts.holder))} · 待排期</div>` : `<div class="text-[12px] font-medium text-slate-600">原价位档位 ${ts.priceTier}积分${extra ? '（+10备课费）' : ''} · 持有方 ${esc(holderLabel(ts.holder))} · 待排期</div><div class="text-[12px] font-semibold text-indigo-700">单节实付快照 ${ts.points} 积分</div>`}</div><div class="text-right">${o.orderType === 'small_group' ? `<div class="font-mono text-[14px] font-bold text-indigo-700">${ts.points} 积分</div>` : ''}${hasAdjust ? `<div class="text-[12px] font-medium text-indigo-600">★ ${o.orderType === 'small_group' ? '含取整余数' : prorated ? '按占比分摊' : '含末节补差'}</div>` : ''}</div></div>`;
         }).join('')}</div>
         <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600">课次合计 <b class="text-slate-900">${list.reduce((s, x) => s + x.points, 0)} 积分</b> = 单据${o.orderType === 'small_group' ? '待上交' : '实收'} ${o.paidPoints} 积分</div>
         <button data-action="close-overlay" class="mt-2 h-11 w-full rounded-xl bg-slate-900 text-[16px] font-semibold text-white">关闭</button>
@@ -1800,7 +1933,7 @@
         <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-center"><label class="block cursor-pointer"><input id="voucherFile" type="file" accept="image/jpeg,image/png,application/pdf" class="hidden"><div class="mx-auto grid h-11 w-11 place-items-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-600">${icon('camera', 'h-5 w-5')}</div><div class="mt-1.5 text-[14px] font-semibold text-slate-800">${v.file ? esc(v.file.name) : '点击选择凭证文件'}</div><p class="mt-0.5 text-[12px] font-medium text-slate-600">JPG / PNG / PDF · 单文件 ≤10MB · 每单最多 5 份</p></label><button data-action="sample-voucher" class="mt-1.5 text-[12px] font-bold text-indigo-600">使用示例凭证</button></div>
         <div class="mt-2"><label for="voucherAmount" class="mb-1 block text-[14px] font-semibold text-slate-700">付款积分</label><input id="voucherAmount" type="number" value="${esc(v.amount)}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15"></div>
         <div class="mt-2"><label for="voucherRemark" class="mb-1 block text-[14px] font-semibold text-slate-700">转账单号 / 备注</label><input id="voucherRemark" value="${esc(v.remark)}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15"></div>
-        ${isParentUpload ? '<p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">上传后单据仍为待确认收款；班长核实后确认，24h 逾期仍自动作废。</p>' : ''}
+        ${isParentUpload ? '<p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">上传后单据转为「已传凭证待核」：豁免 T-24h 与周一 01:00 自动作废并保留剩余未过点 HOLD，等待班长核实到账。</p>' : '<p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">凭证仅作到账核验依据；单据处于「已传凭证待核」时，到达截点将豁免自动作废并保留剩余 HOLD。</p>'}
         ${v.error ? `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(v.error)}</div>` : ''}
         <div class="mt-3 flex gap-2"><button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">取消</button><button data-action="submit-voucher" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${isParentUpload ? '提交付款凭证' : '确认上传凭证'}</button></div>`);
     }
@@ -1970,15 +2103,18 @@
         return showToast('当前单据已处理，幂等返回，不重复生成课次');
       }
       const wasAdjusting = adjustmentPending(o);
+      const wasVoucherExempt = !!o.voucherPendingReview && (o.urgentExempt || Number(o.expireHours || 99) <= 24);
+      const expiredHolds = wasVoucherExempt ? Math.max(1, Number(o.holdExpired) || 1) : 0;
       discardRenewalDraft(o.id);
       o.status = 'PAID';
       o.cancelReason = '';
       o.paidAt = '刚刚';
       o.voucherPendingReview = false;
+      o.urgentExempt = false;
       if (wasAdjusting) { o.adjustmentStatus = 'RESOLVED'; o.adjustmentResolvedAt = '刚刚'; }
       state.overlay = null;
       renderAll();
-      showToast(`已确认收款 · 生成 ${o.lessonCount} 个课次，余数已补入末节${o.source === 'AUTO_RENEWAL' ? ' · HOLD 已转为正式固定位' : ''}${wasAdjusting ? ' · 家长诉求已闭环' : ''}`);
+      showToast(`已确认收款 · 生成 ${o.lessonCount} 个课次${o.source === 'AUTO_RENEWAL' ? ' · 未过点 HOLD 已转正式固定位' : ''}${expiredHolds ? ` · ${expiredHolds} 节已过开课时刻转入待排池` : ''}${wasAdjusting ? ' · 家长诉求已闭环' : ''}`);
     }
     function openCancel(id) {
       if (state.online === 'off') return showToast('离线模式下不可作废');
@@ -1993,16 +2129,32 @@
       if (!o || !canOperate(o)) return;
       if (o.status !== 'PENDING_PAYMENT') {
         state.overlay = null; renderAll();
-        return showToast('仅待付款单据可作废');
+        return showToast('单据状态或预占内容已被更新（如已付款、已作废），请刷新核对');
+      }
+      const reasonEl = document.getElementById('cancelRejectReason');
+      const rejectReason = reasonEl ? reasonEl.value.trim() : '';
+      if (o.voucherPendingReview) {
+        if (!rejectReason) return showToast('驳回无效凭证/未到账须填写 1–200 字说明');
+        if (rejectReason.length > 200) return showToast('驳回原因不能超过 200 字');
       }
       discardRenewalDraft(o.id);
+      const wasVoucher = !!o.voucherPendingReview;
       o.status = 'CANCELLED';
-      o.cancelReason = 'MANUAL_CANCEL';
+      o.cancelReason = wasVoucher ? 'REJECT_VOUCHER' : o.source === 'AUTO_RENEWAL' ? 'OPERATOR_CANCEL_FIXED' : 'MANUAL_CANCEL';
       o.cancelledAt = '刚刚';
       o.voucherPendingReview = false;
+      o.urgentExempt = false;
+      o.rejectReason = rejectReason;
+      o.history = o.history || [];
+      o.history.push({
+        at: '刚刚',
+        title: wasVoucher ? '驳回无效凭证作废' : o.source === 'AUTO_RENEWAL' ? '经办人取消固定并作废' : '经办班长作废',
+        note: wasVoucher ? `驳回原因：${rejectReason} · 剩余 HOLD 全部释放并已通知家长` : (o.source === 'AUTO_RENEWAL' ? '释放未来 HOLD/G-HOLD，并停止后续自动出单' : '作废待收款单据，不产生课次'),
+        actor: holderLabel(o.holder)
+      });
       state.overlay = null;
       renderAll();
-      showToast('已作废购课单 · 不产生课次' + (o.source === 'AUTO_RENEWAL' ? ' · 日历预占已释放' : ''));
+      showToast(wasVoucher ? '已驳回凭证并作废 · 剩余 HOLD 已释放，已通知家长' : (o.source === 'AUTO_RENEWAL' ? '已取消固定并作废 · HOLD 已释放，后续不再自动出单' : '已作废购课单 · 不产生课次'));
     }
     function openEdit(id) {
       if (state.online === 'off') return showToast('离线模式下不可修改');
@@ -2151,9 +2303,10 @@
       o.cancelReason = 'PARENT_DECLINED';
       o.cancelledAt = '刚刚';
       o.voucherPendingReview = false;
+      o.urgentExempt = false;
       state.overlay = null;
       renderAll();
-      showToast('已暂不续费，4 周预占已释放');
+      showToast('已暂不续费 · 4 周预占已释放 · 第 4 周剩余课次照常上完，后续不再自动出单');
     }
     function markCommunicated(id) {
       if (state.online === 'off') return showToast('离线模式下不可操作');
@@ -2198,9 +2351,16 @@
       o.voucherAmount = Number(v.amount) || o.paidPoints;
       o.voucherRemark = v.remark;
       if (isParent) o.voucherPendingReview = true;
+      o.history = o.history || [];
+      o.history.push({
+        at: '刚刚',
+        title: isParent ? '家长上传付款凭证' : '追加付款凭证',
+        note: isParent ? '单据转为「已传凭证待核」：豁免 T-24h 与周一 01:00 自动作废，保留剩余未过点 HOLD' : `已追加凭证 ${o.voucherCount}/5，等待班长核实`,
+        actor: isParent ? '家长' : holderLabel(o.holder)
+      });
       state.overlay = null;
       renderAll();
-      showToast(isParent ? '付款凭证已上传，等待班长核实' : '支付凭证上传成功 · 班长核实到账后确认收款');
+      showToast(isParent ? '付款凭证已上传 · 单据转为「已传凭证待核」，将豁免自动作废' : '支付凭证上传成功 · 班长核实到账后确认收款');
     }
 
     /* ------------------------------------------------------------------

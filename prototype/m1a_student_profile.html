@@ -132,6 +132,8 @@
      * ------------------------------------------------------------------ */
     const TODAY = '2026-11-10';
     const REGISTERED_EMAILS = ['amy@example.com', 'grace@example.com', 'tom@example.com', 'leo@example.com'];
+    /* 通道 A 防误绑：在职/冻结教职与平台管理员邮箱一律禁止绑定试课档案。 */
+    const STAFF_EMAILS = ['sarah@example.com', 'david@example.com', 'admin@example.com'];
     const EXTERNAL_NICKNAMES = ['TomB8', 'LeoW10', 'KevinZ9'];
 
     const COURSEWARE_LIB = [
@@ -261,6 +263,11 @@
             { cwId: 'cw_wonders', level: 'Grade 1', progressText: 'Unit 2 · Week 3 · Vocabulary', lastUpdatedAt: '2026-11-08', lastUpdatedBy: 'David Miller', lastUpdatedRole: '老师', teacherUpdates: { 'David Miller': 9 } },
             { cwId: 'cw_raz', level: 'Level F', progressText: 'Book 12 · The Rainforest', lastUpdatedAt: '2026-04-15', lastUpdatedBy: 'Leo', lastUpdatedRole: '班长', teacherUpdates: {} }
           ],
+          /* 已绑定在营 M1C 小班时的只读课件投影，家长端不可编辑。 */
+          classCourseware: {
+            className: 'Wonders 精读 · 周六启蒙班',
+            items: [{ cwId: 'cw_wonders', nameCn: 'Wonders 精读', nameEn: 'Wonders', level: 'Grade 1', progressText: 'Unit 2 · Shared Reading：小班共读与角色扮演，课后复习高频词。' }]
+          },
           stats: { upcoming: 2, pendingTs: 6, completed: 38, fixed: 2, temp: 0, hold: 1, pendingOrders: 1, exceptionRollback: 0, pendingTiers: [{ price: 16, count: 4 }, { price: 18, count: 2 }] },
           fixedRound: '11-10 ~ 12-05',
           lastActiveAt: '2026-11-10 14:32',
@@ -1139,18 +1146,23 @@
       const leaves = Number(s.leaves30d) || 0;
       const near = Number(s.nearDeadline30d) || 0;
       const lessons = Number(s.lessons30d) || 0;
-      const ratio = lessons > 0 ? leaves / lessons : 0;
-      const alert = ratio > 0.125 || (leaves + near) >= 3;
-      return { leaves, near, lessons, ratio, alert };
+      /* 分子 = 家长/班长发起的请假与 <3h 临期变动合计；分母 = 近 30 天应履约 1v1 已排课次基数。 */
+      const changes = leaves + near;
+      const ratio = lessons > 0 ? changes / lessons : 0;
+      const alert = lessons > 0 && (ratio > 0.125 || changes >= 3);
+      return { leaves, near, lessons, changes, ratio, alert };
     }
 
     function leaveBadge(p) {
       const risk = leaveRisk(p);
       if (!risk) return '';
+      const pct = (risk.ratio * 100).toFixed(1).replace(/\.0$/, '');
       return `<div class="mt-1 flex flex-wrap items-center gap-x-1.5 text-[12px] font-medium ${risk.alert ? 'text-rose-700' : 'text-slate-600'}">
         <span>近 30 天请假 ${risk.leaves} 次</span>
         <span aria-hidden="true">·</span>
         <span>临期变动 ${risk.near} 次</span>
+        <span aria-hidden="true">·</span>
+        <span>占比 ${pct}%</span>
       </div>`;
     }
 
@@ -1166,7 +1178,7 @@
           </div>
           <span class="shrink-0 text-[12px] font-bold ${risk.alert ? 'text-rose-700' : 'text-slate-600'}">${risk.alert ? '超出提醒阈值' : '正常范围'}</span>
         </div>
-        <div class="mt-2.5 grid grid-cols-2 gap-1.5">
+        <div class="mt-2.5 grid grid-cols-3 gap-1.5">
           <div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
             <div class="text-[12px] font-medium text-slate-600">请假次数</div>
             <div class="mt-0.5 text-[16px] font-bold text-slate-900">${risk.leaves} 次</div>
@@ -1175,8 +1187,13 @@
             <div class="text-[12px] font-medium text-slate-600">临期(&lt;3h)变动</div>
             <div class="mt-0.5 text-[16px] font-bold text-slate-900">${risk.near} 次</div>
           </div>
+          <div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
+            <div class="text-[12px] font-medium text-slate-600">变动占比</div>
+            <div class="mt-0.5 text-[16px] font-bold text-slate-900">${pct}%</div>
+          </div>
         </div>
-        <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-600">近 30 天 ${risk.lessons} 节课次 · 请假占比 ${pct}%（阈值 12.5% 或累计 3 次）</p>
+        <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-600">分子：请假 + 临期变动合计 ${risk.changes} 次；分母：近 30 天应履约 1v1 已排课次 ${risk.lessons} 节（含已结课与变动离格课次，不含未来排期与小班）。</p>
+        <p class="mt-1 text-[12px] font-medium leading-relaxed ${risk.alert ? 'text-rose-700' : 'text-slate-600'}">${risk.lessons === 0 ? '分母为 0：展示 0 次 (0%)，不触发标红。' : `占比 ${pct}%（阈值：占比 > 12.5% 或分子 ≥ 3 次时轻标红）。`}</p>
         ${risk.alert ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-700">已超出提醒阈值，建议与家长沟通出勤安排，并评估固定位保留。</p>` : ''}
       </section>`;
     }
@@ -1229,11 +1246,11 @@
         return { ok: false, message: '微调字母仅支持 1-2 位小写英文字母' };
       }
       if (f.editingId) {
-        return { ok: true, message: '规范昵称创建后永久锁定，不随编辑变化' };
+        return { ok: true, message: '规范英文名创建后永久锁定，不随编辑变化' };
       }
       const nick = computeNickname(f);
       if (nick.length < 3 || nick.length > 29 || !/^[A-Za-z]{1,24}[A-Z][a-z]{0,2}\d{1,2}$/.test(nick)) {
-        return { ok: false, message: '规范昵称格式不合法（英文名 + 姓首字母 + 可选 1-2 位小写字母 + 1-2 位年龄）' };
+        return { ok: false, message: '规范英文名格式不合法（英文名 + 姓首字母 + 可选 1-2 位小写字母 + 1-2 位年龄）' };
       }
       if (nicknameConflict(nick, f.editingId)) {
         const suggestion = `${en.slice(0, 24)}${ini.toUpperCase()}b${String(f.age).trim()}`;
@@ -1275,7 +1292,7 @@
       }
       const nick = computeNickname(f);
       if (nick.length < 3 || nick.length > 29 || !/^[A-Za-z]{1,24}[A-Z][a-z]{0,2}\d{1,2}$/.test(nick)) {
-        return { ok: false, message: '规范昵称格式不合法' };
+        return { ok: false, message: '规范英文名格式不合法' };
       }
       if (nicknameConflict(nick)) return { ok: false, message: '该昵称已存在，请微调英文名或年龄' };
       return { ok: true, message: '待认领档案将使用该昵称' };
@@ -1341,8 +1358,8 @@
       overlay: null,
       form: emptyProfileForm(),
       trialForm: emptyTrialForm(),
-      claim: { step: 1, nickname: '', last4: '', error: '', matchedId: null },
-      bind: { targetId: null, email: '', error: '' },
+      claim: { step: 1, nickname: '', last4: '', error: '', matchedId: null, failCount: 0, locked: false },
+      bind: { targetId: null, email: '', error: '', conflict: false },
       cw: { targetKind: 'enrolled', targetId: null, draft: [], pickCw: '', pickLevel: '', pickQuery: '', picking: null, pendingRemoveIndex: null },
       progressEdit: null,
       transfer: { sourceId: null, targetId: '', count: 1, note: '' },
@@ -1458,8 +1475,9 @@
     }
 
     function isStaleCourseware(item, profile) {
-      const refDate = (item && item.lastUpdatedAt) || (profile && profile.createdAt);
-      const days = daysSinceToday(refDate);
+      /* 仅统计老师角色的有效更新；班长/管理员更新不触发「近 6 个月没有更新」。 */
+      if (!item || item.lastUpdatedRole !== '老师' || !item.lastUpdatedAt) return false;
+      const days = daysSinceToday(item.lastUpdatedAt);
       return days !== null && days > 180;
     }
 
@@ -1561,11 +1579,10 @@
 
     function staffSearchMatch(x, q) {
       if (!q) return true;
+      /* 统一按规范英文名（全局唯一主标识）检索，不再依赖小名模糊检索以免跨组混淆。 */
       const nick = String(x.nickname || '').toLowerCase();
-      const fields = (state.role === 'teacher' ? [x.englishName] : [x.realName, x.englishName])
-        .map((v) => String(v || '').toLowerCase());
-      if (/^[a-z]{1,2}$/.test(q)) return nick.startsWith(q) || fields.some((v) => v.startsWith(q));
-      return nick.includes(q) || fields.some((v) => v.includes(q));
+      if (/^[a-z]{1,2}$/.test(q)) return nick.startsWith(q);
+      return nick.includes(q);
     }
 
     function compareStaff(a, b, key) {
@@ -1806,8 +1823,8 @@
       state.progressEdit = null;
       state.transfer = { sourceId: null, targetId: '', count: 1, note: '' };
       state.form = emptyProfileForm(); state.trialForm = emptyTrialForm();
-      state.claim = { step: 1, nickname: '', last4: '', error: '', matchedId: null };
-      state.bind = { targetId: null, email: '', error: '' };
+      state.claim = { step: 1, nickname: '', last4: '', error: '', matchedId: null, failCount: 0, locked: false };
+      state.bind = { targetId: null, email: '', error: '', conflict: false };
       state.noteEdit = { kind: 'enrolled', id: null, text: '' };
       renderAll();
       showToast('演示数据已重置');
@@ -2120,7 +2137,7 @@
 
         ${state.role === 'parent' ? claimCard(blocked) : ''}
         ${renderArchivedSection()}
-        <p class="px-2 text-center text-[12px] font-medium text-slate-500">规范昵称全平台唯一 · 归档或删除后昵称永久保留</p>
+        <p class="px-2 text-center text-[12px] font-medium text-slate-500">规范英文名全平台唯一 · 归档或删除后仍永久保留</p>
       </div>`;
     }
 
@@ -2260,8 +2277,8 @@
         ${infoCard(p, 'parent')}
         ${p.trialHistory ? `<div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">试课记录已并入：历史结课 ${p.stats.completed} 节，学生备注与试课购课单均可查。</div>` : ''}
         ${archived
-          ? `<div class="rounded-xl border border-dashed border-slate-400 bg-slate-50/60 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${statusChip('ARCHIVED', 'parent', p.archiveType)} 已于 ${esc(p.archivedAt || '—')} 归档 · 昵称永久锁定</div>
-             <button data-action="reactivate-profile" data-id="${p.id}" ${activeProfiles().length >= 10 || state.online === 'off' ? 'disabled' : ''} class="h-11 w-full rounded-xl border border-emerald-200 bg-emerald-50 text-[14px] font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">🔄 重新激活</button>`
+          ? `<div class="rounded-xl border border-dashed border-slate-400 bg-slate-50/60 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${statusChip('ARCHIVED', 'parent', p.archiveType)} 已于 ${esc(p.archivedAt || '—')} 归档 · 昵称永久锁定<br>归档期可只读回看历史购课单、在学课件与 Process Note；重新激活后恢复可编。原已解除的小班成员绑定不自动回绑，需小班主理人按需重新绑定。</div>
+             <button data-action="reactivate-profile" data-id="${p.id}" ${activeProfiles().length >= 10 || state.online === 'off' ? 'disabled' : ''} class="h-11 w-full rounded-xl border border-emerald-200 bg-emerald-50 text-[14px] font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40">🔄 重新激活（恢复正式在读）</button>`
           : `<div class="flex gap-2">
             <button data-action="open-edit" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">编辑档案</button>
             <button data-action="open-archive" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-amber-300 bg-amber-50 text-[14px] font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-40">归档档案</button>
@@ -2288,7 +2305,7 @@
             <div class="mt-1 text-[14px] font-medium text-slate-600">${state.role === 'teacher' ? `${esc(p.englishName)} · ${genderLabel(p.gender)} · ${p.age}岁` : `${esc(p.realName)} · ${genderLabel(p.gender)} · ${p.age}岁`}</div>
             ${mode === 'staff' && !isTrial && state.role !== 'teacher' ? leaveBadge(p) : ''}
           </div>
-          <button data-action="copy-nick" data-nick="${esc(p.nickname)}" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-slate-300 bg-white text-slate-500 transition hover:bg-slate-50" aria-label="复制规范昵称">
+          <button data-action="copy-nick" data-nick="${esc(p.nickname)}" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-slate-300 bg-white text-slate-500 transition hover:bg-slate-50" aria-label="复制规范英文名">
             ${icon('copy', 'h-3.5 w-3.5')}
           </button>
         </div>
@@ -2337,11 +2354,11 @@
       const staff = mode === 'staff' && p.status !== 'ARCHIVED';
       const selfActive = mode === 'parent' && p.status === 'ACTIVE' && (state.role === 'parent' || state.role === 'admin');
       const editable = staff || selfActive;
-      const maintainHint = '配置课件仅负责新增/移除（新增可选初始级别）；改级与 2000 字进度备注请使用各课件行【更新进度】';
+      const maintainHint = '配置课件仅负责新增/移除（新增可选初始级别）；改级与 2000 字进度备注请使用各课件行【更新进度】；多方并发提交将校验修改版本，避免静默覆盖';
       const readonlyHint = p.status === 'UNBOUND'
         ? '待认领试课档案由建档/关联班长或平台管理员维护'
         : p.status === 'ARCHIVED'
-          ? '已归档档案只读 · 不支持调整'
+          ? '已归档档案只读 · 可回看历史课件、级别与 Process Note，不支持调整'
           : maintainHint;
       return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <div class="flex items-center justify-between gap-2">
@@ -2373,7 +2390,7 @@
                   <div class="flex flex-wrap items-center gap-1.5">
                     <span class="truncate text-[14px] font-bold text-slate-900">${esc(cw.nameEn)}</span>
                     <span class="shrink-0 rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(item.level || '标准')}</span>
-                    ${stale ? `<span class="shrink-0 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold text-amber-800">近 6 个月没有更新</span>` : ''}
+                    ${stale ? `<span class="shrink-0 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">近 6 个月没有更新</span>` : ''}
                   </div>
                   <div class="truncate text-[12px] font-medium text-slate-500">${esc(cw.nameCn)}</div>
                 </div>
@@ -2390,6 +2407,32 @@
             </div>`;
           }).join('') : `<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-[12px] font-medium text-slate-500">尚未配置在学课件</div>`}
         </div>
+        ${state.role === 'teacher' ? `<p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-500">仅当前对该生存在「待上」或 02:00 结课前未结 1v1 课次（含已接单代课）的在职老师可编辑；代课撤销/改派或结课后立即收回，已完成课节请经 M3B【授课历史】对应课节卡片补录。</p>` : ''}
+        ${p.classCourseware && mode === 'parent' ? `<div class="mt-3 rounded-xl border border-slate-200 bg-slate-100/70 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex min-w-0 items-center gap-2">
+              <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-slate-500">${icon('users', 'h-3.5 w-3.5')}</span>
+              <h3 class="truncate text-[14px] font-bold text-slate-800">小班在学课件（仅查看）</h3>
+            </div>
+            <span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>
+          </div>
+          <div class="mt-1 text-[12px] font-medium text-slate-500">${esc(p.classCourseware.className)} · 小班课件由小班主理人统一维护，家长端不可编辑或增删</div>
+          <div class="mt-2 space-y-2">
+            ${(p.classCourseware.items || []).map((item) => `<div class="rounded-lg border border-slate-200/80 bg-white p-2.5">
+              <div class="flex items-start gap-2.5">
+                <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400" title="课件样图">${icon('image', 'h-5 w-5')}</span>
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="truncate text-[14px] font-bold text-slate-900">${esc(item.nameEn)}</span>
+                    <span class="shrink-0 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">${esc(item.level || '标准')}</span>
+                  </div>
+                  <div class="truncate text-[12px] font-medium text-slate-500">${esc(item.nameCn || '')}</div>
+                  <div class="mt-1 rounded-lg bg-slate-50/80 px-2.5 py-1.5 text-[12px] font-semibold ${item.progressText ? 'text-slate-800' : 'text-slate-500'}"><span class="font-semibold text-slate-500">进度备注：</span>${expandableTextBlock(item.progressText, '暂未记录')}</div>
+                </div>
+              </div>
+            </div>`).join('')}
+          </div>
+        </div>` : ''}
       </section>`;
     }
 
@@ -2397,10 +2440,10 @@
       const isTrial = p.staffKind === 'trial';
       const teacherView = state.role === 'teacher';
       const rows = [
-        ['规范昵称', `<span class="font-mono">${esc(p.nickname)}</span>`],
+        ['规范英文名 <span class="font-normal text-slate-400">全平台唯一主标识</span>', `<span class="font-mono">${esc(p.nickname)}</span>`],
         ...(teacherView ? [] : [['学员姓名或小名', esc(p.realName)]]),
-        ['英文名', esc(p.englishName)],
-        ['年龄', `${p.age} 岁`],
+        ['英文名 <span class="font-normal text-slate-400">创建后锁定</span>', esc(p.englishName)],
+        ['年龄 <span class="font-normal text-slate-400">编辑不重算</span>', `${p.age} 岁`],
         ['性别', genderLabel(p.gender)],
         ...(teacherView ? [] : [['常态作息偏好 <span class="font-normal text-slate-400">选填</span>', esc(preferredSlotsText(p))]]),
         ...(teacherView ? [] : [['建档时间', esc(p.createdAt)]])
@@ -2422,6 +2465,7 @@
       }
       return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
         <h2 class="text-[16px] font-bold text-slate-900">基础信息</h2>
+        <p class="mt-0.5 text-[12px] font-medium text-slate-500">规范英文名及英文名/姓首字母/微调字母创建即永久锁定；年龄、小名、性别、头像可编辑。</p>
         <div class="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2.5">
           ${rows.map(([k, v]) => `<div class="min-w-0">
             <div class="text-[12px] font-medium text-slate-500">${k}</div>
@@ -2445,11 +2489,13 @@
             ? `<button data-action="open-notes" data-kind="${kind}" data-id="${p.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:opacity-40">编辑备注</button>`
             : `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`}
         </div>
-        <p class="mt-0.5 text-[12px] font-medium text-slate-500">Student Note · 最多 2000 字 · 默认折叠 2 行</p>
+        <p class="mt-0.5 text-[12px] font-medium text-slate-500">Student Note · 最多 2000 字 · 默认折叠 2 行 · 多方并发最后保存生效，提交时校验版本防静默覆盖</p>
         <div class="mt-2.5 rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-[14px] font-medium leading-relaxed ${note ? 'text-slate-800' : 'text-slate-500'}">
           ${expandableTextBlock(note, '暂无学生备注')}
         </div>
         <p class="mt-1.5 text-[12px] font-medium text-slate-500">💡 请尽量填写英文，便于老师看懂（如 Shy at first, needs encouragement）</p>
+        ${state.role === 'teacher' ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">仅当前对该生存在待上或未结 1v1 课次（含已接单代课）的在职老师可编辑；代课撤销、改派或结课后立即收回，已实际代课结课的课节请经 M3B【授课历史】补录。</p>` : ''}
+        ${p.status === 'ARCHIVED' ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">已归档档案可只读回看历史 Process Note 与全部变动留痕。</p>` : ''}
       </section>`;
     }
 
@@ -2568,21 +2614,24 @@
      * 家长 · 认领试课
      * ------------------------------------------------------------------ */
     function renderClaimModal() {
-      const blocked = state.online === 'off' || activeProfiles().length >= 10;
+      const locked = !!state.claim.locked;
+      const blocked = state.online === 'off' || activeProfiles().length >= 10 || locked;
       const t = state.trials.find((x) => x.id === state.claim.matchedId);
       if (state.claim.step === 2 && !t) state.claim.step = 1;
       const blockedMsg = state.online === 'off'
         ? '离线模式下不可认领，请联网后重试'
         : activeProfiles().length >= 10
           ? '名下档案已达上限 (10/10)，请先归档或删除不再使用的档案'
-          : '';
+          : locked
+            ? '连续匹配失败 5 次，自助认领已锁定 30 分钟；请联系建档班长通过后台通道协助绑定。'
+            : '';
       return `<div class="absolute inset-0 z-50">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
         <div class="absolute inset-x-4 top-1/2 max-h-[88%] -translate-y-1/2 overflow-y-auto rounded-2xl bg-slate-50 p-4 shadow-2xl">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <h2 class="text-[18px] font-bold tracking-tight text-slate-900">认领试课</h2>
-              <p class="mt-0.5 text-[12px] font-medium text-slate-500">核验规范昵称与预留联系方式后四位</p>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-500">核验规范英文名与预留联系方式后四位 · 连续失败 5 次锁定 30 分钟</p>
             </div>
             <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
@@ -2594,7 +2643,9 @@
     }
 
     function openClaimModal() {
-      state.claim = { step: 1, nickname: '', last4: '', matchedId: null, error: '' };
+      /* 冷却锁定按账号生效 30 分钟，关闭弹窗不解除。 */
+      const locked = !!state.claim.locked;
+      state.claim = { step: 1, nickname: '', last4: '', matchedId: null, error: '', failCount: locked ? 5 : 0, locked };
       state.overlay = { type: 'claim' };
       renderAll();
     }
@@ -2615,18 +2666,19 @@
     function claimStep1(blocked) {
       return `<section class="space-y-3.5 rounded-2xl border border-slate-200/80 bg-white p-4">
         <div>
-          <label for="claimNickname" class="mb-1 block text-[14px] font-semibold text-slate-700">孩子规范昵称</label>
-          <input id="claimNickname" value="${esc(state.claim.nickname)}" placeholder="如 LeoW8" maxlength="30" class="h-11 w-full rounded-xl border ${state.claim.error ? 'border-rose-300' : 'border-slate-200'} bg-slate-50/70 px-3.5 font-mono text-[16px] font-semibold text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
-          <p class="mt-1 text-[12px] font-medium text-slate-500">昵称可向建档老师获取</p>
+          <label for="claimNickname" class="mb-1 block text-[14px] font-semibold text-slate-700">孩子规范英文名</label>
+          <input id="claimNickname" value="${esc(state.claim.nickname)}" placeholder="如 LeoW8" maxlength="30" ${blocked ? 'disabled' : ''} class="h-11 w-full rounded-xl border ${state.claim.error ? 'border-rose-300' : 'border-slate-200'} bg-slate-50/70 px-3.5 font-mono text-[16px] font-semibold text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 disabled:opacity-60">
+          <p class="mt-1 text-[12px] font-medium text-slate-500">规范英文名可向建档老师获取</p>
         </div>
         <div>
           <label for="claimLast4" class="mb-1 block text-[14px] font-semibold text-slate-700">建档预留手机 / 微信后四位</label>
-          <input id="claimLast4" value="${esc(state.claim.last4)}" inputmode="numeric" maxlength="4" placeholder="8000" class="h-11 w-full rounded-xl border ${state.claim.error ? 'border-rose-300' : 'border-slate-200'} bg-slate-50/70 px-3.5 font-mono text-[16px] font-semibold tracking-widest text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
-          <p class="mt-1 text-[12px] font-medium text-slate-500">也可由教务老师在后台绑定家长邮箱</p>
+          <input id="claimLast4" value="${esc(state.claim.last4)}" inputmode="numeric" maxlength="4" placeholder="8000" ${blocked ? 'disabled' : ''} class="h-11 w-full rounded-xl border ${state.claim.error ? 'border-rose-300' : 'border-slate-200'} bg-slate-50/70 px-3.5 font-mono text-[16px] font-semibold tracking-widest text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 disabled:opacity-60">
+          <p class="mt-1 text-[12px] font-medium text-slate-500">同一家长账号连续匹配失败 5 次将锁定本入口 30 分钟，并引导联系建档班长走后台通道协助绑定。</p>
         </div>
         ${state.claim.error ? `<div id="claimError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(state.claim.error)}</div>` : ''}
+        ${!blocked && state.claim.failCount > 0 ? `<p class="text-center text-[12px] font-medium text-amber-700">已连续失败 ${state.claim.failCount}/5 次</p>` : ''}
         <button data-action="claim-query" ${blocked ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">查询宝贝</button>
-        <p class="text-center text-[12px] font-medium text-slate-500">演示：LeoW8 · 后四位 8000</p>
+        <p class="text-center text-[12px] font-medium text-slate-500">演示：LeoW8 · 后四位 8000（未匹配与不可认领统一模糊提示，不区分具体错因）</p>
       </section>`;
     }
 
@@ -2668,7 +2720,7 @@
       { key: 'smart', label: '智能优先' },
       { key: 'pending', label: '待排最多' },
       { key: 'remaining', label: '余课最少' },
-      { key: 'nickname', label: '昵称 A-Z' }
+      { key: 'nickname', label: '规范英文名 A-Z' }
     ];
 
     function renderStaffList() {
@@ -2715,7 +2767,7 @@
       const listHeader = state.embed ? '' : `<div class="flex items-center justify-between gap-3 px-1">
           <div class="min-w-0">
             <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${isAdmin ? '全员学员' : isTeacher ? '我的学员' : '所辖学员'}</h1>
-            <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isAdmin ? '可按关联班长筛选' : isTeacher ? '本轮授课进度 · 在学课件与学生备注' : '按试课建档 / 本组授课 / 持有课次动态关联'}</p>
+            <p class="mt-0.5 text-[12px] font-medium text-slate-500">${isAdmin ? '可按关联班长筛选 · 仅 1v1 三条关联' : isTeacher ? '本轮授课进度 · 在学课件与学生备注' : '按试课建档 / 本组授课 / 持有课次三条 1v1 动态关联'}</p>
           </div>
           ${isMonitor
             ? `<button data-action="open-trial" ${state.online === 'off' ? 'disabled' : ''} class="h-10 shrink-0 rounded-xl bg-indigo-600 px-3.5 text-[14px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 新建试课学员</button>`
@@ -2731,7 +2783,7 @@
           </div>
           <div class="relative">
             <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-            <input id="staffSearch" value="${esc(state.staffQuery)}" placeholder="${isTeacher ? '搜索英文名 / 规范昵称(如 A / Al)' : '搜索规范昵称(如 A / Al)或小名'}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+            <input id="staffSearch" value="${esc(state.staffQuery)}" placeholder="${isTeacher ? '搜索规范英文名(如 A / Al)' : '搜索规范英文名(如 A / Al / AliceZ12)'}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
           </div>
           ${showLetterIndex ? `<div class="space-y-1.5">
             <button data-action="staff-letter-toggle" class="inline-flex h-7 items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50">
@@ -2754,6 +2806,10 @@
           ${isMonitor ? seg('holder', '持有课次', counts.holder) : ''}
           ${!isMonitor ? seg('active', '正式在读', counts.active) : ''}
         </div>
+        ${!isTeacher ? `<div class="flex items-start gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2 text-[12px] font-medium text-slate-600">
+          <span class="mt-0.5 shrink-0 text-slate-500">${icon('info', 'h-3.5 w-3.5')}</span>
+          <span>【所辖学员】严格仅覆盖 1v1 三条动态关联，不混入本人主理小班中纯他组绑定的学员；查看课表时仅本人负责老师的 1v1 课格可代请假/代挪位，小班格与其他老师课格只读。</span>
+        </div>` : ''}
         ${!isTeacher && items.some((p) => scheduleChild(p).demo) ? `<div class="flex items-start gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2 text-[12px] font-medium text-slate-600">
           <span class="mt-0.5 shrink-0 text-slate-500">${icon('info', 'h-3.5 w-3.5')}</span>
           <span>演示数据：非 Alice / Bob 学员的课表统一展示 Alice 的周课表</span>
@@ -2883,7 +2939,8 @@
           <span>演示数据：该学员课表展示 Alice 的周课表</span>
         </div>` : ''}
         ${isTeacher
-          ? `<p class="text-center text-[12px] font-medium text-slate-500">学生备注与各课件进度均可在上方区块直接更新，本轮仅展示本人授课进度。</p>`
+          ? `<p class="text-center text-[12px] font-medium text-slate-500">学生备注与各课件进度均可在上方区块直接更新，本轮仅展示本人授课进度。</p>
+             <a href="m3b_attendance_substitution.html" target="_blank" rel="noopener" class="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50">${icon('history', 'h-4 w-4')}已结课代课记录 → M3B【授课历史】补录</a>`
           : p.status === 'ARCHIVED'
             ? `<p class="text-center text-[12px] font-medium text-slate-500">已归档档案只读：不支持约课、购课、代约试课或查看课表。</p>`
             : `<div class="flex gap-2">
@@ -2912,7 +2969,7 @@
         <div class="flex items-start justify-between gap-2">
           <div class="min-w-0">
             <h2 class="text-[16px] font-bold text-slate-900">${trialing ? '试课中 · 可绑定家长' : '待认领试课档案'}</h2>
-            <p class="mt-0.5 text-[12px] font-medium text-slate-500">档案暂由平台待归集 · 绑定后历史课表、学生备注与订单完整继承</p>
+            <p class="mt-0.5 text-[12px] font-medium text-slate-500">档案暂由平台待归集 · 绑定后历史课表、学生备注与订单完整继承；仅限正常生效家长普通邮箱，禁止教职/管理员邮箱</p>
           </div>
           ${expiring ? `<span class="shrink-0 text-[12px] font-medium text-rose-700">(剩 ${t.daysLeft} 天归档)</span>` : ''}
         </div>
@@ -2965,9 +3022,9 @@
         if (state.adminTab !== 'all' && trialBucket(t) !== state.adminTab) return false;
         if (!q) return true;
         const nick = String(t.nickname || '').toLowerCase();
-        const fields = [t.realName, t.englishName, t.contact].map((v) => String(v || '').toLowerCase());
-        if (/^[a-z]{1,2}$/.test(q)) return nick.startsWith(q) || fields.some((v) => v.startsWith(q));
-        return nick.includes(q) || fields.some((v) => v.includes(q));
+        const contact = String(t.contact || '').replace(/\s/g, '').toLowerCase();
+        if (/^[a-z]{1,2}$/.test(q)) return nick.startsWith(q);
+        return nick.includes(q) || contact.includes(q);
       }), !!q);
       const tablet = state.device === 'tablet';
       const seg = (key, label, count) => `<button data-action="set-admin-tab" data-tab="${key}" class="h-6 shrink-0 whitespace-nowrap rounded-full border-0 px-2 text-[11px] transition ${state.adminTab === key ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${label}${count ? ` (${count})` : ''}</button>`;
@@ -2975,15 +3032,19 @@
         <div class="flex items-center justify-between gap-3 px-1">
           <div class="min-w-0">
             <h1 class="text-[18px] font-bold tracking-tight text-slate-900">试课学员管理</h1>
-            <p class="mt-0.5 text-[12px] font-medium text-slate-500">免注册代建 · 未结课 TS 为 0 且超 30 天未认领自动归档</p>
+            <p class="mt-0.5 text-[12px] font-medium text-slate-500">免注册代建 · 未结课 TS 为 0 且满 30 个自然日未认领，每日凌晨跑批自动归档</p>
           </div>
           <button data-action="open-trial" ${state.online === 'off' ? 'disabled' : ''} class="h-11 shrink-0 rounded-xl bg-indigo-600 px-4 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">+ 新建试课</button>
         </div>
         <div class="relative">
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-          <input id="trialSearch" value="${esc(state.trialQuery)}" placeholder="搜索规范昵称(如 L / Le)或小名" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
+          <input id="trialSearch" value="${esc(state.trialQuery)}" placeholder="搜索规范英文名 / 预留联系方式 (如 LeoW8)" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
         </div>
-        <p class="px-1 text-[12px] font-medium text-slate-500">${q ? '搜索中 · 按昵称 A-Z' : '默认按防流失优先级排序：待认领 → 试课中 → 已转正 → 已归档'}</p>
+        <p class="px-1 text-[12px] font-medium text-slate-500">${q ? '搜索中 · 按规范英文名 A-Z' : '默认按防流失优先级排序：待认领 → 试课中 → 已转正 → 已归档'}</p>
+        <div class="flex items-start gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2 text-[12px] font-medium text-slate-600">
+          <span class="mt-0.5 shrink-0 text-slate-500">${icon('info', 'h-3.5 w-3.5')}</span>
+          <span>「待认领试课」档案严禁绑入 M1C 小班（仅「正式在读」学员可加入）；建档班长解除职务或 M0A 账号被封禁时，其名下待认领试课档案由管理员强制改绑至在职、账号正常的接手班长。</span>
+        </div>
         <div class="flex items-center gap-1 overflow-x-auto py-0.5">
           ${seg('all', '全部', counts.all)}
           ${seg('unbound', '待认领', counts.unbound)}
@@ -3033,7 +3094,7 @@
           <div class="flex items-center justify-between gap-3"><span class="shrink-0">最近试课</span><span class="truncate text-right font-semibold text-slate-700">${t.lastLessonDate ? esc(t.lastLessonDate.slice(5)) : '待排'}</span></div>
           <div class="flex items-center justify-between gap-3"><span class="shrink-0">关联班长</span><span class="truncate text-right font-semibold text-slate-700">${esc(counselorLabel(t.responsible))}</span></div>
           <div class="flex items-center justify-between gap-3"><span class="shrink-0">建档人</span><span class="truncate text-right font-semibold text-slate-700">${esc(t.createdBy || 'Sarah')}</span></div>
-          ${archived ? `<div class="text-right font-medium text-slate-600">归档于 ${esc(t.archivedAt || '—')} · 昵称永久锁定</div>` : ''}
+          ${archived ? `<div class="text-right font-medium text-slate-600">归档于 ${esc(t.archivedAt || '—')} · 昵称永久锁定${t.reactivationCount ? ` · 已再激活 ${t.reactivationCount} 次` : ''}</div>` : ''}
           ${trialing ? `<div class="text-right font-medium text-slate-600">存在未结课 TS ${trialUncompletedTs(t)} 节 · 暂不触发归档</div>` : ''}
           ${expiring ? `<div class="text-right font-medium text-rose-700">(剩 ${t.daysLeft} 天归档)</div>` : ''}
         </div>
@@ -3130,7 +3191,7 @@
         <div class="flex min-h-[56px] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-2">
           <div class="min-w-0">
             <h2 class="truncate text-[16px] font-bold text-slate-900">${isEdit ? '编辑学员档案' : '添加学员档案'}</h2>
-            <p class="truncate text-[12px] font-medium text-slate-500">${esc(f.reason || '规范昵称全平台唯一')}</p>
+            <p class="truncate text-[12px] font-medium text-slate-500">${esc(f.reason || '规范英文名全平台唯一，创建后永久锁定')}</p>
           </div>
           <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
         </div>
@@ -3161,21 +3222,22 @@
 
               <div class="grid grid-cols-[1fr_76px_76px] gap-2">
                 <div>
-                  <label for="fEnglish" class="mb-1 block text-[14px] font-semibold text-slate-700">英文名</label>
-                  <input id="fEnglish" value="${esc(f.englishName)}" placeholder="Alice" maxlength="24" autocomplete="off" class="${inputCls}">
+                  <label for="fEnglish" class="mb-1 block text-[14px] font-semibold text-slate-700">英文名 ${isEdit ? '<span class="font-normal text-[12px] text-slate-500">（创建后锁定）</span>' : ''}</label>
+                  <input id="fEnglish" value="${esc(f.englishName)}" placeholder="Alice" maxlength="24" autocomplete="off" ${isEdit ? 'disabled' : ''} class="${inputCls} ${isEdit ? 'opacity-60' : ''}">
                 </div>
                 <div>
                   <label for="fInitial" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">姓首字母</label>
-                  <input id="fInitial" value="${esc(f.initial)}" placeholder="Z" maxlength="1" autocomplete="off" class="${inputCls} text-center font-mono uppercase">
+                  <input id="fInitial" value="${esc(f.initial)}" placeholder="Z" maxlength="1" autocomplete="off" ${isEdit ? 'disabled' : ''} class="${inputCls} text-center font-mono uppercase ${isEdit ? 'opacity-60' : ''}">
                 </div>
                 <div>
                   <label for="fAge" class="mb-1 block text-center text-[14px] font-semibold text-slate-700">年龄</label>
                   <input id="fAge" type="number" min="1" max="99" value="${esc(f.age)}" placeholder="12" inputmode="numeric" class="${inputCls} text-center">
                 </div>
               </div>
+              <p class="text-[12px] font-medium leading-relaxed text-slate-500">英文名、姓首字母与可选微调字母创建即永久锁定，不随年龄增长或编辑重算规范英文名；年龄、小名、性别、头像可编辑。</p>
 
               <div>
-                <label for="fSuffix" class="mb-1 block text-[14px] font-semibold text-slate-700">微调字母 <span class="font-normal text-[12px] text-slate-500">（可选，1-2 位小写字母，仅重名时使用）</span></label>
+                <label for="fSuffix" class="mb-1 block text-[14px] font-semibold text-slate-700">微调字母 <span class="font-normal text-[12px] text-slate-500">（可选，1-2 位小写字母，仅重名时使用；创建后锁定）</span></label>
                 <input id="fSuffix" value="${esc(f.suffix)}" placeholder="b" maxlength="2" autocomplete="off" ${isEdit ? 'disabled' : ''} class="${inputCls} w-36 font-mono lowercase ${isEdit ? 'opacity-50' : ''}">
               </div>
 
@@ -3210,11 +3272,11 @@
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
               <div class="flex items-center gap-2">
                 <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">3</span>
-                <h3 class="text-[14px] font-bold text-slate-900">规范昵称</h3>
+                <h3 class="text-[14px] font-bold text-slate-900">规范英文名</h3>
               </div>
               <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                 <div class="flex items-center justify-between">
-                  <span class="text-[12px] font-semibold text-slate-700">${isEdit ? '规范昵称（永久锁定）' : '系统生成规范昵称'}</span>
+                  <span class="text-[12px] font-semibold text-slate-700">${isEdit ? '规范英文名（永久锁定）' : '系统生成规范英文名'}</span>
                   <span class="flex items-center gap-1 text-[12px] font-medium text-slate-500">${icon('lock', 'h-3.5 w-3.5')}全平台唯一</span>
                 </div>
                 <div id="nickPreview" class="mt-0.5 break-all font-mono text-[18px] font-bold ${(lockedNicknameOf(f) || computeNickname(f)) ? 'text-slate-900' : 'text-slate-500'}">${esc(lockedNicknameOf(f) || computeNickname(f) || '英文名+姓首字母+可选小写字母+年龄')}</div>
@@ -3255,7 +3317,7 @@
               <button data-action="trial-mode" data-mode="quick" class="h-9 flex-1 rounded-lg text-[13px] font-semibold transition ${isQuick ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}">极简 2 字段建档</button>
             </div>
 
-            <div class="rounded-xl border border-amber-300 bg-amber-50/50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">正式学员请由家长注册后自行添加；此处仅用于家长未注册前的试听建档，超 30 天未认领将自动归档。${state.role === 'monitor' ? '建档后将自动归属您（班长 Leo）管理。' : '建档后暂归待认领池。'}</div>
+            <div class="rounded-xl border border-amber-300 bg-amber-50/50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">正式学员请由家长注册后自行添加；此处仅用于家长未注册前的试听建档。每日凌晨按自然日跑批，满 30 个自然日未认领且五项在途资产清零时自动归档；「待认领试课」严禁绑入小班。${state.role === 'monitor' ? '建档后将自动归属您（班长 Leo）管理。' : '建档后暂归待认领池。'}</div>
 
             ${isQuick ? `
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
@@ -3266,7 +3328,7 @@
               <div>
                 <label for="fTrialQuickNick" class="mb-1 block text-[14px] font-semibold text-slate-700">① 规范英文名</label>
                 <input id="fTrialQuickNick" value="${esc(f.quickNick)}" placeholder="如 MarkL10" maxlength="30" autocomplete="off" class="${inputCls} font-mono">
-                <p class="mt-1 text-[12px] font-medium text-slate-500">格式：英文名 + 大写姓首字母 + 可选 1-2 位小写字母 + 年龄（小名将默认同步填入规范英文名）</p>
+                <p class="mt-1 text-[12px] font-medium text-slate-500">格式：英文名 + 大写姓首字母 + 可选 1-2 位小写字母 + 年龄（小名将默认同步填入规范英文名）；创建后仅小名/年龄/性别/作息偏好可编辑，英文名、姓首字母与微调字母永久锁定。</p>
               </div>
               <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                 <div class="flex items-center justify-between">
@@ -3281,7 +3343,7 @@
                 <input id="fTrialContact" value="${esc(f.contact)}" placeholder="13800138000 / WeChat_ID" maxlength="32" class="${inputCls}">
                 <p class="mt-1 text-[12px] font-medium text-slate-500">必填，至少 4 位有效字符；用于认领核验与排课通知</p>
               </div>
-              <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">规范昵称格式：英文名 + 大写姓首字母 + 可选 1-2 位小写字母 + 1-2 位年龄（如 MarkL10 / MarkLa10）。</div>
+              <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">规范英文名格式：英文名 + 大写姓首字母 + 可选 1-2 位小写字母 + 1-2 位年龄（如 MarkL10 / MarkLa10），自右向左无歧义解析；创建后英文名/姓首字母/微调字母永久锁定。</div>
             </section>
             ${slotPickerSection(f.preferredSlots, '3')}
             ` : `
@@ -3309,9 +3371,10 @@
                   <input id="fTrialAge" type="number" min="1" max="99" value="${esc(f.age)}" placeholder="8" inputmode="numeric" class="${inputCls} text-center">
                 </div>
               </div>
+              <p class="text-[12px] font-medium leading-relaxed text-slate-500">英文名、姓首字母与微调字母创建即永久锁定；后续仅小名、年龄、性别与作息偏好可编辑，年龄变化不重算规范英文名。</p>
 
               <div>
-                <label for="fTrialSuffix" class="mb-1 block text-[14px] font-semibold text-slate-700">微调字母 <span class="font-normal text-[12px] text-slate-500">（可选，1-2 位小写字母）</span></label>
+                <label for="fTrialSuffix" class="mb-1 block text-[14px] font-semibold text-slate-700">微调字母 <span class="font-normal text-[12px] text-slate-500">（可选，1-2 位小写字母；创建后锁定）</span></label>
                 <input id="fTrialSuffix" value="${esc(f.suffix || '')}" placeholder="a" maxlength="2" autocomplete="off" class="${inputCls} w-36 font-mono lowercase">
               </div>
             </section>
@@ -3319,11 +3382,11 @@
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4 space-y-3.5">
               <div class="flex items-center gap-2">
                 <span class="grid h-5 w-5 place-items-center rounded-full bg-indigo-50 text-[11px] font-bold text-indigo-600">2</span>
-                <h3 class="text-[14px] font-bold text-slate-900">规范昵称</h3>
+                <h3 class="text-[14px] font-bold text-slate-900">规范英文名</h3>
               </div>
               <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                 <div class="flex items-center justify-between">
-                  <span class="text-[12px] font-semibold text-slate-700">系统生成规范昵称</span>
+                  <span class="text-[12px] font-semibold text-slate-700">系统生成规范英文名</span>
                   <span class="flex items-center gap-1 text-[12px] font-medium text-slate-500">${icon('lock', 'h-3.5 w-3.5')}全平台唯一</span>
                 </div>
                 <div id="trialNickPreview" class="mt-0.5 break-all font-mono text-[18px] font-bold ${computeNickname(f) ? 'text-slate-900' : 'text-slate-500'}">${esc(computeNickname(f) || '英文名+首字母+年龄')}</div>
@@ -3402,7 +3465,7 @@
               </div>
               ${closeBtn}
             </div>
-            <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">删除后档案从所有列表与【已归档】区彻底隐藏，<span class="font-bold text-rose-700">不可再激活</span>；规范昵称仍永久锁定。也可选择【归档封存】保留历史并支持再激活。</p>
+            <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">删除后档案从所有列表与【已归档】区彻底隐藏，<span class="font-bold text-rose-700">不可再激活</span>；规范英文名仍永久锁定。${!isTrial ? '同事务将自动解除其在 M1C 全部「正式开课」小班的活跃成员绑定，释放小班 Max 名额。' : ''}也可选择【归档封存】保留历史并支持再激活。</p>
             <div class="mt-4 flex gap-2">
               <button data-action="open-archive" data-kind="${kind}" data-id="${p.id}" class="h-11 flex-1 rounded-xl border border-amber-300 bg-amber-50 text-[14px] font-semibold text-amber-800 transition hover:bg-amber-100">归档封存</button>
               <button data-action="guard-confirm-delete" data-kind="${kind}" data-id="${p.id}" class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white transition hover:bg-rose-700">确认删除</button>
@@ -3437,7 +3500,8 @@
               <p class="mt-1">1. 待排期课次：办理【课次划转】给同家庭孩子，或申请【课次清退/扣减】核销。</p>
               <p>2. 已排期课程：更换实际上课学员、同师挪位或请假退回待排期后处理。</p>
               <p>3. 在途 HOLD / 待付款单 / 异常回退：先取消待续费、待付单并完成异常回退处置。</p>
-              <p class="mt-1">五项全清零后方可归档；后续需要时可随时按原类型重新激活。</p>
+              <p class="mt-1">M1C 小班成员绑定不计入线上资产，不阻断归档；归档/删除时将自动解除全部「正式开课」小班的活跃成员绑定。</p>
+              <p class="mt-1">五项全清零后方可归档；后续需要时可随时按原类型重新激活。正式在读档案不设超时自动归档，仅由家长或管理员主动发起。</p>
             </div>
             <div class="mt-4 flex gap-2">
               <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">知道了</button>
@@ -3457,7 +3521,7 @@
             </div>
             ${closeBtn}
           </div>
-          <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">五项在途资产已全清零。归档后档案转为只读，规范昵称永久锁定；${isTrial ? '移入试课【已归档】列表，仅可按原类型重新激活' : '移入家长【已归档宝贝】，可按原类型重新激活并恢复历史记录'}。</p>
+          <p class="mt-3 text-[14px] font-medium leading-relaxed text-slate-600">五项在途资产已全清零。归档后档案转为只读，规范英文名永久锁定；${isTrial ? '移入试课【已归档】列表，仅可按原类型重新激活并重算 30 天' : '同事务自动解除其在 M1C 全部「正式开课」小班的活跃成员绑定（释放 Max 名额），随后移入家长【已归档宝贝】；可按原类型重新激活并恢复历史记录，原已解除的小班绑定不自动回绑'}。</p>
           <div class="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium text-slate-600">历史课次 ${historyTs} 节 · 历史购课单 ${historyOrders} 张 · 学生备注与课件进度只读留存。</div>
           <div class="mt-4 flex gap-2">
             <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
@@ -3475,8 +3539,8 @@
         <div class="absolute inset-x-4 top-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-2xl">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <h2 class="text-[16px] font-bold text-slate-900">绑定家长账号</h2>
-              <p class="mt-1 truncate text-[12px] font-medium text-slate-500">${esc(t.nickname)} · ${esc(t.realName)}</p>
+              <h2 class="text-[16px] font-bold text-slate-900">绑定家长账号（通道 A）</h2>
+              <p class="mt-1 truncate text-[12px] font-medium text-slate-500">${esc(t.nickname)} · ${esc(t.realName)} · 单事务原子抢占</p>
             </div>
             <button data-action="close-overlay" class="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-500 hover:bg-slate-50" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
@@ -3484,12 +3548,14 @@
           <div class="mt-4">
             <label for="bindEmail" class="mb-1 block text-[14px] font-semibold text-slate-700">家长注册邮箱</label>
             <input id="bindEmail" type="email" value="${esc(state.bind.email)}" placeholder="parent@example.com" class="h-11 w-full rounded-xl border ${state.bind.error ? 'border-rose-300' : 'border-slate-200'} bg-slate-50/70 px-3.5 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
-            <p class="mt-1 text-[12px] font-medium text-slate-500">演示可用：grace@example.com</p>
+            <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">仅限 M0A「正常生效」的家长普通邮箱：严禁未激活、临时锁定、封禁/注销，及在职/冻结教职与平台管理员邮箱；目标名下正式在读须 &lt; 10。</p>
+            <p class="mt-1 text-[12px] font-medium text-slate-500">演示可用：grace@example.com；教职邮箱 sarah@example.com 将被拦截。</p>
           </div>
 
           <div class="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-2.5 text-[11px] leading-relaxed text-slate-700">
             <div class="font-bold text-indigo-950">绑定转正后 5 类数据无缝归属家长（资金持有人保持不变）：</div>
             <div class="mt-1 font-medium text-slate-600">① 学员档案 · ② 全部 TS 课次资产 · ③ 试课购课单与清退记录 · ④ 在学课件进度 · ⑤ 学生备注（内部档案变动日志仍对家长隐藏）</div>
+            <div class="mt-1 font-medium text-slate-600">提交瞬间将原子复检档案仍为待认领且目标在读 &lt; 10；并发或重复请求仅先到者成功，后者提示「该宝贝已被认领，请刷新查看最新状态」。</div>
           </div>
 
           ${state.bind.error ? `<div id="bindError" class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-medium text-rose-700">${esc(state.bind.error)}</div>` : ''}
@@ -3645,6 +3711,7 @@
               </div>
               <textarea id="progressNote" maxlength="2000" rows="5" placeholder="如 Unit 3 · Page 24&#10;Reviewed sight words and read the story aloud." class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(text)}</textarea>
               <p class="mt-1 text-[12px] font-medium text-slate-500">请尽量填写英文，便于老师看懂（如 Reviewed sight words, needs more speaking practice）</p>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">多方协同：提交时校验修改版本，若期间已被他人修改将提示刷新核对后再保存（最后保存生效）。</p>
             </div>
             ${item.lastUpdatedBy ? `<div class="text-[12px] font-medium text-slate-500">最后更新：${esc(item.lastUpdatedBy)} (${esc(item.lastUpdatedRole || '教务')}) · ${relativeDaysLabel(item.lastUpdatedAt)}</div>` : ''}
           </div>
@@ -3803,6 +3870,7 @@
           </div>
           <textarea id="notesInput" maxlength="2000" rows="6" placeholder="记录孩子的性格偏好、学习习惯与教学注意事项（可换行）" class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(String(e.text || '').slice(0, 2000))}</textarea>
           <p class="mt-1 text-[12px] font-medium text-slate-500">纯文本 · 最多 2000 字 · 请尽量填写英文，便于老师看懂（如 Shy at first, needs encouragement）</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">多方协同：提交时校验修改版本，若期间已被他人修改将提示刷新核对后再保存（最后保存生效，避免静默覆盖）。</p>
           <div class="mt-4 flex gap-2">
             <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">取消</button>
             <button data-action="save-notes" class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">保存备注</button>
@@ -4011,7 +4079,7 @@
       if (action === 'confirm-transfer') return confirmTransfer();
       if (action === 'open-bind') {
         if (state.online === 'off') return showToast('离线模式下不可绑定');
-        state.bind = { targetId: el.dataset.id, email: '', error: '' };
+        state.bind = { targetId: el.dataset.id, email: '', error: '', conflict: false };
         state.overlay = { type: 'bind' };
         renderAll();
         const input = $('bindEmail');
@@ -4359,15 +4427,16 @@
           slots: clone(p.preferredSlots || [])
         };
         Object.assign(p, {
-          realName: f.realName.trim(), englishName: f.englishName.trim(),
-          surnameInitial: f.initial.trim().toUpperCase(), age: Number(f.age),
+          realName: f.realName.trim(),
+          /* 规范英文名三项静态组件创建即锁定：编辑仅更新年龄/小名/性别/头像/作息。 */
+          englishName: p.englishName, surnameInitial: p.surnameInitial, nickname: p.nickname,
+          age: Number(f.age),
           gender: f.gender, preferredSlots: clone(f.preferredSlots || []),
           avatarDataUrl: f.avatarDataUrl
         });
         const by = operatorName();
         recordFieldChange(p, '学员姓名或小名', before.realName, p.realName, by);
-        recordFieldChange(p, '英文名', before.englishName, p.englishName, by);
-        recordFieldChange(p, '年龄', `${before.age} 岁`, `${p.age} 岁`, by);
+        recordFieldChange(p, '年龄（不重算规范英文名）', `${before.age} 岁`, `${p.age} 岁`, by);
         recordFieldChange(p, '常态作息偏好', before.slots.map(preferredSlotLabel).filter(Boolean).join(' · ') || '未填写', (p.preferredSlots || []).map(preferredSlotLabel).filter(Boolean).join(' · ') || '未填写', by);
         if (before.avatar !== (p.avatarDataUrl || '')) {
           recordFieldChange(p, '头像', before.avatar ? '已设置头像' : '未设置头像', p.avatarDataUrl ? '已更新头像（1:1 裁切）' : '已移除头像', by);
@@ -4375,7 +4444,7 @@
         mirrorProfileFields(p);
         state.overlay = null;
         renderAll();
-        return showToast('档案已更新（规范昵称保持不变）');
+        return showToast('档案已更新（规范英文名及前缀组件保持锁定，年龄增长不重算）');
       }
       const p = {
         id: `sp_${Math.random().toString(36).slice(2, 11).padEnd(9, '0')}`,
@@ -4485,10 +4554,11 @@
         if (input) input.focus();
       };
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('请输入有效的家长邮箱');
-      if (!REGISTERED_EMAILS.includes(email)) return fail('该邮箱尚未注册，请核对');
+      if (STAFF_EMAILS.includes(email)) return fail('禁止将试课档案绑定至在职教职人员或管理员邮箱，请填写家长普通注册邮箱');
+      if (!REGISTERED_EMAILS.includes(email)) return fail('该邮箱尚未注册或账号状态异常，请核对');
       if (activeProfiles().length >= 10) return fail('名下档案已达上限 (10/10)，请先归档或删除不再使用的档案');
       const t = state.trials.find((x) => x.id === state.bind.targetId);
-      if (!t || t.status !== 'UNBOUND') return fail('该档案当前不可绑定');
+      if (!t || t.status !== 'UNBOUND' || t.archiveType) return fail('该宝贝已被认领，请刷新查看最新状态');
       const from = t.status;
       const prevParent = t.parentEmail ? `家长 ${t.parentEmail}` : '待归集（未绑定）';
       t.status = 'ACTIVE';
@@ -4505,6 +4575,7 @@
 
     function claimQuery() {
       if (state.online === 'off') return showToast('离线模式下不可认领');
+      if (state.claim.locked) return showToast('自助认领已锁定，请 30 分钟后重试或联系建档班长');
       if (activeProfiles().length >= 10) return showToast('名下档案已达上限 (10/10)');
       const nick = state.claim.nickname.trim();
       const last4 = state.claim.last4.trim();
@@ -4512,15 +4583,26 @@
         state.claim.error = msg;
         renderAll();
       };
-      if (!nick) return fail('请输入孩子的规范昵称');
+      const fuzzyFail = () => {
+        state.claim.failCount += 1;
+        if (state.claim.failCount >= 5) {
+          state.claim.locked = true;
+          state.claim.error = '连续匹配失败 5 次，自助认领已锁定 30 分钟；请联系建档班长通过后台通道协助绑定。';
+        } else {
+          state.claim.error = '未找到匹配的可认领试课宝贝，请核对规范英文名与预留联系方式后四位';
+        }
+        renderAll();
+      };
+      if (!nick) return fail('请输入孩子的规范英文名');
       if (last4.length !== 4) return fail('请输入预留联系方式后四位');
       const t = state.trials.find((x) =>
         x.status === 'UNBOUND'
         && x.nickname.toLowerCase() === nick.toLowerCase()
         && x.contact.replace(/\s/g, '').toLowerCase().endsWith(last4.toLowerCase())
       );
-      if (!t) return fail('未找到匹配的试课学员，请核对信息');
+      if (!t) return fuzzyFail();
       state.claim.error = '';
+      state.claim.failCount = 0;
       state.claim.step = 2;
       state.claim.matchedId = t.id;
       renderAll();
@@ -4528,16 +4610,18 @@
 
     function claimConfirm() {
       if (state.online === 'off') return showToast('离线模式下不可认领');
+      if (state.claim.locked) return showToast('自助认领已锁定，请 30 分钟后重试或联系建档班长');
       if (activeProfiles().length >= 10) return showToast('名下档案已达上限 (10/10)');
       const t = state.trials.find((x) => x.id === state.claim.matchedId);
-      if (!t) {
+      /* 单事务原子抢占复检：并发/重复请求仅先提交成功者胜出，后者明确提示已被认领。 */
+      if (!t || t.status !== 'UNBOUND' || t.archiveType) {
         state.claim.step = 1;
-        state.claim.error = '未找到匹配的试课宝贝，请重新查询';
+        state.claim.error = '该宝贝已被认领，请刷新查看最新状态';
         return renderAll();
       }
       const from = t.status;
       recordFieldChange(t, '所属家长', '待归集（未绑定）', '家长 Amy · amy@example.com', '系统');
-      recordStatusChange(t, from, 'ACTIVE', '家长 Amy 通过规范昵称与预留联系方式后四位认领，绑定 amy@example.com', '系统');
+      recordStatusChange(t, from, 'ACTIVE', '家长 Amy 通过规范英文名与预留联系方式后四位认领，绑定 amy@example.com', '系统');
       const p = {
         id: `sp_${Math.random().toString(36).slice(2, 11).padEnd(9, '0')}`,
         nickname: t.nickname, realName: t.realName, englishName: t.englishName,
@@ -4561,7 +4645,7 @@
       state.page = 'center';
       state.navTab = 'me';
       state.overlay = null;
-      state.claim = { step: 1, nickname: '', last4: '', error: '', matchedId: null };
+      state.claim = { step: 1, nickname: '', last4: '', error: '', matchedId: null, failCount: 0, locked: false };
       renderAll();
       showToast(`已认领 ${p.nickname}，历史记录已并入`);
     }
@@ -4581,7 +4665,7 @@
       p.status = 'ARCHIVED';
       p.archiveType = archiveType;
       p.archivedAt = TODAY;
-      recordStatusChange(p, from, 'ARCHIVED', `五项资产清零，${currentRoleLabel()} ${operatorName()} 手工归档（${archiveType}）；昵称永久锁定`, operatorName(), archiveType);
+      recordStatusChange(p, from, 'ARCHIVED', `五项资产清零，${currentRoleLabel()} ${operatorName()} 手工归档（${archiveType}）；${kind === 'trial' ? '昵称永久锁定' : '同事务解除 M1C 小班活跃成员绑定，昵称永久锁定'}`, operatorName(), archiveType);
       if (kind === 'profile') mirrorProfileMirrorStatus(p);
       if (kind === 'enrolled') {
         const mirrored = profileMirrorOf(p);
@@ -4599,7 +4683,7 @@
         if (!next) { state.page = 'center'; state.navTab = 'me'; }
       }
       renderAll();
-      showToast(`${p.nickname} 已归档（${archiveType}），昵称永久保留`);
+      showToast(`${p.nickname} 已归档（${archiveType}）${kind === 'trial' ? '' : '，已解除小班成员绑定'}；昵称永久保留`);
     }
 
     function reactivateProfile(id) {
@@ -4613,7 +4697,7 @@
         p.status = 'ACTIVE';
         p.archiveType = null;
         p.archivedAt = null;
-        recordStatusChange(p, 'ARCHIVED', 'ACTIVE', '家长手工重新激活（原归档类型：正式暂别归档），历史课次、购课单与备注无缝恢复', operatorName());
+        recordStatusChange(p, 'ARCHIVED', 'ACTIVE', '家长手工重新激活（原归档类型：正式暂别归档），历史课次、购课单与备注无缝恢复；原已解除的小班成员绑定不自动回绑', operatorName());
         mirrorProfileMirrorStatus(p);
         state.activeId = p.id;
         state.page = 'center';
@@ -4628,7 +4712,7 @@
       enrolled.status = 'ACTIVE';
       enrolled.archiveType = null;
       enrolled.archivedAt = null;
-      recordStatusChange(enrolled, 'ARCHIVED', 'ACTIVE', '管理员手工重新激活（原归档类型：正式暂别归档），历史课次、购课单与备注无缝恢复', operatorName());
+      recordStatusChange(enrolled, 'ARCHIVED', 'ACTIVE', '管理员手工重新激活（原归档类型：正式暂别归档），历史课次、购课单与备注无缝恢复；原已解除的小班成员绑定不自动回绑', operatorName());
       const pm = profileMirrorOf(enrolled);
       if (pm) {
         pm.status = 'ACTIVE';
@@ -4650,7 +4734,8 @@
       t.archivedAt = null;
       t.activatedAt = TODAY;
       t.daysLeft = 30;
-      recordStatusChange(t, 'ARCHIVED', 'UNBOUND', '关联班长/管理员手工重新激活，自激活日起重算 30 天认领窗口', operatorName());
+      t.reactivationCount = (Number(t.reactivationCount) || 0) + 1;
+      recordStatusChange(t, 'ARCHIVED', 'UNBOUND', `关联班长/管理员手工重新激活（累计第 ${t.reactivationCount} 次，供管理员审计防滥用），自激活自然日起重算 30 天认领窗口`, operatorName());
       state.overlay = null;
       renderAll();
       showToast(`${t.nickname} 已恢复为待认领试课，30 天窗口重新起算`);
@@ -4663,7 +4748,7 @@
         return showToast('已有历史课次或购课单，不支持删除，请使用归档');
       }
       const nick = p.nickname;
-      recordStatusChange(p, p.status, 'DELETED', '0 历史课次且 0 历史购课单，执行空档软删除；昵称永久锁定', operatorName());
+      recordStatusChange(p, p.status, 'DELETED', `0 历史课次且 0 历史购课单，执行空档软删除；${kind === 'trial' ? '' : '同事务解除 M1C 小班活跃成员绑定；'}昵称永久锁定`, operatorName());
       if (kind === 'trial') {
         state.trials = state.trials.filter((x) => x.id !== id);
       } else if (kind === 'enrolled') {
@@ -4685,7 +4770,7 @@
       state.page = state.role === 'parent' ? 'center' : (state.role === 'admin' && kind === 'trial' ? 'trials' : 'staffList');
       state.navTab = state.role === 'parent' ? 'me' : (state.role === 'teacher' ? 'students' : state.role === 'admin' && kind === 'trial' ? 'settings' : 'ops');
       renderAll();
-      showToast(`${nick} 已删除，不可恢复；昵称永久保留`);
+      showToast(`${nick} 已删除，不可恢复${kind === 'trial' ? '' : '，已解除小班成员绑定'}；昵称永久保留`);
     }
 
     function deleteProfile(id) {
@@ -4842,6 +4927,8 @@
       const beforeLevel = item.level || '';
       const afterText = String(pe.text || '').trim().slice(0, 2000);
       const afterLevel = pe.level || beforeLevel;
+      /* 切换课件级别须二次确认（与移除课件一致）。 */
+      if (afterLevel !== beforeLevel && !window.confirm(`切换级别「${beforeLevel || '标准'}」→「${afterLevel}」将同步更新排课与家长端展示，确认切换？`)) return;
       state.progressEdit = null;
       state.overlay = null;
       if (beforeText === afterText && beforeLevel === afterLevel) {
@@ -4955,7 +5042,7 @@
     async function copyNick(nick) {
       try {
         await navigator.clipboard.writeText(nick);
-        showToast('规范昵称已复制');
+        showToast('规范英文名已复制');
       } catch (err) {
         const ta = document.createElement('textarea');
         ta.value = nick;
@@ -4963,7 +5050,7 @@
         ta.select();
         document.execCommand('copy');
         ta.remove();
-        showToast('规范昵称已复制');
+        showToast('规范英文名已复制');
       }
     }
 

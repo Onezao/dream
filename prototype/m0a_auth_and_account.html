@@ -1,0 +1,2822 @@
+<!DOCTYPE html>
+<!-- /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */ -->
+<!-- 账号认证、安全中心与平台管理员管理。纯前端演示数据，不连接后端。遵循 DESIGN.md 与 docs/prd/m0a_auth_and_account.md -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Dream · 账号认证与安全中心</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased">
+
+  <!-- 开发调试控制台（不属于产品界面） -->
+  <header id="console" class="sticky top-0 z-[60] border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 text-[12px]">
+      <div class="flex min-w-0 items-center gap-2">
+        <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-slate-900 text-[11px] font-bold text-amber-300">DEMO</span>
+        <span class="truncate text-[14px] font-bold text-slate-900">账号认证与安全演示</span>
+        <span class="hidden text-[12px] font-medium text-slate-600 xl:inline">登录 · 注册 · 找回 · 换绑 · 管理员管理</span>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <span class="font-medium text-slate-500">页面</span>
+        <div class="flex flex-wrap gap-1">
+          <button type="button" data-nav-screen="login" class="rounded-lg px-2 py-1 font-semibold">登录</button>
+          <button type="button" data-nav-screen="register" class="rounded-lg px-2 py-1 font-semibold">注册</button>
+          <button type="button" data-nav-screen="forgot" class="rounded-lg px-2 py-1 font-semibold">找回密码</button>
+          <button type="button" data-nav-screen="me" class="rounded-lg px-2 py-1 font-semibold">我的</button>
+          <button type="button" data-nav-screen="security" class="rounded-lg px-2 py-1 font-semibold">账号安全</button>
+          <button type="button" data-nav-screen="admins" class="rounded-lg px-2 py-1 font-semibold">管理员管理</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <span class="font-medium text-slate-500">身份</span>
+        <div class="flex flex-wrap gap-1">
+          <button type="button" data-role-btn="parent" class="rounded-lg px-2 py-1 font-semibold">家长</button>
+          <button type="button" data-role-btn="teacher" class="rounded-lg px-2 py-1 font-semibold">老师</button>
+          <button type="button" data-role-btn="monitor" class="rounded-lg px-2 py-1 font-semibold">班长</button>
+          <button type="button" data-role-btn="admin" class="rounded-lg px-2 py-1 font-semibold">管理员</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <span class="font-medium text-slate-500">管理员视角</span>
+        <div class="flex flex-wrap gap-1">
+          <button type="button" data-admin-view="permanent" class="rounded-lg px-2 py-1 font-semibold">永久主管理员</button>
+          <button type="button" data-admin-view="ordinary" class="rounded-lg px-2 py-1 font-semibold">普通管理员</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <span class="font-medium text-slate-500">语言</span>
+        <div class="flex gap-1">
+          <button type="button" data-lang-btn="zh" class="rounded-lg px-2 py-1 font-semibold">中文</button>
+          <button type="button" data-lang-btn="en" class="rounded-lg px-2 py-1 font-semibold">English</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <span class="font-medium text-slate-500">配置</span>
+        <button type="button" data-config="openRegistration" class="rounded-lg px-2 py-1 font-semibold">开放注册</button>
+        <button type="button" data-config="maintenance" class="rounded-lg px-2 py-1 font-semibold">维护模式</button>
+        <button type="button" data-config="assetsCleared" class="rounded-lg px-2 py-1 font-semibold">模拟资产已清零</button>
+        <button type="button" data-config="adminUnloaded" class="rounded-lg px-2 py-1 font-semibold">模拟管理员已卸载</button>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <span class="font-medium text-slate-500">登录异常</span>
+        <div class="flex flex-wrap gap-1">
+          <button type="button" data-scenario="normal" class="rounded-lg px-2 py-1 font-semibold">正常</button>
+          <button type="button" data-scenario="wrong" class="rounded-lg px-2 py-1 font-semibold">密码错误</button>
+          <button type="button" data-scenario="locked" class="rounded-lg px-2 py-1 font-semibold">临时锁定</button>
+          <button type="button" data-scenario="banned" class="rounded-lg px-2 py-1 font-semibold">已封禁</button>
+          <button type="button" data-scenario="inactive" class="rounded-lg px-2 py-1 font-semibold">未激活</button>
+        </div>
+      </div>
+
+      <div class="ml-auto flex items-center gap-1.5">
+        <button type="button" data-reset class="rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-slate-600 hover:bg-slate-50">重置演示</button>
+        <a href="../docs/prd/m0a_auth_and_account.md" target="_blank" rel="noopener" class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1 font-semibold text-slate-600 hover:bg-slate-50">
+          <i data-lucide="file-text" class="h-3.5 w-3.5"></i>需求文档
+        </a>
+        <button type="button" data-console-collapse aria-label="收起演示导航" class="flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 font-semibold text-slate-600 transition hover:bg-slate-50">▲ 收起</button>
+      </div>
+    </div>
+  </header>
+
+  <div data-console-mini class="sticky top-0 z-[60] hidden items-center justify-end border-b border-slate-200/60 bg-white/70 px-2 py-1 backdrop-blur">
+    <button type="button" data-console-expand class="flex h-6 items-center gap-1 rounded-full bg-slate-900/70 px-2.5 text-[12px] font-semibold text-white/90 backdrop-blur transition hover:bg-slate-900/85" aria-label="展开演示导航">▾ 导航</button>
+  </div>
+
+  <main class="flex justify-center px-0 py-6 sm:px-4">
+    <div id="frame" class="relative flex h-[812px] w-full max-w-[390px] shrink-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-300">
+      <div id="app" class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"></div>
+      <div id="overlayRoot"></div>
+      <div id="toast" class="pointer-events-none absolute bottom-20 left-1/2 z-[100] hidden w-max max-w-[calc(100%-32px)] -translate-x-1/2 rounded-xl bg-slate-900/90 px-4 py-2 text-center text-[12px] font-semibold leading-relaxed text-white shadow-xl"></div>
+    </div>
+  </main>
+
+  <!-- Tailwind CDN 动态类安全垫 -->
+  <div class="hidden">
+    <span class="from-slate-800 via-blue-900 to-slate-700 from-slate-800 via-emerald-900 to-slate-700 from-slate-900 via-fuchsia-950 to-slate-800 from-slate-900 via-violet-950 to-slate-800 from-indigo-600 via-indigo-700 to-slate-900"></span>
+    <span class="bg-emerald-50 border-emerald-200 text-emerald-900 bg-emerald-100 text-emerald-700 bg-emerald-600 bg-emerald-500"></span>
+    <span class="bg-amber-50 border-amber-300 text-amber-900 bg-amber-100 text-amber-800 bg-amber-600 bg-amber-500"></span>
+    <span class="bg-rose-50 border-rose-200 text-rose-900 bg-rose-100 text-rose-700 bg-rose-600 bg-rose-500"></span>
+    <span class="bg-indigo-50 border-indigo-200 text-indigo-900 bg-indigo-100 text-indigo-700 bg-indigo-600 bg-indigo-500"></span>
+    <span class="bg-slate-50 border-slate-300 text-slate-900 bg-slate-100 text-slate-700 text-slate-600 text-slate-500 bg-slate-200 bg-slate-900"></span>
+    <span class="border-dashed border-slate-400 bg-slate-50/60 opacity-60 border-indigo-200/70 bg-indigo-50/80 border-indigo-200/70"></span>
+    <span class="h-11 h-10 h-9 h-8 h-7 h-6 w-11 w-10 w-9 w-8 max-w-[340px] max-h-[92%] max-h-[85%] w-[390px] h-[812px]"></span>
+    <span class="text-[18px] text-[16px] text-[14px] text-[12px] font-mono text-[16px] font-bold tracking-tight"></span>
+    <span class="disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:opacity-70"></span>
+    <span class="bg-slate-900 text-white bg-white text-slate-900 text-slate-500 hover:bg-slate-200 shadow-sm"></span>
+    <span class="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 bg-amber-50 text-amber-800 ring-1 ring-amber-300 bg-rose-50 text-rose-700 ring-1 ring-rose-200 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200"></span>
+    <span class="border-emerald-200 bg-emerald-50/70 border-amber-300 bg-amber-50/70 border-rose-200 bg-rose-50/70 border-slate-300 bg-slate-50/70"></span>
+    <span class="bg-emerald-100 text-emerald-700 bg-indigo-100 text-indigo-700 bg-rose-100 text-rose-700 bg-amber-100 text-amber-700 bg-slate-100 text-slate-600"></span>
+    <span class="from-indigo-500 to-indigo-700 from-slate-400 to-slate-500 from-emerald-500 to-emerald-700 from-amber-500 to-amber-700 from-rose-500 to-rose-700 from-violet-500 to-indigo-700"></span>
+    <span class="bg-violet-50 bg-violet-50/50 bg-violet-100 bg-violet-600 border-violet-200 border-violet-300 text-violet-700 text-violet-900 text-white"></span>
+  </div>
+
+  <script>
+    /* ------------------------------------------------------------------
+     * 基础工具
+     * ------------------------------------------------------------------ */
+    const $ = (id) => document.getElementById(id);
+    const icon = (name, cls = 'h-4 w-4') => `<i data-lucide="${name}" class="${cls}"></i>`;
+    const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const DEMO_CODE = '123456';
+    const TAKEN_EMAIL = 'taken@example.com';
+
+    const EMAIL_DEFAULTS = {
+      parent: 'amy@example.com',
+      teacher: 'david@example.com',
+      monitor: 'leo@example.com',
+      admin: 'sarah@example.com'
+    };
+
+    const ROLE_META = {
+      parent: {
+        label: '家长', labelEn: 'Parent', workspace: 'user',
+        name: 'Amy', initial: 'A',
+        tags: ['家长'], tagsEn: ['Parent'],
+        banner: 'from-slate-800 via-blue-900 to-slate-700'
+      },
+      teacher: {
+        label: '老师', labelEn: 'Teacher', workspace: 'teacher',
+        name: 'David Miller', initial: 'D',
+        tags: ['老师'], tagsEn: ['Teacher'],
+        banner: 'from-slate-800 via-emerald-900 to-slate-700'
+      },
+      monitor: {
+        label: '班长', labelEn: 'Monitor', workspace: 'monitor',
+        name: 'Leo', initial: 'L',
+        tags: ['班长', '家长'], tagsEn: ['Monitor', 'Parent'],
+        banner: 'from-slate-900 via-fuchsia-950 to-slate-800'
+      },
+      admin: {
+        label: '管理员', labelEn: 'Admin', workspace: 'admin',
+        name: 'Sarah', initial: 'S',
+        tags: ['管理员', '班长', '家长'], tagsEn: ['Admin', 'Monitor', 'Parent'],
+        banner: 'from-slate-900 via-violet-950 to-slate-800'
+      }
+    };
+
+    const ACCOUNT_DIRECTORY = {
+      'sarah@example.com': { name: 'Sarah', status: 'active', identities: ['班长', '家长'] },
+      'leo@example.com': { name: 'Leo', status: 'active', identities: ['班长'] },
+      'grace@example.com': { name: 'Grace', status: 'active', identities: ['家长'] },
+      'ivy@example.com': { name: 'Ivy', status: 'active', identities: ['老师'] },
+      'amy@example.com': { name: 'Amy', status: 'active', identities: ['家长'] },
+      'david@example.com': { name: 'David Miller', status: 'active', identities: ['老师'] },
+      'taken@example.com': { name: 'Taken', status: 'active', identities: ['家长'] },
+      'locked@example.com': { name: 'Chris', status: 'locked', identities: ['家长'] },
+      'banned@example.com': { name: 'Sam', status: 'banned', identities: ['家长'] },
+      'closed@example.com': { name: 'Nina', status: 'deactivated', identities: ['家长'] }
+    };
+
+    function seedAdmins() {
+      return [
+        { id: 'a1', email: 'sarah@example.com', name: 'Sarah', status: 'active', permanent: true, identities: ['班长', '家长'], grantor: '系统冷启动初始化', grantTime: '2026-01-10 09:00', revoker: '', revokeTime: '' },
+        { id: 'a2', email: 'leo@example.com', name: 'Leo', status: 'active', permanent: false, identities: ['班长'], grantor: 'Sarah', grantTime: '2026-03-08 16:45', revoker: '', revokeTime: '' },
+        { id: 'a3', email: 'grace@example.com', name: 'Grace', status: 'revoked', permanent: false, identities: ['家长'], grantor: 'Sarah', grantTime: '2026-11-18 10:24', revoker: 'Sarah', revokeTime: '2026-11-20 15:10' },
+        { id: 'a4', email: 'ivy@example.com', name: 'Ivy', status: 'revoked', permanent: false, identities: ['老师'], grantor: 'Sarah', grantTime: '2026-08-15 14:05', revoker: 'Sarah', revokeTime: '2026-09-01 11:30' }
+      ];
+    }
+
+    function seedAdminAudit() {
+      return [
+        { id: 'al0', action: 'breakglass', label: '受控运维恢复', target: 'Sarah', email: 'sarah@example.com', before: '永久主管理员临时失联（账号异常）', after: '永久在任 · 受保护（运维解封并留痕）', operator: '平台受控运维通道', time: '2026-11-22 03:10' },
+        { id: 'al1', action: 'revoke', label: '撤销普通管理员', target: 'Grace', email: 'grace@example.com', before: '在任 · 显示名称 Grace', after: '已撤销 · 兼任家长保留', operator: 'Sarah（永久主管理员）', time: '2026-11-20 15:10' },
+        { id: 'al2', action: 'add', label: '增设普通管理员', target: 'Grace', email: 'grace@example.com', before: '无授权记录', after: '在任 · 显示名称 Grace', operator: 'Sarah（永久主管理员）', time: '2026-11-18 10:24' },
+        { id: 'al3', action: 'rename', label: '修改显示名称', target: 'Leo', email: 'leo@example.com', before: 'Leo Zhang', after: 'Leo', operator: 'Sarah（永久主管理员）', time: '2026-10-02 09:12' },
+        { id: 'al4', action: 'revoke', label: '撤销普通管理员', target: 'Ivy', email: 'ivy@example.com', before: '在任 · 显示名称 Ivy', after: '已撤销 · 兼任老师保留', operator: 'Sarah（永久主管理员）', time: '2026-09-01 11:30' },
+        { id: 'al5', action: 'add', label: '增设普通管理员', target: 'Ivy', email: 'ivy@example.com', before: '无授权记录', after: '在任 · 显示名称 Ivy', operator: 'Sarah（永久主管理员）', time: '2026-08-15 14:05' },
+        { id: 'al6', action: 'rename', label: '修改显示名称', target: 'Sarah', email: 'sarah@example.com', before: 'Sarah Chen', after: 'Sarah', operator: 'Sarah（永久主管理员）', time: '2026-06-21 13:20' },
+        { id: 'al7', action: 'add', label: '增设普通管理员', target: 'Leo', email: 'leo@example.com', before: '无授权记录', after: '在任 · 显示名称 Leo', operator: 'Sarah（永久主管理员）', time: '2026-03-08 16:45' },
+        { id: 'al8', action: 'init', label: '系统冷启动初始化', target: 'Sarah', email: 'sarah@example.com', before: '系统冷启动兜底种子', after: '永久在任 · 受保护（不可撤销）', operator: '系统初始化', time: '2026-01-10 09:00' }
+      ];
+    }
+
+    function seedSecurityAudit(role) {
+      const email = EMAIL_DEFAULTS[role] || EMAIL_DEFAULTS.admin;
+      const local = email.split('@')[0].slice(0, 2);
+      const rows = [
+        { action: '登录成功', detail: 'iPhone 15 · Safari · 当前设备', time: '2026-11-23 09:42', tone: 'indigo' },
+        { action: '更换绑定邮箱', detail: `${local}***@dream.top → ${maskEmail(email)}（原旧邮箱即时释放）`, time: '2026-11-20 18:11', tone: 'emerald' },
+        { action: '修改登录密码', detail: '所有设备历史会话已退出', time: '2026-11-12 21:05', tone: 'amber' },
+        { action: '临时锁定', detail: '连续输错密码 5 次，锁定 24 小时', time: '2026-10-30 08:15', tone: 'rose' },
+        { action: '解除锁定', detail: '通过邮箱验证重置密码，锁定解除', time: '2026-10-30 09:02', tone: 'emerald' },
+        { action: '登录成功', detail: 'MacBook Air · Chrome', time: '2026-09-18 10:22', tone: 'indigo' }
+      ];
+      if (role === 'admin') {
+        rows.push({ action: '永久主管理员初始化', detail: '系统冷启动初始化 · 永久在任受保护，任何管理员不可撤销', time: '2026-01-10 09:00', tone: 'indigo' });
+      }
+      return rows;
+    }
+
+    /* ------------------------------------------------------------------
+     * 状态
+     * ------------------------------------------------------------------ */
+    const params = new URLSearchParams(location.search);
+    const VALID_SCREENS = ['login', 'register', 'forgot', 'me', 'security', 'admins'];
+    const VALID_ROLES = ['parent', 'teacher', 'monitor', 'admin'];
+
+    const initialScreen = VALID_SCREENS.includes(params.get('screen')) ? params.get('screen') : 'login';
+    const initialRole = VALID_ROLES.includes(params.get('role')) ? params.get('role') : 'admin';
+    const langParam = params.get('lang');
+    const initialLang = langParam === 'en' ? 'en' : langParam === 'zh' ? 'zh' : (initialRole === 'teacher' ? 'en' : 'zh');
+
+    const state = {
+      screen: initialScreen,
+      role: initialRole,
+      lang: initialLang,
+      loggedIn: ['me', 'security', 'admins'].includes(initialScreen),
+      openRegistration: true,
+      maintenance: false,
+      scenario: 'normal',
+      assetsCleared: false,
+      adminView: 'permanent',
+      adminUnloaded: false,
+      activationWait: 0,
+      deactivated: false,
+
+      emails: { ...EMAIL_DEFAULTS },
+      accountStatus: 'active',
+
+      loginEmail: '',
+      loginPassword: '',
+      loginCaptchaInput: '',
+      loginRemember: false,
+      showLoginPw: false,
+      loginAttempts: 0,
+      loginCaptcha: false,
+      loginCaptchaSeed: 1,
+      loginError: '',
+      loginNotice: '',
+      lockSeconds: 0,
+
+      reg: { email: '', code: '', password: '', confirm: '', nickname: '', gender: '', agree: false },
+      regError: '',
+      regCountdown: 0,
+      regCodeSent: false,
+      showRegPw: false,
+      showRegConfirm: false,
+      regCaptchaSeed: 1,
+      regCaptchaInput: '',
+      regCodeFailures: 0,
+
+      forgotStep: 1,
+      forgotEmail: '',
+      forgotCaptcha: '',
+      forgotCaptchaSeed: 1,
+      forgotCode: '',
+      forgotPassword: '',
+      forgotConfirm: '',
+      forgotError: '',
+      forgotCodeFailures: 0,
+      showForgotPw: false,
+      showForgotConfirm: false,
+
+      overlay: null,
+      overlayError: '',
+
+      emailStep: 1,
+      emailCurrentCode: '',
+      emailNew: '',
+      emailNewCode: '',
+      emailError: '',
+      emailNotice: '',
+      emailCurrentSent: false,
+      emailNewSent: false,
+      emailCurrentFailures: 0,
+      emailNewFailures: 0,
+      credentialUntil: 0,
+
+      cpCurrent: '',
+      cpPassword: '',
+      cpConfirm: '',
+      cpError: '',
+      showCpCurrent: false,
+      showCpPw: false,
+      showCpConfirm: false,
+
+      deleteConfirm: '',
+      deleteError: '',
+
+      adminTab: 'list',
+      adminQuery: '',
+      adminFilter: 'all',
+      admins: seedAdmins(),
+      adminAudit: seedAdminAudit(),
+
+      addEmail: '',
+      addName: '',
+      addConfirm: '',
+      addError: '',
+      addLookup: null,
+      addRestoreId: '',
+      editTargetId: '',
+      editName: '',
+      editError: '',
+      revokeTargetId: '',
+      revokeConfirm: '',
+      revokeError: '',
+
+      securityAudit: seedSecurityAudit(initialRole)
+    };
+
+    let regTimer = null;
+    let lockTimer = null;
+    let credentialTimer = null;
+    let activationTimer = null;
+
+    /* ------------------------------------------------------------------
+     * 通用辅助
+     * ------------------------------------------------------------------ */
+    function t(zh, en) { return state.lang === 'en' ? en : zh; }
+    function roleMeta() { return ROLE_META[state.role]; }
+    function currentEmail() { return state.emails[state.role]; }
+    function currentName() { return roleMeta().name; }
+    function currentTags() {
+      if (state.role === 'admin') {
+        const base = state.lang === 'en' ? ROLE_META.admin.tagsEn.slice(1) : ROLE_META.admin.tags.slice(1);
+        return [state.adminView === 'permanent' ? t('永久主管理员', 'Permanent master admin') : t('管理员', 'Admin')].concat(base);
+      }
+      return state.lang === 'en' ? roleMeta().tagsEn : roleMeta().tags;
+    }
+    function norm(v) { return String(v || '').trim().toLowerCase(); }
+
+    function maskEmail(email) {
+      const parts = String(email || '').split('@');
+      if (parts.length !== 2) return email || '';
+      const user = parts[0];
+      return `${user.slice(0, 2)}***@${parts[1]}`;
+    }
+
+    function nowStamp() {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }
+
+    function mmss(totalSeconds) {
+      const s = Math.max(0, Number(totalSeconds) || 0);
+      if (s >= 3600) return `${pad2(Math.floor(s / 3600))}:${pad2(Math.floor((s % 3600) / 60))}:${pad2(s % 60)}`;
+      return `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`;
+    }
+
+    function captchaSpec(seed) {
+      const a = 3 + ((seed * 7 + 1) % 7);
+      const b = 2 + ((seed * 3 + 2) % 8);
+      return { a, b, answer: String(a + b) };
+    }
+
+    function toast(message) {
+      const el = $('toast');
+      if (!el) return;
+      el.textContent = message;
+      el.classList.remove('hidden');
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => el.classList.add('hidden'), 2600);
+    }
+
+    function syncUrl() {
+      try {
+        history.replaceState(null, '', `?screen=${state.screen}&role=${state.role}&lang=${state.lang}`);
+      } catch (e) { /* 本地文件模式下静默降级 */ }
+    }
+
+    function addSecurityAudit(action, detail, tone) {
+      state.securityAudit.unshift({ action, detail, time: nowStamp(), tone: tone || 'indigo' });
+      if (state.securityAudit.length > 12) state.securityAudit.length = 12;
+    }
+
+    function addAdminAudit(action, label, target, email, before, after) {
+      state.adminAudit.unshift({
+        id: `al_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        action, label, target, email, before, after,
+        operator: `${currentName()}（${t('永久主管理员', 'Permanent master admin')}）`, time: nowStamp()
+      });
+    }
+
+    function strengthRules(pw) {
+      return [
+        { zh: '至少 8 位', en: 'At least 8 characters', ok: String(pw || '').length >= 8 },
+        { zh: '包含大写字母', en: 'One uppercase letter', ok: /[A-Z]/.test(pw || '') },
+        { zh: '包含小写字母', en: 'One lowercase letter', ok: /[a-z]/.test(pw || '') },
+        { zh: '包含数字', en: 'One number', ok: /[0-9]/.test(pw || '') },
+        { zh: '包含特殊字符', en: 'One special character', ok: /[^A-Za-z0-9]/.test(pw || '') }
+      ];
+    }
+
+    function strengthOk(pw) { return strengthRules(pw).every((r) => r.ok); }
+
+    function strengthItems(pw) {
+      return strengthRules(pw).map((r) => `
+        <div class="flex items-center gap-1 ${r.ok ? 'text-emerald-700' : 'text-slate-600'}">
+          ${icon(r.ok ? 'check-circle-2' : 'circle', 'h-3.5 w-3.5 shrink-0')}
+          <span class="text-[12px] font-medium">${t(r.zh, r.en)}</span>
+        </div>`).join('');
+    }
+
+    function strengthBox(prefix, pw) {
+      return `<div data-strength="${prefix}" class="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-1">${strengthItems(pw)}</div>`;
+    }
+
+    function matchHint(prefix, password, confirm) {
+      const show = Boolean(confirm) && password !== confirm;
+      return `<p data-match="${prefix}" class="mt-1 text-[12px] font-semibold text-rose-600 ${show ? '' : 'hidden'}">${t('两次输入的密码不一致', 'Passwords do not match')}</p>`;
+    }
+
+    function updateStrengthUI() {
+      const pairs = [
+        ['register', state.reg.password],
+        ['forgot', state.forgotPassword],
+        ['change-password', state.cpPassword]
+      ];
+      pairs.forEach(([prefix, pw]) => {
+        const el = document.querySelector(`[data-strength="${prefix}"]`);
+        if (el) el.innerHTML = strengthItems(pw);
+      });
+      const matches = [
+        ['register', state.reg.password, state.reg.confirm],
+        ['forgot', state.forgotPassword, state.forgotConfirm],
+        ['change-password', state.cpPassword, state.cpConfirm]
+      ];
+      matches.forEach(([prefix, pw, confirm]) => {
+        const el = document.querySelector(`[data-match="${prefix}"]`);
+        if (el) el.classList.toggle('hidden', !(confirm && pw !== confirm));
+      });
+    }
+
+    function setBtnDisabled(el, disabled) {
+      if (el) el.disabled = Boolean(disabled);
+    }
+
+    function refreshFormStates() {
+      const regOk = state.openRegistration && !state.maintenance && Boolean(state.reg.email.trim()) &&
+        Boolean(state.reg.code.trim()) && strengthOk(state.reg.password) &&
+        state.reg.password === state.reg.confirm && state.reg.agree;
+      setBtnDisabled(document.querySelector('[data-reg-submit]'), !regOk);
+
+      const forgotOk = Boolean(state.forgotCode.trim()) && strengthOk(state.forgotPassword) &&
+        state.forgotPassword === state.forgotConfirm;
+      setBtnDisabled(document.querySelector('[data-forgot-reset]'), !forgotOk);
+
+      const cpOk = Boolean(state.cpCurrent.trim()) && strengthOk(state.cpPassword) &&
+        state.cpPassword === state.cpConfirm;
+      setBtnDisabled(document.querySelector('[data-cp-submit]'), !cpOk);
+
+      const addOk = Boolean(state.addLookup && state.addLookup.ok && !state.addError) &&
+        state.addName.trim().length >= 1 && state.addName.trim().length <= 50 &&
+        (norm(state.addConfirm) === norm(state.addName) || norm(state.addConfirm) === norm(state.addEmail));
+      setBtnDisabled(document.querySelector('[data-add-submit]'), !addOk);
+
+      const editOk = state.editName.trim().length >= 1 && state.editName.trim().length <= 50;
+      setBtnDisabled(document.querySelector('[data-edit-submit]'), !editOk);
+
+      const revokeTarget = state.admins.find((a) => a.id === state.revokeTargetId);
+      const revokeOk = Boolean(revokeTarget) && (norm(state.revokeConfirm) === norm(revokeTarget.name) || norm(state.revokeConfirm) === norm(revokeTarget.email));
+      setBtnDisabled(document.querySelector('[data-revoke-submit]'), !revokeOk);
+
+      const delTarget = currentEmail();
+      const delOk = Boolean(state.deleteConfirm.trim()) && (norm(state.deleteConfirm) === norm(currentName()) || norm(state.deleteConfirm) === norm(delTarget));
+      setBtnDisabled(document.querySelector('[data-delete-submit]'), !delOk);
+    }
+
+    function updateCounters() {
+      const addCount = document.querySelector('[data-add-name-count]');
+      if (addCount) addCount.textContent = `${state.addName.trim().length}/50`;
+      const editCount = document.querySelector('[data-edit-name-count]');
+      if (editCount) editCount.textContent = `${state.editName.trim().length}/50`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 控制台与全局导航
+     * ------------------------------------------------------------------ */
+    function setScreen(screen) {
+      if (!VALID_SCREENS.includes(screen)) return;
+      state.screen = screen;
+      state.overlay = null;
+      state.overlayError = '';
+      if (['me', 'security', 'admins'].includes(screen)) state.loggedIn = true;
+      if (screen === 'login') { state.loginError = ''; state.loginNotice = ''; }
+      if (screen === 'register') state.regError = '';
+      if (screen === 'forgot') {
+        state.forgotStep = 1;
+        state.forgotError = '';
+        state.forgotCode = '';
+      }
+      syncUrl();
+      render();
+      const app = $('app');
+      if (app) app.scrollTop = 0;
+    }
+
+    function setRole(role) {
+      if (!ROLE_META[role]) return;
+      state.role = role;
+      state.lang = role === 'teacher' ? 'en' : 'zh';
+      state.securityAudit = seedSecurityAudit(role);
+      state.scenario = 'normal';
+      state.accountStatus = 'active';
+      state.deactivated = false;
+      state.overlay = null;
+      state.loginAttempts = 0;
+      state.loginCaptcha = false;
+      state.loginError = '';
+      state.loginNotice = '';
+      state.lockSeconds = 0;
+      clearInterval(lockTimer);
+      lockTimer = null;
+      syncUrl();
+      render();
+      toast(t(`已切换为${ROLE_META[role].label}身份`, `Switched to ${ROLE_META[role].labelEn}`));
+    }
+
+    function setAdminView(view) {
+      state.adminView = view === 'ordinary' ? 'ordinary' : 'permanent';
+      state.overlay = null;
+      render();
+      toast(state.adminView === 'permanent' ? '已切换为永久主管理员视角（可执行授权写操作）' : '已切换为普通管理员视角（管理员授权一律只读）');
+    }
+
+    function setLang(lang) {
+      state.lang = lang === 'en' ? 'en' : 'zh';
+      syncUrl();
+      render();
+      toast(state.lang === 'zh' ? '已切换为中文' : 'Language: English');
+    }
+
+    function setScenario(value) {
+      state.scenario = value;
+      state.loginAttempts = 0;
+      state.loginCaptcha = false;
+      state.loginError = '';
+      state.loginNotice = '';
+      state.lockSeconds = 0;
+      clearInterval(lockTimer);
+      lockTimer = null;
+      state.accountStatus = value === 'locked' ? 'locked' : value === 'banned' ? 'banned' : 'active';
+      render();
+      const labels = { normal: '正常', wrong: '密码错误', locked: '临时锁定', banned: '已封禁', inactive: '未激活' };
+      toast(`登录异常场景：${labels[value] || value}`);
+    }
+
+    function setConfig(key) {
+      if (key === 'openRegistration') state.openRegistration = !state.openRegistration;
+      if (key === 'maintenance') state.maintenance = !state.maintenance;
+      if (key === 'assetsCleared') state.assetsCleared = !state.assetsCleared;
+      if (key === 'adminUnloaded') state.adminUnloaded = !state.adminUnloaded;
+      render();
+      if (key === 'openRegistration') toast(state.openRegistration ? '已开放注册' : '已关闭注册');
+      if (key === 'maintenance') toast(state.maintenance ? '已进入维护模式' : '已退出维护模式');
+      if (key === 'assetsCleared') toast(state.assetsCleared ? '已模拟资产清零' : '已恢复默认资产');
+      if (key === 'adminUnloaded') toast(state.adminUnloaded ? '已模拟卸载在任管理员身份（永久主管理员除外）' : '已恢复在任管理员身份');
+    }
+
+    function resetDemo() {
+      clearInterval(regTimer); clearInterval(lockTimer); clearInterval(credentialTimer); clearInterval(activationTimer);
+      regTimer = null; lockTimer = null; credentialTimer = null; activationTimer = null;
+      Object.assign(state, {
+        screen: 'login', role: 'admin', lang: 'zh', loggedIn: false,
+        openRegistration: true, maintenance: false, scenario: 'normal', assetsCleared: false, adminView: 'permanent', adminUnloaded: false, activationWait: 0, deactivated: false,
+        emails: { ...EMAIL_DEFAULTS }, accountStatus: 'active',
+        loginEmail: '', loginPassword: '', loginCaptchaInput: '', loginRemember: false, showLoginPw: false,
+        loginAttempts: 0, loginCaptcha: false, loginCaptchaSeed: 1, loginError: '', loginNotice: '', lockSeconds: 0,
+        reg: { email: '', code: '', password: '', confirm: '', nickname: '', gender: '', agree: false },
+        regError: '', regCountdown: 0, regCodeSent: false, showRegPw: false, showRegConfirm: false,
+        regCaptchaSeed: 1, regCaptchaInput: '', regCodeFailures: 0,
+        forgotStep: 1, forgotEmail: '', forgotCaptcha: '', forgotCaptchaSeed: 1, forgotCode: '',
+        forgotPassword: '', forgotConfirm: '', forgotError: '', forgotCodeFailures: 0, showForgotPw: false, showForgotConfirm: false,
+        overlay: null, overlayError: '',
+        emailStep: 1, emailCurrentCode: '', emailNew: '', emailNewCode: '', emailError: '', emailNotice: '',
+        emailCurrentSent: false, emailNewSent: false, emailCurrentFailures: 0, emailNewFailures: 0, credentialUntil: 0,
+        cpCurrent: '', cpPassword: '', cpConfirm: '', cpError: '', showCpCurrent: false, showCpPw: false, showCpConfirm: false,
+        deleteConfirm: '', deleteError: '',
+        adminTab: 'list', adminQuery: '', adminFilter: 'all', admins: seedAdmins(), adminAudit: seedAdminAudit(),
+        addEmail: '', addName: '', addConfirm: '', addError: '', addLookup: null, addRestoreId: '',
+        editTargetId: '', editName: '', editError: '', revokeTargetId: '', revokeConfirm: '', revokeError: '',
+        securityAudit: seedSecurityAudit('admin')
+      });
+      syncUrl();
+      render();
+      toast('已重置演示');
+    }
+
+    function syncConsole() {
+      document.querySelectorAll('[data-nav-screen]').forEach((btn) => {
+        const on = btn.dataset.navScreen === state.screen;
+        btn.className = `rounded-lg px-2 py-1 font-semibold transition ${on ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`;
+      });
+      document.querySelectorAll('[data-role-btn]').forEach((btn) => {
+        const on = btn.dataset.roleBtn === state.role;
+        btn.className = `rounded-lg px-2 py-1 font-semibold transition ${on ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`;
+      });
+      document.querySelectorAll('[data-admin-view]').forEach((btn) => {
+        const on = btn.dataset.adminView === state.adminView;
+        btn.className = `rounded-lg px-2 py-1 font-semibold transition ${on ? 'bg-violet-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'} ${state.role === 'admin' ? '' : 'opacity-60'}`;
+      });
+      document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+        const on = btn.dataset.langBtn === state.lang;
+        btn.className = `rounded-lg px-2 py-1 font-semibold transition ${on ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`;
+      });
+      document.querySelectorAll('[data-config]').forEach((btn) => {
+        const key = btn.dataset.config;
+        const on = key === 'openRegistration' ? state.openRegistration : key === 'maintenance' ? state.maintenance : key === 'adminUnloaded' ? state.adminUnloaded : state.assetsCleared;
+        const tone = key === 'maintenance'
+          ? 'bg-amber-50 text-amber-800 ring-1 ring-amber-300'
+          : key === 'adminUnloaded'
+            ? 'bg-amber-50 text-amber-800 ring-1 ring-amber-300'
+            : key === 'assetsCleared'
+            ? 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
+            : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200';
+        btn.className = `rounded-lg px-2 py-1 font-semibold transition ${on ? tone : 'text-slate-500 hover:bg-slate-200'}`;
+      });
+      document.querySelectorAll('[data-scenario]').forEach((btn) => {
+        const value = btn.dataset.scenario;
+        const on = value === state.scenario;
+        const tone = value === 'normal'
+          ? 'bg-slate-900 text-white shadow-sm'
+          : value === 'banned' || value === 'wrong'
+            ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'
+            : 'bg-amber-50 text-amber-800 ring-1 ring-amber-300';
+        btn.className = `rounded-lg px-2 py-1 font-semibold transition ${on ? tone : 'text-slate-500 hover:bg-slate-200'}`;
+      });
+    }
+
+    function readConsoleCollapsed() {
+      try { return localStorage.getItem('dream_proto_m0a_nav_collapsed') === '1'; } catch (e) { return false; }
+    }
+
+    function writeConsoleCollapsed(collapsed) {
+      try { localStorage.setItem('dream_proto_m0a_nav_collapsed', collapsed ? '1' : '0'); } catch (e) { /* 静默降级 */ }
+    }
+
+    function applyConsoleCollapsed(collapsed) {
+      const consoleEl = $('console');
+      if (consoleEl) consoleEl.classList.toggle('hidden', collapsed);
+      const mini = document.querySelector('[data-console-mini]');
+      if (mini) {
+        mini.classList.toggle('hidden', !collapsed);
+        mini.classList.toggle('flex', collapsed);
+      }
+    }
+
+    /* ------------------------------------------------------------------
+     * 通用 UI 组件
+     * ------------------------------------------------------------------ */
+    function langSwitch(light) {
+      const base = 'rounded-lg px-2.5 py-1 text-[12px] font-bold transition';
+      const on = light ? 'bg-white text-indigo-700 shadow-sm' : 'bg-slate-900 text-white shadow-sm';
+      const off = light ? 'text-white/80 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-200';
+      return `<div class="inline-flex items-center gap-0.5 rounded-xl ${light ? 'bg-white/15 p-0.5 ring-1 ring-white/20' : 'bg-slate-100 p-1'}">
+        <button type="button" data-action="set-lang" data-lang="zh" class="${base} ${state.lang === 'zh' ? on : off}">中文</button>
+        <button type="button" data-action="set-lang" data-lang="en" class="${base} ${state.lang === 'en' ? on : off}">English</button>
+      </div>`;
+    }
+
+    function authShell(title, subtitle, body, backToLogin) {
+      return `<div class="min-h-full bg-slate-50 pb-8">
+        <div class="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 px-5 pb-12 pt-6 text-white">
+          <span class="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/10"></span>
+          <span class="pointer-events-none absolute -bottom-16 -left-12 h-44 w-44 rounded-full bg-indigo-400/20"></span>
+          <div class="relative flex items-center justify-between gap-2">
+            <div class="flex min-w-0 items-center gap-2">
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15 ring-1 ring-white/20">${icon('sparkles', 'h-4 w-4')}</span>
+              <div class="min-w-0">
+                <div class="text-[14px] font-bold leading-tight">Dream</div>
+                <div class="truncate text-[12px] text-white/70">${t('教务排班与分账管理', 'Tutoring operations')}</div>
+              </div>
+            </div>
+            ${langSwitch(true)}
+          </div>
+          <div class="relative mt-7">
+            ${backToLogin ? `<button type="button" data-action="go-screen" data-screen="login" class="mb-3 inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[12px] font-semibold text-white/80 transition hover:bg-white/10 hover:text-white">${icon('chevron-left', 'h-3.5 w-3.5')}${t('返回登录', 'Back to sign in')}</button>` : ''}
+            <h1 class="text-[18px] font-bold tracking-tight">${esc(title)}</h1>
+            <p class="mt-1 text-[12px] leading-relaxed text-white/75">${esc(subtitle)}</p>
+          </div>
+        </div>
+        <div class="-mt-6 rounded-t-3xl bg-white px-5 pb-8 pt-5">${body}</div>
+      </div>`;
+    }
+
+    function pageBanner(title, options) {
+      const opts = options || {};
+      const meta = roleMeta();
+      return `<header class="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-2 overflow-hidden bg-gradient-to-br ${meta.banner} px-4 text-white">
+        <div class="flex min-w-0 items-center gap-2">
+          ${opts.back ? `<button type="button" data-action="go-screen" data-screen="${opts.back}" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 -ml-1 text-[13px] font-semibold text-white/90 transition hover:bg-white/10 active:bg-white/15" aria-label="${t('返回', 'Back')}">${icon('chevron-left', 'h-4 w-4')}<span>${t('返回', 'Back')}</span></button>` : ''}
+          <span class="truncate text-[18px] font-bold tracking-tight">${esc(title)}</span>
+        </div>
+        <div class="flex shrink-0 items-center gap-1.5">${opts.right || ''}</div>
+      </header>`;
+    }
+
+    function maintenanceCard() {
+      return `<div class="rounded-2xl border border-amber-300 bg-amber-50/70 p-5 text-center">
+        <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-amber-600 ring-1 ring-amber-200">${icon('wrench', 'h-6 w-6')}</div>
+        <h2 class="mt-3 text-[18px] font-bold text-amber-950">${t('系统维护中', 'Under maintenance')}</h2>
+        <p class="mt-1.5 text-[14px] font-medium leading-relaxed text-amber-900">${t('为保障数据安全，平台正在升级维护，暂时无法登录或注册，请稍后回来。', 'The platform is being upgraded. Sign-in and registration are temporarily unavailable.')}</p>
+        <button type="button" data-action="maintenance-check" class="mt-4 h-9 rounded-xl border border-amber-300 bg-white px-4 text-[14px] font-semibold text-amber-800 transition hover:bg-amber-50">${t('刷新状态', 'Refresh')}</button>
+      </div>`;
+    }
+
+    function fieldLabel(text) {
+      return `<label class="mb-1.5 block text-[12px] font-bold text-slate-600">${esc(text)}</label>`;
+    }
+
+    function textInput(model, opts) {
+      const o = opts || {};
+      return `<div class="relative">
+        ${o.icon ? `<span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon(o.icon, 'h-4 w-4')}</span>` : ''}
+        <input id="${o.id || ''}" type="${o.type || 'text'}" inputmode="${o.inputmode || 'text'}" autocomplete="${o.autocomplete || 'off'}" data-model="${model}" value="${esc(o.value || '')}" placeholder="${esc(o.placeholder || '')}" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 ${o.icon ? 'pl-9' : 'pl-3.5'} ${o.suffix ? 'pr-12' : 'pr-3.5'} text-[16px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15" ${o.disabled ? 'disabled' : ''} />
+        ${o.suffix || ''}
+      </div>`;
+    }
+
+    function passwordToggle(target, show) {
+      return `<button type="button" data-action="toggle-pw" data-target="${target}" class="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-200/70" aria-label="${show ? t('隐藏密码', 'Hide password') : t('显示密码', 'Show password')}">${icon(show ? 'eye-off' : 'eye', 'h-4 w-4')}</button>`;
+    }
+
+    function captchaCard(kind) {
+      const seed = kind === 'login' ? state.loginCaptchaSeed : state.forgotCaptchaSeed;
+      const spec = captchaSpec(seed);
+      const model = kind === 'login' ? 'loginCaptchaInput' : 'forgotCaptcha';
+      const value = kind === 'login' ? state.loginCaptchaInput : state.forgotCaptcha;
+      return `<div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-[12px] font-bold text-slate-600">${t('图形验证码', 'Visual captcha')}</span>
+          <button type="button" data-action="refresh-captcha" data-captcha="${kind}" class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[12px] font-semibold text-indigo-600 transition hover:bg-indigo-50">${icon('refresh-cw', 'h-3.5 w-3.5')}${t('换一张', 'Refresh')}</button>
+        </div>
+        <div class="mt-2 flex items-center gap-2">
+          <div class="flex items-center gap-1.5">
+            <span class="grid h-9 w-8 place-items-center rounded-lg border border-indigo-200 bg-indigo-50 font-mono text-[16px] font-bold text-indigo-700">${spec.a}</span>
+            <span class="text-[14px] font-bold text-slate-500">+</span>
+            <span class="grid h-9 w-8 place-items-center rounded-lg border border-indigo-200 bg-indigo-50 font-mono text-[16px] font-bold text-indigo-700">${spec.b}</span>
+            <span class="text-[14px] font-bold text-slate-500">=</span>
+          </div>
+          <input type="text" inputmode="numeric" data-model="${model}" value="${esc(value)}" placeholder="${t('答案', 'Answer')}" class="h-9 w-20 rounded-lg border border-slate-200 bg-white px-2.5 text-center font-mono text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15" />
+          <span class="text-[12px] font-medium text-slate-500">${t('点击换一张', 'Tap refresh')}</span>
+        </div>
+        <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">${t('单张有效期 5 分钟；高频刷新受同 IP 频控保护。', 'Each captcha is valid for 5 minutes; frequent refreshes are rate-limited by IP.')}</p>
+      </div>`;
+    }
+
+    function inlineError(message) {
+      if (!message) return '';
+      return `<div class="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[12px] font-semibold leading-relaxed text-rose-700">
+        ${icon('alert-circle', 'h-4 w-4 shrink-0')}<span>${esc(message)}</span>
+      </div>`;
+    }
+
+    function inlineNotice(message, tone) {
+      if (!message) return '';
+      const amber = tone !== 'emerald';
+      return `<div class="flex items-start gap-2 rounded-xl border px-3 py-2.5 text-[12px] font-semibold leading-relaxed ${amber ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}">
+        ${icon(amber ? 'info' : 'check-circle-2', 'h-4 w-4 shrink-0')}<span>${esc(message)}</span>
+      </div>`;
+    }
+
+    function primaryBtn(attrs, label) {
+      return `<button type="button" ${attrs} class="h-11 w-full rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none">${label}</button>`;
+    }
+
+    function secondaryBtn(attrs, label) {
+      return `<button type="button" ${attrs} class="h-9 rounded-xl border border-slate-300 bg-white px-3.5 text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${label}</button>`;
+    }
+
+    function statusPill(status) {
+      if (status === 'active') return `<span class="rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[12px] font-bold text-emerald-700">${t('在任', 'Active')}</span>`;
+      return `<span class="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">${t('已撤销', 'Revoked')}</span>`;
+    }
+
+    function identityPills(list) {
+      return (list || []).map((x) => `<span class="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-700">${t('兼任', 'Also')}${esc(x)}</span>`).join('');
+    }
+
+    /* ------------------------------------------------------------------
+     * 账号状态
+     * ------------------------------------------------------------------ */
+    function accountStatus() {
+      if (state.deactivated) return 'deactivated';
+      if (state.scenario === 'locked') return 'locked';
+      if (state.scenario === 'banned') return 'banned';
+      return 'active';
+    }
+
+    function accountStatusCard() {
+      const status = accountStatus();
+      const meta = {
+        active: {
+          label: '正常生效', labelEn: 'Active', icon: 'shield-check',
+          box: 'border-emerald-200 bg-emerald-50/70', iconBox: 'bg-emerald-100 text-emerald-700',
+          title: 'text-emerald-950', sub: 'text-emerald-800',
+          desc: t('账号可正常登录，并使用当前身份授权的全部功能。', 'Your account can sign in and use all authorized features.')
+        },
+        locked: {
+          label: '临时锁定', labelEn: 'Temporarily locked', icon: 'lock',
+          box: 'border-amber-300 bg-amber-50/70', iconBox: 'bg-amber-100 text-amber-700',
+          title: 'text-amber-950', sub: 'text-amber-900',
+          desc: t('同一账号连续输错密码达 5 次，默认锁定 24 小时。可通过找回密码重置并提前解锁。', 'Five wrong passwords lock the account for 24 hours by default. Reset your password to unlock early.')
+        },
+        banned: {
+          label: '已封禁', labelEn: 'Banned', icon: 'ban',
+          box: 'border-rose-200 bg-rose-50/70', iconBox: 'bg-rose-100 text-rose-700',
+          title: 'text-rose-950', sub: 'text-rose-800',
+          desc: t('账号已被封禁，封禁与解封统一由平台账号运营后台审核，封禁期间原邮箱不释放；如有疑问请联系客服或负责班长。', 'Banned accounts are reviewed by the platform account operations console; the bound email is not released while banned. Contact support or your monitor for help.')
+        },
+        deactivated: {
+          label: '已注销停用', labelEn: 'Deactivated', icon: 'user-x',
+          box: 'border-dashed border-slate-400 bg-slate-50/60', iconBox: 'bg-slate-200 text-slate-600',
+          title: 'text-slate-900', sub: 'text-slate-600',
+          desc: t('账号已注销停用，历史档案、财务单据与管理员授权审计日志永久留痕。', 'This account is deactivated. Historical records, financial documents and admin authorization audit logs are retained permanently.')
+        }
+      }[status];
+      const lockedCountdown = status === 'locked' && state.lockSeconds > 0
+        ? `<div class="mt-2 flex flex-wrap items-center gap-2">
+            <span class="rounded-lg bg-white/80 px-2 py-1 text-[12px] font-bold text-amber-900">${t('解锁倒计时', 'Unlock in')} <span data-lock-countdown class="font-mono">${mmss(state.lockSeconds)}</span></span>
+            <button type="button" data-action="go-screen" data-screen="forgot" class="rounded-lg border border-amber-300 bg-white px-2 py-1 text-[12px] font-bold text-amber-900 transition hover:bg-amber-50">${t('前往找回密码', 'Reset password')}</button>
+          </div>`
+        : status === 'banned'
+          ? `<div class="mt-2"><button type="button" data-action="toast" data-message="客服通道为演示占位" class="rounded-lg border border-rose-200 bg-white px-2 py-1 text-[12px] font-bold text-rose-700">${t('联系客服', 'Contact support')}</button></div>`
+          : '';
+      return `<section class="rounded-2xl border ${meta.box} p-4">
+        <div class="flex items-start gap-3">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl ${meta.iconBox}">${icon(meta.icon, 'h-5 w-5')}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[14px] font-bold ${meta.title}">${t('账号状态', 'Account status')}</span>
+              <span class="rounded-full bg-white/80 px-2 py-0.5 text-[12px] font-bold ${meta.sub}">${t(meta.label, meta.labelEn)}</span>
+            </div>
+            <p class="mt-1 text-[12px] font-medium leading-relaxed ${meta.sub}">${meta.desc}</p>
+            ${state.role === 'admin' && state.adminView === 'permanent' && status === 'active' ? `<div class="mt-2 rounded-lg bg-white/80 px-2 py-1 text-[12px] font-bold text-indigo-800">${t('永久主管理员 · 受保护不可撤销（本人亦不可自助注销）', 'Permanent master admin · protected and irrevocable (self-deactivation is blocked)')}</div>` : ''}
+            <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] font-medium ${meta.sub}">
+              <span class="inline-flex items-center gap-1">${icon('clock', 'h-3.5 w-3.5')}${t('最近登录', 'Last sign-in')} 2026-11-23 09:42</span>
+              <span class="inline-flex items-center gap-1">${icon('smartphone', 'h-3.5 w-3.5')}iPhone 15 · Safari</span>
+            </div>
+            ${lockedCountdown}
+          </div>
+        </div>
+      </section>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 登录页
+     * ------------------------------------------------------------------ */
+    function renderLogin() {
+      const body = state.maintenance
+        ? maintenanceCard()
+        : `<div class="space-y-4">
+            ${inlineError(state.loginError)}
+            ${state.loginNotice === 'inactive' ? `<div class="rounded-xl border border-amber-300 bg-amber-50 p-3">
+              <div class="flex items-start gap-2">
+                <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-amber-600 ring-1 ring-amber-200">${icon('mail', 'h-4 w-4')}</span>
+                <div class="min-w-0 flex-1">
+                  <div class="text-[14px] font-bold text-amber-950">${t('账号尚未激活', 'Account not activated')}</div>
+                  <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900">${t('该账号为历史兜底未激活存量账号。请完成邮箱验证激活，激活后转为「正常生效」即可登录。', 'This is a legacy unactivated account. Verify your email to activate it and sign in.')}</p>
+                  <button type="button" data-action="resend-activation" ${state.activationWait > 0 ? 'disabled' : ''} class="mt-2 h-8 rounded-lg border border-amber-300 bg-white px-2.5 text-[12px] font-bold text-amber-900 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">${state.activationWait > 0 ? `${state.activationWait}s ${t('后可重发', 'to resend')}` : t('重发激活验证（60 秒冷却）', 'Resend activation (60s cooldown)')}</button>
+                </div>
+              </div>
+            </div>` : ''}
+            ${state.lockSeconds > 0 ? `<div class="rounded-xl border border-amber-300 bg-amber-50 p-3">
+              <div class="text-[14px] font-bold text-amber-950">${t('连续输错密码达 5 次，账号已临时锁定', 'Five wrong passwords. Account temporarily locked.')}</div>
+              <p class="mt-1 text-[12px] font-medium text-amber-900">${t('默认锁定 24 小时，剩余解锁时间', 'Locked for 24 hours by default. Remaining')} <span data-lock-countdown class="font-mono font-bold">${mmss(state.lockSeconds)}</span></p>
+              <p class="mt-0.5 text-[12px] font-medium text-amber-900">${t('可通过【忘记密码】邮箱双验提前重置解锁。', 'Reset your password via email to unlock early.')}</p>
+              <button type="button" data-action="go-screen" data-screen="forgot" class="mt-2 inline-flex h-8 items-center gap-1 rounded-lg border border-amber-300 bg-white px-2.5 text-[12px] font-bold text-amber-900 transition hover:bg-amber-50">${icon('key-round', 'h-3.5 w-3.5')}${t('前往找回密码', 'Reset password')}</button>
+            </div>` : ''}
+
+            <div>
+              ${fieldLabel('Email')}
+              ${textInput('loginEmail', { id: 'loginEmail', type: 'email', icon: 'mail', autocomplete: 'username', value: state.loginEmail, placeholder: 'you@example.com', disabled: state.maintenance })}
+            </div>
+            <div>
+              <div class="mb-1.5 flex items-center justify-between">
+                <label class="text-[12px] font-bold text-slate-600">${t('登录密码', 'Password')}</label>
+                <button type="button" data-action="go-screen" data-screen="forgot" class="text-[12px] font-semibold text-indigo-600 hover:underline">${t('忘记密码？', 'Forgot password?')}</button>
+              </div>
+              <div class="relative">
+                ${textInput('loginPassword', { id: 'loginPassword', type: state.showLoginPw ? 'text' : 'password', icon: 'lock', autocomplete: 'current-password', value: state.loginPassword, placeholder: t('请输入登录密码', 'Enter your password'), disabled: state.maintenance, suffix: passwordToggle('login', state.showLoginPw) })}
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-2">
+              <label class="flex items-center gap-2 text-[12px] font-semibold text-slate-600">
+                <input type="checkbox" data-model="loginRemember" ${state.loginRemember ? 'checked' : ''} class="h-4 w-4 rounded border-slate-300 accent-indigo-600" />
+                ${t('记住我（7 天）', 'Remember me for 7 days')}
+              </label>
+              <span class="text-[12px] font-medium text-slate-500">${t('仅支持邮箱登录', 'Email sign-in only')}</span>
+            </div>
+
+            ${state.loginCaptcha ? captchaCard('login') : ''}
+
+            ${primaryBtn(`data-action="login-submit" ${state.maintenance || state.lockSeconds > 0 ? 'disabled' : ''}`, state.maintenance ? t('维护中，暂停登录', 'Unavailable during maintenance') : state.lockSeconds > 0 ? t('账号已锁定', 'Account locked') : t('登录 Dream', 'Sign in to Dream'))}
+
+            <div class="flex items-center justify-center gap-1 text-[12px] font-medium text-slate-600">
+              <span>${t('还没有账号？', 'New to Dream?')}</span>
+              ${state.openRegistration
+                ? `<button type="button" data-action="go-screen" data-screen="register" class="font-bold text-indigo-600 hover:underline">${t('立即注册', 'Create account')}</button>`
+                : `<span class="inline-flex items-center gap-1 font-semibold text-slate-500" title="${t('平台暂未开放注册', 'Registration is closed')}">${t('立即注册（暂未开放）', 'Create account (closed)')}</span>`}
+            </div>
+
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] leading-relaxed text-slate-600">
+              <span class="font-bold text-slate-700">${t('示例账号', 'Demo account')}</span>
+              <span class="font-mono text-slate-700">${esc(currentEmail())}</span>
+              <span class="mx-1 text-slate-500">·</span>
+              <span>${t('密码', 'Password')} <span class="font-mono text-slate-700">Dream2026!</span></span>
+            </div>
+
+            <a href="m0_workspace_home.html?role=${roleMeta().workspace}" target="_blank" rel="noopener" class="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">
+              ${icon('layout-dashboard', 'h-4 w-4')}${t('进入工作台', 'Open workspace')}
+            </a>
+          </div>`;
+      return authShell(
+        t('登录 Dream', 'Sign in to Dream'),
+        t('使用邮箱与密码进入你的工作台', 'Use your email and password to continue'),
+        body,
+        false
+      );
+    }
+
+    /* ------------------------------------------------------------------
+     * 注册页
+     * ------------------------------------------------------------------ */
+    function renderRegister() {
+      const closed = !state.openRegistration;
+      const reg = state.reg;
+      const submitDisabled = closed || state.maintenance || !reg.email.trim() || !reg.code.trim() || !strengthOk(reg.password) || reg.password !== reg.confirm || !reg.agree;
+      const body = state.maintenance
+        ? maintenanceCard()
+        : `<div class="space-y-4">
+            ${closed ? `<div class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[12px] font-semibold leading-relaxed text-amber-900">${icon('info', 'mr-1 inline h-3.5 w-3.5')}${t('平台暂未开放注册，请稍后再试或联系负责班长。', 'Registration is currently closed. Please try again later.')}</div>` : ''}
+            ${inlineError(state.regError)}
+
+            <div>
+              ${fieldLabel('Email')}
+              <div class="flex items-start gap-2">
+                <div class="min-w-0 flex-1">
+                  ${textInput('reg.email', { id: 'regEmail', type: 'email', icon: 'mail', autocomplete: 'email', value: reg.email, placeholder: 'you@example.com', disabled: closed || state.maintenance })}
+                </div>
+                <button type="button" id="regSendCode" data-action="send-reg-code" ${closed || state.maintenance || state.regCountdown > 0 ? 'disabled' : ''} class="h-11 shrink-0 rounded-xl border border-slate-300 bg-white px-3 text-[12px] font-bold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">
+                  <span data-reg-code-text>${state.regCountdown > 0 ? `${state.regCountdown}s ${t('后重发', 'left')}` : t('发送验证码', 'Send code')}</span>
+                </button>
+              </div>
+              <p class="mt-1 text-[12px] font-medium text-slate-500">${t('示例验证码', 'Demo code')}：123456</p>
+            </div>
+
+            <div>
+              ${fieldLabel(t('邮箱验证码', 'Email code'))}
+              ${textInput('reg.code', { id: 'regCode', inputmode: 'numeric', icon: 'shield-check', value: reg.code, placeholder: t('输入 6 位验证码', 'Enter 6-digit code'), disabled: closed || state.maintenance })}
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">${t('验证码 120 秒内有效 · 连续输错 5 次即作废，须 60 秒冷却后重发。', 'Code valid for 120s. Five wrong attempts void it; resend after a 60s cooldown.')}</p>
+            </div>
+
+            <div>
+              ${fieldLabel(t('登录密码', 'Password'))}
+              <div class="relative">
+                ${textInput('reg.password', { id: 'regPassword', type: state.showRegPw ? 'text' : 'password', icon: 'lock', autocomplete: 'new-password', value: reg.password, placeholder: t('设置登录密码', 'Create a password'), disabled: closed || state.maintenance, suffix: passwordToggle('register', state.showRegPw) })}
+              </div>
+              ${strengthBox('register', reg.password)}
+            </div>
+
+            <div>
+              ${fieldLabel(t('确认密码', 'Confirm password'))}
+              <div class="relative">
+                ${textInput('reg.confirm', { id: 'regConfirm', type: state.showRegConfirm ? 'text' : 'password', icon: 'lock', autocomplete: 'new-password', value: reg.confirm, placeholder: t('再次输入密码', 'Re-enter password'), disabled: closed || state.maintenance, suffix: passwordToggle('register-confirm', state.showRegConfirm) })}
+              </div>
+              ${matchHint('register', reg.password, reg.confirm)}
+            </div>
+
+            <div class="space-y-3">
+              <div>
+                ${fieldLabel(t('昵称（选填）', 'Nickname (optional)'))}
+                ${textInput('reg.nickname', { value: reg.nickname, placeholder: t('例如 Amy', 'e.g. Amy'), disabled: closed || state.maintenance })}
+              </div>
+              <div>
+                ${fieldLabel(t('性别（选填）', 'Gender (optional)'))}
+                <div class="flex gap-1">
+                  ${[['女', 'Female'], ['男', 'Male'], ['不便透露', 'Undisclosed']].map(([value, en]) => `<button type="button" data-action="set-gender" data-gender="${value}" class="h-11 min-w-0 flex-1 rounded-xl border px-1 text-[12px] font-semibold transition ${reg.gender === value ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-slate-50/70 text-slate-600 hover:bg-slate-100'}">${t(value, en)}</button>`).join('')}
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+              <div class="flex items-start gap-2">
+                <input id="regAgree" type="checkbox" data-model="reg.agree" ${reg.agree ? 'checked' : ''} class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-indigo-600" />
+                <div class="min-w-0">
+                  <label for="regAgree" class="text-[12px] font-medium leading-relaxed text-slate-700">${t('我已阅读并同意', 'I have read and agree to the')}</label>
+                  <button type="button" data-action="open-legal" data-doc="terms" class="text-[12px] font-bold text-indigo-600 hover:underline">《${t('用户服务协议', 'Terms of Service')}》</button>
+                  <span class="text-[12px] text-slate-700">${t('与', 'and')}</span>
+                  <button type="button" data-action="open-legal" data-doc="privacy" class="text-[12px] font-bold text-indigo-600 hover:underline">《${t('隐私保护政策', 'Privacy Policy')}》</button>
+                </div>
+              </div>
+              <p data-agree-hint class="mt-1.5 text-[12px] font-semibold text-rose-600 ${reg.agree ? 'hidden' : ''}">${t('请先勾选协议后提交注册', 'Please accept the agreements before continuing')}</p>
+            </div>
+
+            ${primaryBtn(`data-action="register-submit" data-reg-submit ${submitDisabled ? 'disabled' : ''}`, t('创建账号', 'Create account'))}
+            <p class="text-center text-[12px] font-medium leading-relaxed text-slate-500">${t('密码需满足全部规则并同意协议后方可提交。提交时会记录协议标识与版本号。', 'All password rules and agreements are required. The agreement version is recorded on submit.')}</p>
+
+            <div class="text-center text-[12px] font-medium text-slate-600">
+              ${t('已有账号？', 'Already registered?')}
+              <button type="button" data-action="go-screen" data-screen="login" class="font-bold text-indigo-600 hover:underline">${t('返回登录', 'Back to sign in')}</button>
+            </div>
+          </div>`;
+      return authShell(
+        t('创建 Dream 账号', 'Create your Dream account'),
+        t('使用常用邮箱自助注册，绑定你的教务身份', 'Register with your email to connect your tutoring identity'),
+        body,
+        true
+      );
+    }
+
+    /* ------------------------------------------------------------------
+     * 找回密码页
+     * ------------------------------------------------------------------ */
+    function forgotStepBar() {
+      const step = state.forgotStep;
+      return `<div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
+        <div class="flex items-center gap-1.5">
+          <span class="grid h-6 w-6 place-items-center rounded-full text-[12px] font-bold ${step >= 1 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}">1</span>
+          <span class="text-[12px] font-bold ${step >= 1 ? 'text-indigo-700' : 'text-slate-500'}">${t('验证邮箱', 'Verify email')}</span>
+        </div>
+        <span class="h-px flex-1 ${step >= 2 ? 'bg-indigo-300' : 'bg-slate-200'}"></span>
+        <div class="flex items-center gap-1.5">
+          <span class="grid h-6 w-6 place-items-center rounded-full text-[12px] font-bold ${step >= 2 ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}">2</span>
+          <span class="text-[12px] font-bold ${step >= 2 ? 'text-indigo-700' : 'text-slate-500'}">${t('重设密码', 'New password')}</span>
+        </div>
+      </div>`;
+    }
+
+    function renderForgot() {
+      const step = state.forgotStep;
+      const body = state.maintenance
+        ? maintenanceCard()
+        : `<div class="space-y-4">
+            ${forgotStepBar()}
+            ${inlineError(state.forgotError)}
+            ${step === 1 ? `<div class="contents">
+              <div>
+                ${fieldLabel(t('注册邮箱', 'Registered email'))}
+                ${textInput('forgotEmail', { id: 'forgotEmail', type: 'email', icon: 'mail', autocomplete: 'email', value: state.forgotEmail, placeholder: 'you@example.com' })}
+              </div>
+              ${captchaCard('forgot')}
+              ${primaryBtn('data-action="forgot-send"', t('发送重置验证码', 'Send reset code'))}
+              <p class="text-center text-[12px] font-medium text-slate-500">${t('示例验证码', 'Demo code')}：123456</p>
+            </div>` : `<div class="contents">
+              <div>
+                ${fieldLabel(t('注册邮箱', 'Registered email'))}
+                <div class="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3">
+                  ${icon('mail', 'h-4 w-4 shrink-0 text-slate-500')}
+                  <span class="min-w-0 flex-1 truncate text-[16px] text-slate-700">${esc(state.forgotEmail)}</span>
+                  <span class="shrink-0 rounded-full bg-slate-200 px-2 py-0.5 text-[12px] font-bold text-slate-600">${t('已锁定', 'Locked')}</span>
+                </div>
+              </div>
+              <div>
+                ${fieldLabel(t('邮箱验证码', 'Email code'))}
+                ${textInput('forgotCode', { id: 'forgotCode', inputmode: 'numeric', icon: 'shield-check', value: state.forgotCode, placeholder: t('输入 6 位验证码', 'Enter 6-digit code') })}
+                <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">${t('验证码 120 秒内有效 · 连续输错 5 次即作废，须 60 秒冷却后重发。重置成功将同步解除临时锁定。', 'Code valid for 120s. Five wrong attempts void it and require a 60s cooldown; a successful reset also lifts any temporary lock.')}</p>
+              </div>
+              <div>
+                ${fieldLabel(t('新密码', 'New password'))}
+                <div class="relative">
+                  ${textInput('forgotPassword', { id: 'forgotPassword', type: state.showForgotPw ? 'text' : 'password', icon: 'lock', autocomplete: 'new-password', value: state.forgotPassword, placeholder: t('设置新密码', 'Create a new password'), suffix: passwordToggle('forgot', state.showForgotPw) })}
+                </div>
+                ${strengthBox('forgot', state.forgotPassword)}
+              </div>
+              <div>
+                ${fieldLabel(t('确认新密码', 'Confirm new password'))}
+                <div class="relative">
+                  ${textInput('forgotConfirm', { id: 'forgotConfirm', type: state.showForgotConfirm ? 'text' : 'password', icon: 'lock', autocomplete: 'new-password', value: state.forgotConfirm, placeholder: t('再次输入新密码', 'Re-enter new password'), suffix: passwordToggle('forgot-confirm', state.showForgotConfirm) })}
+                </div>
+                ${matchHint('forgot', state.forgotPassword, state.forgotConfirm)}
+              </div>
+              ${primaryBtn(`data-action="forgot-reset" data-forgot-reset ${(!state.forgotCode.trim() || !strengthOk(state.forgotPassword) || state.forgotPassword !== state.forgotConfirm) ? 'disabled' : ''}`, t('确认重置', 'Reset password'))}
+              <div class="flex items-center justify-between gap-2">
+                <button type="button" data-action="forgot-back" class="text-[12px] font-semibold text-slate-600 hover:text-slate-900">${t('上一步', 'Back')}</button>
+                <button type="button" data-action="forgot-expire" class="text-[12px] font-semibold text-amber-700 hover:underline">${t('演示：凭证过期', 'Demo: credential expired')}</button>
+              </div>
+            </div>`}
+            <div class="text-center text-[12px] font-medium text-slate-600">
+              <button type="button" data-action="go-screen" data-screen="login" class="font-bold text-indigo-600 hover:underline">${t('返回登录', 'Back to sign in')}</button>
+            </div>
+          </div>`;
+      return authShell(
+        t('找回密码', 'Reset your password'),
+        t('通过邮箱验证码安全重设登录密码', 'Reset your password with an email code'),
+        body,
+        true
+      );
+    }
+
+    /* ------------------------------------------------------------------
+     * 我的 / 账号安全
+     * ------------------------------------------------------------------ */
+    function profileCard() {
+      return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
+        <div class="flex items-center gap-3">
+          <div class="relative shrink-0">
+            <span class="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-[18px] font-bold text-white">${esc(roleMeta().initial)}</span>
+            <button type="button" data-action="avatar" class="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-slate-900 text-white transition hover:bg-slate-700" aria-label="${t('更换头像', 'Change avatar')}">${icon('camera', 'h-3.5 w-3.5')}</button>
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-[18px] font-bold text-slate-900">${esc(roleMeta().name)}</div>
+            <div class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${esc(maskEmail(currentEmail()))}</div>
+            <div class="mt-1.5 flex flex-wrap gap-1">${currentTags().map((tag) => `<span class="rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[12px] font-bold text-indigo-700">${esc(tag)}</span>`).join('')}</div>
+            <p class="mt-1.5 text-[12px] font-medium leading-relaxed text-slate-500">${t('昵称 / 个人姓名（选填）/ 性别仅用于个人账号展示，与学员规范昵称、班长/老师显示名及管理员显示名称彼此独立。', 'Nickname, optional personal name and gender are for your own account only; they stay independent from student, monitor, teacher and admin display names.')}</p>
+          </div>
+        </div>
+      </section>`;
+    }
+
+    function settingRow(opts) {
+      const o = opts;
+      const right = o.right || (o.action ? `${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}` : '');
+      const inner = `<span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600">${icon(o.icon, 'h-4 w-4')}</span>
+        <span class="min-w-0 flex-1"><span class="block truncate text-[14px] font-bold ${o.danger ? 'text-rose-700' : 'text-slate-800'}">${o.title}</span><span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${o.sub || ''}</span></span>
+        ${right}`;
+      if (o.action) {
+        return `<button type="button" ${o.attrs || `data-action="${o.action}"`} class="flex w-full items-center gap-3 px-3.5 py-3 text-left transition hover:bg-white/70">${inner}</button>`;
+      }
+      return `<div class="flex items-center gap-3 px-3.5 py-3">${inner}</div>`;
+    }
+
+    function securityRows() {
+      return `<section>
+        <div class="mb-1.5 flex items-center justify-between px-1">
+          <span class="text-[12px] font-bold text-slate-600">${t('账号与安全', 'Account & security')}</span>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">${t('安全设置', 'Security')}</span>
+        </div>
+        <div class="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
+          <div class="flex items-center gap-3 px-3.5 py-3">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600">${icon('mail', 'h-4 w-4')}</span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[14px] font-bold text-slate-800">${t('绑定邮箱', 'Bound email')}</span>
+              <span class="mt-0.5 block truncate text-[12px] font-medium text-slate-600">${esc(maskEmail(currentEmail()))}</span>
+            </span>
+            <button type="button" data-action="open-email" class="h-8 shrink-0 rounded-lg border border-indigo-200 bg-white px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-50">${t('更换邮箱', 'Change')}</button>
+          </div>
+          ${settingRow({ icon: 'key-round', title: t('修改登录密码', 'Change password'), sub: t('验证当前密码后设置新密码', 'Verify current password, then set a new one'), action: 'open-password' })}
+          ${settingRow({ icon: 'shield-check', title: t('账号安全中心', 'Security center'), sub: t('查看账号状态、完整安全审计日志与 Break-Glass 恢复边界', 'Review status, the full audit trail and break-glass recovery boundaries'), action: 'go-security' })}
+          ${settingRow({ icon: 'refresh-cw', title: t('清理缓存', 'Clear cache'), sub: t('当前版本 v1.0.0 · 不会退出登录', 'Version v1.0.0 · keeps you signed in'), action: 'clear-cache' })}
+          ${settingRow({ icon: 'log-out', title: t('退出登录', 'Sign out'), sub: t('清除本地登录凭据与敏感业务快照', 'Clears local sign-in credentials and sensitive snapshots'), action: 'logout-confirm' })}
+          ${settingRow({ icon: 'user-x', title: t('注销账号', 'Deactivate account'), sub: t('需先完成学员档案、教务交接与在任管理员身份卸载', 'Requires student, handover and active admin clearance'), action: 'open-delete', danger: true })}
+        </div>
+      </section>`;
+    }
+
+    function preferenceSection() {
+      return `<section>
+        <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">${t('偏好设置', 'Preferences')}</div>
+        <div class="rounded-2xl border border-slate-300 bg-slate-50/70 px-3.5 py-3">
+          <div class="flex items-center gap-3">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600">${icon('languages', 'h-4 w-4')}</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-[14px] font-bold text-slate-800">${t('系统语言', 'System language')}</div>
+              <div class="mt-0.5 text-[12px] font-medium text-slate-600">${state.lang === 'zh' ? t('当前：简体中文', 'Current: Chinese') : t('当前：English', 'Current: English')}</div>
+            </div>
+            <div class="flex shrink-0 gap-1">
+              <button type="button" data-action="set-lang" data-lang="zh" class="h-8 rounded-lg px-2.5 text-[12px] font-bold transition ${state.lang === 'zh' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">中文</button>
+              <button type="button" data-action="set-lang" data-lang="en" class="h-8 rounded-lg px-2.5 text-[12px] font-bold transition ${state.lang === 'en' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">English</button>
+            </div>
+          </div>
+        </div>
+      </section>`;
+    }
+
+    function auditTimeline(list) {
+      const tones = {
+        indigo: 'bg-indigo-100 text-indigo-700',
+        emerald: 'bg-emerald-100 text-emerald-700',
+        amber: 'bg-amber-100 text-amber-800',
+        rose: 'bg-rose-100 text-rose-700'
+      };
+      const dots = {
+        indigo: 'bg-indigo-500',
+        emerald: 'bg-emerald-500',
+        amber: 'bg-amber-500',
+        rose: 'bg-rose-500'
+      };
+      const actionEn = {
+        '登录成功': 'Signed in',
+        '更换绑定邮箱': 'Email changed',
+        '修改登录密码': 'Password changed',
+        '临时锁定': 'Temporarily locked',
+        '解除锁定': 'Unlocked',
+        '重置密码': 'Password reset',
+        '永久主管理员初始化': 'Permanent master admin initialized'
+      };
+      const detailEn = {
+        'iPhone 15 · Safari · 当前设备': 'iPhone 15 · Safari · this device',
+        '所有设备历史会话已退出': 'All other sessions signed out',
+        '通过邮箱验证重置密码，锁定解除': 'Locked lifted after email password reset',
+        '通过邮箱验证重设，所有设备历史会话已失效，临时锁定已解除': 'Reset via email · all sessions signed out · temporary lock lifted',
+        '连续输错密码 5 次，锁定 24 小时': '5 wrong passwords · locked for 24 hours',
+        '系统冷启动初始化 · 永久在任受保护，任何管理员不可撤销': 'Cold-start initialization · permanent and protected; no admin can revoke it',
+        'MacBook Air · Chrome': 'MacBook Air · Chrome'
+      };
+      const localize = (item) => ({
+        action: state.lang === 'en' ? (actionEn[item.action] || item.action) : item.action,
+        detail: state.lang === 'en' ? (detailEn[item.detail] || item.detail.replace('（原旧邮箱即时释放）', ' (old email released)')) : item.detail,
+        time: item.time,
+        tone: item.tone
+      });
+      const rows = list.map(localize);
+      return `<section>
+        <div class="mb-1.5 flex items-center justify-between px-1">
+          <span class="text-[12px] font-bold text-slate-600">${t('安全审计日志', 'Security audit trail')}</span>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">${t('只读', 'Read only')}</span>
+        </div>
+        <div class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
+          <ol class="space-y-0">
+            ${rows.map((item, index) => `<li class="relative flex gap-3 pb-4 last:pb-0">
+              ${index < rows.length - 1 ? `<span class="absolute left-[7px] top-4 h-full w-px bg-slate-200"></span>` : ''}
+              <span class="relative mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full border-2 border-white ${tones[item.tone] || tones.indigo}"><span class="h-1.5 w-1.5 rounded-full ${dots[item.tone] || dots.indigo}"></span></span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-start justify-between gap-2">
+                  <span class="min-w-0 break-words text-[14px] font-bold text-slate-800">${esc(item.action)}</span>
+                  <span class="shrink-0 text-[12px] font-medium text-slate-500">${esc(item.time)}</span>
+                </div>
+                <div class="mt-0.5 break-words text-[12px] font-medium leading-relaxed text-slate-600">${esc(item.detail)}</div>
+              </div>
+            </li>`).join('')}
+          </ol>
+        </div>
+      </section>`;
+    }
+
+    function adminEntry() {
+      if (state.role !== 'admin') return '';
+      return `<button type="button" data-action="go-screen" data-screen="admins" class="flex w-full items-center gap-3 rounded-2xl border border-slate-300 bg-slate-50/70 p-4 text-left transition hover:bg-slate-100/70">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-indigo-600 text-white">${icon('crown', 'h-5 w-5')}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-[16px] font-bold text-slate-900">👑 ${t('管理员管理', 'Admin management')}</span>
+          <span class="mt-0.5 block text-[12px] font-medium leading-relaxed text-slate-600">${state.adminView === 'permanent' ? t('增撤改普通管理员、查看只读授权审计日志；普通管理员仅可只读', 'Manage normal admins and view the read-only audit trail; normal admins have read-only access') : t('只读查看管理员名单与授权审计日志（写操作仅限永久主管理员）', 'Read-only admin list and audit trail (writes are limited to the permanent master admin)')}</span>
+        </span>
+        ${icon('chevron-right', 'h-5 w-5 shrink-0 text-slate-500')}
+      </button>`;
+    }
+
+    function renderMe() {
+      return `<div class="min-h-full bg-white pb-10">
+        ${pageBanner(t('我的', 'Me'), {
+          right: `<button type="button" data-action="go-screen" data-screen="security" class="grid h-8 w-8 place-items-center rounded-full bg-white/15 ring-1 ring-white/20 transition hover:bg-white/25" aria-label="${t('账号安全', 'Account security')}">${icon('shield-check', 'h-4 w-4')}</button>`
+        })}
+        <div class="space-y-3 px-4 py-4">
+          ${profileCard()}
+          ${accountStatusCard()}
+          ${adminEntry()}
+          ${securityRows()}
+          ${preferenceSection()}
+          ${auditTimeline(state.securityAudit.slice(0, 5))}
+          <p class="px-1 text-center text-[12px] font-medium leading-relaxed text-slate-500">${t('账号与教务身份解耦，工作台视图由本地档案与管理员授权共同决定。', 'Your account is separate from tutoring roles. Workspace views come from local profiles and admin grants.')}</p>
+        </div>
+      </div>`;
+    }
+
+    function renderSecurity() {
+      return `<div class="min-h-full bg-white pb-10">
+        ${pageBanner(t('账号安全', 'Account security'), { back: 'me' })}
+        <div class="space-y-3 px-4 py-4">
+          ${accountStatusCard()}
+          <section class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4">
+            <div class="flex items-start gap-3">
+              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-indigo-600 ring-1 ring-indigo-200">${icon('fingerprint', 'h-5 w-5')}</span>
+              <div class="min-w-0">
+                <div class="text-[14px] font-bold text-indigo-950">${t('安全等级：良好', 'Security level: Good')}</div>
+                <p class="mt-1 text-[12px] font-medium leading-relaxed text-indigo-900">${t('登录密码与绑定邮箱均已完成验证；更换邮箱需先验证当前邮箱，再绑定新邮箱。', 'Password and email are verified. Changing email requires verifying the current address first.')}</p>
+              </div>
+            </div>
+          </section>
+          ${state.role === 'admin' ? `<section class="rounded-2xl border border-amber-300 bg-amber-50/70 p-4">
+            <div class="flex items-start gap-3">
+              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-amber-600 ring-1 ring-amber-200">${icon('life-buoy', 'h-5 w-5')}</span>
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-[14px] font-bold text-amber-950">${t('极端失联恢复通道（Break-Glass）', 'Break-glass recovery channel')}</span>
+                  <span class="rounded-full bg-white/80 px-2 py-0.5 text-[12px] font-bold text-amber-800">${t('仅受控运维', 'Controlled ops only')}</span>
+                </div>
+                <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-900">${t('仅当唯一「永久主管理员」临时锁定、被封禁或彻底失联，导致全平台无可用授权人时启用：临时锁定可自助【忘记密码】解锁；封禁或失联须由平台受控运维通道（冷启动兜底超管引导 / 平台统一运营后台审核解封或紧急移交）破冰。', 'Used only when the sole permanent master admin is locked, banned or unreachable and no admin can authorize: a temporary lock can be self-unlocked via reset password; a ban or loss of contact requires the controlled ops channel (cold-start fallback or the platform operations console for unban or emergency handover).')}</p>
+                <div class="mt-2 flex flex-wrap gap-1.5">
+                  <span class="rounded-lg bg-white/80 px-2 py-1 text-[12px] font-bold text-amber-900">${t('本人不可自助摘除永久保护标记', 'Protection mark cannot be removed in-app')}</span>
+                  <span class="rounded-lg bg-white/80 px-2 py-1 text-[12px] font-bold text-amber-900">${t('每次破冰强制写入独立安全审计日志', 'Every recovery is written to an immutable audit log')}</span>
+                </div>
+              </div>
+            </div>
+          </section>` : ''}
+          ${securityRows()}
+          ${preferenceSection()}
+          ${auditTimeline(state.securityAudit)}
+        </div>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 管理员管理
+     * ------------------------------------------------------------------ */
+    function visibleAdmins() {
+      const q = state.adminQuery.trim().toLowerCase();
+      return state.admins
+        .filter((a) => state.adminFilter === 'all' || a.status === state.adminFilter)
+        .filter((a) => !q || a.name.toLowerCase().includes(q) || a.email.toLowerCase().includes(q))
+        .slice()
+        .sort((a, b) => {
+          const rank = (r) => (r.permanent ? 0 : r.status === 'active' ? 1 : 2);
+          if (rank(a) !== rank(b)) return rank(a) - rank(b);
+          return a.grantTime < b.grantTime ? 1 : -1;
+        });
+    }
+
+    function adminCard(record) {
+      const canManage = state.adminView === 'permanent';
+      const isPermanent = Boolean(record.permanent);
+      const isSelf = isPermanent && record.id === 'a1';
+      const active = record.status === 'active';
+      const avatarTone = isPermanent ? 'from-violet-500 to-indigo-700' : active ? 'from-indigo-500 to-indigo-700' : 'from-slate-400 to-slate-500';
+      const available = state.admins.filter((a) => a.status === 'active').length;
+      const revokeWouldEmpty = active && available - 1 < 1;
+      let actions = '';
+      if (isPermanent) {
+        actions = `<span class="inline-flex h-7 items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2.5 text-[12px] font-bold text-violet-700">${icon('shield-check', 'h-3.5 w-3.5')}${t('受保护 · 禁止撤销/删除/摘除标记', 'Protected · no revoke, delete or mark removal')}</span>`;
+      } else if (!canManage) {
+        actions = `<span class="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[12px] font-bold text-slate-500">${icon('eye', 'h-3.5 w-3.5')}${t('只读查看', 'Read-only')}</span>`;
+      } else if (active) {
+        actions = `<button type="button" data-action="edit-admin" data-id="${record.id}" class="h-7 rounded-lg border border-indigo-200 bg-white px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-50">${t('编辑名称', 'Edit name')}</button>
+           <button type="button" data-action="revoke-admin" data-id="${record.id}" ${revokeWouldEmpty ? 'disabled title="' + t('撤销后全平台可用管理员将归零', 'No usable admin would remain') + '"' : ''} class="h-7 rounded-lg border border-rose-200 bg-white px-2.5 text-[12px] font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">${t('撤销职务', 'Revoke')}</button>`;
+      } else {
+        actions = `<button type="button" data-action="restore-admin" data-id="${record.id}" class="h-7 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100">${t('重新授权', 'Restore')}</button>`;
+      }
+      return `<div data-admin-card="${record.id}" class="rounded-2xl border ${isPermanent ? 'border-violet-300 bg-violet-50/50' : active ? 'border-slate-300 bg-slate-50/70' : 'border-dashed border-slate-400 bg-slate-50/60'} p-3.5">
+        <div class="flex items-start gap-3">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${avatarTone} text-[14px] font-bold text-white">${esc((record.name || '?').slice(0, 1))}</span>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[16px] font-bold text-slate-900">${esc(record.name)}</span>
+              ${isSelf ? `<span class="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${t('本人', 'You')}</span>` : ''}
+              ${statusPill(record.status)}
+            </div>
+            <div class="mt-1 flex flex-wrap gap-1">
+              ${isPermanent
+                ? `<span class="rounded-full bg-violet-600 px-2 py-0.5 text-[12px] font-bold text-white">${t('永久主管理员 · 不可撤销', 'Permanent master admin · Irrevocable')}</span>`
+                : `<span class="rounded-full bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-700">${t('普通管理员', 'Normal admin')}</span>`}
+            </div>
+            <div class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${esc(record.email)}</div>
+            <div class="mt-1.5 flex flex-wrap gap-1">${identityPills(record.identities)}</div>
+            <div class="mt-2 space-y-0.5 text-[12px] font-medium text-slate-600">
+              <div>${t('授任', 'Granted')}：${esc(record.grantor)} · ${esc(record.grantTime)}</div>
+              ${record.status === 'revoked' ? `<div class="text-slate-600">${t('撤销', 'Revoked')}：${esc(record.revoker)} · ${esc(record.revokeTime)}</div>` : ''}
+            </div>
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">${actions}</div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function adminListHTML() {
+      const list = visibleAdmins();
+      if (!list.length) {
+        return `<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+          <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-slate-50 text-slate-500 ring-1 ring-slate-200">${icon('search', 'h-5 w-5')}</div>
+          <p class="mt-3 text-[14px] font-bold text-slate-700">${t('没有匹配的管理员', 'No matching admins')}</p>
+          <p class="mt-1 text-[12px] font-medium text-slate-500">${t('可调整搜索词或状态筛选后重试。', 'Try another search term or status filter.')}</p>
+        </div>`;
+      }
+      return list.map(adminCard).join('');
+    }
+
+    function adminAuditHTML() {
+      const list = state.adminAudit.slice().sort((a, b) => (a.time < b.time ? 1 : -1));
+      const tone = { add: 'emerald', rename: 'indigo', revoke: 'rose', restore: 'amber', init: 'slate', breakglass: 'amber' };
+      return `<div class="space-y-2.5">
+        <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">
+          ${t('授权变更记录永久只读留痕，按操作时间倒序展示；含增设、改名、撤销、复用恢复与受控运维 Break-Glass 恢复，仅在任管理员可查。', 'Authorization changes are retained permanently and shown newest first, including add, rename, revoke, restore and controlled break-glass recovery. Visible to active admins only.')}
+        </div>
+        ${list.map((item) => `<div class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
+          <div class="flex items-start justify-between gap-2">
+            <span class="rounded-full bg-${tone[item.action] || 'indigo'}-100 px-2 py-0.5 text-[12px] font-bold text-${tone[item.action] || 'indigo'}-700">${esc(item.label)}</span>
+            <span class="shrink-0 text-[12px] font-medium text-slate-500">${esc(item.time)}</span>
+          </div>
+          <div class="mt-1.5 min-w-0">
+            <div class="text-[14px] font-bold text-slate-900">${esc(item.target)}</div>
+            <div class="truncate text-[12px] font-medium text-slate-600">${esc(item.email)}</div>
+          </div>
+          <div class="mt-2 grid grid-cols-2 gap-2">
+            <div class="rounded-lg border border-slate-200 bg-white p-2">
+              <div class="text-[12px] font-bold text-slate-500">${t('变更前', 'Before')}</div>
+              <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-700">${esc(item.before)}</div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white p-2">
+              <div class="text-[12px] font-bold text-slate-500">${t('变更后', 'After')}</div>
+              <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-700">${esc(item.after)}</div>
+            </div>
+          </div>
+          <div class="mt-2 text-[12px] font-medium text-slate-600">${t('操作人', 'Operator')}：${esc(item.operator)}</div>
+        </div>`).join('')}
+      </div>`;
+    }
+
+    function renderAdmins() {
+      if (state.role !== 'admin') {
+        return `<div class="min-h-full bg-white">
+          ${pageBanner(t('管理员管理', 'Admin management'), { back: 'me' })}
+          <div class="flex flex-col items-center justify-center px-8 pt-20 text-center">
+            <div class="grid h-16 w-16 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-200">${icon('lock', 'h-7 w-7')}</div>
+            <h2 class="mt-4 text-[18px] font-bold text-slate-900">${t('无权限访问', 'Access denied')}</h2>
+            <p class="mt-2 text-[14px] font-medium leading-relaxed text-slate-600">${t('仅平台在任管理员可查看管理员名单与授权审计日志；班长、老师与家长无权访问。', 'Only active platform admins can view the admin list and audit trail. Monitors, teachers and parents have no access.')}</p>
+            <button type="button" data-action="go-screen" data-screen="me" class="mt-5 h-11 rounded-xl bg-indigo-600 px-5 text-[16px] font-semibold text-white shadow-sm transition hover:bg-indigo-700">${t('返回我的', 'Back to me')}</button>
+          </div>
+        </div>`;
+      }
+      const activeCount = state.admins.filter((a) => a.status === 'active').length;
+      const canManage = state.adminView === 'permanent';
+      const addBtn = canManage
+        ? `<button type="button" data-action="open-add-admin" class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-white/15 px-2.5 text-[12px] font-bold text-white ring-1 ring-white/20 transition hover:bg-white/25">${icon('plus', 'h-3.5 w-3.5')}${t('增设管理员', 'Add admin')}</button>`
+        : '';
+      return `<div class="min-h-full bg-white pb-10">
+        ${pageBanner(t('管理员管理', 'Admin management'), { back: 'me', right: addBtn })}
+        <div class="space-y-3 px-4 py-4">
+          <div class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
+            <div class="flex items-center gap-2">
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-indigo-600 ring-1 ring-slate-200">${icon('users', 'h-4 w-4')}</span>
+              <div class="min-w-0 flex-1">
+                <div class="text-[14px] font-bold text-slate-900">${t('平台管理员名单', 'Platform admins')}</div>
+                <div class="text-[12px] font-medium text-slate-600">${t(`共 ${state.admins.length} 条记录 · 在任 ${activeCount} 名`, `${state.admins.length} records · ${activeCount} active`)}</div>
+              </div>
+              <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[12px] font-bold text-violet-700">${t('永久主管理员 1 名', '1 permanent')}</span>
+            </div>
+          </div>
+
+          ${canManage ? `<div class="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-3.5">
+            <div class="flex items-start gap-2">
+              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-indigo-600 ring-1 ring-indigo-200">${icon('crown', 'h-4 w-4')}</span>
+              <div class="min-w-0">
+                <div class="text-[12px] font-bold text-indigo-950">${t('永久主管理员专属高危权限', 'Permanent master admin exclusive permissions')}</div>
+                <div class="mt-1 space-y-0.5 text-[12px] font-medium leading-relaxed text-indigo-900">
+                  <div>① ${t('普通管理员新增 / 编辑名称 / 撤销 / 复用恢复', 'Add, rename, revoke and restore normal admins')}</div>
+                  <div>② ${t('M2B 清退 72h 异议最终核验', 'M2B 72h refund dispute final review')}</div>
+                  <div>③ ${t('M5A 确认收款 / 驳回转账单、平台直收与离职移交资产', 'M5A receipt confirmation/rejection, platform-direct and offboarding assets')}</div>
+                  <div>④ ${t('M5B 周课酬单写操作与发薪确认', 'M5B weekly payout edits and payout confirmation')}</div>
+                </div>
+                <div class="mt-1.5 rounded-lg bg-white/80 px-2 py-1 text-[12px] font-bold text-indigo-800">${t('普通管理员在管理员授权、审单与发薪单处一律只读；永久主管理员账号主体永久不变，交接仅变更登录账密。', 'Normal admins are read-only for admin authorization, order review and payroll. The permanent master admin account identity never changes; only sign-in credentials may be handed over.')}</div>
+              </div>
+            </div>
+          </div>` : `<div class="rounded-2xl border border-amber-300 bg-amber-50/70 p-3">
+            <div class="flex items-start gap-2">
+              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-amber-600 ring-1 ring-amber-200">${icon('eye', 'h-4 w-4')}</span>
+              <div class="min-w-0">
+                <div class="text-[12px] font-bold text-amber-950">${t('当前为普通管理员视角 · 只读（演示）', 'Normal admin view · read-only (demo)')}</div>
+                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900">${t('管理员名单与授权审计日志仅可查看；增设、编辑名称、撤销与复用恢复仅限唯一「永久主管理员」，服务端同步阻断写请求。', 'The admin list and audit trail are view-only. Add, rename, revoke and restore are exclusive to the permanent master admin; write requests are blocked server-side.')}</p>
+              </div>
+            </div>
+          </div>`}
+
+          <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">${t('本页仅维护管理员名单与授权审计，不集成账号封禁/解封台；本期不开放第二名永久主管理员、永久保护标记转移或细粒度后台角色组，全部在任管理员在日常教务职责上平权。', 'This page only maintains admins and the authorization audit trail; account bans are handled by the platform operations console. A second permanent master admin, transfer of the protection mark and fine-grained role groups are out of scope; all active admins are equal for daily operations.')}</div>
+
+          <div class="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+            <button type="button" data-action="set-admin-tab" data-tab="list" class="h-9 rounded-lg text-[14px] font-bold transition ${state.adminTab === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:bg-white/60'}">${t('管理员名单', 'Admin list')}</button>
+            <button type="button" data-action="set-admin-tab" data-tab="audit" class="h-9 rounded-lg text-[14px] font-bold transition ${state.adminTab === 'audit' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:bg-white/60'}">${t('只读授权审计日志', 'Audit log')}</button>
+          </div>
+
+          ${state.adminTab === 'list' ? `<div class="contents">
+            <div class="space-y-2">
+              <div class="relative">
+                <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
+                <input id="adminSearch" type="text" data-model="adminQuery" value="${esc(state.adminQuery)}" placeholder="${t('搜索显示名称或 Email', 'Search name or email')}" class="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-[14px] text-slate-900 outline-none transition placeholder:text-slate-500 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15" />
+              </div>
+              <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                ${[['all', '全部', 'All'], ['active', '在任', 'Active'], ['revoked', '已撤销', 'Revoked']].map(([value, zh, en]) => `<button type="button" data-action="set-admin-filter" data-filter="${value}" class="h-8 shrink-0 rounded-full px-3 text-[12px] font-semibold transition ${state.adminFilter === value ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'}">${t(zh, en)}</button>`).join('')}
+              </div>
+            </div>
+            <div id="adminList" class="space-y-2.5">${adminListHTML()}</div>
+          </div>` : adminAuditHTML()}
+        </div>
+      </div>`;
+    }
+
+    /* ------------------------------------------------------------------
+     * 覆盖层：通用弹窗
+     * ------------------------------------------------------------------ */
+    function modalShell(title, subtitle, body, opts) {
+      const o = opts || {};
+      const close = o.blocking ? '' : `<button type="button" data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100" aria-label="${t('关闭', 'Close')}">${icon('x', 'h-4 w-4')}</button>`;
+      return `<div class="absolute inset-0 z-50 flex items-center justify-center p-4">
+        <div ${o.blocking ? '' : 'data-action="close-overlay"'} class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"></div>
+        <div class="relative flex max-h-[92%] w-full max-w-[340px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+          <div class="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 px-4 py-3">
+            <div class="min-w-0">
+              <h3 class="text-[16px] font-bold text-slate-900">${title}</h3>
+              ${subtitle ? `<p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">${subtitle}</p>` : ''}
+            </div>
+            ${close}
+          </div>
+          <div class="min-h-0 flex-1 overflow-y-auto p-4">${body}</div>
+        </div>
+      </div>`;
+    }
+
+    function sheetShell(title, subtitle, body) {
+      return `<div class="absolute inset-0 z-50 flex items-end">
+        <div data-action="close-overlay" class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"></div>
+        <div class="relative flex max-h-[85%] w-full flex-col overflow-hidden rounded-t-3xl border-t border-slate-200 bg-white shadow-2xl">
+          <div class="shrink-0 border-b border-slate-100 px-4 pb-2 pt-3">
+            <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300"></div>
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <h3 class="text-[16px] font-bold text-slate-900">${title}</h3>
+                <p class="mt-0.5 text-[12px] font-medium text-slate-600">${subtitle}</p>
+              </div>
+              <button type="button" data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100" aria-label="${t('关闭', 'Close')}">${icon('x', 'h-4 w-4')}</button>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-4">${body}</div>
+        </div>
+      </div>`;
+    }
+
+    function renderOverlay() {
+      const root = $('overlayRoot');
+      if (!root) return;
+      if (!state.overlay) { root.innerHTML = ''; return; }
+      let html = '';
+      if (state.overlay === 'terms' || state.overlay === 'privacy') html = legalSheet(state.overlay);
+      else if (state.overlay === 'reg-captcha') html = regCaptchaSheet();
+      else if (state.overlay === 'reg-success') html = regSuccessSheet();
+      else if (state.overlay === 'forgot-success') html = simpleSuccessSheet(t('密码已重置', 'Password reset'), t('所有设备历史会话已失效；临时锁定已同步解除', 'All sessions on every device have been signed out, and any temporary lock is lifted'), 'forgot-success-close');
+      else if (state.overlay === 'pw-success') html = simpleSuccessSheet(t('密码已修改', 'Password changed'), t('所有设备已退出登录，请使用新密码重新登录', 'All devices have been signed out. Sign in with your new password.'), 'pw-success-close');
+      else if (state.overlay === 'delete-success') html = simpleSuccessSheet(t('账号已注销停用', 'Account deactivated'), t('历史档案、财务单据与管理员授权审计日志永久留痕', 'Historical records, financial documents and admin authorization audit logs are retained permanently'), 'delete-success-close');
+      else if (state.overlay === 'banned') html = bannedSheet();
+      else if (state.overlay === 'logout') html = logoutSheet();
+      else if (state.overlay === 'delete-account') html = deleteSheet();
+      else if (state.overlay === 'email') html = emailSheet();
+      else if (state.overlay === 'password') html = passwordSheet();
+      else if (state.overlay === 'add-admin') html = addAdminSheet();
+      else if (state.overlay === 'edit-admin') html = editAdminSheet();
+      else if (state.overlay === 'revoke-admin') html = revokeAdminSheet();
+      root.innerHTML = html;
+      if (state.overlay === 'email' && state.emailStep === 2 && state.credentialUntil > Date.now()) startCredentialTimer();
+      if (state.overlay !== 'email') { clearInterval(credentialTimer); credentialTimer = null; }
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function legalSheet(doc) {
+      const isTerms = doc === 'terms';
+      const title = isTerms ? t('用户服务协议', 'Terms of Service') : t('隐私保护政策', 'Privacy Policy');
+      const version = isTerms ? 'v2.3' : 'v1.8';
+      const date = isTerms ? '2026-10-01' : '2026-09-15';
+      const sections = isTerms ? [
+        ['一、服务范围', 'Dream 为教务排课与分账管理平台，提供账号登录、档案管理、排课与结算相关功能。'],
+        ['二、账号使用', '用户应使用本人常用邮箱注册并妥善保管登录密码。账号仅限本人使用，不得转让或出借。'],
+        ['三、课程与排课', '固定位、临时课、试课与代课的排课规则以平台展示与班长确认为准。'],
+        ['四、协议更新', '平台协议升级时将展示新版本并重新征得同意，历史签署版本永久留痕。']
+      ] : [
+        ['一、信息收集', '平台仅收集账号登录、身份绑定与业务履约所必需的信息。'],
+        ['二、信息使用', '所收集信息用于排课通知、账号安全与教务协作，不用于与服务无关的用途。'],
+        ['三、未成年人保护', '涉及学员信息时，平台遵循最小化原则并进行必要的脱敏展示。'],
+        ['四、用户权利', '用户可查询、更正个人资料，并按平台规则申请换绑邮箱或注销账号。']
+      ];
+      return sheetShell(title, `${t('版本', 'Version')} ${version} · ${t('生效日期', 'Effective')} ${date}`, `
+        <div class="space-y-3">
+          <div class="rounded-xl border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-[12px] font-semibold text-indigo-900">
+            ${t('当前版本', 'Current version')}：${version} · ${t('生效日期', 'Effective date')}：${date}
+          </div>
+          ${sections.map(([h, p]) => `<div>
+            <h4 class="text-[14px] font-bold text-slate-900">${esc(h)}</h4>
+            <p class="mt-1 text-[14px] font-medium leading-relaxed text-slate-700">${esc(p)}</p>
+          </div>`).join('')}
+          <p class="text-[12px] font-medium leading-relaxed text-slate-500">${t('演示文稿仅用于交互展示，正式条文以法务定稿版本为准。', 'Demo copy for interaction only. Final legal text prevails.')}</p>
+          <button type="button" data-action="close-overlay" class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${t('我已阅读', 'I have read')}</button>
+        </div>`);
+    }
+
+    function regCaptchaSheet() {
+      const spec = captchaSpec(state.regCaptchaSeed);
+      return modalShell(t('安全验证', 'Security check'), t('发送验证码前，请完成图形验证', 'Complete the visual check before sending the code'), `
+        <div class="space-y-3">
+          <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[12px] font-bold text-slate-600">${t('图形验证码', 'Visual captcha')}</span>
+              <button type="button" data-action="refresh-reg-captcha" class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[12px] font-semibold text-indigo-600 transition hover:bg-indigo-50">${icon('refresh-cw', 'h-3.5 w-3.5')}${t('换一张', 'Refresh')}</button>
+            </div>
+            <div class="mt-2 flex items-center gap-2">
+              <span class="grid h-10 w-9 place-items-center rounded-lg border border-indigo-200 bg-indigo-50 font-mono text-[16px] font-bold text-indigo-700">${spec.a}</span>
+              <span class="text-[14px] font-bold text-slate-500">+</span>
+              <span class="grid h-10 w-9 place-items-center rounded-lg border border-indigo-200 bg-indigo-50 font-mono text-[16px] font-bold text-indigo-700">${spec.b}</span>
+              <span class="text-[14px] font-bold text-slate-500">=</span>
+              <input type="text" inputmode="numeric" data-model="regCaptchaInput" value="${esc(state.regCaptchaInput)}" placeholder="${t('答案', 'Answer')}" class="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2.5 text-center font-mono text-[16px] text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15" />
+            </div>
+          </div>
+          ${inlineError(state.overlayError)}
+          <div class="flex gap-2">
+            <button type="button" data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${t('取消', 'Cancel')}</button>
+            <button type="button" data-action="confirm-reg-captcha" class="h-11 flex-1 rounded-xl bg-indigo-600 text-[14px] font-semibold text-white transition hover:bg-indigo-700">${t('确认并发送', 'Confirm & send')}</button>
+          </div>
+        </div>`);
+    }
+
+    function regSuccessSheet() {
+      return modalShell(t('注册成功', 'Registration complete'), t('请前往登录', 'Please sign in'), `
+        <div class="text-center">
+          <div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200">${icon('check-circle-2', 'h-7 w-7')}</div>
+          <h4 class="mt-3 text-[18px] font-bold text-slate-900">${t('注册成功，账号已「正常生效」', 'Registration complete. Account is active.')}</h4>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">${t('已绑定邮箱', 'Bound email')}：${esc(maskEmail(state.reg.email))}</p>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">${t('邮箱验证码已通过校验，无需再次激活；登录后默认具备家长视角。', 'Your email is verified. No further activation is needed; you start with the parent view.')}</p>
+          <div class="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-left text-[12px] font-medium leading-relaxed text-indigo-900">
+            ${t('协议签署留痕', 'Agreement record')}：${t('用户服务协议', 'Terms of Service')} v2.3 · ${t('隐私保护政策', 'Privacy Policy')} v1.8
+          </div>
+          <button type="button" data-action="reg-success-close" class="mt-4 h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${t('前往登录', 'Go to sign in')}</button>
+        </div>`, { blocking: true });
+    }
+
+    function simpleSuccessSheet(title, detail, action) {
+      return modalShell(esc(title), esc(detail), `
+        <div class="text-center">
+          <div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200">${icon('check-circle-2', 'h-7 w-7')}</div>
+          <h4 class="mt-3 text-[18px] font-bold text-slate-900">${esc(title)}</h4>
+          <p class="mt-1 text-[14px] font-medium leading-relaxed text-slate-600">${esc(detail)}</p>
+          <button type="button" data-action="${action}" class="mt-4 h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${t('返回登录', 'Back to sign in')}</button>
+        </div>`, { blocking: true });
+    }
+
+    function bannedSheet() {
+      return modalShell(t('账号已被封禁', 'Account banned'), '', `
+        <div class="text-center">
+          <div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-rose-50 text-rose-600 ring-1 ring-rose-200">${icon('ban', 'h-7 w-7')}</div>
+          <p class="mt-3 text-[16px] font-bold leading-relaxed text-slate-900">${t('账号已被封禁，封禁期间原绑定邮箱不释放；如有疑问请联系客服或负责班长。', 'This account is banned and its email stays locked. Contact support or your monitor if you have questions.')}</p>
+          <div class="mt-4 space-y-2">
+            <button type="button" data-action="toast" data-message="客服通道为演示占位" class="h-11 w-full rounded-xl bg-slate-900 text-[16px] font-semibold text-white transition hover:bg-slate-800">${t('联系客服', 'Contact support')}</button>
+            <button type="button" data-action="close-banned" class="h-9 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${t('我知道了', 'Understood')}</button>
+          </div>
+        </div>`, { blocking: true });
+    }
+
+    function logoutSheet() {
+      return modalShell(t('退出登录', 'Sign out'), t('退出后将清除本地登录凭据与敏感业务快照', 'Local credentials and sensitive snapshots will be cleared'), `
+        <div class="space-y-3">
+          <p class="text-[14px] font-medium leading-relaxed text-slate-700">${t('确认退出当前账号吗？语言偏好等非敏感设置会保留。', 'Sign out of this account? Non-sensitive preferences such as language will be kept.')}</p>
+          <div class="flex gap-2">
+            <button type="button" data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${t('取消', 'Cancel')}</button>
+            <button type="button" data-action="confirm-logout" class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white transition hover:bg-rose-700">${t('确认退出', 'Sign out')}</button>
+          </div>
+        </div>`);
+    }
+
+    function deleteDefense() {
+      const isAdmin = state.role === 'admin';
+      const permanent = isAdmin && state.adminView === 'permanent';
+      const hasStudentRole = state.role !== 'teacher';
+      const hasHandoverRole = state.role === 'monitor' || state.role === 'teacher' || isAdmin;
+      const studentCount = state.assetsCleared ? 0 : (hasStudentRole ? 2 : 0);
+      const handoverCount = state.assetsCleared ? 0 : (hasHandoverRole ? 1 : 0);
+      const adminLoaded = isAdmin && !state.adminUnloaded;
+      const adminBlocked = permanent || adminLoaded;
+      return { studentCount, handoverCount, permanent, adminLoaded, adminBlocked, blocked: studentCount > 0 || handoverCount > 0 || adminBlocked };
+    }
+
+    function deleteSheet() {
+      const d = deleteDefense();
+      const isAdmin = state.role === 'admin';
+      const adminRow = d.permanent
+        ? t('在任平台管理员身份：永久主管理员（受保护）', 'Active admin: permanent master admin (protected)')
+        : d.adminLoaded
+          ? t('在任平台管理员身份：未卸载', 'Active platform admin identity: not unloaded')
+          : isAdmin
+            ? t('在任平台管理员身份：已卸载', 'Active platform admin identity: unloaded')
+            : t('在任平台管理员身份：无', 'Active platform admin identity: none');
+      const adminDetail = d.permanent
+        ? t('永久主管理员受保护，严禁自助注销；须先经受控运维恢复通道完成主管理员移交与卸载。', 'The permanent master admin cannot self-deactivate. Hand over and unload the role via the controlled ops recovery channel first.')
+        : d.adminLoaded
+          ? t('普通管理员须先由永久主管理员撤销管理员职务，方可注销账号。', 'A normal admin must be revoked by the permanent master admin before deactivation.')
+          : t('已无在任管理员身份，不阻断注销。', 'No active admin identity remains.');
+      const row = (ok, title, detail, linkLabel, linkTarget) => `<div class="flex items-start gap-2.5 rounded-xl border px-3 py-2.5 ${ok ? 'border-emerald-200 bg-emerald-50/60' : 'border-rose-200 bg-rose-50/70'}">
+        <span class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full ${ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">${icon(ok ? 'check' : 'x', 'h-3.5 w-3.5')}</span>
+        <div class="min-w-0 flex-1">
+          <div class="text-[12px] font-bold ${ok ? 'text-emerald-900' : 'text-rose-900'}">${title}</div>
+          <div class="mt-0.5 text-[12px] font-medium leading-relaxed ${ok ? 'text-emerald-800' : 'text-rose-800'}">${detail}</div>
+          ${linkLabel ? (linkTarget && linkTarget.indexOf('.html') >= 0
+            ? `<a href="${linkTarget}" target="_blank" rel="noopener" class="mt-1 inline-block text-[12px] font-bold text-indigo-600 hover:underline">${linkLabel}</a>`
+            : `<button type="button" data-action="go-screen" data-screen="${linkTarget}" class="mt-1 text-[12px] font-bold text-indigo-600 hover:underline">${linkLabel}</button>`) : ''}
+        </div>
+      </div>`;
+      const body = `<div class="space-y-3">
+        <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">${t('注销前需完成以下跨模块业务前置防线。历史档案、财务单据与管理员授权审计日志不会随注销删除。', 'The following cross-module checks must pass first. Historical records, financial documents and admin authorization audit logs are never deleted.')}</div>
+        ${row(d.studentCount === 0, t(`名下正式在读学员档案：${d.studentCount} 个`, `Active student profiles: ${d.studentCount}`), d.studentCount === 0 ? t('已满足清零条件', 'Cleared') : t('请先完成归档或删除空档，确保正式在读为 0。', 'Archive or delete empty profiles so active profiles reach 0.'), d.studentCount === 0 ? '' : t('前往学员档案处理 →', 'Open student profiles →'), 'm1a_student_profile.html?role=parent&page=center')}
+        ${row(d.handoverCount === 0, t(`在职班长 / 老师职务未完成交接：${d.handoverCount} 项`, `Active monitor / teacher roles not handed over: ${d.handoverCount}`), d.handoverCount === 0 ? t('已满足离职交接条件', 'Handover cleared') : t('M1B 名下不得存在「在职（含交接冻结中 / 待离职）」班长或老师档案，0 资产也须先办理离职。', 'No active monitor or teacher profile (including handover-frozen / pending offboarding) may remain in M1B, even with zero assets.'))}
+        ${row(!d.adminBlocked, adminRow, adminDetail)}
+        ${isAdmin && !d.permanent ? `<button type="button" data-action="toggle-admin-unloaded" class="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-left transition hover:bg-slate-100">
+          <span class="min-w-0">
+            <span class="block text-[12px] font-bold text-slate-800">${t('模拟已卸载在任管理员身份', 'Simulate admin identity unloaded')}</span>
+            <span class="mt-0.5 block text-[12px] font-medium text-slate-600">${t('仅用于演示注销放行分支', 'Demo switch for the deactivation branch')}</span>
+          </span>
+          <span class="relative h-6 w-11 shrink-0 rounded-full ${state.adminUnloaded ? 'bg-emerald-500' : 'bg-slate-300'}">
+            <span class="absolute top-0.5 ${state.adminUnloaded ? 'left-[22px]' : 'left-0.5'} h-5 w-5 rounded-full bg-white shadow-sm transition-all"></span>
+          </span>
+        </button>` : ''}
+        <button type="button" data-action="toggle-assets" class="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-left transition hover:bg-slate-100">
+          <span class="min-w-0">
+            <span class="block text-[12px] font-bold text-slate-800">${t('模拟资产已清零', 'Simulate assets cleared')}</span>
+            <span class="mt-0.5 block text-[12px] font-medium text-slate-600">${t('仅用于演示注销放行分支', 'Demo switch for the deactivation branch')}</span>
+          </span>
+          <span class="relative h-6 w-11 shrink-0 rounded-full ${state.assetsCleared ? 'bg-emerald-500' : 'bg-slate-300'}">
+            <span class="absolute top-0.5 ${state.assetsCleared ? 'left-[22px]' : 'left-0.5'} h-5 w-5 rounded-full bg-white shadow-sm transition-all"></span>
+          </span>
+        </button>
+        ${d.blocked ? `<div class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-rose-800">${t('存在未清零事项，暂不可提交注销申请。', 'Some checks are unresolved. Deactivation is blocked.')}</div>` : `<div class="contents">
+          <div>
+            ${fieldLabel(t('输入昵称或绑定邮箱确认', 'Type your name or email to confirm'))}
+            ${textInput('deleteConfirm', { id: 'deleteConfirm', value: state.deleteConfirm, placeholder: `${currentName()} / ${currentEmail()}` })}
+          </div>
+          ${inlineError(state.deleteError)}
+          <button type="button" data-action="delete-submit" data-delete-submit ${(!state.deleteConfirm.trim() || (norm(state.deleteConfirm) !== norm(currentName()) && norm(state.deleteConfirm) !== norm(currentEmail()))) ? 'disabled' : ''} class="h-11 w-full rounded-xl bg-rose-600 text-[16px] font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${t('确认注销账号', 'Deactivate account')}</button>
+        </div>`}
+        <button type="button" data-action="close-overlay" class="h-9 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${t('暂不注销', 'Keep account')}</button>
+      </div>`;
+      return modalShell(t('注销账号', 'Deactivate account'), t('业务前置防线校验', 'Pre-checks'), body);
+    }
+
+    function emailStepBar() {
+      const step = state.emailStep;
+      const items = [
+        [1, t('验证当前邮箱', 'Verify current')],
+        [2, t('绑定新邮箱', 'Bind new')],
+        [3, t('完成', 'Done')]
+      ];
+      return `<div class="grid grid-cols-3 gap-1">
+        ${items.map(([n, label]) => {
+          const done = step > n;
+          const current = step === n;
+          return `<div class="flex flex-col items-center gap-1">
+            <span class="grid h-7 w-7 place-items-center rounded-full text-[12px] font-bold ${done ? 'bg-emerald-500 text-white' : current ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'}">${done ? icon('check', 'h-3.5 w-3.5') : n}</span>
+            <span class="text-center text-[12px] font-semibold ${current ? 'text-indigo-700' : done ? 'text-emerald-700' : 'text-slate-500'}">${label}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }
+
+    function emailSheet() {
+      const step = state.emailStep;
+      let body = '';
+      if (step === 1) {
+        body = `<div class="space-y-3">
+          ${emailStepBar()}
+          <div class="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">${t('每个验证码 120 秒内有效，连续输错 5 次即作废并须重新发送。换绑成功后原旧邮箱即刻释放，历史审计快照只读保留。', 'Each code is valid for 120s; five wrong attempts void it and require a resend. Once changed, the old email is released immediately while historical audit snapshots remain read-only.')}</div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+            <div class="text-[12px] font-bold text-slate-600">${t('当前绑定邮箱', 'Current email')}</div>
+            <div class="mt-1 flex items-center gap-2">
+              <span class="grid h-8 w-8 place-items-center rounded-lg bg-white text-indigo-600 ring-1 ring-slate-200">${icon('mail', 'h-4 w-4')}</span>
+              <span class="min-w-0 flex-1 truncate text-[16px] font-semibold text-slate-900">${esc(maskEmail(currentEmail()))}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            ${textInput('emailCurrentCode', { inputmode: 'numeric', value: state.emailCurrentCode, placeholder: t('输入当前邮箱验证码', 'Code from current email') })}
+            <button type="button" data-action="email-send-current" class="h-11 shrink-0 rounded-xl border border-slate-300 bg-white px-3 text-[12px] font-bold text-slate-800 transition hover:bg-slate-50">${t('发送', 'Send')}</button>
+          </div>
+          ${state.emailCurrentSent ? `<p class="text-[12px] font-semibold text-emerald-700">${t('验证码已发送（示例 123456）', 'Code sent (demo 123456)')}</p>` : ''}
+          ${inlineError(state.emailError)}
+          ${primaryBtn('data-action="email-next"', t('验证并下一步', 'Verify & continue'))}
+          <button type="button" data-action="close-overlay" class="h-9 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${t('取消', 'Cancel')}</button>
+        </div>`;
+      } else if (step === 2) {
+        const left = Math.max(0, Math.ceil((state.credentialUntil - Date.now()) / 1000));
+        body = `<div class="space-y-3">
+          ${emailStepBar()}
+          <div class="flex items-center justify-between gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2">
+            <span class="text-[12px] font-bold text-amber-900">${t('单次安全凭证有效', 'Single-use credential')}</span>
+            <span class="rounded-lg bg-white px-2 py-1 font-mono text-[14px] font-bold text-amber-900" data-credential-text>${mmss(left)}</span>
+          </div>
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2 text-[12px] font-semibold text-emerald-800">${t('当前邮箱验证通过', 'Current email verified')}</div>
+          <div>
+            ${fieldLabel(t('新邮箱', 'New email'))}
+            ${textInput('emailNew', { type: 'email', icon: 'mail', value: state.emailNew, placeholder: 'new@example.com' })}
+          </div>
+          <div class="flex items-center gap-2">
+            ${textInput('emailNewCode', { inputmode: 'numeric', value: state.emailNewCode, placeholder: t('新邮箱验证码', 'Code from new email') })}
+            <button type="button" data-action="email-send-new" class="h-11 shrink-0 rounded-xl border border-slate-300 bg-white px-3 text-[12px] font-bold text-slate-800 transition hover:bg-slate-50">${t('发送', 'Send')}</button>
+          </div>
+          ${state.emailNewSent ? `<p class="text-[12px] font-semibold text-emerald-700">${t('验证码已发送（示例 123456）', 'Code sent (demo 123456)')}</p>` : ''}
+          <p class="text-[12px] font-medium leading-relaxed text-slate-500">${t('新邮箱验证码 120 秒内有效，连续输错 5 次即作废重发；提交时原子核验全平台未被占用。', 'The new-email code is valid for 120s and voids after 5 wrong attempts; uniqueness is re-checked atomically on submit.')}</p>
+          ${inlineError(state.emailError)}
+          ${primaryBtn('data-action="email-submit"', t('确认换绑', 'Confirm change'))}
+          <div class="flex items-center justify-between gap-2">
+            <button type="button" data-action="email-back" class="text-[12px] font-semibold text-slate-600 hover:text-slate-900">${t('上一步', 'Back')}</button>
+            <button type="button" data-action="email-expire" class="text-[12px] font-semibold text-amber-700 hover:underline">${t('演示：凭证过期', 'Demo: expire')}</button>
+          </div>
+        </div>`;
+      } else {
+        body = `<div class="space-y-3 text-center">
+          ${emailStepBar()}
+          <div class="mx-auto mt-1 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200">${icon('check-circle-2', 'h-7 w-7')}</div>
+          <h4 class="text-[18px] font-bold text-slate-900">${t('邮箱换绑成功', 'Email updated')}</h4>
+          <p class="text-[12px] font-medium leading-relaxed text-slate-600">${t('后续课程通知将发送至', 'Future notifications will go to')} ${esc(maskEmail(currentEmail()))}</p>
+          <p class="text-[12px] font-medium leading-relaxed text-slate-500">${t('原旧邮箱已即时释放，可被其他账号重新注册或绑定；历史审计与通知投递流水保留当时邮箱快照。', 'The old email has been released immediately and can be registered by another account; historical audit and delivery records keep the old snapshot.')}</p>
+          <button type="button" data-action="close-overlay" class="h-11 w-full rounded-xl bg-indigo-600 text-[16px] font-semibold text-white transition hover:bg-indigo-700">${t('完成', 'Done')}</button>
+        </div>`;
+      }
+      return modalShell(t('更换绑定邮箱', 'Change email'), t('两步安全验证', 'Two-step verification'), body);
+    }
+
+    function passwordSheet() {
+      const submitDisabled = !state.cpCurrent.trim() || !strengthOk(state.cpPassword) || state.cpPassword !== state.cpConfirm;
+      const body = `<div class="space-y-3">
+        <div>
+          ${fieldLabel(t('当前密码', 'Current password'))}
+          <div class="relative">
+            ${textInput('cpCurrent', { type: state.showCpCurrent ? 'text' : 'password', icon: 'lock', value: state.cpCurrent, placeholder: t('输入当前登录密码', 'Enter current password'), suffix: passwordToggle('cp-current', state.showCpCurrent) })}
+          </div>
+        </div>
+        <div>
+          ${fieldLabel(t('新密码', 'New password'))}
+          <div class="relative">
+            ${textInput('cpPassword', { type: state.showCpPw ? 'text' : 'password', icon: 'key-round', value: state.cpPassword, placeholder: t('设置新密码', 'Create a new password'), suffix: passwordToggle('cp-password', state.showCpPw) })}
+          </div>
+          ${strengthBox('change-password', state.cpPassword)}
+        </div>
+        <div>
+          ${fieldLabel(t('确认新密码', 'Confirm new password'))}
+          <div class="relative">
+            ${textInput('cpConfirm', { type: state.showCpConfirm ? 'text' : 'password', icon: 'key-round', value: state.cpConfirm, placeholder: t('再次输入新密码', 'Re-enter new password'), suffix: passwordToggle('cp-confirm', state.showCpConfirm) })}
+          </div>
+          ${matchHint('change-password', state.cpPassword, state.cpConfirm)}
+        </div>
+        ${inlineError(state.cpError)}
+        ${primaryBtn(`data-action="password-submit" data-cp-submit ${submitDisabled ? 'disabled' : ''}`, t('确认修改', 'Update password'))}
+        <p class="text-center text-[12px] font-medium leading-relaxed text-slate-500">${t('修改成功后，所有设备的历史会话将立即失效。', 'All other sessions will be signed out immediately.')}</p>
+      </div>`;
+      return modalShell(t('修改登录密码', 'Change password'), t('验证当前密码后设置新密码', 'Verify current password, then set a new one'), body);
+    }
+
+    function addAdminSheet() {
+      const restoreRecord = state.addRestoreId ? state.admins.find((a) => a.id === state.addRestoreId) : null;
+      const lookup = state.addLookup;
+      const result = lookup
+        ? `<div class="rounded-xl border px-3 py-2.5 ${lookup.ok ? 'border-emerald-200 bg-emerald-50/60' : 'border-rose-200 bg-rose-50/70'}">
+            <div class="flex items-center gap-2">
+              <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white ${lookup.ok ? 'text-emerald-600' : 'text-rose-600'} ring-1 ring-slate-200">${icon(lookup.ok ? 'user-check' : 'alert-circle', 'h-4 w-4')}</span>
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-[14px] font-bold ${lookup.ok ? 'text-slate-900' : 'text-rose-900'}">${esc(lookup.name || state.addEmail)}</div>
+                <div class="text-[12px] font-medium ${lookup.ok ? 'text-emerald-800' : 'text-rose-800'}">${esc(lookup.statusLabel || '')}</div>
+              </div>
+            </div>
+            ${lookup.identities && lookup.identities.length ? `<div class="mt-1.5 flex flex-wrap gap-1">${identityPills(lookup.identities)}</div>` : ''}
+          </div>`
+        : '';
+      const body = `<div class="space-y-3">
+        <div class="rounded-xl border border-violet-200 bg-violet-50/70 px-3 py-2 text-[12px] font-semibold leading-relaxed text-violet-900">${t('仅唯一「永久主管理员」可增设普通管理员；提交时事务原子防重并再次核验本人账号正常生效。', 'Only the sole permanent master admin can add normal admins; submission re-checks uniqueness atomically and confirms the operator account is active.')}</div>
+        ${restoreRecord ? `<div class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-amber-900">${t('将复用原授权记录恢复在任', 'The original grant record will be restored')}</div>` : ''}
+        <div>
+          ${fieldLabel(t('已注册邮箱', 'Registered email'))}
+          <div class="flex items-start gap-2">
+            <div class="min-w-0 flex-1">
+              ${textInput('addEmail', { type: 'email', icon: 'mail', value: state.addEmail, placeholder: 'user@example.com' })}
+            </div>
+            <button type="button" data-action="lookup-account" class="h-11 shrink-0 rounded-xl border border-slate-300 bg-white px-3 text-[12px] font-bold text-slate-800 transition hover:bg-slate-50">${t('检索', 'Look up')}</button>
+          </div>
+          <p class="mt-1 text-[12px] font-medium text-slate-500">${t('示例：grace@example.com（已撤销，可恢复）', 'Demo: grace@example.com (revoked, restorable)')}</p>
+        </div>
+        ${result}
+        <div>
+          ${fieldLabel(t('管理员显示名称', 'Admin display name'))}
+          ${textInput('addName', { value: state.addName, placeholder: t('1–50 个字符', '1–50 characters') })}
+          <div class="mt-1 flex items-center justify-between text-[12px] font-medium text-slate-500">
+            <span>${t('显示名称将出现在管理员名单与审计日志中', 'Shown in the admin list and audit trail')}</span>
+            <span data-add-name-count>${state.addName.trim().length}/50</span>
+          </div>
+        </div>
+        <div>
+          ${fieldLabel(t('输入目标名称或邮箱二次确认', 'Type target name or email to confirm'))}
+          ${textInput('addConfirm', { value: state.addConfirm, placeholder: `${state.addName || state.addEmail || t('显示名称 / Email', 'Name / Email')}` })}
+        </div>
+        ${inlineError(state.addError)}
+        <div class="flex gap-2">
+          <button type="button" data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${t('取消', 'Cancel')}</button>
+          <button type="button" data-action="add-submit" data-add-submit disabled class="h-11 flex-1 rounded-xl bg-indigo-600 text-[14px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${restoreRecord ? t('确认恢复', 'Restore') : t('确认增设', 'Add admin')}</button>
+        </div>
+      </div>`;
+      return modalShell(t('增设管理员', 'Add admin'), t('通过已注册邮箱检索并授权', 'Find a registered email and grant access'), body);
+    }
+
+    function editAdminSheet() {
+      const target = state.admins.find((a) => a.id === state.editTargetId);
+      if (!target) return '';
+      const body = `<div class="space-y-3">
+        <div class="rounded-xl border border-violet-200 bg-violet-50/70 px-3 py-2 text-[12px] font-semibold leading-relaxed text-violet-900">${t('仅唯一「永久主管理员」可修改普通管理员显示名称，且仅名称实际变化时写入审计日志。', 'Only the permanent master admin can rename a normal admin; an audit entry is written only when the name actually changes.')}</div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+          <div class="text-[14px] font-bold text-slate-900">${esc(target.name)}</div>
+          <div class="truncate text-[12px] font-medium text-slate-600">${esc(target.email)}</div>
+        </div>
+        <div>
+          ${fieldLabel(t('显示名称', 'Display name'))}
+          ${textInput('editName', { value: state.editName, placeholder: t('1–50 个字符', '1–50 characters') })}
+          <div class="mt-1 text-right text-[12px] font-medium text-slate-500" data-edit-name-count>${state.editName.trim().length}/50</div>
+        </div>
+        ${inlineError(state.editError)}
+        <div class="flex gap-2">
+          <button type="button" data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${t('取消', 'Cancel')}</button>
+          <button type="button" data-action="edit-submit" data-edit-submit class="h-11 flex-1 rounded-xl bg-indigo-600 text-[14px] font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${t('保存', 'Save')}</button>
+        </div>
+      </div>`;
+      return modalShell(t('编辑显示名称', 'Edit display name'), '', body);
+    }
+
+    function revokeAdminSheet() {
+      const target = state.admins.find((a) => a.id === state.revokeTargetId);
+      if (!target) return '';
+      const body = `<div class="space-y-3">
+        <div class="rounded-xl border border-violet-200 bg-violet-50/70 px-3 py-2 text-[12px] font-semibold leading-relaxed text-violet-900">${t('仅唯一「永久主管理员」可撤销普通管理员；事务级排他锁将复检撤销后全平台仍至少保留 1 名正常生效的在任管理员。', 'Only the permanent master admin can revoke a normal admin; an exclusive transaction lock re-checks that at least one active, usable admin remains.')}</div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+          <div class="text-[16px] font-bold text-slate-900">${esc(target.name)}</div>
+          <div class="truncate text-[12px] font-medium text-slate-600">${esc(target.email)}</div>
+          <div class="mt-1.5 flex flex-wrap gap-1">${identityPills(target.identities)}</div>
+        </div>
+        <div class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] font-semibold leading-relaxed text-amber-900">${t('仅收回平台管理员权限，保留其兼任的班长 / 老师 / 家长身份；撤销后对方在线管理端将立即失效。', 'Only the platform admin permission is revoked. Monitor, teacher and parent identities remain; the target admin view expires immediately.')}</div>
+        <div>
+          ${fieldLabel(t('输入目标姓名或邮箱二次确认', 'Type target name or email to confirm'))}
+          ${textInput('revokeConfirm', { value: state.revokeConfirm, placeholder: `${target.name} / ${target.email}` })}
+        </div>
+        ${inlineError(state.revokeError)}
+        <div class="flex gap-2">
+          <button type="button" data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 transition hover:bg-slate-50">${t('取消', 'Cancel')}</button>
+          <button type="button" data-action="revoke-submit" data-revoke-submit class="h-11 flex-1 rounded-xl bg-rose-600 text-[14px] font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">${t('确认撤销', 'Revoke')}</button>
+        </div>
+      </div>`;
+      return modalShell(t('撤销管理员', 'Revoke admin'), t('二次确认后立即生效', 'Takes effect after confirmation'), body);
+    }
+
+    /* ------------------------------------------------------------------
+     * 动作：登录 / 注册 / 找回
+     * ------------------------------------------------------------------ */
+    function doLogin() {
+      if (state.maintenance) { toast('系统维护中，暂停登录'); return; }
+      const email = state.loginEmail.trim();
+      if (!email) { state.loginError = t('请输入 Email 地址', 'Please enter your email'); render(); return; }
+      if (!EMAIL_RE.test(email)) { state.loginError = t('请输入有效的 Email 地址', 'Please enter a valid email'); render(); return; }
+      if (!state.loginPassword) { state.loginError = t('请输入登录密码', 'Please enter your password'); render(); return; }
+
+      if (state.scenario === 'banned') {
+        state.accountStatus = 'banned';
+        state.overlay = 'banned';
+        render();
+        return;
+      }
+      if (state.scenario === 'inactive') {
+        state.loginNotice = 'inactive';
+        state.loginError = '';
+        render();
+        return;
+      }
+      if (state.scenario === 'locked') {
+        if (state.lockSeconds <= 0) { state.lockSeconds = 24 * 60 * 60; startLockTimer(); }
+        state.loginError = '';
+        state.loginNotice = '';
+        render();
+        return;
+      }
+      if (state.loginCaptcha) {
+        const expect = captchaSpec(state.loginCaptchaSeed).answer;
+        if (state.loginCaptchaInput.trim() !== expect) {
+          state.loginError = t('图形验证码不正确，请重新输入', 'Incorrect captcha. Please try again.');
+          state.loginCaptchaInput = '';
+          state.loginCaptchaSeed += 1;
+          render();
+          return;
+        }
+      }
+      if (state.scenario === 'wrong') {
+        state.loginAttempts += 1;
+        state.loginCaptcha = state.loginAttempts >= 2;
+        state.loginPassword = '';
+        state.loginCaptchaInput = '';
+        state.loginCaptchaSeed += 1;
+        if (state.loginAttempts >= 5) {
+          state.scenario = 'locked';
+          state.lockSeconds = 24 * 60 * 60;
+          state.loginNotice = '';
+          state.loginError = t('连续输错密码达 5 次，账号已临时锁定 24 小时', 'Five wrong passwords. The account is locked for 24 hours.');
+          startLockTimer();
+          render();
+          return;
+        }
+        state.loginError = t('账号或密码不正确', 'Incorrect account or password');
+        render();
+        return;
+      }
+
+      state.loggedIn = true;
+      state.loginAttempts = 0;
+      state.loginCaptcha = false;
+      state.loginCaptchaInput = '';
+      state.loginError = '';
+      state.loginNotice = '';
+      state.accountStatus = 'active';
+      addSecurityAudit('登录成功', 'iPhone 15 · Safari · 当前设备', 'indigo');
+      state.screen = 'me';
+      syncUrl();
+      render();
+      toast(t('登录成功，欢迎回来', 'Signed in successfully'));
+    }
+
+    function startActivationCooldown() {
+      state.activationWait = 60;
+      clearInterval(activationTimer);
+      activationTimer = setInterval(() => {
+        state.activationWait = Math.max(0, state.activationWait - 1);
+        if (state.activationWait <= 0) {
+          clearInterval(activationTimer);
+          activationTimer = null;
+          render();
+          return;
+        }
+        const btn = document.querySelector('[data-action="resend-activation"]');
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = `${state.activationWait}s ${t('后可重发', 'to resend')}`;
+        }
+      }, 1000);
+    }
+
+    function startRegCountdown() {      state.regCountdown = 60;
+      clearInterval(regTimer);
+      regTimer = setInterval(() => {
+        state.regCountdown = Math.max(0, state.regCountdown - 1);
+        const span = document.querySelector('[data-reg-code-text]');
+        const btn = document.getElementById('regSendCode');
+        if (span) span.textContent = state.regCountdown > 0 ? `${state.regCountdown}s ${t('后重发', 'left')}` : t('发送验证码', 'Send code');
+        if (btn) btn.disabled = state.regCountdown > 0 || !state.openRegistration || state.maintenance;
+        if (state.regCountdown <= 0) { clearInterval(regTimer); regTimer = null; }
+      }, 1000);
+    }
+
+    function startLockTimer() {
+      clearInterval(lockTimer);
+      lockTimer = setInterval(() => {
+        state.lockSeconds = Math.max(0, state.lockSeconds - 1);
+        document.querySelectorAll('[data-lock-countdown]').forEach((el) => { el.textContent = mmss(state.lockSeconds); });
+        if (state.lockSeconds <= 0) {
+          clearInterval(lockTimer);
+          lockTimer = null;
+          state.scenario = 'normal';
+          state.accountStatus = 'active';
+          render();
+          toast('临时锁定已解除，请重新登录');
+        }
+      }, 1000);
+    }
+
+    function triggerSendRegCode() {
+      if (!state.openRegistration) { toast('平台暂未开放注册'); return; }
+      if (state.regCountdown > 0) return;
+      const email = state.reg.email.trim();
+      if (!email) { state.regError = t('请输入 Email 地址', 'Please enter your email'); render(); return; }
+      if (!EMAIL_RE.test(email)) { state.regError = t('请输入有效的 Email 地址', 'Please enter a valid email'); render(); return; }
+      if (norm(email) === TAKEN_EMAIL) {
+        state.regError = t('该邮箱已被注册，请直接登录或更换邮箱', 'This email is already registered. Sign in or use another email.');
+        render();
+        return;
+      }
+      state.regError = '';
+      state.regCaptchaInput = '';
+      state.regCaptchaSeed += 1;
+      state.overlay = 'reg-captcha';
+      state.overlayError = '';
+      render();
+    }
+
+    function confirmRegCaptcha() {
+      const expect = captchaSpec(state.regCaptchaSeed).answer;
+      if (state.regCaptchaInput.trim() !== expect) {
+        state.overlayError = t('图形验证码不正确，请重新输入', 'Incorrect captcha. Please try again.');
+        state.regCaptchaSeed += 1;
+        state.regCaptchaInput = '';
+        render();
+        return;
+      }
+      state.overlay = null;
+      state.overlayError = '';
+      state.regCodeSent = true;
+      startRegCountdown();
+      render();
+      toast(t('验证码已发送，请查收邮件（示例 123456）', 'Code sent. Check your inbox (demo 123456).'));
+    }
+
+    function doRegister() {
+      if (!state.openRegistration) { toast('平台暂未开放注册'); return; }
+      if (state.maintenance) { toast('系统维护中，暂停注册'); return; }
+      if (!state.reg.agree) { state.regError = t('请先阅读并同意《用户服务协议》与《隐私保护政策》', 'Please accept both agreements first.'); render(); return; }
+      if (!EMAIL_RE.test(state.reg.email.trim())) { state.regError = t('请输入有效的 Email 地址', 'Please enter a valid email'); render(); return; }
+      if (norm(state.reg.email) === TAKEN_EMAIL) { state.regError = t('该邮箱已被注册，请直接登录或更换邮箱', 'This email is already registered. Sign in or use another email.'); render(); return; }
+      if (state.reg.code.trim() !== DEMO_CODE) {
+        state.regCodeFailures += 1;
+        if (state.regCodeFailures >= 5) {
+          state.regCodeFailures = 0;
+          state.reg.code = '';
+          state.regCodeSent = false;
+          startRegCountdown();
+          state.regError = t('验证码错误次数过多，请重新获取验证码（60 秒冷却后重发）', 'Too many wrong codes. Request a new code after the 60s cooldown.');
+        } else {
+          state.regError = t(`邮箱验证码不正确，还可尝试 ${5 - state.regCodeFailures} 次`, `Incorrect email code. ${5 - state.regCodeFailures} attempts left.`);
+        }
+        render();
+        return;
+      }
+      state.regCodeFailures = 0;
+      if (!strengthOk(state.reg.password)) { state.regError = t('密码需同时包含大写字母、小写字母、数字与特殊字符，且至少 8 位', 'Password must include upper/lowercase letters, a number and a special character.'); render(); return; }
+      if (state.reg.password !== state.reg.confirm) { state.regError = t('两次输入的密码不一致', 'Passwords do not match'); render(); return; }
+      state.loginEmail = state.reg.email.trim();
+      state.overlay = 'reg-success';
+      render();
+    }
+
+    function sendForgotCode() {
+      const email = state.forgotEmail.trim();
+      if (!email) { state.forgotError = t('请输入注册邮箱', 'Please enter your registered email'); render(); return; }
+      if (!EMAIL_RE.test(email)) { state.forgotError = t('请输入有效的 Email 地址', 'Please enter a valid email'); render(); return; }
+      if (!ACCOUNT_DIRECTORY[norm(email)]) { state.forgotError = t('该账号未注册', 'This account is not registered'); render(); return; }
+      const account = ACCOUNT_DIRECTORY[norm(email)];
+      if (account.status === 'banned') { state.forgotError = t('该账号已被封禁，暂不可重置密码；请联系平台账号运营后台处理', 'This account is banned. Password reset is blocked; contact the platform account operations console.'); render(); return; }
+      if (account.status === 'deactivated' || account.status === 'locked') {
+        state.forgotError = account.status === 'deactivated'
+          ? t('该账号已注销停用，暂不可重置密码', 'This account is deactivated and cannot reset its password.')
+          : t('该账号当前处于临时锁定，可通过邮箱验证重置密码提前解锁', 'This account is temporarily locked. Reset via email to unlock early.');
+        if (account.status === 'deactivated') { render(); return; }
+      }
+      const expect = captchaSpec(state.forgotCaptchaSeed).answer;
+      if (state.forgotCaptcha.trim() !== expect) {
+        state.forgotError = t('图形验证码不正确，请重新输入', 'Incorrect captcha. Please try again.');
+        state.forgotCaptcha = '';
+        state.forgotCaptchaSeed += 1;
+        render();
+        return;
+      }
+      state.forgotStep = 2;
+      state.forgotError = '';
+      state.forgotCode = '';
+      state.forgotCodeFailures = 0;
+      render();
+      toast(t('重置验证码已发送（示例 123456）', 'Reset code sent (demo 123456).'));
+    }
+
+    function doForgotReset() {
+      if (state.forgotCode.trim() !== DEMO_CODE) {
+        state.forgotCodeFailures += 1;
+        if (state.forgotCodeFailures >= 5) {
+          state.forgotCodeFailures = 0;
+          state.forgotCode = '';
+          state.forgotStep = 1;
+          state.forgotError = t('验证码错误次数过多，当前验证码已作废，请待 60 秒冷却后重新获取验证码', 'Too many wrong codes. The code is void; request a new one after the 60s cooldown.');
+        } else {
+          state.forgotError = t(`邮箱验证码不正确，还可尝试 ${5 - state.forgotCodeFailures} 次`, `Incorrect email code. ${5 - state.forgotCodeFailures} attempts left.`);
+        }
+        render();
+        return;
+      }
+      state.forgotCodeFailures = 0;
+      if (!strengthOk(state.forgotPassword)) { state.forgotError = t('密码需同时包含大写字母、小写字母、数字与特殊字符，且至少 8 位', 'Password must meet all strength rules.'); render(); return; }
+      if (state.forgotPassword !== state.forgotConfirm) { state.forgotError = t('两次输入的密码不一致', 'Passwords do not match'); render(); return; }
+      state.accountStatus = 'active';
+      state.scenario = 'normal';
+      state.lockSeconds = 0;
+      clearInterval(lockTimer);
+      lockTimer = null;
+      addSecurityAudit('重置密码', '通过邮箱验证重设，所有设备历史会话已失效，临时锁定已解除', 'amber');
+      state.overlay = 'forgot-success';
+      render();
+    }
+
+    function forgotExpireDemo() {
+      state.forgotStep = 1;
+      state.forgotCode = '';
+      state.forgotPassword = '';
+      state.forgotConfirm = '';
+      state.forgotCaptcha = '';
+      state.forgotCaptchaSeed += 1;
+      state.forgotError = t('操作超时，请重新验证当前邮箱', 'Session timed out. Verify your email again.');
+      render();
+      toast(t('操作超时，请重新验证当前邮箱', 'Session timed out. Verify your email again.'));
+    }
+
+    /* ------------------------------------------------------------------
+     * 动作：安全中心
+     * ------------------------------------------------------------------ */
+    function clearCache() {
+      toast(t('缓存已清理，登录状态保持有效', 'Cache cleared. You are still signed in.'));
+    }
+
+    function doLogout() {
+      state.overlay = null;
+      state.loggedIn = false;
+      state.screen = 'login';
+      state.loginPassword = '';
+      state.loginError = '';
+      syncUrl();
+      render();
+      toast(t('已退出登录', 'Signed out'));
+    }
+
+    function openEmailModal() {
+      state.overlay = 'email';
+      state.emailStep = 1;
+      state.emailCurrentCode = '';
+      state.emailNew = '';
+      state.emailNewCode = '';
+      state.emailError = '';
+      state.emailCurrentSent = false;
+      state.emailNewSent = false;
+      state.credentialUntil = 0;
+      clearInterval(credentialTimer); credentialTimer = null;
+      render();
+    }
+
+    function startCredentialTimer() {
+      clearInterval(credentialTimer);
+      credentialTimer = setInterval(() => {
+        const left = Math.max(0, Math.ceil((state.credentialUntil - Date.now()) / 1000));
+        document.querySelectorAll('[data-credential-text]').forEach((el) => { el.textContent = mmss(left); });
+        if (left <= 0) {
+          clearInterval(credentialTimer);
+          credentialTimer = null;
+          expireEmailCredential();
+        }
+      }, 1000);
+    }
+
+    function expireEmailCredential() {
+      if (state.overlay !== 'email') return;
+      state.emailStep = 1;
+      state.emailError = t('操作超时，请重新验证当前邮箱', 'Session timed out. Verify your current email again.');
+      state.credentialUntil = 0;
+      state.emailCurrentCode = '';
+      state.emailNew = '';
+      state.emailNewCode = '';
+      state.emailCurrentSent = false;
+      state.emailNewSent = false;
+      clearInterval(credentialTimer); credentialTimer = null;
+      render();
+      toast(t('操作超时，请重新验证当前邮箱', 'Session timed out. Verify your current email again.'));
+    }
+
+    function emailSendCurrent() {
+      state.emailCurrentSent = true;
+      state.emailCurrentFailures = 0;
+      state.emailError = '';
+      render();
+      toast(t('验证码已发送至当前邮箱（示例 123456）', 'Code sent to current email (demo 123456).'));
+    }
+
+    function emailNext() {
+      if (!state.emailCurrentSent) { state.emailError = t('请先获取当前邮箱验证码', 'Send the code to your current email first.'); render(); return; }
+      if (norm(state.emailCurrentCode) !== DEMO_CODE) {
+        state.emailCurrentFailures += 1;
+        if (state.emailCurrentFailures >= 5) {
+          state.emailCurrentFailures = 0;
+          state.emailCurrentCode = '';
+          state.emailCurrentSent = false;
+          state.emailError = t('当前邮箱验证码错误次数过多，已作废，请重新获取验证码', 'Too many wrong codes for the current email. Request a new code.');
+        } else {
+          state.emailError = t(`当前邮箱验证码不正确，还可尝试 ${5 - state.emailCurrentFailures} 次`, `Incorrect current email code. ${5 - state.emailCurrentFailures} attempts left.`);
+        }
+        render();
+        return;
+      }
+      state.emailCurrentFailures = 0;
+      state.emailStep = 2;
+      state.emailError = '';
+      state.emailNew = '';
+      state.emailNewCode = '';
+      state.emailNewFailures = 0;
+      state.emailNewSent = false;
+      state.credentialUntil = Date.now() + 10 * 60 * 1000;
+      render();
+      startCredentialTimer();
+      toast(t('当前邮箱验证成功，已获得 10 分钟安全凭证', 'Current email verified. 10-minute credential issued.'));
+    }
+
+    function emailSendNew() {
+      const email = state.emailNew.trim();
+      if (!email) { state.emailError = t('请输入新邮箱', 'Please enter the new email'); render(); return; }
+      if (!EMAIL_RE.test(email)) { state.emailError = t('请输入有效的新邮箱', 'Please enter a valid new email'); render(); return; }
+      if (norm(email) === norm(currentEmail())) { state.emailError = t('新邮箱不能与当前邮箱相同', 'New email must differ from the current one.'); render(); return; }
+      if (norm(email) === TAKEN_EMAIL || ACCOUNT_DIRECTORY[norm(email)]) { state.emailError = t('该邮箱已被其他账号使用，请更换邮箱', 'This email is already used by another account.'); render(); return; }
+      state.emailNewSent = true;
+      state.emailNewFailures = 0;
+      state.emailError = '';
+      render();
+      toast(t('验证码已发送至新邮箱（示例 123456）', 'Code sent to new email (demo 123456).'));
+    }
+
+    function emailSubmit() {
+      if (state.credentialUntil <= Date.now()) { expireEmailCredential(); return; }
+      if (!state.emailNewSent) { state.emailError = t('请先获取新邮箱验证码', 'Send the code to the new email first.'); render(); return; }
+      if (norm(state.emailNewCode) !== DEMO_CODE) {
+        state.emailNewFailures += 1;
+        if (state.emailNewFailures >= 5) {
+          state.emailNewFailures = 0;
+          state.emailNewCode = '';
+          state.emailNewSent = false;
+          state.emailError = t('新邮箱验证码错误次数过多，已作废，请重新获取验证码', 'Too many wrong codes for the new email. Request a new code.');
+        } else {
+          state.emailError = t(`新邮箱验证码不正确，还可尝试 ${5 - state.emailNewFailures} 次`, `Incorrect new email code. ${5 - state.emailNewFailures} attempts left.`);
+        }
+        render();
+        return;
+      }
+      state.emailNewFailures = 0;
+      const oldEmail = currentEmail();
+      const newEmail = state.emailNew.trim().toLowerCase();
+      if (!EMAIL_RE.test(newEmail)) { state.emailError = t('请输入有效的新邮箱', 'Please enter a valid new email'); render(); return; }
+      if (norm(newEmail) === TAKEN_EMAIL || ACCOUNT_DIRECTORY[norm(newEmail)]) { state.emailError = t('该邮箱已被其他账号使用，请更换邮箱', 'This email is already used by another account.'); render(); return; }
+      state.emails[state.role] = newEmail;
+      if (state.role === 'admin') {
+        const self = state.admins.find((a) => a.id === 'a1');
+        if (self) self.email = newEmail;
+      }
+      addSecurityAudit('更换绑定邮箱', `${maskEmail(oldEmail)} → ${maskEmail(newEmail)}（原旧邮箱即时释放）`, 'emerald');
+      state.emailStep = 3;
+      state.emailError = '';
+      state.credentialUntil = 0;
+      clearInterval(credentialTimer); credentialTimer = null;
+      render();
+      toast(t('邮箱换绑成功', 'Email updated'));
+    }
+
+    function openPasswordModal() {
+      state.overlay = 'password';
+      state.cpCurrent = '';
+      state.cpPassword = '';
+      state.cpConfirm = '';
+      state.cpError = '';
+      state.showCpCurrent = false;
+      state.showCpPw = false;
+      state.showCpConfirm = false;
+      render();
+    }
+
+    function submitPasswordChange() {
+      if (!state.cpCurrent.trim()) { state.cpError = t('请输入当前密码', 'Please enter your current password'); render(); return; }
+      if (!strengthOk(state.cpPassword)) { state.cpError = t('新密码需满足全部强度规则', 'New password must meet all strength rules.'); render(); return; }
+      if (state.cpPassword !== state.cpConfirm) { state.cpError = t('两次输入的新密码不一致', 'New passwords do not match'); render(); return; }
+      addSecurityAudit('修改登录密码', '所有设备历史会话已退出', 'amber');
+      state.loggedIn = false;
+      state.overlay = 'pw-success';
+      render();
+    }
+
+    /* ------------------------------------------------------------------
+     * 动作：注销账号
+     * ------------------------------------------------------------------ */
+    function submitDelete() {
+      const d = deleteDefense();
+      if (d.blocked) { state.deleteError = t('存在未清零事项，暂不可注销', 'Some checks are unresolved.'); render(); return; }
+      if (norm(state.deleteConfirm) !== norm(currentName()) && norm(state.deleteConfirm) !== norm(currentEmail())) {
+        state.deleteError = t('昵称或邮箱与当前账号不一致', 'Name or email does not match.');
+        render();
+        return;
+      }
+      state.deactivated = true;
+      state.overlay = 'delete-success';
+      render();
+    }
+
+    /* ------------------------------------------------------------------
+     * 动作：管理员管理
+     * ------------------------------------------------------------------ */
+    function openAddAdmin(prefillEmail, restoreId) {
+      if (state.adminView !== 'permanent') { toast(t('仅永久主管理员可执行管理员授权写操作', 'Only the permanent master admin can grant admin rights.')); return; }
+      state.overlay = 'add-admin';
+      state.addEmail = prefillEmail || '';
+      state.addName = '';
+      state.addConfirm = '';
+      state.addError = '';
+      state.addLookup = null;
+      state.addRestoreId = restoreId || '';
+      if (prefillEmail) performLookup(true);
+      render();
+    }
+
+    function performLookup(silent) {
+      const email = norm(state.addEmail);
+      state.addError = '';
+      state.addLookup = null;
+      state.addRestoreId = '';
+      if (!email) {
+        state.addError = t('请输入已注册邮箱', 'Enter a registered email');
+        if (!silent) render();
+        return;
+      }
+      const account = ACCOUNT_DIRECTORY[email];
+      if (!account) {
+        state.addLookup = { ok: false, name: '', identities: [] };
+        state.addError = t('该邮箱尚未注册，请先完成注册', 'This email is not registered yet.');
+        if (!silent) render();
+        return;
+      }
+      const statusLabel = account.status === 'active' ? t('正常生效', 'Active') : account.status === 'locked' ? t('临时锁定', 'Temporarily locked') : account.status === 'banned' ? t('已封禁', 'Banned') : t('已注销停用', 'Deactivated');
+      if (account.status !== 'active') {
+        state.addLookup = { ok: false, name: account.name, identities: account.identities, statusLabel };
+        state.addError = account.status === 'locked'
+          ? t('该账号处于临时锁定状态，暂不可授任', 'This account is locked and cannot be granted admin rights.')
+          : account.status === 'banned'
+            ? t('该账号已被封禁，暂不可授任', 'This account is banned and cannot be granted admin rights.')
+            : t('该账号已注销停用，暂不可授任', 'This account is deactivated and cannot be granted admin rights.');
+        if (!silent) render();
+        return;
+      }
+      const existing = state.admins.find((a) => norm(a.email) === email);
+      if (existing && existing.status === 'active') {
+        state.addLookup = { ok: true, name: account.name, identities: account.identities, statusLabel };
+        state.addError = t('该账号已具备平台管理员权限', 'This account already has platform admin rights.');
+        if (!silent) render();
+        return;
+      }
+      state.addLookup = { ok: true, name: account.name, identities: account.identities, statusLabel };
+      if (existing && existing.status === 'revoked') {
+        state.addRestoreId = existing.id;
+        state.addName = existing.name || account.name;
+      } else {
+        state.addName = account.name;
+      }
+      if (!silent) render();
+    }
+
+    function submitAddAdmin() {
+      if (state.adminView !== 'permanent') { state.addError = t('仅永久主管理员可执行授权操作', 'Only the permanent master admin can grant admin rights.'); render(); return; }
+      if (!state.addLookup || !state.addLookup.ok || state.addError) return;
+      const email = norm(state.addEmail);
+      const name = state.addName.trim();
+      if (name.length < 1 || name.length > 50) { state.addError = t('显示名称需为 1–50 个字符', 'Display name must be 1–50 characters.'); render(); return; }
+      if (norm(state.addConfirm) !== norm(name) && norm(state.addConfirm) !== email) {
+        state.addError = t('确认文本需与目标名称或邮箱一致', 'Confirmation must match the name or email.');
+        render();
+        return;
+      }
+      const existing = state.admins.find((a) => norm(a.email) === email);
+      if (existing && existing.status === 'active') { state.addError = t('该账号已具备平台管理员权限', 'This account already has platform admin rights.'); render(); return; }
+      if (existing) {
+        const before = `已撤销 · 显示名称 ${existing.name}（撤销人 ${existing.revoker || '—'}）`;
+        existing.status = 'active';
+        existing.name = name;
+        existing.grantor = currentName();
+        existing.grantTime = nowStamp();
+        existing.revoker = '';
+        existing.revokeTime = '';
+        addAdminAudit('restore', '复用恢复', existing.name, existing.email, before, `在任 · 显示名称 ${name}`);        state.overlay = null;
+        render();
+        toast(t(`已恢复 ${name} 的平台管理员权限`, `Restored admin access for ${name}`));
+        return;
+      }
+      const record = {
+        id: `a_${Date.now()}`,
+        email,
+        name,
+        status: 'active',
+        identities: (state.addLookup.identities || ['家长']).slice(),
+        grantor: currentName(),
+        grantTime: nowStamp(),
+        revoker: '',
+        revokeTime: ''
+      };
+      state.admins.push(record);
+      addAdminAudit('add', '增设普通管理员', name, email, '无授权记录', `在任 · 显示名称 ${name}`);
+      state.overlay = null;
+      render();
+      toast(t(`已增设 ${name} 为平台管理员`, `${name} is now a platform admin.`));
+    }
+
+    function openEditAdmin(id) {
+      if (state.adminView !== 'permanent') { toast(t('仅永久主管理员可修改管理员显示名称', 'Only the permanent master admin can rename admins.')); return; }
+      const target = state.admins.find((a) => a.id === id);
+      if (!target) return;
+      if (target.permanent) { toast(t('永久主管理员受保护，显示名称不可在此修改', 'The permanent master admin is protected and cannot be renamed here.')); return; }
+      state.overlay = 'edit-admin';
+      state.editTargetId = id;
+      state.editName = target.name;
+      state.editError = '';
+      render();
+    }
+
+    function submitEditAdmin() {
+      if (state.adminView !== 'permanent') { state.editError = t('仅永久主管理员可修改显示名称', 'Only the permanent master admin can rename admins.'); render(); return; }
+      const target = state.admins.find((a) => a.id === state.editTargetId);
+      if (!target) return;
+      if (target.permanent) { state.editError = t('永久主管理员受保护，不可在此修改显示名称', 'The permanent master admin is protected.'); render(); return; }
+      const name = state.editName.trim();
+      if (name.length < 1 || name.length > 50) { state.editError = t('显示名称需为 1–50 个字符', 'Display name must be 1–50 characters.'); render(); return; }
+      if (name === target.name) { state.overlay = null; render(); toast(t('显示名称未变化', 'Display name unchanged')); return; }
+      const before = target.name;
+      target.name = name;
+      addAdminAudit('rename', '修改显示名称', name, target.email, before, name);
+      state.overlay = null;
+      render();
+      toast(t('显示名称已更新', 'Display name updated'));
+    }
+
+    function openRevokeAdmin(id) {
+      if (state.adminView !== 'permanent') { toast(t('仅永久主管理员可撤销普通管理员', 'Only the permanent master admin can revoke admins.')); return; }
+      const target = state.admins.find((a) => a.id === id);
+      if (!target) return;
+      if (target.permanent) { toast(t('永久主管理员受保护，严禁任何管理员撤销或删除', 'The permanent master admin is protected and can never be revoked or deleted.')); return; }
+      const remaining = state.admins.filter((a) => a.status === 'active' && a.id !== id).length;
+      if (remaining === 0) { toast(t('全平台至少保留 1 名可用管理员，请先增设其他管理员', 'Keep at least one active admin. Add another admin first.')); return; }
+      state.overlay = 'revoke-admin';
+      state.revokeTargetId = id;
+      state.revokeConfirm = '';
+      state.revokeError = '';
+      render();
+    }
+
+    function submitRevokeAdmin() {
+      if (state.adminView !== 'permanent') { state.revokeError = t('仅永久主管理员可撤销普通管理员', 'Only the permanent master admin can revoke admins.'); render(); return; }
+      const target = state.admins.find((a) => a.id === state.revokeTargetId);
+      if (!target) return;
+      if (target.permanent) { state.revokeError = t('永久主管理员受保护，严禁撤销或删除', 'The permanent master admin is protected and cannot be revoked.'); render(); return; }
+      const remaining = state.admins.filter((a) => a.status === 'active' && a.id !== target.id).length;
+      if (remaining === 0) { state.revokeError = t('全平台至少保留 1 名可用管理员，请先增设其他管理员', 'Keep at least one active admin. Add another admin first.'); render(); return; }
+      if (norm(state.revokeConfirm) !== norm(target.name) && norm(state.revokeConfirm) !== norm(target.email)) {
+        state.revokeError = t('确认文本需与目标姓名或邮箱一致', 'Confirmation must match the name or email.');
+        render();
+        return;
+      }
+      const before = `在任 · 显示名称 ${target.name}`;
+      target.status = 'revoked';
+      target.revoker = currentName();
+      target.revokeTime = nowStamp();
+      addAdminAudit('revoke', '撤销普通管理员', target.name, target.email, before, `已撤销 · 兼任${target.identities.join('、')}保留`);
+      state.overlay = null;
+      render();
+      toast(t(`已撤销 ${target.name} 的平台管理员权限，兼任身份保留`, `Admin access revoked for ${target.name}. Other roles remain.`));
+    }
+
+    function updateAdminList() {
+      const el = $('adminList');
+      if (el) el.innerHTML = adminListHTML();
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    /* ------------------------------------------------------------------
+     * 渲染入口
+     * ------------------------------------------------------------------ */
+    function render() {
+      const app = $('app');
+      if (!app) return;
+      const top = app.scrollTop;
+      let html = '';
+      if (state.screen === 'login') html = renderLogin();
+      else if (state.screen === 'register') html = renderRegister();
+      else if (state.screen === 'forgot') html = renderForgot();
+      else if (state.screen === 'me') html = renderMe();
+      else if (state.screen === 'security') html = renderSecurity();
+      else if (state.screen === 'admins') html = renderAdmins();
+      else html = renderLogin();
+      app.innerHTML = html;
+      renderOverlay();
+      syncConsole();
+      refreshFormStates();
+      updateCounters();
+      app.scrollTop = top;
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    /* ------------------------------------------------------------------
+     * 输入绑定
+     * ------------------------------------------------------------------ */
+    function setByModel(model, value) {
+      const parts = String(model || '').split('.');
+      if (!parts.length) return;
+      let obj = state;
+      for (let i = 0; i < parts.length - 1; i += 1) {
+        if (obj[parts[i]] == null) return;
+        obj = obj[parts[i]];
+      }
+      obj[parts[parts.length - 1]] = value;
+    }
+
+    function bindInput(el) {
+      const model = el.dataset.model;
+      if (!model) return;
+      const value = el.type === 'checkbox' ? el.checked : el.value;
+      setByModel(model, value);
+      if (model === 'reg.agree') {
+        const hint = document.querySelector('[data-agree-hint]');
+        if (hint) hint.classList.toggle('hidden', Boolean(value));
+      }
+      updateStrengthUI();
+      updateCounters();
+      refreshFormStates();
+      if (model === 'adminQuery') updateAdminList();
+      if (model === 'addEmail') {
+        state.addLookup = null;
+        state.addError = '';
+        state.addRestoreId = '';
+      }
+    }
+
+    /* ------------------------------------------------------------------
+     * 事件
+     * ------------------------------------------------------------------ */
+    document.querySelector('[data-console-collapse]').addEventListener('click', () => {
+      applyConsoleCollapsed(true);
+      writeConsoleCollapsed(true);
+    });
+    const consoleMini = document.querySelector('[data-console-mini]');
+    if (consoleMini) {
+      consoleMini.addEventListener('click', (event) => {
+        if (!event.target.closest('[data-console-expand]')) return;
+        applyConsoleCollapsed(false);
+        writeConsoleCollapsed(false);
+      });
+    }
+
+    $('console').addEventListener('click', (event) => {
+      const nav = event.target.closest('[data-nav-screen]');
+      if (nav) return setScreen(nav.dataset.navScreen);
+      const roleBtn = event.target.closest('[data-role-btn]');
+      if (roleBtn) return setRole(roleBtn.dataset.roleBtn);
+      const adminView = event.target.closest('[data-admin-view]');
+      if (adminView) return setAdminView(adminView.dataset.adminView);
+      const langBtn = event.target.closest('[data-lang-btn]');
+      if (langBtn) return setLang(langBtn.dataset.langBtn);
+      const config = event.target.closest('[data-config]');
+      if (config) return setConfig(config.dataset.config);
+      const scenario = event.target.closest('[data-scenario]');
+      if (scenario) return setScenario(scenario.dataset.scenario);
+      if (event.target.closest('[data-reset]')) return resetDemo();
+    });
+
+    $('app').addEventListener('input', (event) => {
+      const el = event.target.closest('[data-model]');
+      if (!el) return;
+      bindInput(el);
+    });
+
+    $('app').addEventListener('change', (event) => {
+      const el = event.target.closest('input[data-model]');
+      if (!el || el.type !== 'checkbox') return;
+      bindInput(el);
+    });
+
+    $('overlayRoot').addEventListener('input', (event) => {
+      const el = event.target.closest('[data-model]');
+      if (!el) return;
+      bindInput(el);
+    });
+
+    $('overlayRoot').addEventListener('change', (event) => {
+      const el = event.target.closest('input[data-model]');
+      if (!el || el.type !== 'checkbox') return;
+      bindInput(el);
+    });
+
+    $('frame').addEventListener('click', (event) => {
+      const el = event.target.closest('[data-action]');
+      if (!el) return;
+      const action = el.dataset.action;
+
+      if (action === 'go-screen') return setScreen(el.dataset.screen);
+      if (action === 'set-lang') return setLang(el.dataset.lang);
+      if (action === 'toggle-pw') {
+        const target = el.dataset.target;
+        if (target === 'login') state.showLoginPw = !state.showLoginPw;
+        if (target === 'register') state.showRegPw = !state.showRegPw;
+        if (target === 'register-confirm') state.showRegConfirm = !state.showRegConfirm;
+        if (target === 'forgot') state.showForgotPw = !state.showForgotPw;
+        if (target === 'forgot-confirm') state.showForgotConfirm = !state.showForgotConfirm;
+        if (target === 'cp-current') state.showCpCurrent = !state.showCpCurrent;
+        if (target === 'cp-password') state.showCpPw = !state.showCpPw;
+        if (target === 'cp-confirm') state.showCpConfirm = !state.showCpConfirm;
+        return render();
+      }
+      if (action === 'refresh-captcha') {
+        if (el.dataset.captcha === 'login') { state.loginCaptchaSeed += 1; state.loginCaptchaInput = ''; }
+        else { state.forgotCaptchaSeed += 1; state.forgotCaptcha = ''; }
+        return render();
+      }
+      if (action === 'refresh-reg-captcha') {
+        state.regCaptchaSeed += 1;
+        state.regCaptchaInput = '';
+        state.overlayError = '';
+        return render();
+      }
+      if (action === 'login-submit') return doLogin();
+      if (action === 'resend-activation') {
+        if (state.activationWait > 0) return;
+        startActivationCooldown();
+        render();
+        return toast(t('激活验证已重新发送（60 秒冷却），请查收邮箱', 'Activation verification sent again (60s cooldown). Check your inbox.'));
+      }
+      if (action === 'send-reg-code') return triggerSendRegCode();
+      if (action === 'confirm-reg-captcha') return confirmRegCaptcha();
+      if (action === 'register-submit') return doRegister();
+      if (action === 'set-gender') {
+        state.reg.gender = el.dataset.gender;
+        return render();
+      }
+      if (action === 'forgot-send') return sendForgotCode();
+      if (action === 'forgot-reset') return doForgotReset();
+      if (action === 'forgot-back') { state.forgotStep = 1; state.forgotError = ''; return render(); }
+      if (action === 'forgot-expire') return forgotExpireDemo();
+      if (action === 'open-legal') { state.overlay = el.dataset.doc; return render(); }
+      if (action === 'open-email') return openEmailModal();
+      if (action === 'email-send-current') return emailSendCurrent();
+      if (action === 'email-next') return emailNext();
+      if (action === 'email-send-new') return emailSendNew();
+      if (action === 'email-submit') return emailSubmit();
+      if (action === 'email-back') { state.emailStep = 1; state.emailError = ''; state.credentialUntil = 0; clearInterval(credentialTimer); credentialTimer = null; return render(); }
+      if (action === 'email-expire') return expireEmailCredential();
+      if (action === 'open-password') return openPasswordModal();
+      if (action === 'password-submit') return submitPasswordChange();
+      if (action === 'clear-cache') return clearCache();
+      if (action === 'logout-confirm') { state.overlay = 'logout'; return render(); }
+      if (action === 'confirm-logout') return doLogout();
+      if (action === 'open-delete') { state.overlay = 'delete-account'; state.deleteConfirm = ''; state.deleteError = ''; return render(); }
+      if (action === 'toggle-assets') { state.assetsCleared = !state.assetsCleared; return render(); }
+      if (action === 'toggle-admin-unloaded') { state.adminUnloaded = !state.adminUnloaded; return render(); }
+      if (action === 'delete-submit') return submitDelete();
+      if (action === 'avatar') return toast(t('头像上传为演示占位，正式版支持 JPG / PNG / WebP', 'Avatar upload is a demo placeholder. JPG / PNG / WebP supported in production.'));
+      if (action === 'maintenance-check') return toast(t('平台仍在维护中，请稍后重试', 'Still under maintenance. Please try again later.'));
+      if (action === 'set-admin-tab') { state.adminTab = el.dataset.tab; return render(); }
+      if (action === 'set-admin-filter') { state.adminFilter = el.dataset.filter; return render(); }
+      if (action === 'open-add-admin') return openAddAdmin('', '');
+      if (action === 'lookup-account') return performLookup(false);
+      if (action === 'add-submit') return submitAddAdmin();
+      if (action === 'edit-admin') return openEditAdmin(el.dataset.id);
+      if (action === 'edit-submit') return submitEditAdmin();
+      if (action === 'revoke-admin') return openRevokeAdmin(el.dataset.id);
+      if (action === 'restore-admin') {
+        const record = state.admins.find((a) => a.id === el.dataset.id);
+        if (record) return openAddAdmin(record.email, record.id);
+        return;
+      }
+      if (action === 'revoke-submit') return submitRevokeAdmin();
+      if (action === 'close-banned') { state.overlay = null; return render(); }
+      if (action === 'reg-success-close') {
+        state.overlay = null;
+        state.screen = 'login';
+        state.loginEmail = state.reg.email.trim();
+        state.loginPassword = '';
+        syncUrl();
+        return render();
+      }
+      if (action === 'forgot-success-close') {
+        state.overlay = null;
+        state.screen = 'login';
+        state.forgotStep = 1;
+        state.forgotCode = '';
+        state.forgotPassword = '';
+        state.forgotConfirm = '';
+        state.forgotError = '';
+        syncUrl();
+        return render();
+      }
+      if (action === 'pw-success-close') {
+        state.overlay = null;
+        state.screen = 'login';
+        state.loginPassword = '';
+        state.loginError = '';
+        syncUrl();
+        return render();
+      }
+      if (action === 'delete-success-close') {
+        state.overlay = null;
+        state.screen = 'login';
+        state.loginPassword = '';
+        state.loginError = '';
+        syncUrl();
+        return render();
+      }
+      if (action === 'go-security') return setScreen('security');
+      if (action === 'close-overlay') {
+        if (state.overlay === 'email') {
+          state.emailStep = 1;
+          state.emailCurrentCode = '';
+          state.emailNew = '';
+          state.emailNewCode = '';
+          state.emailError = '';
+          state.credentialUntil = 0;
+          clearInterval(credentialTimer);
+          credentialTimer = null;
+        }
+        state.overlay = null;
+        return render();
+      }
+    });
+
+    /* ------------------------------------------------------------------
+     * 启动
+     * ------------------------------------------------------------------ */
+    syncUrl();
+    render();
+    applyConsoleCollapsed(readConsoleCollapsed());
+  </script>
+</body>
+</html>

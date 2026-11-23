@@ -52,6 +52,7 @@
         <div class="inline-flex rounded-xl bg-slate-100 p-1">
           <button data-group="paid" data-value="yes" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">已购课</button>
           <button data-group="paid" data-value="no" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">未购课</button>
+          <button data-group="paid" data-value="refunded" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">已全额清退</button>
         </div>
       </div>
       <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
@@ -220,6 +221,7 @@
     if (params.get('teacher_id')) state.activeTeacherId = params.get('teacher_id');
     if (params.get('child')) state.child = params.get('child');
     if (params.get('paid') === 'no') state.paid = 'no';
+    if (params.get('paid') === 'refunded') state.paid = 'refunded';
     if (params.get('device') === 'tablet') state.device = 'tablet';
     if (params.get('embed') === '1') {
       state.embed = true;
@@ -572,7 +574,7 @@
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <h1 class="text-[18px] font-bold tracking-tight text-slate-900">${manager ? '常规可约时段 <span class="text-[14px] font-bold text-slate-700">Availability</span>' : 'Availability <span class="text-[14px] font-bold text-slate-700">开放时段</span>'}</h1>
-              <p class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(activeTeacher().name)} · ${manager ? '班长/管理员配置 · 仅维护每周常规模板，不影响已排课次' : 'Weekly recurring template · 每周循环重复生效 · 不展示具体日期与学员'}</p>
+              <p class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(activeTeacher().name)} · ${manager ? '班长/管理员配置 · 仅维护每周常规模板，不影响已排课次 · 北京时间 UTC+8' : 'Weekly recurring template · 每周循环重复生效 · 不展示具体日期与学员 · 北京时间 UTC+8'}</p>
             </div>
             <button type="button" data-action="avail-full-day" title="展开全天 06:00–24:00 / 恢复智能折叠" class="h-8 shrink-0 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-50">${labelFullDay}</button>
           </div>
@@ -596,11 +598,12 @@
             <span class="inline-flex items-center gap-1"><span class="inline-block h-3 w-3 rounded-[3px] border border-emerald-300 bg-emerald-100"></span>🟢 Available 开放可约</span>
             <span class="inline-flex items-center gap-1"><span class="inline-block h-3 w-3 rounded-[3px] border border-slate-200 bg-slate-100"></span>⚪ Rest 休息</span>
           </div>
+          <div class="mt-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[12px] font-semibold text-slate-700">⏰ 时区基准：北京时间 UTC+8 (All times in Beijing Time)</div>
           <div class="mt-2 space-y-1 text-[12px] leading-relaxed text-slate-600">
-            <p>• Weekly recurring template only. No dates, student names or booking actions are shown here.</p>
-            <p>• 本页仅设置每周循环重复的常规可约时段，不展示具体日期与任何学员姓名，页面内不可发起约课、选生或请假操作。</p>
+            <p>• All times are in Beijing Time (UTC+8). This weekly template shows no dates, student names or booking actions.</p>
+            <p>• 本页仅设置每周循环重复的常规可约时段（统一按北京时间 UTC+8），不展示具体日期与任何学员姓名，页面内不可发起约课、选生或请假操作。</p>
             <p>• Existing booked lessons are not affected; closing a slot only stops new bookings and next-round renewal placement.</p>
-            <p>• 修改常规模板不会取消既有已排课次；如需仅针对具体某天临时加开时段或请假，请前往【课表】页面操作。</p>
+            <p>• 修改常规模板不会取消既有已排课次；关闭已有固定位占用的时段并保存后，将向负责班长、小班主理人及受影响 1v1 固定位家长发送站内浅黄提醒（不发邮件），并停止后续新约与下轮续费基准。如需仅针对具体某天临时加开时段或请假，请前往【课表】页面操作。</p>
           </div>
         </section>
       </div>`;
@@ -668,7 +671,7 @@
           <div class="flex shrink-0 items-center gap-1.5">
             ${state.paid === 'yes'
               ? `<button data-action="open-qr" data-id="${t.id}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50" aria-label="ClassIn 二维码">${icon('qr-code', 'h-4 w-4')}</button>`
-              : `<button data-action="toast" data-message="购课后解锁查看老师 ClassIn 联系方式" class="inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-100 px-1.5 text-[12px] font-medium text-slate-500" aria-label="购课后解锁查看老师 ClassIn 联系方式">${icon('lock', 'h-3.5 w-3.5')}购课后解锁</button>`}
+              : `<button data-action="toast" data-message="${state.paid === 'refunded' ? '购课单已全额清退，ClassIn 联系方式暂不可见；重新购课后解锁' : '购课后解锁查看老师 ClassIn 联系方式'}" class="inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-slate-200 bg-slate-100 px-1.5 text-[12px] font-medium text-slate-500" aria-label="购课后解锁查看老师 ClassIn 联系方式">${icon('lock', 'h-3.5 w-3.5')}${state.paid === 'refunded' ? '已清退锁定' : '购课后解锁'}</button>`}
             <button data-action="open-teacher" data-id="${t.id}" class="inline-flex items-center gap-0.5 whitespace-nowrap text-[12px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline">查看介绍${icon('chevron-right', 'h-3 w-3')}</button>
             <button data-action="book" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500">预约</button>
           </div>
@@ -760,8 +763,8 @@
           <div class="mt-2.5 flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-100/60 p-3">
             <span class="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-slate-200/70 text-slate-400">${icon('lock', 'h-6 w-6')}</span>
             <span class="min-w-0">
-              <span class="block text-[14px] font-semibold text-slate-500">购课后解锁查看老师 ClassIn 联系方式</span>
-              <span class="mt-0.5 block text-[12px] font-medium text-slate-400">完成任一购课单后即可扫码添加老师</span>
+              <span class="block text-[14px] font-semibold text-slate-500">${state.paid === 'refunded' ? '购课单已全额清退，ClassIn 联系方式暂不可见' : '购课后解锁查看老师 ClassIn 联系方式'}</span>
+              <span class="mt-0.5 block text-[12px] font-medium text-slate-400">${state.paid === 'refunded' ? '重新购课后即可扫码添加老师' : '完成任一购课单后即可扫码添加老师'}</span>
             </span>
           </div>
         </section>`}
@@ -950,7 +953,7 @@
       if (action === 'select-child') { state.child = el.dataset.child; return renderContentOnly(); }
       if (action === 'open-teacher') return openTeacher(el.dataset.id);
       if (action === 'open-qr') {
-        if (state.paid !== 'yes') return showToast('购课后解锁查看老师 ClassIn 联系方式');
+        if (state.paid !== 'yes') return showToast(state.paid === 'refunded' ? '购课单已全额清退，ClassIn 联系方式暂不可见' : '购课后解锁查看老师 ClassIn 联系方式');
         state.overlay = { type: 'qr', teacherId: el.dataset.id };
         $('overlay').innerHTML = renderOverlay();
         if (window.lucide) lucide.createIcons();
@@ -1111,7 +1114,7 @@
           state.paid = value;
           state.overlay = null;
           renderAll();
-          showToast(value === 'yes' ? '已切换为已购课家长' : '已切换为未购课家长');
+          showToast(value === 'yes' ? '已切换为已购课家长' : (value === 'refunded' ? '已切换为已全额清退家长' : '已切换为未购课家长'));
         }
         if (group === 'online') {
           state.online = value;

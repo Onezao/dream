@@ -32,7 +32,7 @@
       <div class="flex items-center gap-2">
         <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-900 text-amber-300"><i data-lucide="undo-2" class="h-3.5 w-3.5"></i></span>
         <span class="text-[14px] font-bold text-slate-900">课次清退</span>
-        <span class="hidden text-[12px] font-medium text-slate-500 lg:inline">多价位联合清退 · 财务备注留痕 · 周转账单零耦合</span>
+        <span class="hidden text-[12px] font-medium text-slate-500 lg:inline">原价位分组 FIFO · 双要素盲输 · 周转账单零耦合</span>
       </div>
 
       <div class="flex items-center gap-2">
@@ -40,7 +40,7 @@
         <div class="inline-flex flex-wrap rounded-xl bg-slate-100 p-1">
           <button data-group="role" data-value="monitor" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">班长 (Leo)</button>
           <button data-group="role" data-value="other_monitor" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">其他班长 (Mia)</button>
-          <button data-group="role" data-value="admin" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">管理员 (Sarah)</button>
+          <button data-group="role" data-value="admin" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">管理员 (Sarah · 永久主管理员)</button>
           <button data-group="role" data-value="parent" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">家长 (Amy)</button>
         </div>
       </div>
@@ -108,6 +108,17 @@
      * 演示数据
      * ------------------------------------------------------------------ */
     const TODAY = new Date('2026-11-20T12:00:00');
+    const PERMANENT_MAIN_ADMIN = 'Sarah';
+
+    // 未来已排期阻塞明细（仅用于前置拦截引导演示）
+    const SCHEDULED_BLOCKS = {
+      alice: [
+        { at: '11-22 18:30', teacher: 'IvyT06', monitor: 'Leo' },
+        { at: '11-24 19:00', teacher: 'JasonZ03', monitor: 'Leo' }
+      ],
+      emma: [{ at: '11-23 17:00', teacher: 'TomZ11', monitor: 'Mia' }],
+      noah: [{ at: '11-25 16:30', teacher: 'IvyT06', monitor: 'Leo' }]
+    };
 
     const STUDENTS = [
       { key: 'alice', name: 'AliceZ12', nickname: '跳跳', age: '10岁' },
@@ -117,11 +128,11 @@
     ];
     const PARENT_CHILDREN = ['alice', 'bob'];
 
-    // 资产按“价位档位 + 资金持有人”建模：1v1 待排 TS 不分固定/临时。
+    // 资产按“原价位档位 + 资金持有人”建模：1v1 待排 TS 不分固定/临时。
     const INITIAL_ORDERS = [
       {
         id: 'CO-20261110-01', studentKey: 'alice', type: '1v1 课次', holder: 'Leo', status: 'PAID', hasClear: true, scheduled: 2, finished: 5,
-        tiers: [{ kind: '1v1', price: 16, remaining: 4 }, { kind: '1v1', price: 18, remaining: 1 }]
+        tiers: [{ kind: '1v1', price: 16, remaining: 4 }, { kind: '1v1', price: 18, remaining: 1, special: true, snapshot: 17 }, { kind: '1v1', price: 26, remaining: 1, extraPrep: true }]
       },
       {
         id: 'CO-20260928-06', studentKey: 'alice', type: '1v1 课次', holder: 'Mia', status: 'PAID', scheduled: 0, finished: 2,
@@ -146,6 +157,32 @@
     ];
 
     const INITIAL_RECORDS = [
+      {
+        id: 'CD-20261120-01', studentKey: 'bob', subjectType: '1v1', at: '2026-11-20 09:40', by: 'Ken', isFallback: true,
+        note: '管理员兜底：家长调整周末课次，线下微信退费 18 积分，已与持有人 Leo 及家长三方确认。',
+        items: [{ kind: '1v1', price: 18, n: 1, holder: 'Leo', orderId: 'CO-20261025-01' }],
+        n: 1, totalPoints: 18, orderIds: ['CO-20261025-01'], after: 2,
+        proofs: [{ name: '微信转账_20261120.png', size: 254 * 1024 }],
+        dispute: '待主管理员核验异议',
+        disputeNote: '家长实际仅确认退 1 节 18 积分，线下凭证金额与备注存在差异，请主管理员核验。',
+        disputeAt: '2026-11-20 10:12',
+        statusChanges: [{ orderId: 'CO-20261025-01', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' }]
+      },
+      {
+        id: 'CD-20261118-06', studentKey: 'alice', subjectType: '1v1', at: '2026-11-18 21:10', by: 'Ken', isFallback: true,
+        note: '管理员兜底：家长临时移居停课，线下微信退费 38 积分，已与持有人 Leo、Mia 及家长三方确认。',
+        items: [
+          { kind: '1v1', price: 18, snapshot: 17, n: 1, holder: 'Leo', orderId: 'CO-20261110-01' },
+          { kind: '1v1', price: 21, n: 1, holder: 'Mia', orderId: 'CO-20260928-06' }
+        ],
+        n: 2, totalPoints: 38, orderIds: ['CO-20261110-01', 'CO-20260928-06'], after: 5,
+        proofs: [{ name: '微信转账_20261118.png', size: 312 * 1024 }, { name: '线下核对单_20261118.pdf', size: 684 * 1024 }],
+        dispute: '无异议',
+        statusChanges: [
+          { orderId: 'CO-20261110-01', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' },
+          { orderId: 'CO-20260928-06', from: 'PAID', to: 'PAID', note: '主状态保持已付款 · 挂载清退记录' }
+        ]
+      },
       {
         id: 'CD-20261119-05', studentKey: 'alice', subjectType: '1v1', at: '2026-11-19 19:05', by: 'Leo', isFallback: false,
         note: '家长临时调整课业安排，线下微信退费 160 积分，退回 1 节 16 积分课次。',
@@ -268,6 +305,8 @@
       recordType: 'all',
       overlay: null,
       deduct: emptyDeduct(),
+      confirm: { name: '', n: '' },
+      objection: { recordId: null, text: '', error: '' },
       orders: clone(INITIAL_ORDERS),
       records: clone(INITIAL_RECORDS)
     };
@@ -287,7 +326,7 @@
     if (['30', '90', 'all'].includes(params.get('range'))) state.range = params.get('range');
     if (['all', 'self', 'Leo', 'Mia', '平台'].includes(params.get('holder'))) state.adminHolder = params.get('holder');
     if (['all', 'self', 'fallback'].includes(params.get('method'))) state.method = params.get('method');
-    if (['all', '1v1', 'small_group', 'fallback'].includes(params.get('type'))) state.recordType = params.get('type');
+    if (['all', '1v1', 'small_group', 'fallback', 'dispute'].includes(params.get('type'))) state.recordType = params.get('type');
     if (params.get('q')) state.query = params.get('q');
     const bootOverlay = params.get('overlay');
     const bootPreset = params.get('preset');
@@ -323,7 +362,7 @@
     function recordHolders(r) { return [...new Set((r.items || []).map((i) => i.holder))]; }
     function recordPoints(r) {
       if (typeof r.totalPoints === 'number') return r.totalPoints;
-      return (r.items || []).reduce((a, i) => a + i.price * i.n, 0);
+      return (r.items || []).reduce((a, i) => a + i.n * unitPoints(i), 0);
     }
     function itemKindLabel(item) {
       if (item.kind === '小班') return `小班待排${item.className ? ' · ' + item.className : ''}`;
@@ -334,10 +373,10 @@
     }
     function isSmallGroupRecord(r) { return !!r && r.subjectType === 'small_group'; }
     function orderRemaining(o) { return (o.tiers || []).reduce((a, t) => a + t.remaining, 0); }
-    function orderPoints(o) { return (o.tiers || []).reduce((a, t) => a + t.remaining * t.price, 0); }
+    function orderPoints(o) { return (o.tiers || []).reduce((a, t) => a + t.remaining * unitPoints(t), 0); }
     function assetDetailText(o) {
       const parts = (o.tiers || []).filter((t) => t.remaining > 0)
-        .map((t) => `${t.price}积分×${t.remaining}节`);
+        .map((t) => `${tierPriceLabel(t)}×${t.remaining}节`);
       return parts.length ? parts.join(' · ') : '无剩余待排期';
     }
     function sortedRecords(list) { return list.slice().sort((a, b) => b.at.localeCompare(a.at)); }
@@ -360,7 +399,8 @@
           rows.push({
             key: `${o.id}#${idx}`, orderId: o.id, idx, studentKey,
             kind: t.kind, price: t.price, remaining: t.remaining, holder: o.holder,
-            className: t.className || ''
+            className: t.className || '', special: !!t.special, extraPrep: !!t.extraPrep,
+            snapshot: unitPoints(t)
           });
         });
       });
@@ -382,12 +422,73 @@
       return Array.from(map.entries()).map(([holder, list]) => ({ holder, list }));
     }
 
+    function tierPriceLabel(item) {
+      return `${item.price}积分${item.extraPrep ? '（含备课费 +10）' : ''}`;
+    }
+    // 单节实付积分快照（含强提改价/尾差；缺省回落到原价位档位）
+    function unitPoints(item) {
+      return typeof item.snapshot === 'number' ? item.snapshot : item.price;
+    }
+
+    // 1 主清退记录 ↔ 1～N 原购课单：按单切片只读挂载
+    function orderSlicesFromRows(rows) {
+      const map = new Map();
+      rows.forEach((row) => {
+        const cur = map.get(row.orderId) || { orderId: row.orderId, n: 0, points: 0 };
+        cur.n += row.n;
+        cur.points += row.n * row.snapshot;
+        map.set(row.orderId, cur);
+      });
+      return Array.from(map.values());
+    }
+
+    function recordOrderSlices(r) {
+      const items = r.items || [];
+      const map = new Map();
+      const hasItemOrder = items.some((i) => i.orderId);
+      items.forEach((i) => {
+        const id = i.orderId || (hasItemOrder ? '' : (r.orderIds || [])[0]);
+        if (!id) return;
+        const cur = map.get(id) || { orderId: id, n: 0, points: 0 };
+        cur.n += i.n;
+        cur.points += i.n * unitPoints(i);
+        map.set(id, cur);
+      });
+      if (!map.size) {
+        (r.orderIds || []).forEach((id) => map.set(id, { orderId: id, n: r.n, points: recordPoints(r) }));
+      }
+      return Array.from(map.values());
+    }
+
+    function orderClearedSlices(orderId) {
+      return state.records.reduce((acc, r) => {
+        if (!(r.orderIds || []).includes(orderId)) return acc;
+        const slice = recordOrderSlices(r).find((x) => x.orderId === orderId);
+        if (!slice) return acc;
+        acc.n += slice.n;
+        acc.points += slice.points;
+        return acc;
+      }, { n: 0, points: 0 });
+    }
+
+    function disputeState(r) { return r.dispute || '无异议'; }
+    function within72h(r) {
+      const at = new Date(String(r.at).replace(' ', 'T'));
+      if (Number.isNaN(at.getTime())) return false;
+      const hours = (TODAY - at) / 3600000;
+      return hours >= 0 && hours <= 72;
+    }
+    function canObject(r) {
+      return isMonitorRole() && !!r.isFallback && recordHolders(r).includes(actor())
+        && disputeState(r) === '无异议' && within72h(r);
+    }
+
     function studentTotals(key) {
       const rows = pendingTierRows(key);
       const orders = ordersForStudent(key).filter((o) => !isSmallGroupOrder(o));
       return {
         pending: rows.reduce((a, r) => a + r.remaining, 0),
-        points: rows.reduce((a, r) => a + r.remaining * r.price, 0),
+        points: rows.reduce((a, r) => a + r.remaining * r.snapshot, 0),
         scheduled: orders.reduce((a, o) => a + (o.scheduled || 0), 0),
         finished: orders.reduce((a, o) => a + (o.finished || 0), 0),
         holders: [...new Set(orders.map((o) => o.holder))]
@@ -431,11 +532,12 @@
           if (state.recordType === 'small_group' && !isSmallGroupRecord(r)) return false;
           if (state.recordType === 'fallback' && !r.isFallback) return false;
           if (state.recordType === '1v1' && (isSmallGroupRecord(r) || r.isFallback)) return false;
+          if (state.recordType === 'dispute' && disputeState(r) !== '待主管理员核验异议') return false;
         }
         if (q) {
           const s = studentByKey(r.studentKey);
           const hay = [
-            s ? s.name : '', s ? s.nickname : '', r.note, r.by,
+            s ? s.name : '', state.role === 'parent' && s ? s.nickname : '', r.note, r.by,
             r.className || '', r.source || '', r.subjectType || '',
             ...(r.orderIds || []),
             ...(r.items || []).map((i) => `${i.price}积分 ${i.holder} ${i.kind} ${i.className || ''}`)
@@ -471,7 +573,14 @@
     }
     function proofStatusText(r) {
       const n = (r.proofs || []).length;
-      return n ? `已上传 ${n} 张` : '未上传';
+      return n ? `已上传 ${n} 个` : '未上传';
+    }
+    function proofIcon(name) { return /\.pdf$/i.test(name || '') ? 'file-text' : 'image'; }
+    function disputeBadge(r) {
+      if (state.role === 'parent') return '';
+      return disputeState(r) === '待主管理员核验异议'
+        ? '<span class="shrink-0 rounded-md border border-rose-300 bg-rose-100 px-1.5 py-0.5 text-[12px] font-bold text-rose-800">异议待核验</span>'
+        : '';
     }
 
     /* ------------------------------------------------------------------
@@ -703,7 +812,8 @@
       { value: 'all', label: '全部类型' },
       { value: '1v1', label: '1v1 手动清退' },
       { value: 'small_group', label: '小班解散清退' },
-      { value: 'fallback', label: '管理员兜底' }
+      { value: 'fallback', label: '管理员兜底' },
+      { value: 'dispute', label: '待主管理员核验异议' }
     ];
 
     function holderFilterLabel() {
@@ -767,7 +877,7 @@
         <div class="space-y-3 px-4 pt-3">
           <div class="relative">
             <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
-            <input id="recordSearch" value="${esc(state.query)}" placeholder="搜索学员昵称/小名、小班名称、购课单号或备注" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-9 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
+            <input id="recordSearch" value="${esc(state.query)}" placeholder="搜索规范英文名、小班、购课单号或备注" class="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-9 text-[16px] text-slate-900 outline-none transition focus:border-indigo-500">
             ${state.query ? `<button data-action="clear-search" class="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="清除搜索">${icon('x', 'h-4 w-4')}</button>` : ''}
           </div>
 
@@ -789,7 +899,7 @@
             ${isParent
               ? '仅展示本人孩子名下的课次清退记录，只读；如有疑问请联系负责班长。'
               : isAdmin
-                ? '管理员展示全校清退记录，可按持有人与清退方式筛选；记录一经生成不可编辑或删除。'
+                ? '管理员展示全校清退记录，可按持有人、清退方式与「待主管理员核验异议」筛选；记录一经生效永久不可编辑或删除，兜底异议仅追加只读审计结论。'
                 : '班长仅展示本人作为资金持有人或本人经办的清退记录；已清退 TS 不进入周转账单与老师周课酬单。'}
           </div>
         </div>
@@ -820,7 +930,7 @@
            <div class="mt-1 font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`
         : showStudent
           ? `<button data-action="open-student" data-key="${esc(r.studentKey)}" class="block max-w-full truncate text-left text-[14px] font-bold text-slate-900">
-              ${esc(studentName(r.studentKey))} <span class="ml-1 rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(studentNickname(r.studentKey))}</span>
+              ${esc(studentName(r.studentKey))} ${state.role === 'parent' ? `<span class="ml-1 rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(studentNickname(r.studentKey))}</span>` : ''}
             </button>
             <div class="mt-1 font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`
           : `<div class="font-mono text-[12px] font-medium text-slate-600">${esc(r.at)}</div>`;
@@ -829,11 +939,16 @@
           <div class="min-w-0">${titleBlock}</div>
           <div class="flex shrink-0 flex-wrap justify-end gap-1">
             ${r.isFallback ? `<span class="rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">兜底代清退</span>` : ''}
+            ${disputeBadge(r)}
             <span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-800">${isSmall ? '核销' : '清退'} ${r.n} 节</span>
           </div>
         </div>
         <p class="mt-1.5 line-clamp-2 text-[12px] font-medium leading-relaxed text-slate-700">${esc(r.note)}</p>
-        ${isSmall ? `<div class="mt-1.5 flex flex-wrap gap-1">${(r.items || []).map((i) => `<span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">持有人 ${esc(i.holder)} · ${i.n} 节 · ${i.price * i.n} 积分</span>`).join('')}</div>` : ''}
+        ${opts.orderId && (r.orderIds || []).length > 1 ? (() => {
+          const slice = recordOrderSlices(r).find((x) => x.orderId === opts.orderId) || { n: 0, points: 0 };
+          return `<p class="mt-1 text-[12px] font-semibold text-indigo-700">本单清退 ${slice.n} 节（${slice.points} 积分）〔所属跨单联合清退共 ${r.n} 节 / ${recordPoints(r)} 积分 · 查看全单 →〕</p>`;
+        })() : ''}
+        ${isSmall ? `<div class="mt-1.5 flex flex-wrap gap-1">${(r.items || []).map((i) => `<span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">持有人 ${esc(i.holder)} · ${i.n} 节 · ${i.n * unitPoints(i)} 积分</span>`).join('')}</div>` : ''}
         <div class="mt-2 space-y-1 border-t border-slate-200/70 pt-2 text-[12px] font-medium text-slate-600">
           <div class="flex items-center justify-between gap-2">
             <span class="min-w-0 truncate">经办人 ${esc(r.by)} · 持有人 ${esc(holders.join(' / '))} · ${metricLabel} <span class="font-bold text-slate-900">${points}</span></span>
@@ -865,6 +980,7 @@
       }
       const totals = studentTotals(s.key);
       const rows = pendingTierRows(s.key);
+      const blocks = SCHEDULED_BLOCKS[s.key] || [];
       const groups = groupRowsByHolder(rows);
       const orders = ordersForStudent(s.key);
       const history = visibleRecordsForStudent(s.key);
@@ -877,7 +993,7 @@
         : isParent
           ? '家长端只读'
           : !editable.length
-            ? `该课次资金当前由 ${blockedHolders.join(' / ') || '他人'} 持有，请由资金持有人操作清退`
+            ? `该课次资金当前由 ${blockedHolders.join(' / ') || '他人'} 持有（含同家庭划入课次），请由资金持有人或平台管理员操作清退`
             : '发起多价位联合清退';
       const action = isParent
         ? `<span class="shrink-0 rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-600">只读</span>`
@@ -909,34 +1025,47 @@
         ${totals.scheduled > 0 ? `<div class="box-border w-full rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
           <div class="flex items-start gap-2">
             <span class="mt-0.5 shrink-0 text-amber-700">${icon('alert-triangle', 'h-4 w-4')}</span>
-            <p class="text-[12px] font-semibold leading-relaxed text-amber-900">该学员仍有 ${totals.scheduled} 节未来已排期课次，需先在课表请假退回待排期后才能清退；已排课格不得强行作废。</p>
+            <div class="min-w-0">
+              <p class="text-[12px] font-semibold leading-relaxed text-amber-900">该学员仍有 ${totals.scheduled} 节未来已排期课次，须先在课表请假释放回待排期池后再清退；已排课格不得强行作废。</p>
+              ${blocks.length ? `<div class="mt-1.5 space-y-1">
+                ${blocks.map((b) => `<div class="rounded-lg border border-amber-200 bg-white px-2 py-1 text-[12px] font-medium text-slate-700">${esc(b.at)} · 老师 ${esc(b.teacher)} · 负责班长 ${esc(b.monitor)}</div>`).join('')}
+              </div>` : ''}
+              <button data-action="go-schedule" class="mt-1.5 inline-flex items-center gap-1 text-[12px] font-bold text-amber-800 hover:text-amber-900">${icon('calendar-days', 'h-3.5 w-3.5')} 前往课表请假释放</button>
+            </div>
           </div>
         </div>` : ''}
 
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
           <div class="flex items-center justify-between">
             <h2 class="text-[16px] font-bold text-slate-900">可清退待排课次</h2>
-            <span class="text-[12px] font-semibold text-slate-600">按价位与持有人</span>
+            <span class="text-[12px] font-semibold text-slate-600">按原价位档位与持有人</span>
           </div>
           ${groups.length ? `<div class="mt-2 space-y-2">
-            ${groups.map((group) => `<div>
+            ${groups.map((group) => {
+              const groupLocked = !group.list.some(rowEditable);
+              const hasSpecial = group.list.some((r) => r.special);
+              return `<div class="${groupLocked ? 'rounded-xl border border-dashed border-slate-400 bg-slate-50/60 p-1.5 opacity-65' : ''}">
               <div class="flex items-center justify-between px-1 pb-1">
                 <span class="text-[12px] font-bold text-slate-900">资金持有人 · ${esc(group.holder)}</span>
-                <span class="text-[12px] font-semibold text-slate-600">${group.list.reduce((a, r) => a + r.remaining, 0)} 节 · ${group.list.reduce((a, r) => a + r.remaining * r.price, 0)} 积分</span>
+                <span class="text-[12px] font-semibold text-slate-600">${group.list.reduce((a, r) => a + r.remaining, 0)} 节 · ${group.list.reduce((a, r) => a + r.remaining * r.snapshot, 0)} 积分</span>
               </div>
               <div class="space-y-1.5">
                 ${group.list.map((row) => `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-1.5">
-                      <span class="text-[14px] font-bold text-slate-900">${row.price}积分</span>
+                      <span class="text-[14px] font-bold text-slate-900">${tierPriceLabel(row)}</span>
                       <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(row)}</span>
                     </div>
                     <div class="mt-0.5 text-[12px] font-medium text-slate-600">剩余 ${row.remaining} 节未排 · ${row.orderId}</div>
+                    ${row.special ? `<div class="mt-0.5 text-[12px] font-semibold text-amber-800">含特批改价/尾差节次，按先购先扣实付快照逐节求和</div><div class="mt-0.5 text-[12px] font-semibold text-slate-700">单节实付快照 ${row.snapshot}积分（原价位档位 ${row.price}积分）</div>` : ''}
                   </div>
-                  <span class="shrink-0 text-[14px] font-bold text-slate-900">${row.remaining * row.price} <span class="text-[12px] font-semibold text-slate-600">积分</span></span>
+                  <span class="shrink-0 text-[14px] font-bold text-slate-900">${row.remaining * row.snapshot} <span class="text-[12px] font-semibold text-slate-600">积分</span></span>
                 </div>`).join('')}
               </div>
-            </div>`).join('')}
+              ${hasSpecial ? `<p class="px-1 pt-1 text-[12px] font-semibold text-amber-800">本组含特批改价/尾差节次，按先购先扣实付快照逐节求和</p>` : ''}
+              ${groupLocked ? `<p class="px-1 pt-1 text-[12px] font-semibold leading-relaxed text-slate-700">[资金由 ${esc(group.holder)} 持有 · 须由原持有人或平台管理员操作清退]</p>` : ''}
+            </div>`;
+            }).join('')}
           </div>` : `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-center text-[12px] font-medium text-slate-600">当前没有可清退的待排期课次</div>`}
         </section>
 
@@ -975,7 +1104,7 @@
         </section>
 
         <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">
-          清退仅扣减待排期课次并记录财务备注；已排期课次需先在课表请假退回；已清退 TS 不进入周转账单与老师周课酬单。
+          清退仅扣减待排期 1v1 课次并按单切片挂载原购课单；已排期课次需先在课表请假释放；记录经双要素确认后永久不可逆。已清退 TS 不进入周转账单与老师周课酬单。
         </div>
       </div>`;
     }
@@ -1001,7 +1130,8 @@
       const s = studentByKey(o.studentKey);
       const history = visibleRecordsForOrder(o.id);
       const remaining = orderRemaining(o);
-      const small = isSmallGroupOrder(o);
+      const remainingPts = orderPoints(o);
+      const cleared = orderClearedSlices(o.id);      const small = isSmallGroupOrder(o);
       const editable = pendingTierRows(o.studentKey).filter(rowEditable);
       const canDeduct = !small && state.online === 'on' && state.role !== 'parent' && remaining > 0 && editable.length > 0;
       return `<div class="space-y-3 px-4 py-3 pb-10">
@@ -1009,7 +1139,7 @@
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <div class="font-mono text-[12px] font-bold text-slate-900">${esc(o.id)}</div>
-              <button data-action="open-student" data-key="${esc(o.studentKey)}" class="mt-1 block max-w-full truncate text-left text-[16px] font-bold text-slate-900">${esc(s ? s.name : o.studentKey)} · ${esc(s ? s.nickname : '')}</button>
+              <button data-action="open-student" data-key="${esc(o.studentKey)}" class="mt-1 block max-w-full truncate text-left text-[16px] font-bold text-slate-900">${esc(s ? s.name : o.studentKey)}${state.role === 'parent' && s ? ` · ${esc(s.nickname)}` : ''}</button>
               <div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(o.type)} · 资金持有人 ${esc(o.holder)}</div>
             </div>
             <span class="flex shrink-0 items-center gap-1">${statusPill(o.status)}${o.hasClear ? clearTag() : ''}</span>
@@ -1020,23 +1150,34 @@
             ${assetTile('历史结课', o.finished)}
           </div>
           <div class="mt-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
-            <div class="flex items-center justify-between text-[12px] font-medium text-slate-600"><span>剩余待排积分</span><span class="text-[14px] font-bold text-slate-900">${orderPoints(o)} 积分</span></div>
+            <div class="flex items-center justify-between text-[12px] font-medium text-slate-600"><span>剩余待排积分</span><span class="text-[14px] font-bold text-slate-900">${remainingPts} 积分</span></div>
+            <div class="mt-1.5 border-t border-slate-200/70 pt-1.5">
+              <div class="text-[12px] font-semibold text-slate-600">对账汇总 · 原始 / 本单已清退 / 本单剩余</div>
+              <div class="mt-1 grid grid-cols-3 gap-1 text-center">
+                <div class="rounded-lg bg-slate-100 px-1 py-1"><div class="text-[12px] font-medium text-slate-600">原始</div><div class="text-[12px] font-bold text-slate-900">${remaining + cleared.n} 节</div><div class="text-[12px] font-medium text-slate-600">${remainingPts + cleared.points} 积分</div></div>
+                <div class="rounded-lg bg-slate-100 px-1 py-1"><div class="text-[12px] font-medium text-slate-600">本单已清退</div><div class="text-[12px] font-bold text-slate-900">${cleared.n} 节</div><div class="text-[12px] font-medium text-slate-600">${cleared.points} 积分</div></div>
+                <div class="rounded-lg bg-slate-100 px-1 py-1"><div class="text-[12px] font-medium text-slate-600">本单剩余</div><div class="text-[12px] font-bold text-slate-900">${remaining} 节</div><div class="text-[12px] font-medium text-slate-600">${remainingPts} 积分</div></div>
+              </div>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">本单仅只读挂载自身切片；跨单联合清退全量明细归口 M2B 清退记录，避免重复加总。</p>
+            </div>
           </div>
           ${canDeduct ? `<button data-action="open-deduct-order" data-id="${esc(o.id)}" class="mt-2 flex h-9 w-full items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white text-[12px] font-bold text-indigo-700 hover:bg-indigo-50">${icon('minus-circle', 'h-3.5 w-3.5')} 发起课次清退</button>` : ''}
         </section>
 
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
-          <h2 class="text-[16px] font-bold text-slate-900">价位明细</h2>
+          <h2 class="text-[16px] font-bold text-slate-900">原价位档位明细</h2>
           <div class="mt-2 space-y-1.5">
             ${(o.tiers || []).map((t) => `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="text-[14px] font-bold text-slate-900">${t.price}积分</span>
+                  <span class="text-[14px] font-bold text-slate-900">${tierPriceLabel(t)}</span>
                   <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(t)}</span>
+                  ${t.special ? '<span class="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[12px] font-bold text-amber-800">含特批改价/尾差</span>' : ''}
                 </div>
+                ${t.special ? `<div class="mt-0.5 text-[12px] font-semibold text-slate-700">单节实付快照 ${unitPoints(t)}积分（原价位档位 ${t.price}积分）</div>` : ''}
                 <div class="mt-0.5 text-[12px] font-medium text-slate-600">${t.remaining > 0 ? `剩余 ${t.remaining} 节未排` : '该价位已无剩余待排期'}</div>
               </div>
-              <span class="shrink-0 text-[12px] font-bold text-slate-900">${t.remaining * t.price} 积分</span>
+              <span class="shrink-0 text-[12px] font-bold text-slate-900">${t.remaining * unitPoints(t)} 积分</span>
             </div>`).join('')}
           </div>
         </section>
@@ -1047,12 +1188,12 @@
             <span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-600">${history.length} 条 · 倒序</span>
           </div>
           <div class="mt-2 ${state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2'}">
-            ${history.length ? history.map((r) => renderRecordCard(r, { showStudent: false })).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-6 text-center text-[12px] font-medium text-slate-600">该购课单暂无清退记录</div>`}
+            ${history.length ? history.map((r) => renderRecordCard(r, { showStudent: false, orderId: o.id })).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-6 text-center text-[12px] font-medium text-slate-600">该购课单暂无清退记录</div>`}
           </div>
         </section>
 
         <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">
-          购课单与清退记录永久只读留痕；清退仅作废待排期 TS，已排期课次需先退回待排期池。
+          购课单主状态恒为「已付款」并轻标「含清退」；详情仅只读挂载本单切片，跨单联合清退全量明细归口 M2B 清退记录；已清退 TS 不进入周转账单与老师周课酬单。
         </div>
       </div>`;
     }
@@ -1075,7 +1216,7 @@
             <span class="rounded-md border border-slate-300 bg-white px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${esc(source)}</span>
             <span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-slate-600">只读 · 由小班提前结课解散生成</span>
           </div>`
-        : `<button data-action="open-student" data-key="${esc(r.studentKey)}" class="mt-0.5 block max-w-full truncate text-left text-[14px] font-semibold text-slate-700">${esc(s ? s.name : r.studentKey)} · ${esc(s ? s.nickname : '')}</button>`;
+        : `<button data-action="open-student" data-key="${esc(r.studentKey)}" class="mt-0.5 block max-w-full truncate text-left text-[14px] font-semibold text-slate-700">${esc(s ? s.name : r.studentKey)}${state.role === 'parent' && s ? ` · ${esc(s.nickname)}` : ''}</button>`;
       const metricCells = isSmall
         ? `<div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
             <div class="text-[12px] font-semibold text-slate-600">${pointsLabel}</div>
@@ -1107,49 +1248,92 @@
           </div>
           <div class="rounded-xl border border-slate-200/60 bg-white px-2.5 py-2">
             <div class="text-[12px] font-semibold text-slate-600">凭证状态</div>
-            <div class="mt-0.5 text-[14px] font-bold text-slate-900">${(r.proofs || []).length ? `已上传 ${(r.proofs || []).length} 张` : '未上传'}</div>
+            <div class="mt-0.5 text-[14px] font-bold text-slate-900">${(r.proofs || []).length ? `已上传 ${(r.proofs || []).length} 个` : '未上传'}</div>
           </div>`;
       const itemRows = (r.items || []).map((i) => isSmall
         ? `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2" data-holder-item="${esc(i.holder)}">
             <div class="flex flex-wrap items-center gap-1.5">
               <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(i)}</span>
             </div>
-            <div class="mt-1 text-[14px] font-semibold text-slate-900">持有人 ${esc(i.holder)} · ${i.n} 节 · ${i.price * i.n} 积分</div>
+            <div class="mt-1 text-[14px] font-semibold text-slate-900">持有人 ${esc(i.holder)} · ${i.n} 节 · ${i.n * unitPoints(i)} 积分</div>
           </div>`
         : `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-1.5">
-                <span class="text-[14px] font-bold text-slate-900">${i.price}积分 × ${i.n} 节</span>
+                <span class="text-[14px] font-bold text-slate-900">${tierPriceLabel(i)} × ${i.n} 节</span>
                 <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${itemKindLabel(i)}</span>
               </div>
+              ${unitPoints(i) !== i.price ? `<div class="mt-0.5 text-[12px] font-semibold text-amber-800">单节实付快照 ${unitPoints(i)}积分（原价位档位 ${i.price}积分）</div>` : ''}
               <div class="mt-0.5 text-[12px] font-medium text-slate-600">资金持有人 ${esc(i.holder)}</div>
             </div>
-            <span class="shrink-0 text-[12px] font-bold text-slate-900">${i.price * i.n} 积分</span>
+            <span class="shrink-0 text-[12px] font-bold text-slate-900">${i.n * unitPoints(i)} 积分</span>
           </div>`).join('');
       const orderSection = isSmall
         ? `<div class="mt-2 space-y-1.5">
             ${(r.orderIds || []).map((id) => {
               const order = orderById(id);
+              const slice = recordOrderSlices(r).find((x) => x.orderId === id) || { n: 0, points: 0 };
               return `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2" data-order-readonly="${esc(id)}">
-                <div class="min-w-0 flex-1"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">${order ? `${esc(order.type)} · 持有人 ${esc(order.holder)}` : '历史购课单（只读留痕）'}</div></div>
-                <span class="shrink-0 text-[12px] font-semibold text-slate-600">只读</span>
+                <div class="min-w-0 flex-1"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">${order ? `${esc(order.type)} · 持有人 ${esc(order.holder)}` : '历史购课单（只读留痕）'}</div><div class="mt-0.5 text-[12px] font-semibold text-slate-700">本单作废 ${slice.n} 节 · ${slice.points} 积分</div></div>
+                <span class="shrink-0 text-[12px] font-semibold text-slate-600">只读切片</span>
               </div>`;
             }).join('')}
           </div>`
         : `<div class="mt-2 space-y-1.5">
             ${(r.orderIds || []).map((id) => {
               const order = orderById(id);
+              const slice = recordOrderSlices(r).find((x) => x.orderId === id) || { n: 0, points: 0 };
               return order
                 ? `<button data-action="open-order" data-id="${esc(id)}" class="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-left transition hover:bg-slate-50">
-                    <div class="min-w-0 flex-1"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(order.type)} · 持有人 ${esc(order.holder)}</div></div>
+                    <div class="min-w-0 flex-1"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">${esc(order.type)} · 持有人 ${esc(order.holder)}</div><div class="mt-0.5 text-[12px] font-semibold text-slate-700">本单清退 ${slice.n} 节 · ${slice.points} 积分</div></div>
                     <span class="flex shrink-0 items-center gap-1">${statusPill(order.status)}${order.hasClear ? clearTag() : ''}</span>
                   </button>`
                 : `<div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2">
-                    <div class="min-w-0"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">历史购课单（只读留痕）</div></div>
+                    <div class="min-w-0"><div class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(id)}</div><div class="mt-0.5 text-[12px] font-medium text-slate-600">历史购课单（只读留痕）</div><div class="mt-0.5 text-[12px] font-semibold text-slate-700">本单清退 ${slice.n} 节 · ${slice.points} 积分</div></div>
                     <span class="shrink-0 text-[12px] font-semibold text-slate-600">已归档</span>
                   </div>`;
             }).join('')}
           </div>`;
+
+      const remainingHours = Math.max(0, Math.ceil(72 - (TODAY - new Date(String(r.at).replace(' ', 'T'))) / 3600000));
+      const dispute = disputeState(r);
+      const disputeBlock = dispute === '待主管理员核验异议'
+        ? `<div class="mt-2 box-border w-full rounded-2xl border border-rose-200 border-l-4 border-l-rose-600 bg-rose-50/80 p-3">
+            <div class="flex items-start gap-2">
+              <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-rose-600"></span>
+              <div class="min-w-0">
+                <p class="text-[12px] font-bold text-rose-900">[课次清退] 浅红紧急卡 + Email · 待主管理员核验异议</p>
+                <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-900/85">原资金持有人 ${esc(holders.join(' / '))} 于 ${esc(r.disputeAt || '—')} 提出异议：${esc(r.disputeNote || '')}</p>
+                <p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-900/85">已向永久主管理员 ${esc(PERMANENT_MAIN_ADMIN)} 派发浅红紧急卡 + Email 审计；核验仅追加只读结论，不回写主记录数值，也不恢复已作废 TS。</p>
+                ${state.role === 'admin'
+                  ? `<p class="mt-1 text-[12px] font-medium leading-relaxed text-rose-900/85">请核对下方退款/转账凭证（${(r.proofs || []).length} 个）与线下核算后核验完结。</p><button data-action="verify-dispute" data-id="${esc(r.id)}" class="mt-2 inline-flex h-7 items-center rounded-lg border border-rose-200 bg-white px-2.5 text-[12px] font-bold text-rose-700 hover:bg-rose-50">标为已核验完结</button>`
+                  : `<p class="mt-1 text-[12px] font-semibold text-rose-900/80">仅「永久主管理员」可核验完结</p>`}
+              </div>
+            </div>
+          </div>`
+        : dispute === '已核验完结'
+          ? `<div class="mt-2 rounded-xl border border-slate-300 bg-slate-50/70 px-2.5 py-2">
+              <p class="text-[12px] font-bold text-slate-800">异议已核验完结</p>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">已由永久主管理员 ${esc(PERMANENT_MAIN_ADMIN)} 线下核账核验完结；仅追加只读审计结论，主记录财务数值与已作废 TS 均不恢复。</p>
+            </div>`
+          : canObject(r)
+            ? `<div class="mt-2 rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
+                <p class="text-[12px] font-bold text-amber-900">72 小时内可提出异议复核</p>
+                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">你为原资金持有人，可在落盘后 72 小时内（剩余约 ${remainingHours} 小时）对凭证或线下核算提出一次异议，直达永久主管理员浅红紧急卡 + Email 审计。</p>
+                <button data-action="open-objection" data-id="${esc(r.id)}" class="mt-2 inline-flex h-7 items-center rounded-lg border border-amber-300 bg-white px-2.5 text-[12px] font-bold text-amber-900 hover:bg-amber-50">提出异议复核</button>
+              </div>`
+            : `<div class="mt-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-600">原持有人可在落盘后 72 小时内提出异议复核；本笔当前：${esc(dispute)}${within72h(r) ? '' : '（已超 72 小时受理窗口）'}。</div>`;
+      const notifySection = !isSmall && r.isFallback && state.role !== 'parent'
+        ? `<section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+            <h2 class="text-[16px] font-bold text-slate-900">M4 通知与审计留痕</h2>
+            <div class="mt-2 box-border w-full rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
+              <p class="text-[12px] font-bold text-amber-900">[课次清退] 浅黄提醒卡 + Email</p>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-900/85">已派发至原资金持有人 ${esc(holders.join(' / '))}${r.by !== PERMANENT_MAIN_ADMIN ? `；经办人 ${esc(r.by)} 为普通管理员，已同步向永久主管理员 ${esc(PERMANENT_MAIN_ADMIN)} 派发浅黄提醒卡 + Email 审计留痕。` : '；经办人为永久主管理员，无需另行抄送。'}</p>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-900/85">站内提醒随主事务同事务原子落盘；关键 Email 于主事务提交成功后异步投递。</p>
+            </div>
+            ${disputeBlock}
+          </section>`
+        : '';
       return `<div class="space-y-3 px-4 py-3 pb-10">
         <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
           <div class="flex items-start justify-between gap-2">
@@ -1168,6 +1352,7 @@
 
         <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
           <h2 class="text-[16px] font-bold text-slate-900">清退明细</h2>
+          ${isSmall ? '<p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">M2B 为小班解散核销唯一公式归口：按全部被作废已付款未上 TS 的单节待上交积分快照逐节求和，与 1v1 家长实付退费积分语义严格隔离。</p>' : ''}
           <div class="mt-2 space-y-1.5">${itemRows}</div>
         </section>
 
@@ -1178,6 +1363,8 @@
 
         <section class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
           <h2 class="text-[16px] font-bold text-slate-900">清退涉及购课单</h2>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">1 主清退记录 ↔ 1～N 原购课单，各单仅只读挂载本单切片。</p>
+          ${(r.orderIds || []).length > 1 ? `<p class="mt-1 rounded-lg border border-indigo-200 bg-indigo-50/70 px-2 py-1.5 text-[12px] font-semibold text-indigo-800">属跨单联合清退：总计 ${r.n} 节 / ${recordPoints(r)} 积分，其中各单切片见下，全量明细归口本 M2B 记录。</p>` : ''}
           ${orderSection}
         </section>
 
@@ -1189,32 +1376,35 @@
                 <span class="truncate font-mono text-[12px] font-bold text-slate-900">${esc(c.orderId)}</span>
                 ${paidWithClearTag()}
               </div>
-              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">${esc(c.note || '主状态保持已付款 · 挂载清退记录')}</p>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">${esc(c.note || '主状态保持已付款 · 只读挂载本单切片')}</p>
             </div>`).join('') : `<div class="rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-[12px] font-medium text-slate-600">历史记录无挂载留痕快照</div>`}
           </div>
         </section>
 
+        ${notifySection}
+
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
-          <h2 class="text-[16px] font-bold text-slate-900">截图凭证${isSmall ? '' : `（${(r.proofs || []).length} 张）`}</h2>
+          <h2 class="text-[16px] font-bold text-slate-900">退款/转账凭证${isSmall ? '' : `（${(r.proofs || []).length} 个）`}</h2>
           ${isSmall
-            ? `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-[12px] font-medium text-slate-600">小班解散清退无需上传截图凭证，由小班提前结课解散同事务生成。</div>`
+            ? `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-[12px] font-medium text-slate-600">小班解散清退无需上传退款/转账凭证，由小班提前结课解散同事务生成。</div>`
             : (r.proofs && r.proofs.length)
               ? `<div class="mt-2 space-y-1.5">${r.proofs.map((p) => `<button data-action="preview-proof" class="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 text-left hover:bg-slate-50">
-                  <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">${icon('image', 'h-5 w-5')}</span>
+                  <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">${icon(proofIcon(p.name), 'h-5 w-5')}</span>
                   <span class="min-w-0 flex-1">
                     <span class="block truncate text-[14px] font-semibold text-slate-800">${esc(p.name)}</span>
                     <span class="block text-[12px] font-medium text-slate-600">${fmtSize(p.size)} · 点击预览</span>
                   </span>
                   ${icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-500')}
                 </button>`).join('')}</div>`
-              : `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-[12px] font-medium text-slate-600">本笔清退未上传截图凭证</div>`}
+              : `<div class="mt-2 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-3 text-[12px] font-medium text-slate-600">本笔清退未上传退款/转账凭证</div>`}
         </section>
 
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-3.5">
           <h2 class="text-[16px] font-bold text-slate-900">记录信息</h2>
           <div class="mt-2 space-y-1 text-[12px]">
             <div class="flex justify-between gap-2"><span class="shrink-0 font-medium text-slate-600">记录编号</span><span class="truncate font-mono font-semibold text-slate-900">${esc(r.id)}</span></div>
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">记录状态</span><span class="font-semibold text-slate-900">已生效 · 不可删除</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">记录状态</span><span class="font-semibold text-slate-900">已生效 · 永久不可逆</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">字段锁定</span><span class="text-right font-semibold text-slate-900">清退节数 / 积分 / TS / 凭证永久只读</span></div>
             <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">资金持有人</span><span class="truncate font-semibold text-slate-900">${esc(holders.join(' / '))}</span></div>
             <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">清退节数</span><span class="font-semibold text-slate-900">${r.n} 节</span></div>
             ${isSmall ? `<div class="flex justify-between gap-2"><span class="font-medium text-slate-600">来源</span><span class="truncate font-semibold text-slate-900">${esc(source)}</span></div>` : ''}
@@ -1222,8 +1412,8 @@
         </section>
 
         <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${isSmall
-          ? '小班解散清退记录由小班提前结课解散同事务生成，永久只读不可编辑或删除；已清退 TS 不进入周转账单与老师周课酬单。'
-          : '清退记录一经生成不可编辑或删除，仅用于财务审计追溯；已清退 TS 不进入周转账单与老师周课酬单。'}</div>
+          ? '小班解散清退记录由小班提前结课解散同事务生成，M2B 为核销积分唯一公式归口；记录永久只读不可编辑或删除，已清退 TS 不进入周转账单与老师周课酬单。'
+          : '清退记录经双要素确认生效后永久不可撤销，不设撤销、冲正或改积分通道；兜底异议仅追加只读审计结论，不回写主记录数值、不恢复已作废 TS。已清退 TS 不进入周转账单与老师周课酬单。'}</div>
       </div>`;
     }
 
@@ -1253,14 +1443,13 @@
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-1.5">
                       <span class="text-[14px] font-bold text-slate-900">${esc(s.name)}</span>
-                      <span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">小名 ${esc(s.nickname)}</span>
                     </div>
                     <div class="mt-0.5 text-[12px] font-medium text-slate-600">持有人 ${esc(holders.join(' / '))}</div>
                   </div>
                   <span class="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-bold text-slate-800">${totals.pending} 节 · ${totals.points} 积分</span>
                 </div>
                 <div class="mt-1.5 flex flex-wrap gap-1">
-                  ${rows.map((r) => `<span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${r.price}积分 × ${r.remaining} 节</span>`).join('')}
+                  ${rows.map((r) => `<span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${tierPriceLabel(r)} × ${r.remaining} 节</span>`).join('')}
                 </div>
               </button>`;
             }).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-10 text-center text-[14px] font-medium text-slate-600">当前身份下没有可清退的学员资产</div>`}
@@ -1296,9 +1485,9 @@
       });
       const selected = rows.filter((r) => r.selected);
       const pending = rows.reduce((a, r) => a + r.remaining, 0);
-      const pointsAll = rows.reduce((a, r) => a + r.remaining * r.price, 0);
+      const pointsAll = rows.reduce((a, r) => a + r.remaining * r.snapshot, 0);
       const totalN = selected.reduce((a, r) => a + r.n, 0);
-      const totalPoints = selected.reduce((a, r) => a + r.n * r.price, 0);
+      const totalPoints = selected.reduce((a, r) => a + r.n * r.snapshot, 0);
       const after = Math.max(0, pending - totalN);
       const fallbackSelected = state.role === 'admin' && selected.some((r) => r.holder !== '平台');
       const fallbackAvailable = state.role === 'admin' && rows.some((r) => r.holder !== '平台');
@@ -1326,11 +1515,12 @@
         <div class="flex items-center justify-between gap-2">
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-1.5">
-              <span class="text-[14px] font-bold text-slate-900">${row.price}积分</span>
-              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">${kindLabel}</span>
+              <span class="text-[14px] font-bold text-slate-900">${tierPriceLabel(row)}</span>
+              <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-700">原价位档位 · ${kindLabel}</span>
               ${!row.canEdit ? `<span class="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-600">持有人 ${esc(row.holder)}</span>` : ''}
             </div>
             <div class="mt-0.5 text-[12px] font-medium text-slate-600">剩余 ${row.remaining} 节未排</div>
+            ${row.special ? `<div class="mt-0.5 text-[12px] font-semibold text-amber-800">含特批改价/尾差节次，按先购先扣实付快照逐节求和</div><div class="mt-0.5 text-[12px] font-semibold text-slate-700">单节实付快照 ${row.snapshot}积分（原价位档位 ${row.price}积分）</div>` : ''}
             <div class="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] font-semibold text-slate-700">
               <span data-tier-after="${esc(row.key)}">退后余 ${row.after} 节</span>
               ${row.over ? '<span class="text-rose-700">已超限</span>' : ''}
@@ -1348,6 +1538,7 @@
 
     function renderDeductSummary(ds) {
       const err = ds.errors.total || '';
+      const slices = orderSlicesFromRows(ds.selected);
       return `<div class="grid grid-cols-3 gap-2">
           <div class="min-w-0">
             <div class="text-[12px] font-semibold text-slate-600">本次清退</div>
@@ -1362,6 +1553,8 @@
             <div class="mt-0.5 whitespace-nowrap text-[16px] font-bold leading-tight text-slate-900">${ds.after} <span class="text-[12px] font-semibold text-slate-600">节</span></div>
           </div>
         </div>
+        ${slices.length ? `<div class="mt-1.5 flex flex-wrap gap-1 border-t border-slate-200/70 pt-1.5">${slices.map((s) => `<span class="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[12px] font-semibold text-slate-700">${esc(s.orderId)} · 本单 ${s.n} 节 / ${s.points} 积分</span>`).join('')}</div>
+        ${slices.length > 1 ? '<p class="mt-1 text-[12px] font-semibold text-indigo-700">属跨单联合清退：1 主记录 ↔ 1～N 原购课单，各单仅挂载本单切片。</p>' : ''}` : ''}
         <p id="deductTotalError" class="mt-1 text-[12px] font-semibold text-rose-600 ${err ? '' : 'hidden'}">${esc(err)}</p>`;
     }
 
@@ -1382,29 +1575,36 @@
               <span class="mt-0.5 shrink-0 text-amber-700">${icon('shield-alert', 'h-4 w-4')}</span>
               <div class="min-w-0">
                 <p class="text-[12px] font-bold text-amber-900">管理员紧急兜底代清退（资金持有人：${esc(fallbackHolders.join(' / '))}）</p>
-                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">代清退非平台持有的课次时，必须上传 1～5 张线下退款/转账截图凭证并填写原因；提交后向原持有人班长发送只读通知。</p>
+                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">代清退非平台持有的课次时，必须上传 1～5 个线下退款/转账凭证（JPG / PNG / PDF，单文件 ≤10MB）并填写兜底原因。</p>
+                <p class="mt-1 text-[12px] font-medium leading-relaxed text-amber-900/85">提交后：M4 站内提醒随主事务同事务落盘，向原持有人班长派发浅黄提醒卡；如经办人为普通管理员，同步向「永久主管理员」派发浅黄卡 + Email 审计。关键 Email 于主事务提交成功后异步投递。</p>
+                <p class="mt-1 text-[12px] font-semibold leading-relaxed text-amber-900">原持有人可在落盘后 72 小时内提出异议复核，直达永久主管理员浅红紧急卡 + Email。</p>
               </div>
             </div>
           </div>`
         : '';
 
+      const blocks = SCHEDULED_BLOCKS[d.studentKey] || [];
       const scheduledReminder = scheduled > 0
         ? `<div class="rounded-2xl border border-amber-300 bg-amber-50/50 p-3">
             <div class="flex items-start gap-2">
               <span class="mt-0.5 shrink-0 text-amber-700">${icon('alert-triangle', 'h-4 w-4')}</span>
               <div class="min-w-0">
-                <p class="text-[12px] font-semibold leading-relaxed text-amber-900">存在未来已排期 ${scheduled} 节，请先在课表请假退回待排期池再清退</p>
-                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">不得强行作废已排课格；本操作仅扣减待排期课次。</p>
+                <p class="text-[12px] font-semibold leading-relaxed text-amber-900">存在未来已排期 ${scheduled} 节，严禁跳过 M3B 按师归口权限强行作废已排课格</p>
+                <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-amber-900/85">须协调负责班长或由管理员在课表请假释放回待排期池后再清退；本操作仅扣减待排期课次。</p>
+                ${blocks.length ? `<div class="mt-1.5 space-y-1">
+                  ${blocks.map((b) => `<div class="rounded-lg border border-amber-200 bg-white px-2 py-1 text-[12px] font-medium text-slate-700">${esc(b.at)} · 老师 ${esc(b.teacher)} · 负责班长 ${esc(b.monitor)}</div>`).join('')}
+                </div>` : ''}
               </div>
             </div>
-            <button data-action="go-schedule" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-amber-800 hover:text-amber-900">${icon('calendar-days', 'h-3.5 w-3.5')} 前往课表</button>
+            <button data-action="go-schedule" class="mt-2 inline-flex items-center gap-1 text-[12px] font-bold text-amber-800 hover:text-amber-900">${icon('calendar-days', 'h-3.5 w-3.5')} 前往课表请假释放</button>
           </div>`
         : '';
 
       const groups = ds.groups.map((group) => {
         const groupPending = group.list.reduce((a, r) => a + r.remaining, 0);
-        const groupPoints = group.list.reduce((a, r) => a + r.remaining * r.price, 0);
+        const groupPoints = group.list.reduce((a, r) => a + r.remaining * r.snapshot, 0);
         const locked = group.list.every((r) => !r.canEdit);
+        const hasSpecial = group.list.some((r) => r.special);
         return `<section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-2.5">
           <div class="flex items-center justify-between gap-2 px-1 pb-1.5">
             <div class="flex min-w-0 items-center gap-1.5">
@@ -1415,16 +1615,17 @@
             <span class="shrink-0 text-[12px] font-semibold text-slate-600">${groupPending} 节 · ${groupPoints} 积分</span>
           </div>
           <div class="space-y-1.5">${group.list.map((row) => renderTierRow(row, offline)).join('')}</div>
-          ${locked ? `<p class="px-1 pt-1 text-[12px] font-medium leading-relaxed text-slate-600">该价位由 ${esc(group.holder)} 持有，需由持有人操作；管理员可经兜底流程代清退。</p>` : ''}
+          ${hasSpecial ? `<p class="px-1 pt-1 text-[12px] font-semibold leading-relaxed text-amber-800">含特批改价/尾差节次，按先购先扣实付快照逐节求和</p>` : ''}
+          ${locked ? `<p class="px-1 pt-1 text-[12px] font-semibold leading-relaxed text-slate-700">[资金由 ${esc(group.holder)} 持有 · 须由原持有人或平台管理员操作清退]</p>` : ''}
         </section>`;
       }).join('');
 
       const proofRequired = ds.fallbackSelected;
       const proofHint = proofRequired
-        ? `必填 · 1～5 张（已传 ${d.proofs.length}/5）`
+        ? `必填 · 1～5 个（已传 ${d.proofs.length}/5）`
         : isFallbackFlow
           ? `选填 · 选择非平台课次时必填（已传 ${d.proofs.length}/5）`
-          : `选填 · 0～5 张（已传 ${d.proofs.length}/5）`;
+          : `选填 · 0～5 个（已传 ${d.proofs.length}/5）`;
 
       return `<div class="absolute inset-x-0 bottom-0 top-16 z-50">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
@@ -1433,7 +1634,7 @@
           <div class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-4 pb-2.5">
             <div class="min-w-0">
               <h2 class="text-[16px] font-bold text-slate-900">课次清退/扣减</h2>
-              <p class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${esc(student.name)} · ${esc(student.nickname)} · 共 ${ds.pending} 节未排</p>
+              <p class="mt-0.5 truncate text-[12px] font-medium text-slate-600">${esc(student.name)} · 共 ${ds.pending} 节未排</p>
             </div>
             <button data-action="close-overlay" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭">${icon('x', 'h-5 w-5')}</button>
           </div>
@@ -1451,8 +1652,11 @@
                   </div>
                   <button data-action="clear-all" ${offline ? 'disabled' : ''} class="shrink-0 rounded-lg border border-indigo-200 bg-white px-2 py-1 text-[12px] font-bold text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-40">[ 全部清零 ]</button>
                 </div>
-                <div class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">仅支持 1v1 待排期课次；小班待排课次请由小班提前结课解散处理。</div>
+                <div class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">一键仅填满本人有权清退的待排 1v1 课次；若需办理档案注销/归档，仍需依序完成未来已排释放、在途单作废与他方托管课次清退。</div>
+                <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">仅支持 1v1 待排期课次；小班待排课次请由小班提前结课解散处理。</div>
               </div>
+
+              <p class="px-1 text-[12px] font-medium leading-relaxed text-slate-600">同「原价位档位 + 备课费标记 + 资金持有人」分组内，按先购先扣（FIFO）统一锁定拟作废 TS，并按单节实付积分快照逐节求和。</p>
 
               ${groups}
 
@@ -1467,19 +1671,19 @@
 
               <div>
                 <div class="flex items-center justify-between gap-2">
-                  <span class="text-[14px] font-semibold text-slate-700"><span id="proofTitle">线下退款/转账截图凭证</span> <span id="proofStar" class="text-rose-500 ${proofRequired ? '' : 'hidden'}">*</span></span>
+                  <span class="text-[14px] font-semibold text-slate-700"><span id="proofTitle">线下退款/转账凭证</span> <span id="proofStar" class="text-rose-500 ${proofRequired ? '' : 'hidden'}">*</span></span>
                   <span id="proofRequirement" class="shrink-0 text-[12px] font-semibold ${proofRequired ? 'text-rose-700' : 'text-slate-600'}">${proofHint}</span>
                 </div>
                 ${d.proofs.map((p, idx) => proofChip(p, idx)).join('')}
                 ${d.proofs.length < 5
                   ? `<label class="mt-1.5 flex h-14 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white text-[14px] font-semibold text-slate-700 hover:bg-slate-50">
-                      ${icon('upload', 'h-4 w-4 text-slate-500')} 选择截图文件（可多选）
-                      <input id="proofInput" type="file" multiple accept="image/jpeg,image/png,image/webp" class="hidden">
+                      ${icon('upload', 'h-4 w-4 text-slate-500')} 选择凭证文件（JPG / PNG / PDF，可多选）
+                      <input id="proofInput" type="file" multiple accept="image/jpeg,image/png,application/pdf" class="hidden">
                     </label>`
                   : ''}
                 <p id="deductProofError" class="mt-1 text-[12px] font-semibold text-rose-600 ${d.errors.proof ? '' : 'hidden'}">${esc(d.errors.proof || '')}</p>
                 <div class="mt-1 flex items-center justify-between gap-2">
-                  <p class="text-[12px] font-medium text-slate-600">JPG / PNG / WebP · 单张 ≤5MB</p>
+                  <p class="text-[12px] font-medium text-slate-600">JPG / PNG / PDF · 单文件 ≤10MB · 最多 5 个</p>
                   ${d.proofs.length < 5 ? `<button data-action="sample-proof" ${offline ? 'disabled' : ''} class="text-[12px] font-bold text-indigo-600 disabled:opacity-40">使用示例凭证</button>` : ''}
                 </div>
               </div>
@@ -1494,6 +1698,7 @@
                   <span class="font-semibold text-slate-900">${esc(holders.join(' / '))}</span>
                 </div>
                 <p class="mt-1.5 text-[12px] font-medium text-slate-600">已清退 TS 不进入周转账单与老师周课酬单。</p>
+                <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">落盘后同步按 M2A AC-2A-09 双口径重算本单剩余有效 TS 参考额度与学员最新有效 1v1 总 TS 聚合参考额度。</p>
               </div>
             </div>
           </div>
@@ -1510,7 +1715,7 @@
 
     function proofChip(p, idx) {
       return `<div class="mt-1.5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2">
-        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">${icon('image', 'h-5 w-5')}</span>
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600">${icon(proofIcon(p.name), 'h-5 w-5')}</span>
         <span class="min-w-0 flex-1">
           <span class="block truncate text-[14px] font-semibold text-slate-800">${esc(p.name)}</span>
           <span class="block text-[12px] font-medium text-slate-600">${fmtSize(p.size)} · 已选择</span>
@@ -1559,13 +1764,13 @@
       const proofReq = $('proofRequirement');
       if (proofReq) {
         if (ds.fallbackSelected) {
-          proofReq.textContent = `必填 · 1～5 张（已传 ${d.proofs.length}/5）`;
+          proofReq.textContent = `必填 · 1～5 个（已传 ${d.proofs.length}/5）`;
           proofReq.className = 'shrink-0 text-[12px] font-semibold text-rose-700';
         } else if (ds.fallbackAvailable) {
           proofReq.textContent = `选填 · 选择非平台课次时必填（已传 ${d.proofs.length}/5）`;
           proofReq.className = 'shrink-0 text-[12px] font-semibold text-slate-600';
         } else {
-          proofReq.textContent = `选填 · 0～5 张（已传 ${d.proofs.length}/5）`;
+          proofReq.textContent = `选填 · 0～5 个（已传 ${d.proofs.length}/5）`;
           proofReq.className = 'shrink-0 text-[12px] font-semibold text-slate-600';
         }
       }
@@ -1573,39 +1778,106 @@
     }
 
     /* ------------------------------------------------------------------
-     * 二次确认
+     * 双要素盲输不可逆确认
      * ------------------------------------------------------------------ */
+    function confirmMatches() {
+      const ds = deductState();
+      const student = studentByKey(state.deduct.studentKey);
+      if (!student || ds.totalN < 1) return false;
+      const nameOk = state.confirm.name.trim().toLowerCase() === student.name.toLowerCase();
+      const nOk = parseQty(state.confirm.n) === ds.totalN;
+      const proofOk = !ds.fallbackSelected || (state.deduct.proofs.length >= 1 && state.deduct.proofs.length <= 5);
+      return nameOk && nOk && proofOk;
+    }
+
     function renderConfirmModal() {
       const ds = deductState();
       if (!ds.selected.length) return '';
       const student = studentByKey(state.deduct.studentKey);
       if (!student) return '';
-      return `<div class="absolute inset-x-0 bottom-0 top-16 z-50">
+      const slices = orderSlicesFromRows(ds.selected);
+      const matched = confirmMatches();
+      return `<div class="fixed inset-0 z-[70]">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
-        <div class="absolute inset-x-5 top-1/2 mx-auto max-h-[92%] max-w-[360px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl">
+        <div class="absolute inset-x-3 bottom-3 top-3 mx-auto flex max-w-[360px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <div class="min-h-0 flex-1 overflow-y-auto p-4">
           <div class="flex items-start gap-2.5">
             <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-rose-200 bg-rose-50 text-rose-600">${icon('alert-triangle', 'h-4 w-4')}</span>
             <div class="min-w-0">
-              <h2 class="text-[16px] font-bold text-slate-900">确认清退课次</h2>
-              <p class="mt-1 text-[14px] font-medium leading-relaxed text-slate-700">将作废 ${ds.totalN} 节待排期课次，操作不可撤销，请确认已完成线下沟通与核算。</p>
+              <h2 class="text-[16px] font-bold text-slate-900">双要素盲输确认 · 永久不可撤销</h2>
+              <p class="mt-1 text-[12px] font-semibold leading-relaxed text-rose-700">课次清退一经确认永久不可撤销（且购课单仅支持正整数实收，无法 0 积分重开补回），请务必确认已完成线下微信沟通与核算。</p>
             </div>
           </div>
           <div class="mt-3 space-y-1.5 rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 text-[12px]">
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">学员</span><span class="truncate font-semibold text-slate-900">${esc(student.name)} · ${esc(student.nickname)}</span></div>
-            ${ds.selected.map((row) => `<div class="flex justify-between gap-2"><span class="font-medium text-slate-600">${row.price}积分 × ${row.n} 节</span><span class="truncate font-semibold text-slate-900">持有人 ${esc(row.holder)}</span></div>`).join('')}
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">1v1 退款实付积分</span><span class="truncate font-semibold text-slate-900">${ds.totalPoints} 积分</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">学员规范英文名</span><span class="truncate font-mono font-semibold text-slate-900">${esc(student.name)}</span></div>
+            ${ds.selected.map((row) => `<div class="flex justify-between gap-2"><span class="font-medium text-slate-600">${tierPriceLabel(row)} × ${row.n} 节${row.special ? ` · 实付快照 ${row.snapshot}积分` : ''}</span><span class="truncate font-semibold text-slate-900">持有人 ${esc(row.holder)}</span></div>`).join('')}
+            <div class="border-t border-slate-200/70 pt-1.5">
+              ${slices.map((s) => `<div class="flex justify-between gap-2"><span class="truncate font-medium text-slate-600">${esc(s.orderId)}</span><span class="shrink-0 font-semibold text-slate-900">本单 ${s.n} 节 / ${s.points} 积分</span></div>`).join('')}
+            </div>
+            <div class="flex justify-between gap-2 border-t border-slate-200/70 pt-1.5"><span class="font-medium text-slate-600">1v1 退款实付积分</span><span class="truncate font-semibold text-slate-900">${ds.totalPoints} 积分</span></div>
             <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">清退后剩余未排</span><span class="truncate font-semibold text-slate-900">${ds.after} 节</span></div>
-            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">凭证张数</span><span class="truncate font-semibold text-slate-900">${state.deduct.proofs.length} 张</span></div>
+            <div class="flex justify-between gap-2"><span class="font-medium text-slate-600">凭证个数</span><span class="truncate font-semibold text-slate-900">${state.deduct.proofs.length} 个</span></div>
             <div class="flex justify-between gap-2"><span class="shrink-0 font-medium text-slate-600">财务备注</span><span class="truncate text-right font-medium text-slate-700">${esc(state.deduct.note.trim())}</span></div>
           </div>
-          ${ds.fallbackSelected ? `<div class="mt-2 rounded-xl border border-amber-300 bg-amber-50/70 px-2.5 py-2 text-[12px] font-semibold text-amber-900">提交后将向原持有人班长发送只读通知。</div>` : ''}
-          <div class="mt-2.5 rounded-xl border border-slate-200/80 bg-white p-2.5">
-            <div class="flex items-center justify-between gap-2 text-[12px]"><span class="font-medium text-slate-600">关联购课单</span><span class="truncate font-mono font-semibold text-slate-900">${esc([...new Set(ds.selected.map((r) => r.orderId))].join(' · '))}</span></div>
-            <p class="mt-1.5 text-[12px] font-medium text-slate-600">已清退 TS 不进入周转账单与老师周课酬单。</p>
+          <div class="mt-3 rounded-xl border border-rose-200 bg-rose-50/70 p-2.5">
+            <p class="text-[12px] font-bold text-rose-900">请手动输入以下两项以激活确认</p>
+            <label for="confirmStudentName" class="mt-2 block text-[12px] font-semibold text-slate-700">① 学员规范英文名</label>
+            <input id="confirmStudentName" value="${esc(state.confirm.name)}" autocomplete="off" placeholder="请输入学员规范英文名" class="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 font-mono text-[14px] font-bold text-slate-900 outline-none transition focus:border-rose-500">
+            <label for="confirmTotalN" class="mt-2 block text-[12px] font-semibold text-slate-700">② 本次清退总节数</label>
+            <input id="confirmTotalN" value="${esc(state.confirm.n)}" inputmode="numeric" autocomplete="off" placeholder="请输入本次清退总节数" class="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-[14px] font-bold text-slate-900 outline-none transition focus:border-rose-500">
+            <p id="confirmMatchHint" class="mt-1.5 text-[12px] font-semibold ${matched ? 'text-emerald-700' : 'text-rose-700'}">${matched ? '双要素匹配，可提交' : '双要素完全匹配且兜底凭证有效后方可激活确认'}</p>
           </div>
+          ${ds.fallbackSelected ? `<div class="mt-2 box-border w-full rounded-2xl border border-amber-300 bg-amber-50/50 px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-amber-900">提交后：站内提醒随主事务同事务落盘，向原持有人班长派发浅黄提醒卡${state.role === 'admin' && actor() !== PERMANENT_MAIN_ADMIN ? `，并抄送永久主管理员 ${esc(PERMANENT_MAIN_ADMIN)}` : ''}；关键 Email 于主事务提交成功后异步投递。</div>` : ''}
+          <div class="mt-2 flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-2.5 py-2 text-[12px]">
+            <span class="font-medium text-slate-600">关联购课单</span>
+            <span class="truncate text-right font-mono font-semibold text-slate-900">${esc([...new Set(ds.selected.map((r) => r.orderId))].join(' · '))}</span>
+          </div>
+          </div>
+          <div class="shrink-0 border-t border-slate-100 p-3">
+            <div class="flex gap-2">
+              <button data-action="back-to-deduct" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">返回修改</button>
+              <button id="btnConfirmDeduct" data-action="confirm-deduct" ${matched ? '' : 'disabled'} class="h-11 flex-[1.3] rounded-xl bg-rose-600 text-[16px] font-bold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认清退</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function refreshConfirmState() {
+      const ds = deductState();
+      const student = studentByKey(state.deduct.studentKey);
+      if (!student) return;
+      const matched = confirmMatches();
+      const hint = $('confirmMatchHint');
+      if (hint) {
+        hint.textContent = matched ? '双要素匹配，可提交' : '双要素完全匹配且兜底凭证有效后方可激活确认';
+        hint.className = `mt-1.5 text-[12px] font-semibold ${matched ? 'text-emerald-700' : 'text-rose-700'}`;
+      }
+      const btn = $('btnConfirmDeduct');
+      if (btn) btn.disabled = !matched || ds.totalN < 1;
+    }
+
+    /* ------------------------------------------------------------------
+     * 72h 异议复核
+     * ------------------------------------------------------------------ */
+    function renderObjectionModal() {
+      const r = recordById(state.objection.recordId);
+      if (!r) return '';
+      return `<div class="fixed inset-0 z-[70]">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
+        <div class="absolute inset-x-3 top-1/2 mx-auto max-h-[90%] max-w-[360px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl">
+          <h2 class="text-[16px] font-bold text-slate-900">提出异议复核</h2>
+          <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">记录 ${esc(r.id)} · 管理员兜底代清退。异议仅用于审计监督与线下核账，不回写主记录数值，也不恢复已作废 TS。</p>
+          <label for="objectionText" class="mt-3 block text-[14px] font-semibold text-slate-700">异议说明 <span class="text-rose-500">*</span></label>
+          <textarea id="objectionText" rows="4" maxlength="200" placeholder="请填写 1–200 字异议说明，例如：家长实际仅确认退 1 节，凭证金额与备注存在差异。" class="mt-1 h-24 w-full resize-none rounded-xl border border-slate-200 p-3 text-[16px] leading-relaxed text-slate-900 outline-none transition focus:border-rose-500">${esc(state.objection.text)}</textarea>
+          <div class="mt-1 flex items-center justify-between">
+            <p class="text-[12px] font-semibold text-rose-600 ${state.objection.error ? '' : 'hidden'}">${esc(state.objection.error || '')}</p>
+            <span id="objectionCount" class="ml-auto text-[12px] font-medium text-slate-600">${state.objection.text.length}/200</span>
+          </div>
+          <div class="mt-2 rounded-xl border border-rose-200 bg-rose-50/70 px-2.5 py-2 text-[12px] font-semibold leading-relaxed text-rose-900">提交后审计异议态立即置为「待主管理员核验异议」，并向永久主管理员 ${esc(PERMANENT_MAIN_ADMIN)} 派发浅红紧急卡 + Email。</div>
           <div class="mt-3 flex gap-2">
-            <button data-action="back-to-deduct" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">返回修改</button>
-            <button data-action="confirm-deduct" class="h-11 flex-[1.3] rounded-xl bg-rose-600 text-[16px] font-bold text-white hover:bg-rose-700">确认清退</button>
+            <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[16px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
+            <button data-action="submit-objection" class="h-11 flex-[1.3] rounded-xl bg-rose-600 text-[16px] font-bold text-white hover:bg-rose-700">提交异议</button>
           </div>
         </div>
       </div>`;
@@ -1648,6 +1920,7 @@
       else if (state.overlay.type === 'deduct') el.innerHTML = renderDeductSheet();
       else if (state.overlay.type === 'confirm') el.innerHTML = renderConfirmModal();
       else if (state.overlay.type === 'holder') el.innerHTML = renderHolderSheet();
+      else if (state.overlay.type === 'objection') el.innerHTML = renderObjectionModal();
       else el.innerHTML = '';
     }
 
@@ -1695,12 +1968,12 @@
       if (preset === 'multi') {
         setRow(rows.find((r) => r.price === 16 && r.kind === '1v1'), 2);
         setRow(rows.find((r) => r.price === 18 && r.kind === '1v1'), 1);
-        d.note = '线下微信退费 150 积分，家长调整课业安排，已与家长确认剩余课次。';
+        d.note = '线下微信退费 49 积分，家长调整课业安排，已与家长确认剩余课次。';
       }
       if (preset === 'fallback') {
         setRow(rows.find((r) => r.price === 16 && r.kind === '1v1'), 2);
         setRow(rows.find((r) => r.price === 18 && r.kind === '1v1'), 1);
-        d.note = '管理员兜底：家长移居停课，线下微信退费 50 积分，已与持有人及家长三方确认。';
+        d.note = '管理员兜底：家长移居停课，线下微信退费 49 积分，已与持有人及家长三方确认。';
         d.proofs = [{ name: '微信转账凭证_示例.png', size: 286 * 1024 }];
       }
       if (preset === 'clear') {
@@ -1719,9 +1992,10 @@
       const editable = rows.filter(rowEditable);
       if (!editable.length) {
         const holders = [...new Set(rows.map((r) => r.holder))];
-        return showToast(`该课次资金当前由 ${holders.join(' / ')} 持有，请由资金持有人操作清退`);
+        return showToast(`该课次资金当前由 ${holders.join(' / ')} 持有（含同家庭划入课次），请由资金持有人或平台管理员操作清退`);
       }
       state.deduct = { studentKey: key, inputs: {}, note: '', proofs: [], errors: {} };
+      state.confirm = { name: '', n: '' };
       rows.forEach((row) => { state.deduct.inputs[row.key] = '0'; });
       applyPreset(preset);
       state.overlay = { type: 'deduct' };
@@ -1735,7 +2009,7 @@
       state.deduct.errors = {};
       state.overlay = { type: 'deduct' };
       renderAll();
-      showToast(`已填满可清退的 ${rows.reduce((a, r) => a + r.remaining, 0)} 节待排期课次`);
+      showToast(`已填满${state.role === 'admin' ? '全部' : '本人有权清退的'} ${rows.reduce((a, r) => a + r.remaining, 0)} 节待排 1v1 课次；注销归档仍需完成未来已排释放、在途单作废与他方托管清退`);
     }
 
     function validateDeduct() {
@@ -1754,9 +2028,9 @@
       if (!note) errors.note = '请填写财务备注';
       else if (note.length > 200) errors.note = '财务备注最多 200 字';
       if (ds.fallbackSelected && d.proofs.length < 1) {
-        errors.proof = '管理员兜底清退必须上传至少 1 张线下退款/转账截图凭证';
+        errors.proof = '管理员兜底清退必须上传至少 1 个线下退款/转账凭证（JPG / PNG / PDF，≤10MB）';
       } else if (d.proofs.length > 5) {
-        errors.proof = '最多上传 5 张截图凭证';
+        errors.proof = '最多上传 5 个凭证';
       }
       d.errors = errors;
       return Object.keys(errors).length === 0 ? ds : null;
@@ -1776,6 +2050,7 @@
         showToast(firstError());
         return;
       }
+      state.confirm = { name: '', n: '' };
       state.overlay = { type: 'confirm' };
       renderAll();
     }
@@ -1793,6 +2068,9 @@
         renderAll();
         showToast(firstError());
         return;
+      }
+      if (!confirmMatches()) {
+        return showToast('请完整输入学员规范英文名与本次清退总节数，双要素完全匹配后方可提交');
       }
       const d = state.deduct;
       const selected = ds.selected;
@@ -1816,16 +2094,17 @@
         id: nextRecordId(),
         studentKey: d.studentKey,
         subjectType: '1v1',
-        at: formatDateTime(new Date()),
+        at: formatDateTime(TODAY),
         by: actor(),
         isFallback,
         note: d.note.trim(),
-        items: selected.map((r) => ({ kind: r.kind, price: r.price, n: r.n, holder: r.holder, className: r.className })),
+        items: selected.map((r) => ({ kind: r.kind, price: r.price, n: r.n, holder: r.holder, className: r.className, orderId: r.orderId, snapshot: r.snapshot, extraPrep: r.extraPrep })),
         n: ds.totalN,
         totalPoints: ds.totalPoints,
         orderIds,
         after,
         proofs: clone(d.proofs),
+        dispute: '无异议',
         statusChanges: changes
       };
       state.records.unshift(record);
@@ -1837,8 +2116,8 @@
       state.back = null;
       renderAll();
       showToast(isFallback
-        ? `已清退 ${ds.totalN} 节，1v1 退款实付积分 ${ds.totalPoints} 积分，已向原持有人班长发送只读通知`
-        : `已清退 ${ds.totalN} 节，1v1 退款实付积分 ${ds.totalPoints} 积分，财务备注已留痕`);
+        ? `已清退 ${ds.totalN} 节 / ${ds.totalPoints} 积分；已向原持有人 ${holders.join(' / ')} 派发浅黄提醒卡与 Email（站内同事务、Email 异步）${actor() !== PERMANENT_MAIN_ADMIN ? `，并抄送永久主管理员 ${PERMANENT_MAIN_ADMIN} 审计` : ''}`
+        : `已清退 ${ds.totalN} 节 / ${ds.totalPoints} 积分，双要素确认与财务备注已永久留痕`);
     }
 
     function openRecord(id) {
@@ -1976,6 +2255,39 @@
         return;
       }
       if (action === 'confirm-deduct') return confirmDeduct();
+      if (action === 'open-objection') {
+        state.objection = { recordId: el.dataset.id, text: '', error: '' };
+        state.overlay = { type: 'objection' };
+        renderAll();
+        return;
+      }
+      if (action === 'submit-objection') {
+        const r = recordById(state.objection.recordId);
+        if (!r) return;
+        const text = state.objection.text.trim();
+        if (!text) {
+          state.objection.error = '请填写 1–200 字异议说明';
+          renderOverlay();
+          if (window.lucide) lucide.createIcons();
+          return;
+        }
+        r.dispute = '待主管理员核验异议';
+        r.disputeNote = text.slice(0, 200);
+        r.disputeAt = formatDateTime(TODAY);
+        state.overlay = null;
+        renderAll();
+        showToast(`异议已提交；已向永久主管理员 ${PERMANENT_MAIN_ADMIN} 派发浅红紧急卡 + Email 审计`);
+        return;
+      }
+      if (action === 'verify-dispute') {
+        const r = recordById(el.dataset.id);
+        if (!r || state.role !== 'admin') return showToast('仅「永久主管理员」可核验异议');
+        r.dispute = '已核验完结';
+        r.verifiedAt = formatDateTime(TODAY);
+        renderAll();
+        showToast('已标为已核验完结：仅追加只读审计结论，不回写主记录数值、不恢复已作废 TS');
+        return;
+      }
       if (action === 'remove-proof') {
         const idx = Number(el.dataset.idx);
         state.deduct.proofs.splice(idx, 1);
@@ -1986,9 +2298,10 @@
       }
       if (action === 'sample-proof') {
         if (state.online === 'off') return showToast('离线模式下不可上传凭证');
-        if (state.deduct.proofs.length >= 5) return showToast('最多上传 5 张截图凭证');
+        if (state.deduct.proofs.length >= 5) return showToast('最多上传 5 个凭证');
         const idx = state.deduct.proofs.length + 1;
-        state.deduct.proofs.push({ name: `微信转账截图_示例${idx}.png`, size: (210 + idx * 35) * 1024 });
+        const ext = idx % 2 === 0 ? 'pdf' : 'png';
+        state.deduct.proofs.push({ name: `微信转账凭证_示例${idx}.${ext}`, size: (210 + idx * 35) * 1024 });
         state.deduct.errors = {};
         renderOverlay();
         if (window.lucide) lucide.createIcons();
@@ -2019,6 +2332,23 @@
         refreshDeductPreview();
         return;
       }
+      if (id === 'confirmStudentName') {
+        state.confirm.name = e.target.value;
+        refreshConfirmState();
+        return;
+      }
+      if (id === 'confirmTotalN') {
+        state.confirm.n = e.target.value;
+        refreshConfirmState();
+        return;
+      }
+      if (id === 'objectionText') {
+        state.objection.text = e.target.value;
+        state.objection.error = '';
+        const count = $('objectionCount');
+        if (count) count.textContent = `${state.objection.text.length}/200`;
+        return;
+      }
       if (id === 'recordSearch') {
         state.query = e.target.value;
         const pos = e.target.selectionStart;
@@ -2039,15 +2369,15 @@
         if (!files.length) return;
         for (const file of files) {
           if (state.deduct.proofs.length >= 5) {
-            showToast('最多上传 5 张截图凭证');
+            showToast('最多上传 5 个凭证');
             break;
           }
-          if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-            showToast('仅支持 JPG / PNG / WebP');
+          if (!['image/jpeg', 'image/png', 'application/pdf'].includes(file.type)) {
+            showToast('仅支持 JPG / PNG / PDF');
             continue;
           }
-          if (file.size > 5 * 1024 * 1024) {
-            showToast('单张凭证大小不能超过 5MB');
+          if (file.size > 10 * 1024 * 1024) {
+            showToast('单个凭证大小不能超过 10MB');
             continue;
           }
           state.deduct.proofs.push({ name: file.name, size: file.size });

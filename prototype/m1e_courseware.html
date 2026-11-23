@@ -61,6 +61,7 @@
         <div class="inline-flex rounded-xl bg-slate-100 p-1">
           <button data-group="student" data-value="stu_alice001" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">AliceZ12</button>
           <button data-group="student" data-value="stu_bob00002" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">BobZ10</button>
+          <button data-group="student" data-value="stu_cindy003" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">CindyZ08 · 已归档</button>
         </div>
       </div>
 
@@ -80,6 +81,7 @@
         </div>
       </div>
 
+      <button id="btnSimulateConflict" class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 font-semibold text-amber-800 hover:bg-amber-100">模拟并发冲突</button>
       <button id="btnResetDemo" class="rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50">重置</button>
 
       <a href="../docs/prd/m1e_courseware.md" target="_blank" rel="noopener" class="hidden items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 font-semibold text-slate-500 hover:bg-slate-50 lg:inline-flex">
@@ -468,18 +470,39 @@
           { at: '2026-11-08 19:40', by: 'David（老师）', text: '更新进度：Oxford Phonics World → Unit 2 · Long A' },
           { at: '2026-10-20 11:05', by: 'Leo（班长）', text: '新增 Oxford Phonics World · Level 2' }
         ]
+      },
+      {
+        id: 'stu_cindy003', nickname: 'CindyZ08', realName: '张小欣', age: 8, status: 'ARCHIVED',
+        current: [
+          {
+            cwId: 'cw_phonics01', levelId: 'lvl_pho00001',
+            progressText: 'Unit 1 · Letter Sounds',
+            lastUpdatedAt: '2025-12-18 16:20', lastUpdatedBy: 'Elena', lastUpdatedRole: 'teacher',
+            boundAt: '2025-06-01',
+            teacherUpdateCounts: { Elena: 8 },
+            teacherUpdateLog: { Elena: '2025-12-18 16:20' }
+          }
+        ],
+        audit: [
+          { at: '2026-01-05 10:00', by: 'Leo（班长）', text: '学员已归档 · 在学课件与进度只读留存' },
+          { at: '2025-12-18 16:20', by: 'Elena（老师）', text: '更新进度：Oxford Phonics World → Unit 1 · Letter Sounds' }
+        ]
       }
     ];
 
     const LESSONS = {
-      stu_alice001: { time: '19:00', course: '少儿英语', room: 'ClassIn: 982-123-456', countdown: '02:14' },
-      stu_bob00002: { time: '18:30', course: '生活口语', room: 'ClassIn: 883-456-789', countdown: '01:02' }
+      stu_alice001: { time: '19:00', course: '少儿英语', room: 'ClassIn: 982-123-456', countdown: '02:14', teacher: 'David' },
+      stu_bob00002: { time: '18:30', course: '生活口语', room: 'ClassIn: 883-456-789', countdown: '01:02', teacher: 'David' }
     };
 
     /* 1vN 小班：与 1v1 学员复用同一套在学课件 / 2000 字进度备注模型；阶段 ④ 全量只读 */
     const CLASSES = [
       {
         id: 'cls_ket0001', name: 'KET 冲刺精讲小班', owner: 'Leo', mainTeacher: 'David', stage: 3,
+        /* 正式在读 / 随班归档只读留存学员：仅用于家长只读回看与隐私扫描范围 */
+        memberIds: ['stu_alice001'],
+        memberNames: ['张小丽', 'AliceZ12'],
+        historyMemberNames: ['李小明', 'Peter'],
         current: [
           {
             cwId: 'cw_ket000001', levelId: 'lvl_ket00001',
@@ -506,6 +529,9 @@
       },
       {
         id: 'cls_ielts0002', name: '雅思口语小班', owner: 'Amy', mainTeacher: 'Sarah', stage: 4,
+        memberIds: ['stu_bob00002'],
+        memberNames: ['张小博', 'BobZ10'],
+        historyMemberNames: ['王小虎', 'Tom'],
         current: [
           {
             cwId: 'cw_wonders01', levelId: 'lvl_won00003',
@@ -579,8 +605,8 @@
     if (state.role === 'teacher' && state.page === 'student') state.navTab = 'students';
     if (params.get('studentId')) state.activeStudentId = params.get('studentId');
     if (params.get('device') === 'tablet') state.device = 'tablet';
-    /* 家长端物理隔离：即便 URL 强行指定小班视图也回退到孩子课件 */
-    if (state.page === 'class' && !viewAllowed('class')) {
+    /* 家长仅可只读查看本人孩子已绑定的小班；无绑定则回退到孩子课件 */
+    if (state.page === 'class' && (!viewAllowed('class') || (state.role === 'parent' && !accessibleClasses().length))) {
       state.page = state.role === 'parent' ? 'child' : 'student';
       state.navTab = state.role === 'parent' ? 'me' : state.navTab;
     }
@@ -614,11 +640,17 @@
       return state.classes.find((c) => c.id === id) || null;
     }
 
-    /* 小班可见范围：管理员全部；班长本人主理；老师本人主讲；家长物理不可见 */
+    /* 小班可见范围：管理员全部；班长本人主理；老师本人主讲；
+       家长仅可只读查看本人孩子已绑定（含「随班归档只读留存」）的小班，已删除学员排除 */
     function accessibleClasses() {
       if (state.role === 'admin') return state.classes;
       if (state.role === 'monitor') return state.classes.filter((c) => c.owner === operatorName());
       if (state.role === 'teacher') return state.classes.filter((c) => c.mainTeacher === operatorName());
+      if (state.role === 'parent') {
+        const s = activeStudent();
+        if (!s || s.status === 'DELETED') return [];
+        return state.classes.filter((c) => (c.memberIds || []).includes(s.id));
+      }
       return [];
     }
 
@@ -635,6 +667,59 @@
 
     function classCanProgress(c) {
       return !!c && ['admin', 'monitor', 'teacher'].includes(state.role) && c.stage <= 3;
+    }
+
+    /* 乐观版本校验：以条目内部版本号模拟服务端最新版本 */
+    function itemRev(item) {
+      return (item && item.__rev) || 1;
+    }
+
+    function bumpItemRev(item) {
+      if (item) item.__rev = itemRev(item) + 1;
+    }
+
+    function studentBoundClasses(s) {
+      if (!s || s.status === 'DELETED') return [];
+      return state.classes.filter((c) => (c.memberIds || []).includes(s.id));
+    }
+
+    /* 1v1 家长改课件：待上授课老师 ∪ 待排资金持有人，按账号去重 */
+    function parentNotifyTargets(s) {
+      if (!s) return [];
+      const targets = [];
+      const lesson = LESSONS[s.id];
+      if (lesson && lesson.teacher) {
+        targets.push({ name: lesson.teacher, role: '待上授课老师' });
+        targets.push({ name: 'Leo', role: '负责班长' });
+      }
+      if (s.status === 'ACTIVE') targets.push({ name: 'Leo', role: '待排资金持有人' });
+      const seen = new Set();
+      return targets.filter((t) => (seen.has(t.name) ? false : (seen.add(t.name), true)));
+    }
+
+    function classMemberNames(c) {
+      if (!c) return [];
+      const live = state.students.filter((s) => (c.memberIds || []).includes(s.id) && s.status !== 'DELETED');
+      return [...(c.memberNames || []), ...live.map((s) => s.realName), ...live.map((s) => s.nickname)];
+    }
+
+    /* 分级隐私扫描：中文 ≥2 字；英文 ≥2 字符且按独立英文全词边界忽略大小写；联络特征硬阻断 */
+    function scanClassPrivacy(text, c) {
+      const raw = String(text || '');
+      const names = [...new Set(classMemberNames(c).concat(c && c.historyMemberNames ? c.historyMemberNames : []))]
+        .map((n) => String(n || '').trim()).filter(Boolean);
+      const hitNames = names.filter((n) => {
+        if (/^[A-Za-z][A-Za-z .'-]*$/.test(n)) {
+          if (n.replace(/[^A-Za-z]/g, '').length < 2) return false;
+          const re = new RegExp(`(?<![A-Za-z])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z])`, 'i');
+          return re.test(raw);
+        }
+        return n.length >= 2 && raw.includes(n);
+      });
+      const contacts = [];
+      if (/1[3-9]\d{9}/.test(raw)) contacts.push('手机号码');
+      if (/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(raw)) contacts.push('电子邮箱');
+      return { names: [...new Set(hitNames)], contacts: [...new Set(contacts)] };
     }
 
     function ensureClassDraft(c) {
@@ -952,8 +1037,8 @@
     function viewAllowed(v) {
       if (state.role === 'admin') return ['library', 'student', 'class'].includes(v);
       if (state.role === 'monitor') return ['student', 'class'].includes(v);
-      /* 家长对小班课件物理不可见 */
-      if (state.role === 'parent') return ['child', 'student'].includes(v);
+      /* 家长仅可只读查看本人孩子已绑定的小班课件（物理隐藏增删/编辑） */
+      if (state.role === 'parent') return ['child', 'student', 'class'].includes(v);
       return ['prep', 'student', 'class'].includes(v);
     }
 
@@ -980,9 +1065,9 @@
         if (group === 'online') active = state.online === value;
         b.disabled = disabled;
         b.className = `ctl rounded-lg px-2.5 py-1.5 font-semibold transition ${active ? 'bg-white text-slate-900' : 'text-slate-500 hover:text-slate-800'}${disabled ? ' cursor-not-allowed opacity-40' : ''}`;
-        /* 小班课件入口对家长物理隐藏，其余角色可见 */
+        /* 家长已开放绑定小班只读回看，演示控制台保留入口 */
         if (group === 'view' && value === 'class') {
-          b.classList.toggle('hidden', state.role === 'parent');
+          b.classList.remove('hidden');
         }
       });
     }
@@ -1030,7 +1115,7 @@
       if (view === 'prep') { state.page = 'prep'; state.navTab = 'schedule'; }
       if (view === 'class') {
         state.page = 'class';
-        state.navTab = state.role === 'admin' ? 'settings' : state.role === 'monitor' ? 'ops' : 'schedule';
+        state.navTab = state.role === 'admin' ? 'settings' : state.role === 'monitor' ? 'ops' : state.role === 'parent' ? 'me' : 'schedule';
         state.classDraft = null;
         state.classDraftId = null;
       }
@@ -1083,6 +1168,24 @@
     }
 
     $('btnResetDemo').addEventListener('click', resetDemo);
+
+    /* 演示控制台：模拟他人并发提交，用于验证乐观版本校验与冲突兜底 */
+    $('btnSimulateConflict').addEventListener('click', () => {
+      const o = state.overlay;
+      if (!o || o.type !== 'progressDrawer') {
+        showToast('请先打开某门课件的「更新进度」抽屉，再模拟他人并发提交');
+        return;
+      }
+      if (o.target === 'class') {
+        const c = findClass(o.classId);
+        const item = c && (c.current || []).find((x) => x.cwId === o.cwId);
+        if (item) bumpItemRev(item);
+      } else {
+        const item = (activeStudent().current || []).find((x) => x.cwId === o.cwId);
+        if (item) bumpItemRev(item);
+      }
+      showToast('已模拟他人并发提交 · 点击保存将触发版本校验');
+    });
 
     /* 演示导航折叠（状态记忆，localStorage 不可用时静默降级） */
     const NAV_COLLAPSE_KEY = 'dream_proto_nav_collapsed';
@@ -1223,7 +1326,7 @@
     function studentSwitch() {
       return `<div class="rounded-2xl border border-slate-300 bg-slate-50/70 p-2">
         <div class="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
-          ${state.students.map((s) => `<button data-action="switch-student" data-id="${s.id}" class="flex-1 rounded-lg py-2 text-[12px] font-bold transition ${s.id === state.activeStudentId ? 'bg-white text-indigo-700' : 'text-slate-500'}">${esc(s.nickname)}</button>`).join('')}
+          ${state.students.map((s) => `<button data-action="switch-student" data-id="${s.id}" class="flex flex-1 items-center justify-center gap-1 rounded-lg py-2 text-[12px] font-bold transition ${s.id === state.activeStudentId ? 'bg-white text-indigo-700' : 'text-slate-500'}"><span class="truncate">${esc(s.nickname)}</span>${s.status === 'ACTIVE' ? '' : `<span class="shrink-0 rounded border border-slate-200 bg-slate-100 px-1 py-0.5 text-[10px] font-bold text-slate-500">已归档</span>`}</button>`).join('')}
         </div>
       </div>`;
     }
@@ -1360,7 +1463,7 @@
       return `<div class="flex h-full min-h-0 flex-col bg-slate-50">
         <div id="editorScroll" class="min-h-0 flex-1 overflow-y-auto bg-slate-50">
           <div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-3">
-            <p class="px-1 text-[12px] font-medium leading-relaxed text-slate-500">中英文名称为必填 · 中英文简介、封面配图、级别与样图可选</p>
+            <p class="px-1 text-[12px] font-medium leading-relaxed text-slate-500">中英文名称为必填且全库唯一（英文忽略大小写，含已停用课件）· 中英文简介、封面配图、级别与样图可选</p>
 
             <section class="rounded-2xl border border-slate-200/80 bg-white p-4">
               ${formSectionTitle(1, '基础信息')}
@@ -1405,7 +1508,7 @@
                 ${formSectionTitle(2, '分级级别', `<span class="text-[12px] font-medium text-slate-500">${f.levels.length}/30 个</span>`)}
                 <button data-action="add-level" ${f.levels.length >= 30 ? 'disabled' : ''} class="h-8 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-[12px] font-bold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">+ 添加级别</button>
               </div>
-              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">级别英文名必填且不超过 32 字符；每级可上传 0-9 张样图内页，支持调整级别与配图顺序。</p>
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">级别英文名必填且不超过 32 字符；每级可上传 0-9 张样图内页。新增级别按录入顺序排列，全端以管理员上移/下移保存后的显式顺序序号统一展示。</p>
               <div class="mt-2.5 space-y-2">
                 ${f.levels.length ? f.levels.map((lvl, i) => levelEditor(lvl, i)).join('') : `<div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-5 text-center text-[12px] font-medium text-slate-500">尚未配置级别 · 可保存为无分级课件</div>`}
               </div>
@@ -1513,6 +1616,11 @@
       if (f.nameCn.length > 64) return '中文名不能超过 64 字符';
       if (!f.nameEn.trim()) return '请填写课件英文名';
       if (f.nameEn.length > 64) return '英文名不能超过 64 字符';
+      /* AC-1E-01：中文名与英文名（忽略大小写）在全库含停用课件内各自唯一 */
+      const dupCn = state.courseware.find((c) => c.id !== f.id && String(c.nameCn || '').trim() === f.nameCn.trim());
+      if (dupCn) return `已存在同名课件《${f.nameCn.trim()}》，请直接编辑原课件`;
+      const dupEn = state.courseware.find((c) => c.id !== f.id && String(c.nameEn || '').trim().toLowerCase() === f.nameEn.trim().toLowerCase());
+      if (dupEn) return `已存在同名课件《${f.nameEn.trim()}》，请直接编辑原课件`;
       if (f.levels.length > 30) return '单个课件最多支持 30 个分级级别';
       for (let i = 0; i < f.levels.length; i++) {
         const lvl = f.levels[i];
@@ -1615,7 +1723,8 @@
       const draft = state.draft;
       const parentBlocked = state.role === 'parent' && s.status !== 'ACTIVE';
       const roleCanWrite = ['admin', 'monitor', 'teacher', 'parent'].includes(state.role);
-      const canWriteRole = roleCanWrite && !parentBlocked;
+      const teacherBlocked = state.role === 'teacher' && (s.status !== 'ACTIVE' || !LESSONS[s.id]);
+      const canWriteRole = roleCanWrite && !parentBlocked && !teacherBlocked;
       const online = state.online === 'on';
       const canWrite = canWriteRole && online;
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
@@ -1624,13 +1733,14 @@
         ${pageHeader('在学课件', `${s.nickname} · ${draft.length}/6`)}
         ${studentSwitch()}
 
-        ${parentBlocked ? `<div class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">该学员档案当前非「正式在读」，家长仅可查看；如需调整请联系负责班长。</div>` : ''}
+        ${parentBlocked ? `<div class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${s.status === 'ARCHIVED' ? '已归档宝贝 · 在学课件与进度备注仅保留只读历史回看，增删与编辑按钮已物理隐藏。' : '该学员档案当前不可编辑，家长仅可查看；如需调整请联系负责班长。'}</div>` : ''}
+        ${teacherBlocked ? `<div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-900">实时编辑权已收回：仅当前存在「待上」或次日 02:00 (UTC+8) 结课前未结课课次时可编辑；已结课请前往「授课历史」补录。</div>` : ''}
 
         <section class="rounded-2xl border border-slate-300 bg-slate-50/70 p-4">
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
               <h2 class="text-[16px] font-bold text-slate-900">在学课件 <span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 font-mono text-[12px] font-bold text-slate-500">${draft.length}/6</span></h2>
-              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">[配置课件] 仅负责增删教材；级别与学习进度统一通过每门课件的 [更新进度] 维护。家长仅限本人名下「正式在读」孩子。</p>
+              <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">[配置课件] 仅负责增删教材；级别与学习进度统一通过每门课件的 [更新进度] 维护，提交执行乐观版本校验防并发静默覆盖。家长仅限本人名下「正式在读」孩子。</p>
             </div>
             ${canWriteRole ? `<button data-action="save-config" ${online ? '' : 'disabled'} class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">保存生效</button>` : ''}
           </div>
@@ -1649,7 +1759,12 @@
           ${auditDetails(s)}
         </section>
 
-        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${parentBlocked ? '该学员档案当前非「正式在读」，家长仅可查看；如需调整请联系负责班长。' : canWriteRole ? '停用课件不会自动解绑；已绑定的停用课件继续展示【已停用】。保存后老师日历与家长端即时刷新；家长修改时同步提醒负责班长与授课老师。' : '在学课件由管理员、负责班长、授课老师与家长共同维护。'}</div>
+        ${state.role === 'parent' && !parentBlocked ? `<div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">
+          <div class="font-bold text-indigo-950">保存后提醒预览（合并去重）</div>
+          <div class="mt-1">${parentNotifyTargets(s).map((t) => `${esc(t.role)} ${esc(t.name)}`).join(' ∪ ')} → 合并为 <span class="font-bold">1 条站内中性卡</span> · 不发 Email</div>
+          <div class="mt-0.5 text-indigo-700">同一账号兼任多项时仅推送 1 条，避免重复刷屏。</div>
+        </div>` : ''}
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${parentBlocked ? (s.status === 'ARCHIVED' ? '已归档宝贝 · 在学课件与进度备注长期只读留存，严禁编辑。' : '该学员档案当前不可编辑；如需调整请联系负责班长。') : teacherBlocked ? '老师实时编辑权截止于次日 02:00 (UTC+8) 自动结课前；已结课请从「授课历史」课节卡片补录。' : canWriteRole ? '停用课件不会自动解绑；已绑定的停用课件继续展示【已停用】。保存后老师日历与家长端即时刷新；家长修改时合并去重提醒待上/待排相关老师与班长。' : '在学课件由管理员、负责班长、授课老师与家长共同维护。'}</div>
       </div>`;
     }
 
@@ -1721,11 +1836,22 @@
       if (state.online === 'off') return showToast('离线模式下不可保存在学课件');
       const s = activeStudent();
       if (state.role === 'parent' && s.status !== 'ACTIVE') return showToast('家长仅可维护本人名下「正式在读」学员');
+      if (state.role === 'teacher' && (s.status !== 'ACTIVE' || !LESSONS[s.id])) return showToast('实时编辑权已收回：已结课或无待上/未结课次，请前往「授课历史」补录');
       ensureDraft();
       const before = s.current;
       const after = clone(state.draft);
       if (JSON.stringify(before) === JSON.stringify(after)) {
         showToast('在学课件未变更');
+        return;
+      }
+      /* D7/L-2 乐观版本校验：草稿基线版本与当前最新版本不一致则拒绝静默覆盖 */
+      const configConflict = after.some((item) => {
+        const live = (s.current || []).find((x) => x.cwId === item.cwId);
+        return live && itemRev(live) !== itemRev(item);
+      });
+      if (configConflict) {
+        state.overlay = { type: 'versionConflict', ctx: null, operator: '其他协作者' };
+        renderOverlayOnly();
         return;
       }
       after.forEach((item) => {
@@ -1758,7 +1884,8 @@
       state.draftStudentId = s.id;
       renderAll();
       if (state.role === 'parent') {
-        showToast(`已保存并同步向负责班长及有待上课次的授课老师发送提醒`);
+        const targets = parentNotifyTargets(s).map((t) => t.name).join('、');
+        showToast(`已保存 · 合并去重为 1 条站内中性卡（不发 Email）：${targets}`);
       } else if (state.role === 'teacher') {
         showToast(`在学课件已保存，共 ${after.length} 门；已同步至老师课表与家长端`);
       } else {
@@ -1808,17 +1935,82 @@
       const s = activeStudent();
       const items = s.current || [];
       const grid = state.device === 'tablet' ? 'grid grid-cols-2 gap-2' : 'space-y-2';
+      const archived = s.status !== 'ACTIVE';
+      const boundClasses = studentBoundClasses(s);
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
-        ${pageHeader('孩子课件', `${s.nickname} · 在学课件`, `<button data-action="open-config" class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70">编辑在学课件</button>`)}
+        ${pageHeader('孩子课件', `${s.nickname} · 在学课件`, archived
+          ? `<span class="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[12px] font-bold text-slate-500">${icon('lock', 'h-3.5 w-3.5')}只读</span>`
+          : `<button data-action="open-config" class="h-7 shrink-0 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70">编辑在学课件</button>`)}
         ${studentSwitch()}
         <div class="grid grid-cols-2 gap-2">
           ${miniStat('在学课件', items.length, 'indigo', '/6')}
           ${miniStat('最近更新', s.audit && s.audit[0] ? s.audit[0].at.slice(5, 10) : '—', 'slate')}
         </div>
+        ${archived ? `<div class="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">已归档宝贝 · 历史在学课件与进度备注仅只读回看，编辑入口已物理隐藏。</div>` : ''}
         <div class="${grid}">
           ${items.length ? items.map(parentCoursewareCard).join('') : `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center text-[14px] font-medium text-slate-500">该孩子暂未配置在学课件</div>`}
         </div>
-        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">家长可自助维护本人名下「正式在读」孩子的在学课件；级别与学习进度通过 [更新进度] 维护 · 保存后同步老师课表并提醒负责班长与授课老师。点击封面可查看当前级别样图内页。</div>
+        ${parentClassGroup(s, boundClasses)}
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${archived ? '已归档宝贝可长期只读回看历史在学课件与进度备注，严禁编辑。' : '家长可自助维护本人名下「正式在读」孩子的在学课件；级别与学习进度通过 [更新进度] 维护 · 保存后合并去重提醒待上授课老师与待排资金持有人，不发 Email。点击封面可查看当前级别样图内页。'}</div>
+      </div>`;
+    }
+
+    /* 家长只读小班课件分组：在读 + 随班归档只读留存；物理隐藏所有增删 / 编辑入口 */
+    function parentClassGroup(s, classes) {
+      if (!classes.length) return '';
+      const cards = classes.map((c) => {
+        const archived = c.stage >= 4;
+        const items = c.current || [];
+        return `<article class="rounded-2xl border ${archived ? 'border-slate-300 bg-slate-100/70' : 'border-slate-300 bg-white'} p-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="truncate text-[14px] font-bold text-slate-900">${esc(c.name)}</div>
+              <div class="mt-0.5 text-[12px] font-medium text-slate-500">${archived ? '随班归档只读留存 · 历史只读' : '正式开课小班 · 仅查看'}</div>
+            </div>
+            <span class="inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[12px] font-bold ${archived ? 'border-slate-200 bg-slate-100 text-slate-500' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}">${icon('lock', 'h-3 w-3')}只读</span>
+          </div>
+          <div class="mt-2 space-y-2">
+            ${items.length ? items.map((item) => parentClassCourseware(item, c)).join('') : `<div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-4 text-center text-[12px] font-medium text-slate-500">该小班暂未配置在学课件</div>`}
+          </div>
+        </article>`;
+      }).join('');
+      return `<section class="space-y-2" data-parent-class-readonly="true">
+        <div class="flex items-end justify-between gap-2 px-1">
+          <div class="min-w-0">
+            <h2 class="text-[16px] font-bold text-slate-900">小班在学课件 <span class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">仅查看 / 历史只读</span></h2>
+            <p class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-500">仅展示本人孩子所在班级；不含同班同学、人数与费用信息。</p>
+          </div>
+        </div>
+        ${cards}
+      </section>`;
+    }
+
+    function parentClassCourseware(item, c) {
+      const cw = findCw(item.cwId);
+      if (!cw) return '';
+      const lvl = findLevel(cw, item.levelId);
+      return `<div class="rounded-xl border border-slate-200 bg-slate-50/70 p-2.5" data-parent-class-cw="${esc(cw.id)}">
+        <div class="flex items-start gap-2">
+          <button data-action="preview-cw" data-id="${cw.id}" data-level="${esc(item.levelId || '')}" aria-label="查看样图">${coverHtml(cw, 'h-10 w-10', 'text-[13px]')}</button>
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-[13px] font-bold text-slate-900">${esc(cw.nameCn)}</div>
+            <div class="truncate text-[12px] font-medium text-slate-500">${esc(cw.nameEn)}</div>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+              <span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(lvl ? lvl.name : '标准/无分级')}</span>
+              <button data-action="preview-cw" data-id="${cw.id}" data-level="${esc(item.levelId || '')}" class="text-[12px] font-semibold text-indigo-600 hover:underline">查看样图 →</button>
+            </div>
+          </div>
+        </div>
+        <details class="group mt-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2">
+          <summary class="flex cursor-pointer list-none items-start justify-between gap-2 [&::-webkit-details-marker]:hidden">
+            <span class="min-w-0 flex-1">
+              <span class="block text-[12px] font-semibold text-slate-700">Process Note</span>
+              <span class="mt-0.5 block line-clamp-2 text-[12px] font-medium leading-relaxed text-slate-600 group-open:hidden">${esc(progressSummary(item.progressText, 64))}</span>
+            </span>
+            <span class="shrink-0 text-[12px] font-medium text-indigo-600"><span class="group-open:hidden">展开 ▾</span><span class="hidden group-open:inline">收起 ▴</span></span>
+          </summary>
+          <p class="mt-1 whitespace-pre-line text-[12px] font-medium leading-relaxed text-slate-800">${esc(item.progressText || '暂无进度记录')}</p>
+        </details>
       </div>`;
     }
 
@@ -1836,7 +2028,8 @@
             <div class="truncate text-[12px] font-medium text-slate-500">${esc(cw.nameEn)}</div>
             <div class="mt-1 flex flex-wrap items-center gap-1.5">
               <span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(lvl ? lvl.name : '标准/无分级')}</span>
-              ${!cw.active ? `<span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">已停用</span>` : ''}
+              ${lvl && lvl.disabled ? `<span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">级别已停用</span>` : ''}
+              ${!cw.active ? `<span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">课件已停用</span>` : ''}
               ${stale ? `<span class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">${icon('clock', 'h-3 w-3')}近 6 个月没有更新</span>` : ''}
             </div>
           </div>
@@ -1846,6 +2039,10 @@
             <div class="flex min-w-0 flex-1 items-center gap-1 text-[12px] font-semibold text-slate-600">学习进度：<span class="min-w-0 flex-1 truncate text-slate-900" data-progress-summary="true">${esc(progressSummary(item.progressText))}</span></div>
             ${activeStudent().status === 'ACTIVE' ? `<button data-action="open-progress-drawer" data-source="live" data-cw="${cw.id}" ${state.online === 'on' ? '' : 'disabled'} class="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">${icon('edit-3', 'h-3 w-3')}更新进度</button>` : ''}
           </div>
+          <details class="group mt-1">
+            <summary class="flex cursor-pointer list-none items-center gap-1 text-[12px] font-semibold text-indigo-600 [&::-webkit-details-marker]:hidden"><span class="group-open:hidden">展开 Process Note ▾</span><span class="hidden group-open:inline">收起 ▴</span></summary>
+            <p class="mt-1 whitespace-pre-line rounded-lg bg-white px-2 py-1.5 text-[12px] font-medium leading-relaxed text-slate-800">${esc(item.progressText || '暂无进度记录')}</p>
+          </details>
           <div class="mt-1 flex flex-wrap items-center justify-between gap-2 text-[12px] font-medium text-slate-600">
             <span>${esc(lastUpdatedText(item))}</span>
             <span class="${topT.count ? 'font-semibold text-indigo-700' : 'text-slate-500'}">${esc(topT.text)}</span>
@@ -1962,6 +2159,9 @@
      * ------------------------------------------------------------------ */
     function classStageChip(stage) {
       const nums = { 1: '①', 2: '②', 3: '③', 4: '④' };
+      if (state.role === 'parent') {
+        return { text: stage >= 4 ? '随班归档只读留存 · 只读' : '正式开课小班 · 仅查看', cls: 'border-slate-200 bg-slate-100 text-slate-600', icon: 'lock' };
+      }
       if (stage >= 4) {
         return { text: '阶段 ④ · 只读', cls: 'border-slate-200 bg-slate-100 text-slate-600', icon: 'lock' };
       }
@@ -2001,17 +2201,18 @@
           <span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[12px] font-semibold text-slate-500">主理人 ${esc(c.owner)} · 主讲 ${esc(c.mainTeacher)}</span>
         </div>
 
-        ${!editable ? `<div class="rounded-xl border border-slate-300 bg-slate-100 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">阶段 ④ · 只读：小班已归档，课件与进度全量封存，不可再增删或更新。</div>` : ''}
+        ${state.role === 'parent' ? `<div class="rounded-xl border border-slate-300 bg-slate-200/60 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-700">家长只读视图 · 物理隐藏 [配置课件] / [更新进度] 与全部编辑按钮；仅展示名称、级别、样图与 Process Note，绝不透出同班同学、人数与费用。</div>` : ''}
+        ${!editable && state.role !== 'parent' ? `<div class="rounded-xl border border-slate-300 bg-slate-100 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">阶段 ④ · 只读：小班已归档，课件与进度全量封存，不可再增删或更新。</div>` : ''}
 
-        ${!online ? `<div class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] font-medium text-amber-900">离线模式：可查看小班课件，配置与进度更新不可用。</div>` : ''}
+        ${!online && state.role !== 'parent' ? `<div class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] font-medium text-amber-900">离线模式：可查看小班课件，配置与进度更新不可用。</div>` : ''}
 
         <div class="${grid}">
           ${items.length ? items.map((item, i) => classCoursewareCard(item, i, c, online)).join('') : `<div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-500">该小班暂未配置在学课件</div>`}
         </div>
 
-        ${classAuditDetails(c)}
+        ${state.role === 'parent' ? '' : classAuditDetails(c)}
 
-        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">小班课件与进度仅在内部可见，对家长端物理隔离且零通知；所有变更写入小班操作与修改日志。</div>
+        <div class="rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-slate-600">${state.role === 'parent' ? '正式在读及随班归档只读留存的所属家长、曾执教老师、主理班长与管理员均可只读回看；家长端严禁编辑，内部操作日志对家长隐藏。' : '在读及随班归档只留存的正式学员家长、曾执教/代课老师、主理班长与管理员可只读回看；所有变更写入小班操作与修改日志，改课件对家长零通知。'}</div>
       </div>`;
     }
 
@@ -2044,6 +2245,10 @@
         </div>
         <div class="mt-2.5 rounded-xl border border-slate-200/80 bg-slate-50/70 px-2.5 py-2">
           <div class="flex min-w-0 items-center gap-1 text-[12px] font-semibold text-slate-600">学习进度：<span class="min-w-0 flex-1 truncate text-slate-900" data-progress-summary="true">${esc(progressSummary(item.progressText))}</span></div>
+          ${state.role === 'parent' ? `<details class="group mt-1">
+            <summary class="flex cursor-pointer list-none items-center gap-1 text-[12px] font-semibold text-indigo-600 [&::-webkit-details-marker]:hidden"><span class="group-open:hidden">展开 Process Note ▾</span><span class="hidden group-open:inline">收起 ▴</span></summary>
+            <p class="mt-1 whitespace-pre-line rounded-lg bg-white px-2 py-1.5 text-[12px] font-medium leading-relaxed text-slate-800">${esc(item.progressText || '暂无进度记录')}</p>
+          </details>` : ''}
           <div class="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[12px] font-medium text-slate-600">
             <span>${esc(lastUpdatedText(item))}</span>
             <span class="${topT.count ? 'font-semibold text-indigo-700' : 'text-slate-500'}">${esc(topT.text)}</span>
@@ -2090,6 +2295,9 @@
       if (state.overlay.type === 'pickCwPicker') return renderPickCwPicker();
       if (state.overlay.type === 'classConfig') return renderClassConfig();
       if (state.overlay.type === 'classAddPicker') return renderClassAddPicker();
+      if (state.overlay.type === 'privacyConflict') return renderPrivacyConflict();
+      if (state.overlay.type === 'levelConfirm') return renderLevelConfirm();
+      if (state.overlay.type === 'versionConflict') return renderVersionConflict();
       return '';
     }
 
@@ -2189,7 +2397,8 @@
           }).join('') : `<div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-[12px] font-medium text-slate-500">尚未配置小班课件</div>`}
           ${draft.length < 6 ? `<button data-action="class-config-add" ${online ? '' : 'disabled'} class="inline-flex h-9 w-full items-center justify-center gap-1 rounded-xl border border-dashed border-indigo-300 bg-indigo-50/60 text-[12px] font-bold text-indigo-700 hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-40">${icon('plus', 'h-3.5 w-3.5')}添加小班课件</button>` : `<div class="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] font-medium text-amber-900">已达 6 门上限，请先移除后再添加。</div>`}
         </div>
-        <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-500">本抽屉仅负责增删教材；级别与 2000 字进度备注请在该课件行内 [更新进度] 维护。小班课件对家长端物理不可见。</div>
+        <div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-500">本抽屉仅负责增删教材；级别与 2000 字进度备注请在该课件行内 [更新进度] 维护。在读及随班归档只读留存的正式学员家长可只读查看，增删/编辑按钮对家长物理隐藏且改课件零通知。</div>
+        <div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">换师新建承接小班时：原小班最新 Process Note 仅预填为待复核草稿，提交前按（新班已绑定 ∪ 原班历史绑定）学员并集重跑隐私扫描，并须主理人勾选隐私确认后方可保存；支持脱敏修改或一键清空备注仅承接课件与级别。</div>
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
           <button data-action="class-config-save" ${online ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">保存生效</button>
@@ -2235,6 +2444,14 @@
       ensureClassDraft(c);
       const before = c.current || [];
       const after = clone(state.classDraft || []);
+      const classConflict = after.some((item) => {
+        const live = before.find((x) => x.cwId === item.cwId);
+        return live && itemRev(live) !== itemRev(item);
+      });
+      if (classConflict) {
+        state.overlay = { type: 'versionConflict', ctx: null, operator: '其他协作者' };
+        return renderOverlayOnly();
+      }
       const beforeIds = new Set(before.map((b) => b.cwId));
       const afterIds = new Set(after.map((a) => a.cwId));
       const added = after.filter((a) => !beforeIds.has(a.cwId));
@@ -2256,7 +2473,7 @@
       state.classDraftId = null;
       state.overlay = null;
       renderAll();
-      showToast(`小班课件已保存，共 ${after.length} 门 · 内部留痕，不通知家长`);
+      showToast(`小班课件已保存，共 ${after.length} 门 · 家长只读视图同步刷新，零通知`);
     }
 
     function renderPickCwPicker() {
@@ -2342,11 +2559,12 @@
             <div class="flex items-center justify-between"><h3 class="text-[14px] font-bold text-slate-800">样图内页</h3><span class="text-[12px] font-medium text-slate-500">${images.length} 张</span></div>
             ${!boundLevel && lvl ? `<p class="mt-0.5 text-[12px] font-medium text-slate-500">未指定级别 · 展示 ${esc(lvl.name)} 样图</p>` : ''}
             ${images.length ? `<div class="mt-1.5 grid grid-cols-3 gap-1.5">
-              ${images.map((img, i) => `<button data-action="open-lightbox" data-index="${i}" data-level="${esc(lvl.id)}" class="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+              ${images.slice(0, 3).map((img, i) => `<button data-action="open-lightbox" data-index="${i}" data-level="${esc(lvl.id)}" class="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
                 <img src="${img}" class="h-full w-full object-cover" alt="">
                 <span class="absolute bottom-1 right-1 grid h-6 w-6 place-items-center rounded bg-slate-900/55 text-white">${icon('maximize-2', 'h-3 w-3')}</span>
               </button>`).join('')}
-            </div>` : `<div class="mt-1.5 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-[12px] font-medium text-slate-500">该级别暂无样图</div>`}
+            </div>
+            <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">按管理员显式保存顺序展示前 3 张；点击任一缩略图全屏放大，并可左右切换浏览该级别全部 ${images.length} 张配图。</p>` : `<div class="mt-1.5 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-[12px] font-medium text-slate-500">该级别暂无样图</div>`}
           </div>
           <button data-action="close-overlay" class="mt-3 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">关闭</button>
         </div>
@@ -2428,11 +2646,13 @@
       const item = state.draft[idx];
       const cw = item ? findCw(item.cwId) : null;
       const cwName = cw ? cw.nameCn : '该课件';
-      const hasLesson = state.role === 'parent' && !!LESSONS[activeStudent().id];
+      const isParent = state.role === 'parent';
+      const isLast = state.draft.length <= 1;
       return modalShell(`
         ${modalHeader('移除在学课件', `${activeStudent().nickname} · 在学课件配置`)}
         <div class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-rose-900">确认将「${esc(cwName)}」从该学员在学课件中移除？</div>
-        ${hasLesson ? `<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">移除后将同步通知负责授课的老师与班长，确认移除吗？</div>` : ''}
+        ${isLast ? `<div class="mt-2 rounded-xl border border-rose-300 bg-rose-100 px-3 py-2 text-[12px] font-bold leading-relaxed text-rose-900">移除后该学员将没有任何在学课件，确认全部移除吗？</div>` : ''}
+        ${isParent ? `<div class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">移除后将同步通知负责授课的老师与班长（合并去重为 1 条站内提醒），确认移除吗？</div>` : ''}
         <div class="mt-3 flex gap-2">
           <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
           <button data-action="confirm-config-remove" class="h-11 flex-1 rounded-xl bg-rose-600 text-[16px] font-semibold text-white">确认移除</button>
@@ -2453,17 +2673,20 @@
           : (s.current || []).find((x) => x.cwId === cw.id));
       if (!item) return '';
       const curLvl = findLevel(cw, item.levelId);
+      const enabledOthers = cw.levels.filter((l) => !l.disabled && l.id !== item.levelId);
+      const allLevelsDisabled = !!curLvl && curLvl.disabled && !enabledOthers.length;
       const levelOpts = curLvl ? [curLvl] : [{ id: '', name: '标准/无分级', disabled: false }];
-      cw.levels.forEach((l) => {
-        if (!l.disabled && l.id !== item.levelId) levelOpts.push(l);
-      });
+      enabledOthers.forEach((l) => levelOpts.push(l));
       const selectedLevelId = state.overlay.levelId !== undefined ? state.overlay.levelId : (item.levelId || '');
+      const selectedLvl = findLevel(cw, selectedLevelId);
       const stale = isStale6Months(item);
       const topT = topTeacherInfo(item);
       const lastUpd = lastUpdatedText(item);
       const currentVal = state.overlay.text !== undefined ? state.overlay.text : (item.progressText || '');
       const chips = ['Unit 3 · Page 24', 'Lesson 5', 'Review Unit 2'];
       const ctxLine = isClass ? `${c.name} · ${cw.nameCn} · ${cw.nameEn}` : `${s.nickname} · ${cw.nameCn} · ${cw.nameEn}`;
+      const privacyOk = !!state.overlay.privacyOk;
+      const notifyTargets = !isClass && state.role === 'parent' ? parentNotifyTargets(s) : [];
 
       return `<div class="absolute inset-0 z-50">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[1px]" data-action="close-overlay"></div>
@@ -2473,7 +2696,8 @@
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-1.5">
                 <h2 class="text-[16px] font-bold text-slate-900">更新学习进度</h2>
-                <span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(findLevel(cw, selectedLevelId) ? findLevel(cw, selectedLevelId).name : '标准/无分级')}</span>
+                <span class="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[12px] font-bold text-indigo-700">${esc(selectedLvl ? selectedLvl.name : '标准/无分级')}</span>
+                ${selectedLvl && selectedLvl.disabled ? `<span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12px] font-bold text-slate-500">已停用</span>` : ''}
               </div>
               <p class="mt-0.5 truncate text-[12px] font-medium text-slate-500">${esc(ctxLine)}</p>
             </div>
@@ -2487,16 +2711,20 @@
                 <span class="${topT.count ? 'font-semibold text-indigo-700' : 'text-slate-500'}">${esc(topT.text)}</span>
               </div>
               ${stale ? `<div class="mt-1.5 inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-100 px-1.5 py-0.5 text-[12px] font-bold text-amber-900">${icon('clock', 'h-3 w-3')}近 6 个月没有更新</div>` : ''}
+              <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">仅统计老师角色有效更新（空保存不计数）；全新绑定自最新绑定日起算，试课认领 / 换师承接沿用原最后老师更新时间。</p>
             </div>
+
+            ${state.role === 'teacher' ? `<div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-amber-900">实时编辑权截止于次日 <span class="font-bold">02:00 (UTC+8)</span> 自动结课前；已实际授课且已结课的补录请前往「授课历史」课节卡片。</div>` : ''}
 
             <div>
               <div class="mb-1 flex items-center justify-between gap-2">
                 <span class="text-[12px] font-bold text-slate-700">当前级别</span>
-                <span class="text-[12px] font-medium text-slate-500">切换即记为升阶 / 调级</span>
+                <span class="text-[12px] font-medium text-slate-500">切换即记为升阶 / 调级${state.role === 'parent' ? ' · 提交前需二次确认' : ''}</span>
               </div>
               <div class="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar" data-level-row="true">
-                ${levelOpts.map((l) => `<button type="button" data-action="progress-level" data-level="${esc(l.id || '')}" class="h-7 shrink-0 whitespace-nowrap rounded-full px-2.5 text-[12px] transition ${selectedLevelId === (l.id || '') ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'}">${esc(l.name)}${l.disabled ? ' · 已停用' : ''}</button>`).join('')}
+                ${levelOpts.map((l) => `<button type="button" data-action="progress-level" data-level="${esc(l.id || '')}" ${allLevelsDisabled ? 'disabled' : ''} class="h-7 shrink-0 whitespace-nowrap rounded-full px-2.5 text-[12px] transition ${selectedLevelId === (l.id || '') ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 font-medium text-slate-600 hover:bg-slate-200/80'} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500">${esc(l.name)}${l.disabled ? ' · 已停用' : ''}</button>`).join('')}
               </div>
+              ${allLevelsDisabled ? `<p class="mt-1 rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 text-[12px] font-medium leading-relaxed text-slate-600">该课件所有级别均已停用或无任何启用级别：级别保留当前只读展示，暂停切换；<span class="font-bold">暂无可用新级别可切</span>，仍可正常更新 Process Note。</p>` : ''}
             </div>
 
             <div>
@@ -2520,15 +2748,222 @@
               <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-500">内容为空时直接填入；已有内容时在末尾换行追加，不会覆盖已有记录。</p>
             </div>
 
-            ${isClass ? `<p class="text-[12px] font-medium leading-relaxed text-slate-500">小班进度更新仅内部留痕，对家长端零通知。</p>` : (state.role === 'parent' ? `<p class="text-[12px] font-medium leading-relaxed text-slate-500">保存后将去重提醒负责授课的老师与班长。</p>` : '')}
+            ${isClass ? `<div class="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-950" data-privacy-gate="true">
+              <div class="font-bold">小班 Process Note 隐私门禁</div>
+              <div class="mt-1">保存前将扫描本小班当前及历史学员姓名 / 英文名 / 小名（中文 ≥2 字；英文 ≥2 字符按独立全词、忽略大小写）与手机号码、电子邮箱等联络特征。命中联络特征一律硬阻断；命中学员词面将高亮冲突词，可选择确认为正常教学用词后二次确认放行并留痕。</div>
+              <div class="mt-1 text-amber-800">扫描范围严格限定已绑定学员集合；未绑定线下学员隐私由下方必勾确认兜底，不承诺穷举拦截非绑定姓名。</div>
+              <label class="mt-2 flex items-start gap-2 rounded-lg border border-amber-300 bg-white/80 px-2.5 py-2 text-amber-950">
+                <input type="checkbox" id="classPrivacyConfirm" class="mt-0.5 h-4 w-4 shrink-0 accent-indigo-600" ${privacyOk ? 'checked' : ''}>
+                <span class="font-semibold leading-relaxed">我已确认：本进度备注对已绑定学员家长只读可见，未填写任何其他学员个人姓名、联系方式或隐私信息</span>
+              </label>
+            </div>` : ''}
+            ${!isClass && state.role === 'parent' ? `<div class="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-indigo-900">
+              <div class="font-bold text-indigo-950">保存后提醒预览 · 合并去重</div>
+              <div class="mt-1">${notifyTargets.map((t) => `${esc(t.role)} ${esc(t.name)}`).join(' ∪ ')} → <span class="font-bold">1 条站内中性卡</span> · 不发 Email</div>
+              <div class="mt-0.5 text-indigo-700">同一账号兼任多项仅推 1 条；待上老师与待排资金持有人并集覆盖，避免漏通知。</div>
+            </div>` : ''}
+            ${isClass && state.role !== 'parent' ? `<p class="text-[12px] font-medium leading-relaxed text-slate-500">小班进度更新静默留痕，对家长零通知；家长仅可在孩子档案与小班抽屉只读回看最新进度。</p>` : ''}
+            <p class="text-[12px] font-medium leading-relaxed text-slate-500">保存时执行乐观版本校验：若期间已被他人先行提交，将拒绝静默覆盖并提示刷新加载最新内容核对。</p>
           </div>
 
           <div class="flex shrink-0 gap-2 border-t border-slate-200/80 bg-white px-4 py-3">
             <button data-action="close-overlay" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
-            <button data-action="save-progress-drawer" ${state.online === 'on' ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-500">保存进度</button>
+            <button data-action="save-progress-drawer" ${(state.online === 'on' && (!isClass || privacyOk)) ? '' : 'disabled'} class="h-11 flex-[2] rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-500">保存进度</button>
           </div>
         </div>
       </div>`;
+    }
+
+    function drawerPayload(ctx) {
+      return {
+        target: ctx.isClass ? 'class' : 'student',
+        classId: ctx.cls ? ctx.cls.id : undefined,
+        cwId: ctx.cw.id,
+        source: ctx.source,
+        index: ctx.index,
+        levelId: ctx.nextLevelId,
+        text: ctx.nextVal,
+        baseRev: ctx.o.baseRev,
+        privacyOk: ctx.o.privacyOk,
+        privacyOverride: ctx.o.privacyOverride,
+        levelConfirmed: ctx.o.levelConfirmed
+      };
+    }
+
+    function progressSaveContext() {
+      const o = state.overlay;
+      if (!o || o.type !== 'progressDrawer') return null;
+      const isClass = o.target === 'class';
+      const cw = findCw(o.cwId);
+      if (!cw) return null;
+      const input = $('progressDrawerInput');
+      const nextVal = (input ? input.value : (o.text || '')).trim().slice(0, 2000);
+      const cls = isClass ? findClass(o.classId) : null;
+      if (isClass && (!cls || !classCanProgress(cls))) return null;
+      const s = isClass ? null : activeStudent();
+      const item = isClass
+        ? (cls.current || []).find((x) => x.cwId === cw.id)
+        : ((o.source === 'config' && state.draft)
+          ? state.draft.find((x) => x.cwId === cw.id)
+          : (s.current || []).find((x) => x.cwId === cw.id));
+      if (!item) return null;
+      const oldLevelId = item.levelId || '';
+      const nextLevelId = o.levelId !== undefined ? o.levelId : oldLevelId;
+      return {
+        o, isClass, cw, cls, s, item, nextVal, oldLevelId, nextLevelId,
+        levelChanged: oldLevelId !== nextLevelId,
+        progressChanged: (item.progressText || '').trim() !== nextVal,
+        source: o.source,
+        index: o.index
+      };
+    }
+
+    function submitProgressDrawer() {
+      if (state.online === 'off') return showToast('离线模式下不可更新进度');
+      const ctx = progressSaveContext();
+      if (!ctx) return;
+      if (!ctx.levelChanged && !ctx.progressChanged) {
+        state.overlay = null;
+        renderOverlayOnly();
+        return showToast(ctx.isClass ? '小班课件未变更' : '学习进度未变更');
+      }
+      /* D7/L-2 乐观版本校验：先于隐私与二次确认执行 */
+      const liveRef = ctx.isClass ? ctx.item : ((ctx.s.current || []).find((x) => x.cwId === ctx.cw.id) || ctx.item);
+      if (ctx.o.baseRev && itemRev(liveRef) !== ctx.o.baseRev) {
+        state.overlay = { type: 'versionConflict', ctx, operator: 'David（老师）' };
+        return renderOverlayOnly();
+      }
+      if (ctx.isClass) {
+        const scan = scanClassPrivacy(ctx.nextVal, ctx.cls);
+        if (scan.contacts.length || (scan.names.length && !ctx.o.privacyOverride)) {
+          state.overlay = {
+            type: 'privacyConflict',
+            payload: drawerPayload(ctx),
+            names: scan.names,
+            contacts: scan.contacts,
+            savedText: ctx.nextVal
+          };
+          return renderOverlayOnly();
+        }
+      }
+      if (!ctx.isClass && state.role === 'parent' && ctx.levelChanged && !ctx.o.levelConfirmed) {
+        state.overlay = { type: 'levelConfirm', payload: drawerPayload(ctx), ctx, cw: ctx.cw };
+        return renderOverlayOnly();
+      }
+      return commitProgressSave();
+    }
+
+    function commitProgressSave(opts = {}) {
+      const ctx = progressSaveContext();
+      if (!ctx) return;
+      if (state.online === 'off') return showToast('离线模式下不可更新进度');
+      /* 二次确认后的提交仍需再次版本校验，避免期间又被他人覆盖 */
+      const liveRef = ctx.isClass ? ctx.item : ((ctx.s.current || []).find((x) => x.cwId === ctx.cw.id) || ctx.item);
+      if (ctx.o.baseRev && itemRev(liveRef) !== ctx.o.baseRev) {
+        state.overlay = { type: 'versionConflict', ctx, operator: 'David（老师）' };
+        return renderOverlayOnly();
+      }
+      if (ctx.isClass && !ctx.o.privacyOk) return showToast('请先勾选隐私确认后方可保存');
+      const applyMeta = (target, nextLevelId) => {
+        if (!target) return;
+        target.levelId = nextLevelId;
+        target.progressText = ctx.nextVal;
+        target.lastUpdatedAt = AUDIT_NOW;
+        target.lastUpdatedBy = operatorName();
+        target.lastUpdatedRole = state.role;
+        target.teacherUpdateCounts = target.teacherUpdateCounts || {};
+        if (state.role === 'teacher') {
+          const tName = operatorName();
+          target.teacherUpdateCounts[tName] = (target.teacherUpdateCounts[tName] || 0) + 1;
+          target.teacherUpdateLog = target.teacherUpdateLog || {};
+          target.teacherUpdateLog[tName] = AUDIT_NOW;
+        }
+        bumpItemRev(target);
+      };
+      const auditText = () => {
+        const parts = [];
+        if (ctx.levelChanged) parts.push(`升阶/调级：${ctx.cw.nameCn} ${levelLabel(ctx.cw, ctx.oldLevelId)} → ${levelLabel(ctx.cw, ctx.nextLevelId)}`);
+        if (ctx.progressChanged) parts.push(`更新进度：${ctx.cw.nameCn} → ${ctx.nextVal || '清空进度'}`);
+        const base = parts.join('；');
+        return opts.privacyOverride || ctx.o.privacyOverride ? `${base}（敏感词二次确认放行）` : base;
+      };
+
+      if (ctx.isClass) {
+        applyMeta(ctx.item, ctx.nextLevelId);
+        ctx.cls.audit = ctx.cls.audit || [];
+        ctx.cls.audit.unshift({ at: AUDIT_NOW, by: operatorLabel(), text: auditText() });
+        state.overlay = null;
+        renderAll();
+        return showToast('小班进度已保存 · 家长只读视图同步刷新，零通知');
+      }
+
+      const s = ctx.s;
+      const liveItem = (s.current || []).find((x) => x.cwId === ctx.cw.id);
+      const draftItem = (state.draftStudentId === s.id && state.draft) ? state.draft.find((x) => x.cwId === ctx.cw.id) : null;
+      applyMeta(liveItem, ctx.nextLevelId);
+      applyMeta(draftItem, ctx.nextLevelId);
+      s.audit = s.audit || [];
+      s.audit.unshift({ at: AUDIT_NOW, by: operatorLabel(), text: auditText() });
+      state.overlay = null;
+      renderOverlayOnly();
+      renderContentOnly();
+      if (state.role === 'parent') {
+        const targets = parentNotifyTargets(s).map((t) => t.name).join('、');
+        showToast(`已保存 · 合并去重为 1 条站内中性卡（不发 Email）：${targets}`);
+      } else {
+        showToast('学习进度已保存并同步');
+      }
+    }
+
+    function renderPrivacyConflict() {
+      const o = state.overlay;
+      const hard = o.contacts && o.contacts.length;
+      return modalShell(`
+        ${modalHeader('Process Note 隐私扫描拦截', '小班进度备注 · 已绑定学员隐私保护')}
+        ${hard ? `<div class="mt-3 rounded-xl border border-rose-300 bg-rose-50 px-3 py-2.5 text-[14px] font-bold leading-relaxed text-rose-900">检测到个人联络特征：${o.contacts.map((x) => `<span class="rounded bg-rose-200 px-1.5 py-0.5">${esc(x)}</span>`).join('、')}。此类内容一律硬阻断，禁止提交。</div>
+          <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-600">请删除手机号码 / 电子邮箱后重新保存；不得以任何二次确认方式放行。</p>` : `<div class="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[12px] font-medium leading-relaxed text-amber-950">
+            <div class="text-[14px] font-bold">命中本小班当前 / 历史已绑定学员词面</div>
+            <div class="mt-1.5 flex flex-wrap gap-1.5">${o.names.map((n) => `<span class="rounded-md border border-amber-400 bg-amber-200 px-1.5 py-0.5 text-[12px] font-bold text-amber-950">${esc(n)}</span>`).join('')}</div>
+            <p class="mt-2">默认阻断保存。请优先改写脱敏；若确认确属正常英文教学用词或教材书名（如月份 May / 书名 Alice），可二次确认放行并记入「敏感词二次确认放行」审计标记。</p>
+          </div>`}
+        <div class="mt-3 flex gap-2">
+          <button data-action="privacy-conflict-back" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">返回修改</button>
+          ${hard ? '' : `<button data-action="privacy-conflict-confirm" class="h-11 flex-[1.6] rounded-xl bg-amber-600 px-2 text-[13px] font-semibold text-white hover:bg-amber-700">确认为正常教学用词 · 仍要保存</button>`}
+        </div>
+      `);
+    }
+
+    function renderLevelConfirm() {
+      const o = state.overlay;
+      const cw = o.cw;
+      const oldLvl = findLevel(cw, o.ctx.oldLevelId);
+      const newLvl = findLevel(cw, o.ctx.nextLevelId);
+      return modalShell(`
+        ${modalHeader('确认修改课件级别', `${activeStudent().nickname} · ${cw.nameCn}`)}
+        <div class="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-indigo-950">修改级别将同步通知授课老师按新级别备课，确认将《${esc(cw.nameCn)}》调整为《${esc(newLvl ? newLvl.name : '标准/无分级')}》吗？</div>
+        <div class="mt-2 flex items-center gap-2 text-[12px] font-semibold text-slate-600">
+          <span class="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5">${esc(oldLvl ? oldLvl.name : '标准/无分级')}</span>
+          <span>→</span>
+          <span class="rounded-md border border-indigo-200 bg-indigo-100 px-1.5 py-0.5 text-indigo-800">${esc(newLvl ? newLvl.name : '标准/无分级')}</span>
+        </div>
+        <div class="mt-3 flex gap-2">
+          <button data-action="level-confirm-cancel" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
+          <button data-action="level-confirm-save" class="h-11 flex-1 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700">确认调整并保存</button>
+        </div>
+      `);
+    }
+
+    function renderVersionConflict() {
+      const o = state.overlay;
+      return modalShell(`
+        ${modalHeader('配置版本冲突', '乐观版本校验 · 拒绝静默覆盖')}
+        <div class="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[14px] font-medium leading-relaxed text-amber-950">配置 / 进度刚刚已被 ${esc(o.operator || '其他用户')} 更新，请刷新加载最新内容核对后再保存。</div>
+        <p class="mt-2 text-[12px] font-medium leading-relaxed text-slate-600">你的本次修改尚未写入，不会被静默覆盖。刷新后请重新核对级别与 Process Note 内容。</p>
+        <div class="mt-3 flex gap-2">
+          <button data-action="version-conflict-cancel" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 hover:bg-slate-50">取消</button>
+          <button data-action="version-conflict-refresh" class="h-11 flex-1 rounded-xl bg-indigo-600 text-[16px] font-semibold text-white hover:bg-indigo-700">刷新最新内容</button>
+        </div>
+      `);
     }
 
     /* ------------------------------------------------------------------
@@ -2627,7 +3062,7 @@
         const cwId = el.dataset.cw;
         const item = (c.current || []).find((x) => x.cwId === cwId);
         if (!item) return;
-        state.overlay = { type: 'progressDrawer', target: 'class', classId: c.id, cwId, levelId: item.levelId || '', text: item.progressText || '' };
+        state.overlay = { type: 'progressDrawer', target: 'class', classId: c.id, cwId, levelId: item.levelId || '', text: item.progressText || '', baseRev: itemRev(item), privacyOk: false };
         renderOverlayOnly();
         return;
       }
@@ -2860,7 +3295,11 @@
           ? state.draft[index]
           : (s.current || []).find((x) => x.cwId === cwId);
         if (!item) return;
-        state.overlay = { type: 'progressDrawer', cwId, source, index, levelId: item.levelId || '', text: item.progressText || '' };
+        state.overlay = {
+          type: 'progressDrawer', cwId, source, index,
+          levelId: item.levelId || '', text: item.progressText || '',
+          baseRev: itemRev(item), privacyOk: false
+        };
         renderOverlayOnly();
         const input = $('progressDrawerInput');
         if (input) input.focus();
@@ -2900,90 +3339,53 @@
         renderOverlayOnly();
         return;
       }
-      if (action === 'save-progress-drawer') {
-        if (state.online === 'off') return showToast('离线模式下不可更新进度');
-        if (!state.overlay || state.overlay.type !== 'progressDrawer') return;
-        const isClass = state.overlay.target === 'class';
-        const cwId = state.overlay.cwId;
-        const input = $('progressDrawerInput');
-        const nextVal = (input ? input.value : (state.overlay.text || '')).trim().slice(0, 2000);
-        const cw = findCw(cwId);
-        const applyMeta = (target, nextLevelId) => {
-          if (!target) return;
-          target.levelId = nextLevelId;
-          target.progressText = nextVal;
-          target.lastUpdatedAt = AUDIT_NOW;
-          target.lastUpdatedBy = operatorName();
-          target.lastUpdatedRole = state.role;
-          target.teacherUpdateCounts = target.teacherUpdateCounts || {};
-          if (state.role === 'teacher') {
-            const tName = operatorName();
-            target.teacherUpdateCounts[tName] = (target.teacherUpdateCounts[tName] || 0) + 1;
-            target.teacherUpdateLog = target.teacherUpdateLog || {};
-            target.teacherUpdateLog[tName] = AUDIT_NOW;
-          }
-        };
-        const buildAuditText = (oldLevelId, nextLevelId, levelChanged, progressChanged) => {
-          const parts = [];
-          if (levelChanged) parts.push(`升阶/调级：${cw ? cw.nameCn : cwId} ${levelLabel(cw, oldLevelId)} → ${levelLabel(cw, nextLevelId)}`);
-          if (progressChanged) parts.push(`更新进度：${cw ? cw.nameCn : cwId} → ${nextVal || '清空进度'}`);
-          return parts.join('；');
-        };
-
-        if (isClass) {
-          const cls = findClass(state.overlay.classId);
-          if (!cls || !classCanProgress(cls)) return showToast('当前角色或阶段不可更新小班进度');
-          const item = (cls.current || []).find((x) => x.cwId === cwId);
-          if (!item) return;
-          const oldLevelId = item.levelId || '';
-          const nextLevelId = state.overlay.levelId !== undefined ? state.overlay.levelId : oldLevelId;
-          const levelChanged = oldLevelId !== nextLevelId;
-          const progressChanged = (item.progressText || '').trim() !== nextVal;
-          if (!levelChanged && !progressChanged) {
-            state.overlay = null;
-            renderOverlayOnly();
-            return showToast('小班课件未变更');
-          }
-          applyMeta(item, nextLevelId);
-          cls.audit = cls.audit || [];
-          cls.audit.unshift({ at: AUDIT_NOW, by: operatorLabel(), text: buildAuditText(oldLevelId, nextLevelId, levelChanged, progressChanged) });
+      if (action === 'save-progress-drawer') return submitProgressDrawer();
+      if (action === 'privacy-conflict-back') {
+        const saved = state.overlay && state.overlay.savedText;
+        const payload = state.overlay && state.overlay.payload;
+        state.overlay = payload ? { type: 'progressDrawer', ...payload, text: saved } : null;
+        return renderOverlayOnly();
+      }
+      if (action === 'privacy-conflict-confirm') {
+        const payload = state.overlay && state.overlay.payload;
+        if (!payload) return;
+        state.overlay = { type: 'progressDrawer', ...payload };
+        return commitProgressSave({ privacyOverride: true });
+      }
+      if (action === 'level-confirm-cancel') {
+        const payload = state.overlay && state.overlay.payload;
+        state.overlay = payload ? { type: 'progressDrawer', ...payload } : null;
+        return renderOverlayOnly();
+      }
+      if (action === 'level-confirm-save') {
+        const payload = state.overlay && state.overlay.payload;
+        if (!payload) return;
+        state.overlay = { type: 'progressDrawer', ...payload };
+        return commitProgressSave({ levelConfirmed: true });
+      }
+      if (action === 'version-conflict-refresh') {
+        const ctx = state.overlay && state.overlay.ctx;
+        if (!ctx) {
+          /* 配置页 / 小班配置并发冲突：丢弃本地草稿并刷新最新内容 */
           state.overlay = null;
+          state.draft = null;
+          state.draftStudentId = null;
+          state.classDraft = null;
+          state.classDraftId = null;
           renderAll();
-          /* 1vN 对家长端零曝光、零通知 */
-          return showToast('小班进度已保存 · 内部留痕，不通知家长');
+          return showToast('已刷新最新内容，请重新核对后再保存');
         }
-
-        const s = activeStudent();
-        const liveItem = (s.current || []).find((x) => x.cwId === cwId);
-        const draftItem = (state.draftStudentId === s.id && state.draft) ? state.draft.find((x) => x.cwId === cwId) : null;
-        const refItem = liveItem || draftItem;
-        if (!refItem) return;
-        const oldLevelId = refItem.levelId || '';
-        const nextLevelId = state.overlay.levelId !== undefined ? state.overlay.levelId : oldLevelId;
-        const levelChanged = oldLevelId !== nextLevelId;
-        const progressChanged = (refItem.progressText || '').trim() !== nextVal;
-        if (!levelChanged && !progressChanged) {
-          state.overlay = null;
-          renderOverlayOnly();
-          return showToast('学习进度未变更');
-        }
-        applyMeta(liveItem, nextLevelId);
-        applyMeta(draftItem, nextLevelId);
-        s.audit = s.audit || [];
-        s.audit.unshift({
-          at: AUDIT_NOW,
-          by: operatorLabel(),
-          text: buildAuditText(oldLevelId, nextLevelId, levelChanged, progressChanged)
-        });
+        state.overlay = {
+          type: 'progressDrawer', target: ctx.isClass ? 'class' : 'student',
+          classId: ctx.classId, cwId: ctx.cw.id, source: ctx.source, index: ctx.index,
+          levelId: ctx.item.levelId || '', text: ctx.item.progressText || '',
+          baseRev: itemRev(ctx.item)
+        };
+        return renderOverlayOnly();
+      }
+      if (action === 'version-conflict-cancel') {
         state.overlay = null;
-        renderOverlayOnly();
-        renderContentOnly();
-        if (state.role === 'parent') {
-          showToast('已保存并同步提醒负责班长及有待上课次的授课老师');
-        } else {
-          showToast('学习进度已保存并同步');
-        }
-        return;
+        return renderOverlayOnly();
       }
     });
 
@@ -3057,6 +3459,13 @@
     document.getElementById('frame').addEventListener('change', (e) => {
       const id = e.target.id;
       if (id === 'fCoverInput') return handleCoverFile(e.target.files && e.target.files[0]);
+      if (id === 'classPrivacyConfirm') {
+        if (state.overlay && state.overlay.type === 'progressDrawer') {
+          state.overlay.privacyOk = !!e.target.checked;
+          renderOverlayOnly();
+        }
+        return;
+      }
       if (id && id.startsWith('fLevelImg-')) return handleLevelImages(Number(id.split('-')[1]), e.target.files);
     });
 
