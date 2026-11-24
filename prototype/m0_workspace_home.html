@@ -184,10 +184,10 @@
         quick: {
           mode: 'multi', rows: [
             { label: '公事', title: '教务管理', items: [
-              { icon: 'receipt', label: '线下录单', href: 'm2a_course_orders.html?role=monitor&page=create' },
+              { icon: 'receipt', label: '购课续费', href: 'm2a_course_orders.html?role=monitor&page=list', dotKey: 'renewal' },
               { icon: 'calendar-days', label: '教务排课', href: 'm3d_scheduling_workbench.html?role=monitor' },
               { icon: 'calendar-clock', label: '今日调度', href: 'm3a_calendar_grid.html?role=monitor&view=day', dotKey: 'schedule' },
-              { icon: 'landmark', label: '周转账单', href: 'm5a_transfer_collection.html?role=leo&view=overview', dotKey: 'monitorTransfer' }
+              { icon: 'presentation', label: '负责老师', href: 'm1b_teacher_monitor.html?role=monitor&page=teachers' }
             ] },
             { label: '家庭', title: '我的孩子', items: PARENT_QUICK }
           ]
@@ -214,10 +214,10 @@
               { icon: 'alert-triangle', label: '异常回退', href: 'm5a_transfer_collection.html?role=sarah&view=anomaly', dotKey: 'anomaly' }
             ] },
             { label: '公事', title: '教务调度', items: [
-              { icon: 'file-pen-line', label: '线下录单', href: 'm2a_course_orders.html?role=admin&page=create' },
+              { icon: 'receipt', label: '购课续费', href: 'm2a_course_orders.html?role=admin&page=list', dotKey: 'renewal' },
               { icon: 'calendar-days', label: '教务排课', href: 'm3d_scheduling_workbench.html?role=admin' },
               { icon: 'calendar-clock', label: '今日调度', href: 'm3a_calendar_grid.html?role=admin&view=day', dotKey: 'schedule' },
-              { icon: 'landmark', label: '我的周转', href: 'm5a_transfer_collection.html?role=sarah&view=overview', dotKey: 'monitorTransfer' }
+              { icon: 'presentation', label: '负责老师', href: 'm1b_teacher_monitor.html?role=admin&page=teachers' }
             ] },
             { label: '家庭', title: '我的孩子', items: PARENT_QUICK }
           ]
@@ -528,7 +528,7 @@
       progressTarget: null, progressCwIdx: 0, progressLevel: '',
       studentNoteTarget: null, notePreview: null,
       monitorWechatUploaded: true, monitorQrName: 'Leo',
-      noCourse: false, noKids: false, ordinaryAdmin: false, noticeSeen: 0
+      noCourse: false, noKids: false, ordinaryAdmin: false, noticeSeen: 0, readChildNotices: {}
     };
 
     /* 首页金刚位与 Tab 3 同名入口共享同一后台待办判断口径，亮灭 100% 同步 */
@@ -596,7 +596,7 @@
       state.qrTeacher = null; state.qrReturn = null;
       state.studentNoteTarget = null; state.notePreview = null;
       state.teacherUpcomingLoads = 0; state.teacherCompletedLoads = 0; state.teacherNoticeRead = false;
-      state.noCourse = false; state.noKids = false; state.ordinaryAdmin = false; state.noticeSeen = 0;
+      state.noCourse = false; state.noKids = false; state.ordinaryAdmin = false; state.noticeSeen = 0; state.readChildNotices = {};
       renderAll();
       toast('已重置为默认视图');
     }
@@ -622,6 +622,10 @@
       const r = roleMeta();
       const unread = r.unread || 0;
       const badgeText = unread > 99 ? '99+' : String(unread);
+      const adminFamilyUrgent = state.role === 'admin' && !state.noKids && familyUrgentNotices().length > state.noticeSeen;
+      const bellCls = adminFamilyUrgent
+        ? 'relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rose-500/30 text-white ring-2 ring-rose-300 transition hover:bg-rose-500/40'
+        : 'relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/20 transition hover:bg-white/25';
       return `
         <header class="relative flex h-16 shrink-0 items-center overflow-hidden bg-gradient-to-br ${r.banner} px-4 text-white">
           ${PATTERNS[r.key]}
@@ -632,9 +636,9 @@
                 <h1 class="truncate text-[18px] font-bold tracking-tight">${esc(pageTitle())}</h1>
               </div>
             </div>
-            <button data-action="notifications" class="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 text-white ring-1 ring-white/20 transition hover:bg-white/25" aria-label="通知">
+            <button data-action="notifications" class="${bellCls}" aria-label="${adminFamilyUrgent ? '有家长紧急未读提醒' : '通知'}">
               ${icon('bell', 'h-[18px] w-[18px]')}
-              ${unread > 0 ? `<span class="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-rose-500 px-1 text-[12px] font-bold leading-none text-white ring-2 ring-white/60">${badgeText}</span>` : ''}
+              ${unread > 0 ? `<span class="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-rose-500 px-1 text-[12px] font-bold leading-none text-white ring-2 ${adminFamilyUrgent ? 'ring-rose-200' : 'ring-white/60'}">${badgeText}</span>` : ''}
             </button>
           </div>
         </header>`;
@@ -701,8 +705,8 @@
     function teacherStatsCapsule() {
       return `<div class="flex h-9 items-center justify-between gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-2.5 text-[12px]">
         <div class="flex items-center gap-3 whitespace-nowrap">
-          <span class="font-medium text-slate-500" title="本自然周（周一～周日 UTC+8）实上已结课节数 / 本周有效负荷；含本人正课与接时代课，不含被代走与异常回退">${t('本周已授', 'Taught this week')} <span class="font-bold text-slate-800">12/30</span>${t(' 节', '')}</span>
-          <span class="font-medium text-slate-500" title="对齐 M5B 上周周课酬单：实际出勤总节数 / 上周终局有效排课节数；异常回退置已取消的节数同步扣减">${t('上周完成', 'Last week')} <span class="font-bold text-emerald-700">25/25</span>${t(' 节', '')}</span>
+          <span class="font-medium text-slate-500" title="本自然周（周一～周日 UTC+8）实上已结课节数 / 本周有效负荷；含本人正课与接时代课，不含被代走与异常回退">${t('本周已授:', 'Taught this week:')} <span class="font-bold text-slate-800">12/30</span>${t(' 节', '')}</span>
+          <span class="font-medium text-slate-500" title="对齐 M5B 上周周课酬单：实际出勤总节数 / 上周终局有效排课节数；异常回退置已取消的节数同步扣减">${t('上周完成:', 'Last week:')} <span class="font-bold text-emerald-700">25/25</span>${t(' 节', '')}</span>
         </div>
         <a href="m5b_weekly_settlement.html?role=david&tab=teacher&view=grid" target="_blank" rel="noopener" class="shrink-0 font-bold text-indigo-600">${t('对账 ↗', 'Reconcile ↗')}</a>
       </div>`;
@@ -836,7 +840,7 @@
       const childName = family ? '' : d.childName;
       const cards = [];
       const urgentList = family ? familyUrgentNotices() : [];
-      const notice = family ? urgentList[state.noticeSeen] : d.notification;
+      const notice = family ? urgentList[state.noticeSeen] : (state.readChildNotices[key] ? null : d.notification);
       if (notice) {
         const remain = family ? Math.max(0, urgentList.length - state.noticeSeen - 1) : 0;
         cards.push({
@@ -845,7 +849,7 @@
           rightClass: 'text-[12px] font-semibold leading-4 text-slate-600',
           title: notice.title,
           sub: notice.meta || (family ? 'Alice · David 老师临时请假' : 'David 老师临时请假'),
-          footer: remain > 0 ? `另有 ${remain} 条紧急待处理 · 家长视角` : '家长视角 · 已同步至通知中心',
+          footer: remain > 0 ? `另有 ${remain} 条紧急待处理 · 点击查看或 🔔` : '家长视角 · 已同步至通知中心',
           footerClass: remain > 0 ? 'font-bold text-rose-700' : 'text-slate-600',
           action: '查看通知', actionAction: 'notifications'
         });
@@ -935,7 +939,7 @@
       const targetTab = state.role === 'admin' ? 'settings' : 'me';
       return `<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-8 text-center">
         <span class="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500">${icon('baby', 'h-5 w-5')}</span>
-        <h3 class="mt-2 text-[14px] font-bold text-slate-900">暂无自家孩子信息</h3>
+        <h3 class="mt-2 text-[14px] font-bold text-slate-900">暂无自家孩子信息（无信息）</h3>
         <p class="mt-1 text-[12px] font-medium leading-5 text-slate-600">4-Tab 外壳与家庭金刚位完整保留，添加孩子档案后即可使用自家课表与信息流。</p>
         <button type="button" data-action="nav" data-tab="${targetTab}" class="mt-3 inline-flex h-8 items-center justify-center rounded-lg border border-indigo-200 bg-white px-3 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-50 active:scale-95">+ 去添加自家孩子</button>
       </div>`;
@@ -1165,7 +1169,7 @@
         const targetTab = state.role === 'admin' ? 'settings' : 'me';
         return `<div class="mx-auto flex h-full w-full max-w-[640px] flex-col items-center justify-center px-6 text-center">
           <span class="grid h-12 w-12 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500">${icon('baby', 'h-5 w-5')}</span>
-          <h3 class="mt-2 text-[14px] font-bold text-slate-900">暂无自家孩子信息</h3>
+          <h3 class="mt-2 text-[14px] font-bold text-slate-900">暂无自家孩子信息（无信息）</h3>
           <p class="mt-1 text-[12px] font-medium leading-5 text-slate-600">自家课表 Tab 保持常驻，添加孩子档案后自动加载该孩子的 1v1 与已绑定小班课表。</p>
           <button type="button" data-action="nav" data-tab="${targetTab}" class="mt-3 inline-flex h-8 items-center justify-center rounded-lg border border-indigo-200 bg-white px-3 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-50 active:scale-95">+ 去添加自家孩子</button>
         </div>`;
@@ -1188,7 +1192,7 @@
         [
           { icon: 'users', label: '所辖学员', href: 'm1a_student_profile.html?role=monitor&page=staffList' },
           { icon: 'presentation', label: '负责老师', href: 'm1b_teacher_monitor.html?role=monitor&page=teachers' },
-          { icon: 'calendar-clock', label: '今日调度', href: 'm3a_calendar_grid.html?role=monitor&view=day', dotKey: 'schedule' },
+          { icon: 'calendar-clock', label: '今日调度', href: 'm3a_calendar_grid.html?role=monitor&view=day&fromTab=tab3', dotKey: 'schedule' },
           { icon: 'landmark', label: '周转账单', href: 'm5a_transfer_collection.html?role=leo&view=overview', dotKey: 'monitorTransfer' }
         ],
         [
@@ -1202,7 +1206,7 @@
         [
           { icon: 'users', label: '全校学员', href: 'm1a_student_profile.html?role=admin&page=staffList' },
           { icon: 'presentation', label: '全校老师', href: 'm1b_teacher_monitor.html?role=admin&page=teachers' },
-          { icon: 'calendar-clock', label: '今日调度', href: 'm3a_calendar_grid.html?role=admin&view=day', dotKey: 'schedule' },
+          { icon: 'calendar-clock', label: '今日调度', href: 'm3a_calendar_grid.html?role=admin&view=day&fromTab=tab3', dotKey: 'schedule' },
           { icon: 'landmark', label: '周转审核', href: 'm5a_transfer_collection.html?role=sarah&view=overview', dotKey: 'transfer' }
         ],
         [
@@ -1212,7 +1216,7 @@
           { icon: 'history', label: '经办记录', href: 'm3b_attendance_substitution.html?role=admin&page=records' }
         ],
         [
-          { icon: 'layout-grid', label: '空闲大盘', href: 'm3d_scheduling_workbench.html?role=admin&view=board' },
+          { icon: 'calendar-days', label: '教务排课', href: 'm3d_scheduling_workbench.html?role=admin' },
           { icon: 'credit-card', label: '平台直收', href: 'm2a_course_orders.html?role=admin&page=platform' },
           { icon: 'wallet', label: '课酬发薪', href: 'm5b_weekly_settlement.html?role=sarah&tab=teacher&view=grid', dotKey: 'payroll' },
           { icon: 'alert-triangle', label: '异常回退', href: 'm5a_transfer_collection.html?role=sarah&view=anomaly', dotKey: 'anomaly' }
@@ -1229,19 +1233,19 @@
     ];
 
     const OPS_TODO = [
-      { id: 'sch-1', group: 'schedule', urgency: 'urgent', minutesToStart: 35, ownerType: 'monitor', tag: '待代课', title: '老师请假待代课', summary: 'AliceZ12 · David Miller · 周三 19:00', search: 'AliceZ12 Alice 13800002016 David Miller 少儿英语 1v1', owner: 'Leo', action: '指派代课', icon: 'user-round-x', href: 'm3a_calendar_grid.html?role={role}&teacher=david&week=0&lessonId=ls_20261111_1900&panel=sub' },
+      { id: 'sch-1', group: 'schedule', urgency: 'urgent', minutesToStart: 35, ownerType: 'monitor', tag: '待代课', title: '老师请假待代课', summary: 'AliceZ12 · David Miller · 周三 19:00', search: 'AliceZ12 Alice 13800002016 David Miller 少儿英语 1v1', owner: 'Leo', action: '指派代课', icon: 'user-round-x', href: 'm3a_calendar_grid.html?role={role}&teacher=david&week=0&lessonId=ls_20261111_1900&panel=sub&fromTab=tab3' },
       { id: 'sch-2', group: 'order', urgency: 'amber', tag: '续费冲突', title: '1v1 续费时段冲突调解', summary: 'BobZ10 · Linda Chen · 周四 20:00 固定位冲突', search: 'BobZ10 Bob 13900003018 Linda Chen 生活口语 固定位', owner: 'Leo', action: '协调时段', icon: 'calendar-range', href: 'm3d_scheduling_workbench.html?role={role}&view=board&student=bob&studentId=stu_bob' },
       { id: 'sch-3', group: 'schedule', urgency: 'amber', tag: '待补排', title: '小班待补排', summary: 'KET 冲刺 A 班 · 整班停课 · 待补 2 节', search: 'KET 冲刺 A 班 Elena Wu 小班 补排', owner: 'Leo', action: '立即补排', icon: 'calendar-plus', href: 'm3d_scheduling_workbench.html?role={role}&view=board&class=ket&classId=ket1' },
       { id: 'sch-4', group: 'schedule', urgency: 'amber', tag: '离职交接', title: '老师离职交接', summary: 'Kevin Zhou · 名下 6 位学员待移交', search: 'Kevin Zhou 离职 交接 学员', owner: 'Leo', action: '开始交接', icon: 'user-round-minus', href: 'm3d_scheduling_workbench.html?role={role}&view=board&teacher=kevin' },
       { id: 'sch-5', group: 'schedule', urgency: 'amber', tag: '新购待排', title: '新购 1v1 待排', summary: 'CandyZ08 · 24 节 · 需排 8 个固定位', search: 'CandyZ08 Candy 13700004019 新购 24 节 固定位', owner: 'Amy', action: '立即排课', icon: 'calendar-check', href: 'm3d_scheduling_workbench.html?role={role}&view=board&student=candy' },
       { id: 'sch-6', group: 'schedule', urgency: 'amber', tag: '待排老师', title: '临时课待安排老师', summary: 'EmmaZ11 · 周六 10:00 · 生活口语', search: 'EmmaZ11 Emma 13600005021 生活口语 临时课', owner: 'Leo', action: '挑选老师', icon: 'calendar-clock', href: 'm3d_scheduling_workbench.html?role={role}&view=board&student=emma' },
-      { id: 'sch-7', group: 'schedule', urgency: 'urgent', minutesToStart: 170, ownerType: 'monitor', tag: '待代课', title: '老师请假待代课', summary: 'BobZ10 · Linda Chen · 周五 18:00', search: 'BobZ10 Bob 13900003018 Linda Chen 请假', owner: 'Leo', action: '指派代课', icon: 'user-round-x', href: 'm3a_calendar_grid.html?role={role}&teacher=linda&week=0&lessonId=ls_20261113_1800&panel=sub' },
+      { id: 'sch-7', group: 'schedule', urgency: 'urgent', minutesToStart: 170, ownerType: 'monitor', tag: '待代课', title: '老师请假待代课', summary: 'BobZ10 · Linda Chen · 周五 18:00', search: 'BobZ10 Bob 13900003018 Linda Chen 请假', owner: 'Leo', action: '指派代课', icon: 'user-round-x', href: 'm3a_calendar_grid.html?role={role}&teacher=linda&week=0&lessonId=ls_20261113_1800&panel=sub&fromTab=tab3' },
       { id: 'sch-8', group: 'schedule', urgency: 'amber', tag: '待补排', title: '小班待补排', summary: 'Daisy 口语班 · 待补 1 节 · 3 人在读', search: 'Daisy 口语班 Linda Chen 小班 补排', owner: 'Sarah', action: '立即补排', icon: 'calendar-plus', href: 'm3d_scheduling_workbench.html?role={role}&view=board&class=daisy&classId=ket1' },
-      { id: 'sch-9', group: 'schedule', urgency: 'urgent', minutesToStart: 120, ownerType: 'monitor', tag: '待代课', title: '老师请假待代课', summary: 'MiaZ07 · Elena Wu · 周六 14:00', search: 'MiaZ07 Mia 13400007023 Elena Wu 请假', owner: 'Leo', action: '指派代课', icon: 'user-round-x', href: 'm3a_calendar_grid.html?role={role}&teacher=elena&week=0&lessonId=ls_20261114_1400&panel=sub' },
+      { id: 'sch-9', group: 'schedule', urgency: 'urgent', minutesToStart: 120, ownerType: 'monitor', tag: '待代课', title: '老师请假待代课', summary: 'MiaZ07 · Elena Wu · 周六 14:00', search: 'MiaZ07 Mia 13400007023 Elena Wu 请假', owner: 'Leo', action: '指派代课', icon: 'user-round-x', href: 'm3a_calendar_grid.html?role={role}&teacher=elena&week=0&lessonId=ls_20261114_1400&panel=sub&fromTab=tab3' },
       { id: 'sch-10', group: 'schedule', urgency: 'amber', tag: '待补排', title: '小班待补排', summary: 'KET 冲刺 B 班 · 待补 1 节 · 4 人在读', search: 'KET 冲刺 B 班 Elena Wu 小班 补排', owner: 'Leo', action: '立即补排', icon: 'calendar-plus', href: 'm3d_scheduling_workbench.html?role={role}&view=board&class=ket&classId=ket1' },
-      { id: 'sch-11', group: 'schedule', urgency: 'urgent', minutesToStart: 95, ownerType: 'monitor', tag: '待代课', title: '老师请假待代课', summary: 'NinaZ05 · Elena Wu · 今天 21:00', search: 'NinaZ05 Nina 13200009025 Elena Wu 请假 跨组 驰援', owner: 'Amy', action: '协助指派', icon: 'user-round-x', href: 'm3a_calendar_grid.html?role={role}&teacher=elena&week=0&lessonId=ls_20261111_2100&panel=sub' },
-      { id: 'sch-12', group: 'schedule', urgency: 'urgent', minutesToStart: 55, ownerType: 'monitor', tag: '异常考勤', title: '异常考勤待处理', summary: 'JasonZ03 · 外教超时未进班 · 今天 20:30', search: 'JasonZ03 Jason 13100010026 异常考勤 未进班 跨组 驰援', owner: 'Sarah', action: '立即处理', icon: 'alert-triangle', href: 'm3a_calendar_grid.html?role={role}&view=day&lessonId=ls_20261111_2030' },
-      { id: 'sch-13', group: 'schedule', urgency: 'urgent', minutesToStart: 130, ownerType: 'platform', tag: '异常考勤', title: '异常考勤待处理', summary: 'LeoZ04 · 平台直管班 · 今天 21:30', search: 'LeoZ04 Leo 13100010026 平台直管 异常考勤 未点名', owner: '平台', action: '立即处理', icon: 'alert-triangle', href: 'm3a_calendar_grid.html?role={role}&view=day&lessonId=ls_20261111_2130' },
+      { id: 'sch-11', group: 'schedule', urgency: 'urgent', minutesToStart: 95, ownerType: 'monitor', tag: '待代课', title: '老师请假待代课', summary: 'NinaZ05 · Elena Wu · 今天 21:00', search: 'NinaZ05 Nina 13200009025 Elena Wu 请假 跨组 驰援', owner: 'Amy', action: '协助指派', icon: 'user-round-x', href: 'm3a_calendar_grid.html?role={role}&teacher=elena&week=0&lessonId=ls_20261111_2100&panel=sub&fromTab=tab3' },
+      { id: 'sch-12', group: 'schedule', urgency: 'urgent', minutesToStart: 55, ownerType: 'monitor', tag: '异常考勤', title: '异常考勤待处理', summary: 'JasonZ03 · 外教超时未进班 · 今天 20:30', search: 'JasonZ03 Jason 13100010026 异常考勤 未进班 跨组 驰援', owner: 'Sarah', action: '立即处理', icon: 'alert-triangle', href: 'm3a_calendar_grid.html?role={role}&view=day&lessonId=ls_20261111_2030&fromTab=tab3' },
+      { id: 'sch-13', group: 'schedule', urgency: 'urgent', minutesToStart: 130, ownerType: 'platform', tag: '异常考勤', title: '异常考勤待处理', summary: 'LeoZ04 · 平台直管班 · 今天 21:30', search: 'LeoZ04 Leo 13100010026 平台直管 异常考勤 未点名', owner: '平台', action: '立即处理', icon: 'alert-triangle', href: 'm3a_calendar_grid.html?role={role}&view=day&lessonId=ls_20261111_2130&fromTab=tab3' },
 
       { id: 'ord-0', group: 'order', urgency: 'amber', tag: '待确认续费', title: '固定位续费待确认', summary: 'BobZ10 · 10 节 · 1,280 积分', search: 'BobZ10 Bob 13900003018 续费 1280 固定位 家长申请调整', owner: 'Leo', action: '去续费', icon: 'refresh-cw', href: 'm2a_course_orders.html?role={role}&page=list', pin: true, flag: '家长申请调整', note: '家长留言：周四 20:00 固定位希望改到周六上午' },
       { id: 'ord-1', group: 'order', urgency: 'amber', tag: '待确认收款', title: '购课单待确认收款', summary: 'AliceZ12 · 续费 20 节 · 2,680 积分', search: 'AliceZ12 Alice 13800002016 购课 续费 2680 收款', owner: 'Leo', action: '确认收款', icon: 'receipt', href: 'm2a_course_orders.html?role={role}&page=list' },
@@ -1435,17 +1439,17 @@
       }
       if (state.role === 'admin') {
         const selectedPick = ['Leo', 'Amy', 'Sarah'].includes(scope) ? scope : '';
+        const pickCls = selectedPick
+          ? 'border-indigo-500 bg-indigo-50/50 font-semibold text-indigo-700'
+          : 'border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50';
+        const pickLabel = selectedPick ? `指定班长：${selectedPick}` : '指定班长';
         return `<div class="flex items-center gap-1">
           ${pill('all', '全部班长')}
           ${pill('mine', '⭐ 我亲自管的')}
-          <select data-action="todo-owner-pick" aria-label="指定班长" class="h-7 min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-2 text-[12px] font-medium text-slate-700 outline-none">
-            <option value="" ${selectedPick === '' ? 'selected' : ''} disabled>指定班长</option>
-            <option value="all" ${scope === 'all' ? 'selected' : ''}>全部</option>
-            <option value="mine" ${scope === 'mine' ? 'selected' : ''}>⭐ 我亲自管的</option>
-            <option value="Leo" ${scope === 'Leo' ? 'selected' : ''}>Leo</option>
-            <option value="Amy" ${scope === 'Amy' ? 'selected' : ''}>Amy</option>
-            <option value="Sarah" ${scope === 'Sarah' ? 'selected' : ''}>Sarah</option>
-          </select>
+          <button type="button" data-action="open-todo-owner-sheet" aria-label="指定班长" class="inline-flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2.5 text-[12px] leading-none transition ${pickCls}">
+            <span>${esc(pickLabel)}</span>
+            ${icon('chevron-down', 'h-3.5 w-3.5 shrink-0')}
+          </button>
         </div>`;
       }
       return '';
@@ -1524,7 +1528,7 @@
     function profileCard(role) {
       const profiles = {
         user: { name: 'Amy', email: 'amy@dream.top', tags: ['家长', '2 个孩子'] },
-        teacher: { name: 'David Miller', email: 'david@dream.top', tags: ['签约老师', 'Senior'] },
+        teacher: { name: 'David Miller', email: 'david@dream.top', tags: isTeacherEn() ? ['Contract Teacher', 'Senior'] : ['签约老师', 'Senior'] },
         monitor: { name: 'Leo', email: 'leo@dream.top', tags: ['班长', '家长'] },
         admin: { name: 'Sarah', email: 'sarah@dream.top', tags: ['平台管理员', '班长', '家长'] }
       };
@@ -1544,12 +1548,14 @@
       const isMonitor = state.role === 'monitor';
       const isTeacher = state.role === 'teacher';
       const fam = isParent || isMonitor;
+      const mappedRole = isParent ? 'parent' : isTeacher ? 'teacher' : (isMonitor ? 'monitor' : 'admin');
+      const kidsSub = isMonitor && state.noKids ? '暂无自家孩子信息 (0/10)' : '管理名下孩子档案 (2/10)';
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         ${profileCard(role)}
         ${fam ? `<section>
           <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">家庭与孩子</div>
           <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
-            ${row('baby', '多孩档案', '管理名下孩子档案 (2/10)', null, null, 'm1a_student_profile.html?role=parent&page=center')}
+            ${row('baby', '多孩档案', kidsSub, null, null, 'm1a_student_profile.html?role=parent&page=center')}
             ${row('receipt', '自家购课与账单', '个人购课、充值流水与结余', null, null, 'm2a_course_orders.html?role=parent&page=list')}
           </div>
         </section>` : ''}
@@ -1577,28 +1583,28 @@
           </div>
         </section>` : ''}
         <section>
-          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">账号与安全</div>
+          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">${t('账号与安全', 'Account & security')}</div>
           <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
-            ${row('id-card', '身份与账号', '当前身份、绑定角色与账号安全', 'identity')}
-            ${row('lock', '修改登录密码', '验证原密码后设置新密码', 'toast', '正在打开修改密码')}
-            ${row('mail', '换绑邮箱 / 手机号', '双向验证码校验后生效', 'toast', '正在打开换绑验证')}
+            ${row('lock', t('修改登录密码', 'Change password'), t('验证原密码后设置新密码', 'Verify current password, then set a new one'), null, null, `m0a_auth_and_account.html?screen=change-password&role=${mappedRole}`)}
+            ${row('mail', t('安全换绑邮箱', 'Change email'), t('两步邮箱验证换绑 · Email 唯一凭证', 'Two-step email verification · Email only'), null, null, `m0a_auth_and_account.html?screen=change-email&role=${mappedRole}`)}
+            ${row('shield-check', t('账号安全中心', 'Security center'), t('查看账号状态与安全保护说明', 'Review account status and protection details'), null, null, `m0a_auth_and_account.html?screen=security&role=${mappedRole}`)}
           </div>
         </section>
         <section>
-          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">系统偏好</div>
+          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">${t('系统偏好', 'Preferences')}</div>
           <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
             ${languageRow()}
-            ${row('bell-ring', '消息通知接收偏好', '系统通知与邮件提醒', null, null, 'm4_notification.html?role=' + (state.role === 'user' ? 'user' : state.role))}
-            ${row('refresh-cw', '检查更新与清理缓存', '当前版本 v1.0.0 · PWA', 'toast', '已是最新版本')}
-            ${row('log-out', '退出登录', '清除本地敏感快照', 'toast', '已退出登录')}
+            ${row('refresh-cw', t('检查更新与清理缓存', 'Clear cache'), t('当前版本 v1.0.0 · 不会退出登录', 'Version v1.0.0 · keeps you signed in'), 'toast', t('已是最新版本', 'Already up to date'))}
+            ${row('log-out', t('退出登录', 'Sign out'), t('清除本地登录与暂存数据', 'Clears local sign-in status and temporary data'), 'toast', t('已退出登录', 'Signed out'))}
+            ${row('user-x', t('注销账号', 'Deactivate account'), t('查看注销前置核验与申请入口', 'Review pre-checks and deactivate account'), null, null, `m0a_auth_and_account.html?screen=me&role=${mappedRole}`)}
           </div>
         </section>
         <section>
-          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">法律与关于</div>
+          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">${t('法律与关于', 'Legal & about')}</div>
           <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
-            ${row('file-text', '用户服务协议', '固定位、请假退改与授课保障期', 'legal', 'terms')}
-            ${row('shield-check', '隐私保护政策', '未成年人信息与跨境脱敏', 'legal', 'privacy')}
-            ${row('info', '关于 Dream', '版本信息与官方支持', 'legal', 'about')}
+            ${row('file-text', t('用户服务协议', 'Terms of Service'), t('固定位、请假退改与授课保障期', 'Fixed slots, leave/reschedule & coverage window'), 'legal', 'terms')}
+            ${row('shield-check', t('隐私保护政策', 'Privacy Policy'), t('未成年人信息与跨境脱敏', 'Minors protection & cross-border masking'), 'legal', 'privacy')}
+            ${row('info', t('关于 Dream', 'About Dream'), t('版本信息与官方支持', 'Version info & official support'), 'legal', 'about')}
           </div>
         </section>
       </div>`;
@@ -1606,12 +1612,13 @@
 
     function renderAdminSettings() {
       const admin = roleMeta();
+      const kidsSub = state.noKids ? '暂无自家孩子信息 (0/10)' : '管理名下孩子档案 (2/10)';
       return `<div class="mx-auto w-full max-w-[640px] space-y-3 px-4 py-4 pb-10">
         ${profileCard(admin)}
         <section>
-          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-500">平台机构与主数据治理</div>
+          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">平台机构与主数据治理</div>
           <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
-            ${row('crown', '管理员管理', state.ordinaryAdmin ? '只读查看在任/已撤销管理员名单与授权审计日志' : '永久主管理员专属 · 增改撤 / 周转终审 / 课酬发薪与授权审计', null, null, 'm0a_auth_and_account.html?screen=admins&role=admin')}
+            ${row('crown', '管理员管理', state.ordinaryAdmin ? '只读查看在任与已撤销平台管理员名单' : '永久主管理员专属 · 增改撤 / 周转终审 / 课酬发薪', null, null, `m0a_auth_and_account.html?screen=admins&role=admin&adminView=${state.ordinaryAdmin ? 'ordinary' : 'permanent'}`)}
             ${row('users', '班长管理', '查看班长、团队划拨与离职交接', null, null, 'm1b_teacher_monitor.html?role=admin&page=monitors')}
             ${row('graduation-cap', '老师管理', '价位、简介、划拨与离职交接', null, null, 'm1b_teacher_monitor.html?role=admin&page=teachers')}
             ${row('user-plus', '试课学员管理', '代建档、录入联系方式与认领跟踪', null, null, 'm1a_student_profile.html?role=admin&page=trials')}
@@ -1619,32 +1626,33 @@
           </div>
         </section>
         <section>
-          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-500">基础字典与全局参数</div>
+          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">基础字典</div>
           <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
-            ${row('tag', '老师价位字典', '16积分 / 18积分 / 21积分（家长单节付费）', 'toast', '正在打开老师价位字典')}
-            ${row('percent', '全局结算周期基准参数', '周度结单节奏、打款超时提醒与结算周期参数', 'toast', '正在打开全局结算周期基准参数')}
+            ${row('tag', '老师价位字典', '16积分 / 18积分 / 21积分（家长单节付费）', null, null, 'm1b_teacher_monitor.html?role=admin&page=priceDict')}
           </div>
         </section>
         <section>
-          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-500">家庭与个人中心</div>
+          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">家庭、个人资料与账号安全</div>
           <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
-            ${row('baby', '多孩档案', '管理名下孩子档案', null, null, 'm1a_student_profile.html?role=parent&page=center')}
+            ${row('baby', '多孩档案', kidsSub, null, null, 'm1a_student_profile.html?role=parent&page=center')}
             ${row('receipt', '自家购课账单', '家庭购课记录与续费', null, null, 'm2a_course_orders.html?role=parent&page=list')}
             ${row('qr-code', '我的微信二维码', state.monitorWechatUploaded ? '已上传 · 供所辖老师与学员家长扫码联系' : '未上传 · 点击上传微信二维码', 'my-wechat-qr')}
-            ${row('id-card', '账号安全', '身份、密码与换绑验证', 'identity')}
+            ${row('lock', '修改登录密码', '验证原密码后设置新密码', null, null, 'm0a_auth_and_account.html?screen=change-password&role=admin')}
+            ${row('mail', '安全换绑邮箱', '两步邮箱验证换绑 · Email 唯一凭证', null, null, 'm0a_auth_and_account.html?screen=change-email&role=admin')}
+            ${row('shield-check', '账号安全', '账号状态、主管理员保护与应急恢复说明', null, null, 'm0a_auth_and_account.html?screen=security&role=admin')}
           </div>
         </section>
         <section>
-          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-500">系统偏好</div>
+          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">系统偏好</div>
           <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
             ${languageRow()}
-            ${row('bell-ring', '消息通知中心', '系统通知与邮件发送记录', null, null, 'm4_notification.html?role=admin')}
-            ${row('refresh-cw', '检查更新与清理缓存', '当前版本 v1.0.0 · PWA', 'toast', '已是最新版本')}
-            ${row('log-out', '退出登录', '清除本地敏感快照', 'toast', '已退出登录')}
+            ${row('refresh-cw', '检查更新与清理缓存', '当前版本 v1.0.0 · 不会退出登录', 'toast', '已是最新版本')}
+            ${row('log-out', '退出登录', '清除本地登录与暂存数据', 'toast', '已退出登录')}
+            ${row('user-x', '注销账号', '查看注销前置核验与申请入口', null, null, 'm0a_auth_and_account.html?screen=me&role=admin')}
           </div>
         </section>
         <section>
-          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-500">法律与关于</div>
+          <div class="mb-1.5 px-1 text-[12px] font-bold text-slate-600">法律与关于</div>
           <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
             ${row('file-text', '用户服务协议', '固定位、请假退改与授课保障期', 'legal', 'terms')}
             ${row('shield-check', '隐私保护政策', '未成年人信息与跨境脱敏', 'legal', 'privacy')}
@@ -1664,7 +1672,7 @@
     }
 
     /* ------------------------------------------------------------------
-     * 弹层：身份 / 通知 / 法律 / 二维码 / 课程
+     * 弹层：通知 / 筛选 / 法律 / 二维码 / 课程
      * ------------------------------------------------------------------ */
     function sheetShell(title, subtitle, body, maxH = 'max-h-[75%]') {
       return `<div class="absolute inset-0 z-50 flex items-end">
@@ -1679,8 +1687,28 @@
       </div>`;
     }
 
-    function identitySheet() {
-      return sheetShell('身份与账号', '固定 4 类角色形态 · 主身份优先级 管理员 > 班长 > 老师 > 家长', `<div class="space-y-1">${Object.values(ROLES).map((r) => `<button data-action="set-role" data-role="${r.key}" class="flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left ${state.role === r.key ? 'border-indigo-200 bg-indigo-50/60' : 'border-transparent bg-white hover:bg-slate-50'}"><span class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br ${r.banner} text-[14px] font-bold text-white">${r.initial}</span><span class="min-w-0 flex-1"><span class="block text-[14px] font-bold text-slate-900">${esc(r.label)}</span><span class="block text-[12px] text-slate-600">${esc(r.brand)} · ${esc(r.short)}</span></span>${state.role === r.key ? `<span class="grid h-6 w-6 place-items-center rounded-full bg-indigo-600 text-white">${icon('check', 'h-3.5 w-3.5')}</span>` : icon('chevron-right', 'h-4 w-4 text-slate-300')}</button>`).join('')}</div>`);
+    function todoOwnerSheet() {
+      const scope = todoOwnerScope();
+      const options = [
+        { value: 'all', title: '全部班长', desc: '全部待办流 · 含跨组紧急待援' },
+        { value: 'mine', title: '⭐ 我亲自管的', desc: '仅看 Sarah 直管待办' },
+        { value: 'Leo', title: 'Leo', desc: '仅看 Leo 负责的学员、老师与小班待办' },
+        { value: 'Amy', title: 'Amy', desc: '仅看 Amy 负责的学员、老师与小班待办' },
+        { value: 'Sarah', title: 'Sarah', desc: '仅看 Sarah 负责的学员、老师与小班待办' }
+      ];
+      return sheetShell('选择所属班长', '筛选指定班长或全部待办事项', `<div class="space-y-1.5">
+        ${options.map((opt) => {
+          const on = scope === opt.value;
+          return `<button type="button" data-action="select-todo-owner" data-owner="${opt.value}" class="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 text-left transition ${on ? 'border-indigo-200 bg-indigo-50/70' : 'border-slate-200 bg-white hover:bg-slate-50'}">
+            <span class="min-w-0 flex-1">
+              <span class="block text-[14px] font-bold ${on ? 'text-indigo-900' : 'text-slate-900'}">${esc(opt.title)}</span>
+              <span class="block text-[12px] text-slate-600">${esc(opt.desc)}</span>
+            </span>
+            ${on ? `<span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-indigo-600 text-white">${icon('check', 'h-3.5 w-3.5')}</span>` : icon('chevron-right', 'h-4 w-4 shrink-0 text-slate-300')}
+          </button>`;
+        }).join('')}
+        ${scope !== 'all' ? `<button type="button" data-action="select-todo-owner" data-owner="all" class="mt-2 flex h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white text-[14px] font-medium text-slate-800 transition hover:bg-slate-50">重置为全部班长</button>` : ''}
+      </div>`);
     }
 
     function notificationsSheet() {
@@ -2024,7 +2052,7 @@
     function renderOverlay() {
       const root = $('overlayRoot');
       if (!state.overlay) { root.innerHTML = ''; return; }
-      if (state.overlay === 'identity') root.innerHTML = identitySheet();
+      if (state.overlay === 'todo-owner') root.innerHTML = todoOwnerSheet();
       else if (state.overlay === 'notifications') root.innerHTML = notificationsSheet();
       else if (state.overlay === 'legal') root.innerHTML = legalSheet();
       else if (state.overlay === 'qr') root.innerHTML = qrSheet();
@@ -2243,11 +2271,25 @@
         renderAll();
         return;
       }
-      if (action === 'identity') { state.overlay = 'identity'; renderOverlay(); if (window.lucide) window.lucide.createIcons(); return; }
+      if (action === 'open-todo-owner-sheet') { state.overlay = 'todo-owner'; renderOverlay(); if (window.lucide) window.lucide.createIcons(); return; }
+      if (action === 'select-todo-owner') {
+        const val = ['all', 'mine', 'Leo', 'Amy', 'Sarah'].includes(el.dataset.owner) ? el.dataset.owner : 'all';
+        state.todoOwnerPick = val;
+        if (val === 'all' || val === 'mine') state.todoOwnerMode = val;
+        state.todoExpanded = false;
+        state.overlay = null;
+        renderAll();
+        return;
+      }
       if (action === 'notifications') {
-        if (state.role !== 'teacher' && state.feedChild === 'all' && state.noticeSeen < familyUrgentNotices().length) {
-          state.noticeSeen += 1;
-          renderAll();
+        if (state.role !== 'teacher') {
+          if (state.feedChild === 'all' && state.noticeSeen < familyUrgentNotices().length) {
+            state.noticeSeen += 1;
+            renderAll();
+          } else if (state.feedChild !== 'all' && !state.readChildNotices[state.feedChild]) {
+            state.readChildNotices[state.feedChild] = true;
+            renderAll();
+          }
         }
         state.overlay = 'notifications'; renderOverlay(); if (window.lucide) window.lucide.createIcons(); return;
       }
@@ -2390,23 +2432,12 @@
         toast(t('课件级别与进度备注已保存', 'Material level and process note saved'));
         return;
       }
-      if (action === 'set-role') return setRole(el.dataset.role);
       if (action === 'set-lang') return setLang(el.dataset.lang);
       if (action === 'copy-id') {
         const text = el.dataset.account || (state.qrTeacher && state.qrTeacher.account) || '982-123-456';
         if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(`已复制: ${text}`)).catch(() => toast(text));
         else toast(text);
       }
-    });
-
-    $('frame').addEventListener('change', (event) => {
-      const el = event.target.closest('[data-action="todo-owner-pick"]');
-      if (!el) return;
-      const val = ['all', 'mine', 'Leo', 'Amy', 'Sarah'].includes(el.value) ? el.value : 'all';
-      state.todoOwnerPick = val;
-      if (val === 'all' || val === 'mine') state.todoOwnerMode = val;
-      state.todoExpanded = false;
-      renderAll();
     });
 
     const consoleMini = document.querySelector('[data-console-mini]');

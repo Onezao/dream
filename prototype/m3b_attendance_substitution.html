@@ -65,6 +65,7 @@
           <button data-group="hours" data-value="24" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">≥24h</button>
           <button data-group="hours" data-value="6" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">3~24h</button>
           <button data-group="hours" data-value="2" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">&lt;3h</button>
+          <button data-group="hours" data-value="0" class="ctl rounded-lg px-2.5 py-1.5 font-semibold">已开课</button>
         </div>
       </div>
 
@@ -148,8 +149,8 @@
       reschedule: '同师代挪位',
       softConfirm: '临期操作确认',
       studentLeaveChoice: '临期代请假',
-      assignSub: '指派代课',
-      emergencyPack: '应急调度待办包',
+      assignSub: '请假 / 指派代课',
+      emergencyPack: '应急调度与代课指派',
       changeStudent: '更换上课学员',
       classPause: '暂停待排',
       cellSheet: '课格动作',
@@ -159,13 +160,13 @@
     const NAVS = {
       monitor: [
         { id: 'home', label: '首页', icon: 'home', href: 'm0_workspace_home.html?role=monitor' },
-        { id: 'schedule', label: '学员课表', icon: 'calendar-days', href: 'm3a_calendar_grid.html?role=monitor' },
+        { id: 'schedule', label: '自家课表', icon: 'calendar-days', href: 'm3a_calendar_grid.html?role=monitor' },
         { id: 'ops', label: '教务中心', icon: 'layout-grid', href: 'm0_workspace_home.html?role=monitor&tab=ops' },
         { id: 'me', label: '我的', icon: 'user', href: 'm0_workspace_home.html?role=monitor&view=me' }
       ],
       admin: [
         { id: 'home', label: '首页', icon: 'home', href: 'm0_workspace_home.html?role=admin' },
-        { id: 'schedule', label: '学员课表', icon: 'calendar-days', href: 'm3a_calendar_grid.html?role=admin' },
+        { id: 'schedule', label: '自家课表', icon: 'calendar-days', href: 'm3a_calendar_grid.html?role=admin' },
         { id: 'ops', label: '教务中心', icon: 'layout-grid', href: 'm0_workspace_home.html?role=admin&tab=ops' },
         { id: 'settings', label: '管理与设置', icon: 'settings', href: 'm0_workspace_home.html?role=admin&view=settings' }
       ],
@@ -655,6 +656,7 @@
       cellView: 'main',
       cellScope: { lessonId: null, nextSelected: true },
       cellReason: '',
+      cellFault: 'teacher',
       recordsRange: '7',
       recordsType: 'ALL',
       recordsMonitor: 'ALL',
@@ -692,6 +694,7 @@
       state.cellView = 'main';
       state.cellScope = { lessonId: null, nextSelected: true };
       state.cellReason = '';
+      state.cellFault = 'teacher';
       state.recordsRange = '7';
       state.recordsType = 'ALL';
       state.recordsMonitor = 'ALL';
@@ -1201,18 +1204,24 @@
     }
 
     function cellReasonField() {
+      const len = state.cellReason.trim().length;
+      const ok = len >= 1 && len <= 200;
       return `<div class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
-        <label for="cellReason" class="text-[12px] font-bold text-slate-800">处置原因 <span class="text-rose-600">必填</span></label>
-        <textarea id="cellReason" rows="2" placeholder="例如：ClassIn 进出记录核对，确认未上课" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-[16px] font-medium leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(state.cellReason)}</textarea>
-        <div id="cellReasonHint" class="mt-1 text-[12px] font-medium ${state.cellReason.trim() ? 'text-emerald-700' : 'text-slate-600'}">${state.cellReason.trim() ? '已填写，提交后将追加只读留痕' : '异常处置、纠偏与清退须填写至少 1 个非空字符'}</div>
+        <div class="flex items-center justify-between gap-2">
+          <label for="cellReason" class="text-[12px] font-bold text-slate-800">处置原因 <span class="text-rose-600">1–200 字必填</span></label>
+          <span class="text-[12px] font-semibold text-slate-500">${state.cellReason.length}/200</span>
+        </div>
+        <textarea id="cellReason" rows="2" maxlength="200" placeholder="例如：ClassIn 进出记录核对，确认未上课" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-[16px] font-medium leading-relaxed text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">${esc(state.cellReason)}</textarea>
+        <div id="cellReasonHint" class="mt-1 text-[12px] font-medium ${ok ? 'text-emerald-700' : 'text-slate-600'}">${ok ? '已填写（1–200 字），提交后将追加只读留痕' : '异常处置、纠偏与回退补生须填写 1–200 字'}</div>
       </div>`;
     }
 
     function updateCellReasonHint() {
       const hint = document.getElementById('cellReasonHint');
       if (!hint) return;
-      const ok = state.cellReason.trim().length > 0;
-      hint.textContent = ok ? '已填写，提交后将追加只读留痕' : '异常处置、纠偏与清退须填写至少 1 个非空字符';
+      const len = state.cellReason.trim().length;
+      const ok = len >= 1 && len <= 200;
+      hint.textContent = ok ? `已填写（${len}/200 字），提交后将追加只读留痕` : '异常处置、纠偏与回退补生须填写 1–200 字';
       hint.className = `mt-1 text-[12px] font-medium ${ok ? 'text-emerald-700' : 'text-slate-600'}`;
     }
 
@@ -1700,9 +1709,9 @@
             <span class="truncate text-[12px] font-semibold text-slate-600">${scope.length > 1 ? `按 2 节生效 · ${scopeRangeLabel(scope)}` : group ? '连续双格生效' : '按 1 节生效'}</span>
           </div>
           <div class="grid grid-cols-2 gap-1.5">
-            ${actionTile('cell-panel-leave', 'calendar-x', '请假 / 同师挪位', group ? '小班课请用代课 / 暂停待排' : scope.length > 1 ? '请假退期待排或同师平移，按 2 节生效' : '请假退期待排或同师平移', { tone: 'rose', disabled: group || closed, lockHint: group ? '小班课请用代课 / 暂停待排' : '已结课，排课类动作不可用' })}
-            ${actionTile('cell-panel-assign', group ? 'repeat-2' : 'user-round-check', group ? '代课 / 暂停待排' : '指派代课', group ? '连续双格代课 / 暂停待排' : substituted ? `已由 ${lesson.subTeacher} 代课 · 可撤销或改派` : '智能筛师 · 熟客优先', { tone: 'purple', disabled: closed, lockHint: '已结课，排课类动作不可用' })}
-            ${actionTile('cell-panel-attendance', 'clipboard-list', '考勤 / 旷课标记', closed ? '已结课 · 仅旷课误标纠偏' : '默认正常 · 次日 02:00 自动结课', { tone: 'amber', disabled: group || (closed && !completedUnsettled), lockHint: group ? '小班不记录单人考勤' : '已归集，考勤锁定' })}
+            ${actionTile('cell-panel-leave', 'calendar-x', '请假 / 同师挪位', group ? '小班课请用请假/代课/暂停' : scope.length > 1 ? '请假退期待排或同师平移，按 2 节生效' : '请假退期待排或同师平移', { tone: 'rose', disabled: group || closed, lockHint: group ? '小班课请用请假/代课/暂停' : '已结课，排课类动作不可用' })}
+            ${actionTile('cell-panel-assign', group ? 'repeat-2' : 'user-round-check', group ? '请假 / 代课 / 暂停待排' : '请假 / 指派代课', group ? '一步代课 / 仅请假 / 暂停待排' : substituted ? `已由 ${lesson.subTeacher} 代课 · 可撤销或改派` : '一步代课或仅请假 · 不锁余格', { tone: 'purple', disabled: closed, lockHint: '已结课，排课类动作不可用' })}
+            ${actionTile('cell-panel-attendance', 'clipboard-list', '考勤 / 旷课标记', (state.hours > 0 && !closed) ? '尚未到开课时间（请走请假/代课）' : closed ? '已结课 · 仅旷课误标纠偏' : '默认正常 · 次日 02:00 自动结课', { tone: 'amber', disabled: group || (state.hours > 0 && !closed) || (closed && !completedUnsettled), lockHint: group ? '小班不记录单人考勤' : (state.hours > 0 && !closed) ? '尚未到开课时间，不可提前标考勤' : '已归集，考勤锁定' })}
             ${group ? '' : actionTile('cell-change', 'user-round-cog', '换上课学员', '1v1 专属 · 出资与资金归属不变', { tone: 'teal', disabled: closed, lockHint: '已结课，排课类动作不可用' })}
           </div>
         </div>
@@ -1711,9 +1720,18 @@
           <div class="mb-1.5 text-[12px] font-bold text-slate-700">状态处置</div>
           ${(!closed && status !== 'PENDING' && status !== 'COMPENSATED') || completedUnsettled ? cellReasonField() : ''}
           ${!closed && status !== 'PENDING' && status !== 'COMPENSATED' ? `<button data-action="cell-withdraw" class="mt-2 h-11 w-full rounded-xl border border-rose-200 bg-rose-50 px-3 text-[14px] font-semibold text-rose-700 active:bg-rose-100 ${onlineCls()}">撤排退回课次</button>` : ''}
-          ${completedUnsettled && lesson.subTeacher ? `<div class="mb-2 rounded-xl border border-purple-200 bg-purple-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-purple-900">该课次为已结课代课（🟣 ${esc(lesson.subTeacher)} 代上）。【异常未上课回退补生】将在同一事务把关联代课调度工单 <span class="font-bold">已履约 → 已取消（异常未上课回退撤销）</span>，作废原 TS 并原单补生 1 节；从尚未打款的 M5B 周课酬单与 M5A 草稿同步剔除该节。</div>` : ''}
+          ${completedUnsettled ? `<div class="mt-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px]">
+            <div class="font-bold text-slate-800">三方同权 · 双重未冻结可回退 · D1 异常归因</div>
+            <div class="mt-1 text-[12px] text-slate-600">原资金持有人班长 / 授课老师所属负责班长·小班主理人 / 平台管理员均可发起；须未入「已完成入账」周转账单且未入「已打款」课酬单。</div>
+            <div class="mt-1.5 grid grid-cols-2 gap-1.5">
+              <button type="button" data-action="cell-fault" data-value="teacher" class="h-8 rounded-lg border px-2 text-[12px] font-bold ${state.cellFault !== 'platform' ? 'border-rose-300 bg-rose-50 text-rose-800' : 'border-slate-200 bg-white text-slate-700'}">老师原因（记实际授课师）</button>
+              <button type="button" data-action="cell-fault" data-value="platform" ${state.role === 'admin' ? '' : 'disabled'} class="h-8 rounded-lg border px-2 text-[12px] font-bold ${state.role !== 'admin' ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : state.cellFault === 'platform' ? 'border-indigo-300 bg-indigo-50 text-indigo-800' : 'border-slate-200 bg-white text-slate-700'}">平台故障（仅管理员）</button>
+            </div>
+            <div class="mt-1 text-[12px] font-medium text-slate-600">${state.cellFault === 'platform' && state.role === 'admin' ? '平台故障：不记录老师或学员任何《出勤异常记录》、老师不发薪并退 1 节 TS 给学员/小班池。' : '老师原因：记实际授课老师《出勤异常记录》，老师不发薪并退 1 节 TS。'}</div>
+          </div>` : ''}
+          ${completedUnsettled && lesson.subTeacher ? `<div class="mt-2 mb-2 rounded-xl border border-purple-200 bg-purple-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-purple-900">该课次为已结课代课（🟣 ${esc(lesson.subTeacher)} 代上）。【异常未上课回退补生】将在同一事务把关联代课调度工单 <span class="font-bold">已履约 → 已取消（异常未上课回退撤销）</span>，原 TS 置 <span class="font-bold">已取消</span> 并原单补生 1 节；从尚未打款的 M5B 周课酬单与 M5A 草稿同步剔除该节。</div>` : ''}
           ${completedUnsettled ? `<button data-action="cell-compensate" class="mt-2 h-11 w-full rounded-xl border border-amber-300 bg-amber-50 px-3 text-[14px] font-semibold text-amber-900 active:bg-amber-100 ${onlineCls()}">${lesson.subTeacher ? '异常未上课回退补生 · 同步撤销代课工单' : '异常未上课回退补生'}</button>` : ''}
-          ${settledClosed ? `<div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">该课次已完成归集，不可回退补生。</div>` : ''}
+          ${settledClosed ? `<div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">该课次已完成财务冻结归集（已入已完成入账周转账单或已打款课酬单），不可回退补生。</div>` : ''}
           ${status === 'PENDING' || status === 'COMPENSATED' ? `<div class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-medium leading-relaxed text-slate-600">${status === 'PENDING' ? '该课次已退回待排期，无待执行动作。' : '该课次已回退补生，无待执行动作。'}</div>` : ''}
         </div>
 
@@ -1769,8 +1787,10 @@
       const inSubMode = !!subTeacher && (lesson.status === 'SUBSTITUTED' || lesson.status === 'COMPLETED');
       const originT = originTeacherOf(lesson);
       const actual = inSubMode ? subTeacher : lesson.teacher;
+      const started = state.hours <= 0 || lesson.status === 'COMPLETED';
       return sheetShell(`
         ${modalHeader('考勤 / 旷课标记', `${lesson.student} · 本次范围 ${scopeRangeLabel(scope)}`)}
+        ${!started ? `<div class="mt-2">${amberNote('尚未到开课时间', '开课前禁用考勤与旷课标记；如需取消请走请假、代课或撤排。演示控制台切换「已开课」可体验考勤标定。')}</div>` : ''}
         <div data-cell-panel="attendance" class="mt-2.5 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
           <div class="flex flex-wrap items-center gap-1.5">
             ${chip(lesson.status === 'COMPLETED' ? '已结课' : '待结课', lesson.status === 'COMPLETED' ? 'emerald' : 'slate')}
@@ -1779,15 +1799,15 @@
           </div>
           ${inSubMode ? `<div class="mt-1 text-[14px] font-bold text-blue-900">原任 ${esc(originT)} <span class="text-[12px] font-semibold text-blue-700">🔵 被代课</span> → 实际 ${esc(subTeacher)} <span class="text-[12px] font-semibold text-purple-700">🟣 代上课</span></div>` : ''}
           <div class="mt-1.5 text-[14px] font-bold text-slate-900">当前状态：${exception || normalText}</div>
-          <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">日常无需手动点击正常出勤；系统次日 02:00 自动结课，正常扣减并计入老师课酬。代课态下考勤异常一律记在<span class="font-bold">实际代课老师 ${esc(actual)}</span>名下。</div>
+          <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">日常无需手动点击正常出勤；系统次日 02:00 自动结课，正常扣减并计入老师课酬。代课态下考勤异常一律记在<span class="font-bold">实际代课老师 ${esc(actual)}</span>名下；老师端绝无自标「老师旷课」。</div>
         </div>
         ${cellReasonField()}
         <div class="mt-2.5 space-y-1.5">
-          ${actionRow('cell-mark-student-absent', 'user-x', '标为学员旷课', inSubMode ? `学员侧记录；${subTeacher} 照常计 1 节，原任 ${originT} 计 0 节` : '正常结课并扣减学员 1 节；老师课酬正常计入', { tone: 'rose', write: true })}
-          ${actionRow('cell-mark-teacher-absent', 'user-round-x', '标为老师旷课', inSubMode ? `记入 ${subTeacher}；剔除其本节课酬，原任 ${originT} 保持 0 节；原 TS 退回待排池，M5A 暂不归集` : '退回待排期或补生 1 节；剔除老师该节课酬', { tone: 'amber', write: true })}
-          ${actionRow('cell-mark-teacher-late', 'clock-alert', '老师迟到', inSubMode ? `记入 ${subTeacher} 并照常计 1 节；原任 ${originT} 计 0 节；正常结课` : '正常结课并照常计入课酬；仅记录履约瑕疵与情况说明', { tone: 'amber', write: true })}
-          ${actionRow('cell-mark-teacher-early', 'log-out', '老师早退', inSubMode ? `记入 ${subTeacher} 并照常计 1 节；原任 ${originT} 计 0 节；正常结课` : '正常结课并照常计入课酬；仅记录履约瑕疵与情况说明', { tone: 'amber', write: true })}
-          ${canRestore ? actionRow('cell-restore-normal', 'undo-2', '恢复为正常出勤', inSubMode ? `撤销 ${subTeacher} 名下异常；恢复 B 计 1 节，原任 A 仍 0 节` : '仅用于误标纠偏 · 该课次尚未完成周结算归集', { tone: 'emerald', write: true }) : ''}
+          ${actionRow('cell-mark-student-absent', 'user-x', '标为学员旷课', inSubMode ? `学员侧记录；${subTeacher} 照常计 1 节，原任 ${originT} 计 0 节` : '正常结课并扣减学员 1 节；老师课酬正常计入', { tone: 'rose', write: true, disabled: !started, lockHint: '尚未到开课时间，不可提前标记' })}
+          ${actionRow('cell-mark-teacher-absent', 'user-round-x', '标为老师旷课', inSubMode ? `记入 ${subTeacher}；剔除其本节课酬，原任 ${originT} 保持 0 节；原 TS 退回待排池，M5A 暂不归集` : '退回待排期或补生 1 节；剔除老师该节课酬', { tone: 'amber', write: true, disabled: !started, lockHint: '尚未到开课时间，不可提前标记' })}
+          ${actionRow('cell-mark-teacher-late', 'clock-alert', '老师迟到', inSubMode ? `记入 ${subTeacher} 并照常计 1 节；原任 ${originT} 计 0 节；正常结课` : '正常结课并照常计入课酬；仅记录履约瑕疵与情况说明', { tone: 'amber', write: true, disabled: !started, lockHint: '尚未到开课时间，不可提前标记' })}
+          ${actionRow('cell-mark-teacher-early', 'log-out', '老师早退', inSubMode ? `记入 ${subTeacher} 并照常计 1 节；原任 ${originT} 计 0 节；正常结课` : '正常结课并照常计入课酬；仅记录履约瑕疵与情况说明', { tone: 'amber', write: true, disabled: !started, lockHint: '尚未到开课时间，不可提前标记' })}
+          ${canRestore ? actionRow('cell-restore-normal', 'undo-2', '恢复为正常出勤', inSubMode ? `撤销 ${subTeacher} 名下异常；恢复 B 计 1 节，原任 A 仍 0 节` : '仅用于误标纠偏 · 该课次尚未完成周结算归集', { tone: 'emerald', write: true, disabled: !started, lockHint: '尚未到开课时间' }) : ''}
         </div>
         ${inSubMode ? `<div class="mt-2 rounded-xl border border-purple-200 bg-purple-50/70 px-3 py-2.5">
           <div class="text-[12px] font-bold text-purple-900">代课态 4 类考勤归属矩阵（A 🔵 被代课 → B 🟣 代上课）</div>
@@ -1833,9 +1853,9 @@
       const visibleEligible = eligible.filter((c) => c.name.toLowerCase().includes(query));
       const visibleIneligible = ineligible.filter((c) => c.name.toLowerCase().includes(query));
       return sheetShell(`
-        ${modalHeader('代课 / 暂停待排', `${lesson.student} · ${fmtDate(lesson.date)} ${lesson.time}-${endTime(lesson.time, 60)}`)}
+        ${modalHeader('请假 / 代课 / 暂停待排', `${lesson.student} · ${fmtDate(lesson.date)} ${lesson.time}-${endTime(lesson.time, 60)}`)}
         <div class="mt-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-teal-900">
-          路线 A：指派临时代课，自动筛出全平台在职且目标 1 小时窗口内连续 2 个半小时格全空闲 🟢 的老师（取消课程资质限制），课酬按原班级既定单节课酬快照平移。路线 B：暂停待排，TS 原子退回小班待排池并释放日历双格。
+          路线 A：一步指派临时代课（或先仅老师请假挂起 🔴 待代），自动筛出全平台在职且目标 1 小时窗口内连续 2 个半小时格全空闲 🟢 的老师；小班代课按代课老师当期小班内部单价试算，差额由平台统筹教务盈余池兜底吸收，严禁扣减代课老师课酬（不锁原师当日其余空闲格）。路线 B：暂停待排，TS 原子退回小班待排池（若选老师原因，同步计入《出勤异常记录》第 7 处埋点）。
         </div>
         <div class="mt-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-2.5">
           <div class="flex items-center justify-between gap-2">
@@ -1890,7 +1910,7 @@
         ], '同家庭去重，严禁露出费用、人数与同学名。')}
         <div class="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
           <div class="text-[14px] font-bold text-slate-900">路线 B · 暂停待排</div>
-          <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">TS 退回小班待排池并释放双格；向已绑定正式学员家长按时间窗发送站内提醒 + Email（&lt;3h 同步 Email），并在私域微信群协调补排。未绑定学员与收费/续费账单仍 100% 物理隔离。</div>
+          <div class="mt-0.5 text-[12px] font-medium leading-relaxed text-slate-600">TS 退回小班待排池并释放双格；若原因为「老师原因」，同步记入第 7 处《出勤异常记录》埋点「小班暂停待排（老师原因）」；向已绑定正式学员家长按时间窗发送站内提醒 + Email（&lt;3h 同步 Email），未绑定学员与账单物理隔离。</div>
           <button data-action="cell-group-pause" data-id="${lesson.id}" class="mt-2 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 active:bg-slate-100 ${onlineCls()}">暂停待排</button>
           <button data-action="toast" data-message="进入补排入口，为小班补排单节" class="mt-1.5 h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800 active:bg-slate-100">补排入口</button>
         </div>
@@ -1941,10 +1961,11 @@
       const autoLate = directNoLeave && state.hours < 24;
       const responsibilityOk = !needResponsibility || !!draft.responsibility;
       const crossReasonOk = !selectedCrossHigh || String(draft.crossReason || '').trim().length >= 1;
+      const leaveOnly = !!draft.leaveOnly;
       return sheetShell(`
-        ${modalHeader('指派代课', `${lesson.student} · ${timeRangeText} (${scopeLessons.length} 节)`)}
+        ${modalHeader('请假 / 指派代课', `${lesson.student} · ${timeRangeText} (${scopeLessons.length} 节)`)}
         <div class="mt-2 rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-2 text-[12px] font-medium leading-relaxed text-indigo-900">
-          ${icon('message-circle-check', 'mr-1 inline h-3.5 w-3.5 align-[-2px]')}事前沟通即生效：不设“待代课老师接受”阻塞态；请确认已与代课老师线下沟通可接课。指派落盘立即向其发送站内提醒 + Email（附负责班长微信），突发不可执教请课前【撤销代课指派】。
+          ${icon('message-circle-check', 'mr-1 inline h-3.5 w-3.5 align-[-2px]')}一步代课 + 仅请假双出口：默认可直接选定全时段空闲代课老师一步提交（仅发 1 条合并结论通知、不锁原师当日其余空闲格）；或切换为「仅老师请假」先挂起 🔴 待代。突发不可执教请课前【撤销代课指派】。
         </div>
         ${substituted ? `<div class="mt-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2">
           <div class="text-[12px] font-semibold leading-relaxed text-purple-900">当前已由 ${esc(lesson.subTeacher || '代课老师')} 代课；可撤销后重新指派。</div>
@@ -1957,9 +1978,9 @@
           ${infoRow('筛师口径', '在职 + 所选全部时段空闲 🟢 · 无课程资质过滤')}
         </div>
         ${needResponsibility ? `<div class="mt-2 rounded-xl border border-amber-300 bg-amber-50/70 px-3 py-2.5">
-          <div class="text-[12px] font-bold text-amber-900">未先请假直接指派 · 必选责任来源</div>
+          <div class="text-[12px] font-bold text-amber-900">距开课 ≥24h · 必单选责任归因（跨 24h 临界前序灰显提示）</div>
           <div class="mt-1.5 space-y-1">
-            ${[['teacher', '老师原因', '计入原任老师非常规异常'], ['ops', '教务/学员主动调剂', '不计原任老师异常']].map(([value, label, desc]) => `
+            ${[['teacher', '老师原因（代办请假）', '计入原任老师《出勤异常记录》'], ['ops', '教务/学员主动调剂', '不计原任老师异常']].map(([value, label, desc]) => `
               <button data-action="assign-responsibility" data-value="${value}" class="flex w-full items-center justify-between gap-2 rounded-lg border px-2.5 py-2 text-left ${draft.responsibility === value ? 'border-amber-500 bg-white' : 'border-amber-200 bg-white/60'}">
                 <span class="min-w-0">
                   <span class="block text-[12px] font-bold text-slate-900">${label}</span>
@@ -1993,7 +2014,15 @@
           </div>
           ${updatedLine ? `<div class="mt-1.5 border-t border-slate-200 pt-1.5 text-[12px] font-medium text-slate-600">${esc(updatedLine)}</div>` : ''}
         </div>` : ''}
-        <div class="relative mt-2.5">
+        <button type="button" data-action="toggle-assign-leave-only" class="mt-2 flex min-h-10 w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition ${leaveOnly ? 'border-rose-300 bg-rose-50 text-rose-900' : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-50'}">
+          <span class="min-w-0 flex-1 text-[12px] font-bold">仅老师请假（暂不指定代课，挂起 🔴 待代）</span>
+          <span class="shrink-0 rounded-full px-2 py-0.5 text-[12px] font-bold ${leaveOnly ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600'}">${leaveOnly ? '已切换' : '切换'}</span>
+        </button>
+        ${leaveOnly ? `<div class="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium leading-relaxed text-rose-800">确认后将原课次挂起为 🔴 待代（不锁原师当日其余空闲格），并通知家长与应急待代流。</div>
+        <div class="mt-3 flex gap-2">
+          <button data-action="${draft.cell ? 'cell-panel-main' : 'close-overlay'}" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">取消</button>
+          <button data-action="confirm-assign-leave-only" ${!responsibilityOk || state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-rose-600 text-[15px] font-semibold text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认仅老师请假（挂起 🔴 待代）</button>
+        </div>` : `<div class="relative mt-2.5">
           <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">${icon('search', 'h-4 w-4')}</span>
           <input id="teacherSearch" value="${esc(draft.query || '')}" placeholder="按老师姓名搜索" class="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-[16px] font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15">
         </div>
@@ -2026,15 +2055,15 @@
           ${!visibleEligible.length && !visibleIneligible.length ? `<div id="teacherSearchEmpty" class="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-3 py-4 text-center text-[12px] font-medium text-slate-600">没有匹配的老师，请更换姓名关键词。</div>` : '<div id="teacherSearchEmpty" class="hidden"></div>'}
         </div>
         ${notifyPlan('本次代课指派通知（M3B 统一触发）', [
-          ['代课老师（按距开课 <3h / 3~24h / >=24h 分级）', '站内 + Email'],
+          ['代课老师（按距开课 <3h / 3~24h / >=24h 分级）', '站内 + Email（仅发 1 条合并结论通知）'],
           ['被解除的原代课老师（撤销/改派时）', '站内 + Email'],
           ['1v1 家长（后台指派同步知会）', '仅站内提醒'],
           ['跨组驰援时的原负责班长 / 主理人', 'M4 中性卡 · 无 Email']
-        ], 'Email 英文在前、零积分金额，指派正文附完整 Process Note 与交接内容。')}
+        ], 'Email 英文在前、零积分金额，不锁原师当日其余空闲格。')}
         <div class="mt-4 flex gap-2">
           <button data-action="${draft.cell ? 'cell-panel-main' : 'close-overlay'}" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">取消</button>
-          <button data-action="confirm-assign-sub" ${!draft.selected || !responsibilityOk || !crossReasonOk || state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-purple-600 text-[16px] font-semibold text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">确认指派代课</button>
-        </div>
+          <button data-action="confirm-assign-sub" ${!draft.selected || !responsibilityOk || !crossReasonOk || state.online === 'off' ? 'disabled' : ''} class="h-11 flex-[2] rounded-xl bg-purple-600 text-[16px] font-semibold text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500">一步指派代课</button>
+        </div>`}`
       `);
     }
 
@@ -2412,7 +2441,7 @@
       ].filter(Boolean);
 
       return sheetShell(`
-        ${modalHeader('应急调度待办包', 'David Miller 批量请假 · 突发身体不适')}
+        ${modalHeader('应急调度与代课指派', 'David Miller 批量请假 · 突发身体不适')}
         <div class="mt-2.5 flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
           <span class="text-[12px] font-semibold text-slate-700">当前演示窗口：<span class="font-bold text-slate-900">${hoursBand()}</span></span>
           <button data-action="toggle-pack-hours" class="h-7 rounded-lg border border-indigo-200 bg-indigo-50/80 px-2.5 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70">${state.hours < 3 ? '切回 ≥24h 常规' : '切为 <3h 临期'}</button>
@@ -3216,6 +3245,7 @@
       state.cellView = 'main';
       state.cellScope = { lessonId: null, nextSelected: true };
       state.cellReason = '';
+      state.cellFault = 'teacher';
       state.recordsRange = '7';
       state.recordsType = 'ALL';
       state.recordsMonitor = 'ALL';
@@ -3244,6 +3274,7 @@
       state.cellView = 'main';
       state.cellScope = { lessonId: null, nextSelected: true };
       state.cellReason = '';
+      state.cellFault = 'teacher';
       state.recordsLimit = 20;
       state.scenario = '';
       renderAll({ resetScroll: true });
@@ -3277,6 +3308,7 @@
       state.cellView = 'main';
       state.cellScope = { lessonId: null, nextSelected: true };
       state.cellReason = '';
+      state.cellFault = 'teacher';
       renderAll();
     }
 
@@ -3349,7 +3381,7 @@
     function withdrawLessons(lesson) {
       if (!guardWrite()) return;
       const reason = state.cellReason.trim();
-      if (!reason) return showToast('请填写处置原因（至少 1 个非空字符）', true);
+      if (reason.length < 1 || reason.length > 200) return showToast('请填写 1–200 字处置原因', true);
       const ids = cellScopeIds(lesson);
       ids.forEach((id) => {
         const item = lessonById(id);
@@ -3378,14 +3410,16 @@
     function compensateLesson(lesson) {
       if (!guardWrite()) return;
       if (lesson.settled === true) {
-        showToast('该课次已完成归集，不可回退补生', true);
+        showToast('该课次已入已完成入账周转账单或已打款课酬单，不可回退补生', true);
         return;
       }
       const reason = state.cellReason.trim();
-      if (!reason) return showToast('请填写处置原因（至少 1 个非空字符）', true);
+      if (reason.length < 1 || reason.length > 200) return showToast('请填写 1–200 字处置原因', true);
+      const isPlatformFault = state.cellFault === 'platform' && state.role === 'admin';
       const hadSub = !!lesson.subTeacher;
+      const actualTeacher = lesson.subTeacher || lesson.teacher;
       lesson.status = 'COMPENSATED';
-      lesson.exception = '异常未上课回退补生';
+      lesson.exception = isPlatformFault ? '异常未上课回退补生（平台故障）' : '异常未上课回退补生（老师原因）';
       lesson.makeupTs = 1;
       if (hadSub) {
         lesson.subOrderStatus = '已取消（异常未上课回退撤销）';
@@ -3401,7 +3435,7 @@
           from: '已履约',
           to: '已取消（异常未上课回退撤销）',
           owner: originTeacherOf(lesson),
-          reason: `异常未上课回退补生同事务撤销代课工单；${lesson.subTeacher} 该节已在 M5B 剔除，原 TS 作废并补生 1 节`,
+          reason: `异常未上课回退补生同事务撤销代课工单；${lesson.subTeacher} 该节已在 M5B 剔除，原 TS 置「已取消」并补生 1 节`,
           lastMinute: false
         });
       }
@@ -3415,18 +3449,22 @@
         lessonDate: lesson.date,
         timeLabel: `${lesson.time}-${endTime(lesson.time)}`,
         from: '已结课',
-        to: '作废原课次 · 补生 1 节',
-        owner: originTeacherOf(lesson),
+        to: isPlatformFault ? '原 TS 已取消 · 平台故障（不计异常不发薪）· 补生 1 节' : `原 TS 已取消 · 记实际授课师 ${actualTeacher} 异常 · 补生 1 节`,
+        owner: actualTeacher,
         reason,
         lastMinute: state.hours < 3
       });
-      closeCellSheet(hadSub ? '已回退补生 · 代课工单同事务置为已取消（异常未上课回退撤销），补生 1 节待排课次' : '已回退补生 · 原课次作废，原单补生 1 节待排课次');
+      closeCellSheet(isPlatformFault
+        ? '平台故障回退完成 · 不计任何异常记录、老师不发薪，原 TS 已取消并退 1 节'
+        : hadSub
+          ? '已回退补生 · 代课工单置已取消，记实际授课师异常并补生 1 节'
+          : '已回退补生 · 原 TS 已取消，原单补生 1 节待排课次');
     }
 
     function markAttendance(kind) {
       if (!guardWrite()) return;
       const reason = state.cellReason.trim();
-      if (!reason) return showToast('请填写处置原因（至少 1 个非空字符）', true);
+      if (reason.length < 1 || reason.length > 200) return showToast('请填写 1–200 字处置原因', true);
       const lesson = lessonById(state.overlay.lessonId);
       if (!lesson) return;
       const ids = cellScopeIds(lesson);
@@ -3522,7 +3560,7 @@
     function restoreNormalAttendance(lesson) {
       if (!guardWrite()) return;
       const reason = state.cellReason.trim();
-      if (!reason) return showToast('请填写处置原因（至少 1 个非空字符）', true);
+      if (reason.length < 1 || reason.length > 200) return showToast('请填写 1–200 字处置原因', true);
       const ids = cellScopeIds(lesson);
       ids.forEach((id) => {
         const item = lessonById(id);
@@ -3956,7 +3994,7 @@
         from: groupLesson ? groupLesson.teacher : CLASS_INFO.teacher,
         to: payload.teacher,
         owner: groupLesson ? groupLesson.teacher : CLASS_INFO.teacher,
-        reason: '连续双格代课，课酬按原班级快照平移',
+        reason: '一步连续双格代课，按代课老师当期小班内部单价试算，差额由平台统筹教务盈余池兜底吸收',
         lastMinute: state.hours < 3
       });
       state.overlay = null;
@@ -3964,7 +4002,7 @@
       state.classDraft = null;
       state.cellView = 'main';
       renderAll();
-      showToast(`已指派 ${payload.teacher} · 小班课酬按原班级快照平移；已通知代课老师与已绑定家长`);
+      showToast(`已一步指派 ${payload.teacher} · 小班课酬按代课老师当期小班单价试算（平台盈余池兜底差额）`);
     }
 
     function confirmClassPause() {
@@ -4355,6 +4393,48 @@
         renderOverlay();
         return;
       }
+      if (action === 'cell-fault') {
+        if (el.dataset.value === 'platform' && state.role !== 'admin') return;
+        state.cellFault = el.dataset.value === 'platform' ? 'platform' : 'teacher';
+        renderOverlay();
+        return;
+      }
+      if (action === 'toggle-assign-leave-only') {
+        if (!state.assignSub) return;
+        state.assignSub.leaveOnly = !state.assignSub.leaveOnly;
+        renderOverlay();
+        return;
+      }
+      if (action === 'confirm-assign-leave-only') {
+        if (!guardWrite() || !state.assignSub) return;
+        const primary = lessonById(state.assignSub.lessonId);
+        const ids = (state.assignSub.lessonIds && state.assignSub.lessonIds.length ? state.assignSub.lessonIds : [state.assignSub.lessonId]).filter(Boolean);
+        ids.forEach((id) => {
+          const item = lessonById(id);
+          if (item) { item.status = 'LEAVE_PENDING'; item.subTeacher = null; }
+        });
+        if (primary) {
+          addRecord({
+            type: 'leave',
+            action: '代老师请假',
+            studentKey: primary.studentKey,
+            studentName: primary.student,
+            lessonDate: primary.date,
+            timeLabel: `${primary.time}-${endTime(primary.time)}`,
+            from: '已排课',
+            to: '挂起 🔴 待代',
+            owner: originTeacherOf(primary),
+            reason: state.assignSub.responsibility === 'ops' ? '教务/学员主动调剂（不计原师异常）' : '老师原因（代办请假），不锁原师当日其余空闲格',
+            lastMinute: state.hours < 3
+          });
+        }
+        state.overlay = null;
+        state.returnOverlay = null;
+        state.assignSub = null;
+        state.cellView = 'main';
+        renderAll();
+        return showToast('已仅老师请假（挂起 🔴 待代），不锁原师当日其余空闲格');
+      }
       if (action === 'pick-sub') return pickSub(el.dataset.name);
       if (action === 'confirm-assign-sub') return confirmAssignSub();
       if (action === 'pick-class-sub') return pickClassSub(el.dataset.name);
@@ -4588,9 +4668,9 @@
       if (hours === '<3' || hours === 'lt3') state.hours = 2;
       else if (hours === '3~24' || hours === 'mid') state.hours = 6;
       else if (hours === '>=24' || hours === 'gte24') state.hours = 24;
-      else if (hours) {
+      else if (hours !== null && hours !== '') {
         const numericHours = Number(hours);
-        if (Number.isFinite(numericHours) && numericHours > 0) state.hours = numericHours;
+        if (Number.isFinite(numericHours) && numericHours >= 0) state.hours = numericHours;
       }
       state.page = defaultPage(state.role);
       const pageParam = params.get('page');

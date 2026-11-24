@@ -201,13 +201,13 @@
     const NAVS = {
       monitor: [
         { id: 'home', icon: 'home', label: '首页', desc: '查看教务待办与家庭日程。', href: 'm0_workspace_home.html?role=monitor', cta: '进入工作台' },
-        { id: 'schedule', icon: 'calendar-days', label: '学员课表', desc: '查看孩子的当周课表与课程安排。', href: 'm3a_calendar_grid.html', cta: '查看完整课表' },
+        { id: 'schedule', icon: 'calendar-days', label: '自家课表', desc: '查看孩子的当周课表与课程安排。', href: 'm3a_calendar_grid.html?role=monitor', cta: '查看完整课表' },
         { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '管理所辖老师、学员与小班。', href: null },
         { id: 'me', icon: 'user', label: '我的', desc: '管理个人设置、账务与家庭档案。', href: 'm0_workspace_home.html?role=monitor&view=me', cta: '进入个人中心' }
       ],
       admin: [
         { id: 'home', icon: 'home', label: '首页', desc: '查看平台结算待办与运营概览。', href: 'm0_workspace_home.html?role=admin', cta: '进入工作台' },
-        { id: 'schedule', icon: 'calendar-days', label: '学员课表', desc: '查看孩子的当周课表与课程安排。', href: 'm3a_calendar_grid.html', cta: '查看完整课表' },
+        { id: 'schedule', icon: 'calendar-days', label: '自家课表', desc: '查看孩子的当周课表与课程安排。', href: 'm3a_calendar_grid.html?role=admin', cta: '查看完整课表' },
         { id: 'ops', icon: 'layout-grid', label: '教务中心', desc: '查看全校老师、学员与小班的教务运营。', href: 'm0_workspace_home.html?role=admin&view=ops', cta: '进入教务中心' },
         { id: 'settings', icon: 'settings', label: '管理与设置', desc: '管理班长、老师团队与平台配置。', href: null }
       ]
@@ -582,6 +582,14 @@
       state.page = state.role === 'admin' ? 'monitors' : 'teachers';
     }
     if (params.get('page')) state.page = params.get('page');
+    const fromTabParam = params.get('fromTab');
+    if (['tab3', 'ops'].includes(fromTabParam)) {
+      state.navTab = 'ops';
+    } else if (state.role === 'admin' && ['tab4', 'settings'].includes(fromTabParam)) {
+      state.navTab = 'settings';
+    } else if (state.role === 'admin' && ['teachers', 'teacherDetail'].includes(state.page)) {
+      state.navTab = 'ops';
+    }
     if (params.get('teacher_id')) state.activeTeacherId = params.get('teacher_id');
     if (params.get('device') === 'tablet') state.device = 'tablet';
     if (state.role === 'admin' && params.get('audit') === 'monitor') {
@@ -1430,23 +1438,47 @@
       </div>`;
     }
 
+    function teacherWeekScheduleUrl(t) {
+      const owned = state.role === 'admin' ? t.monitorId === ADMIN_MONITOR_ID : t.monitorId === CURRENT_MONITOR_ID;
+      const teacherStatus = t.status === 'resigned'
+        ? 'resigned'
+        : !t.accountEmail
+          ? 'unbound'
+          : t.accountBanned
+            ? 'banned'
+            : hasPendingResign(t)
+              ? 'pending_resign'
+              : 'active';
+      const fromTab = state.role === 'admin' && state.navTab === 'settings' ? 'settings' : 'ops';
+      const params = new URLSearchParams({
+        role: state.role,
+        view: 'teacher',
+        teacherId: t.id,
+        fromTab,
+        from: 'm1b',
+        teacherName: t.name,
+        owner: monitorDisplayName(t),
+        owned: owned ? '1' : '0',
+        tier: priceLabel(t.level),
+        teacherStatus
+      });
+      if (hasPendingResign(t) && t.resignDate) params.set('resignDate', t.resignDate);
+      if (state.device && state.device !== 'mobile') params.set('device', state.device);
+      return `m3a_calendar_grid.html?${params.toString()}`;
+    }
+
     function teacherCard(t, mode) {
       const complete = missingMedia(t).length === 0;
       const resigned = t.status === 'resigned';
-      const canEdit = !resigned && (mode === 'admin' || t.monitorId === CURRENT_MONITOR_ID);
-      const pendingTeacher = canEdit && (!complete || t.published === false);
       const qrReady = !!(t.media && t.media.qr);
       const qrControl = qrReady
-        ? `<button data-action="open-card-qr" data-id="${t.id}" class="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">${icon('qr-code', 'h-3 w-3 shrink-0')}ClassIn 二维码</button>`
+        ? `<button type="button" data-action="open-card-qr" data-id="${t.id}" class="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-semibold text-indigo-600 transition hover:text-indigo-700 hover:underline">${icon('qr-code', 'h-3 w-3 shrink-0')}ClassIn 二维码</button>`
         : `<span class="inline-flex shrink-0 items-center gap-0.5 text-[12px] font-medium text-slate-500" aria-disabled="true">${icon('qr-code', 'h-3 w-3 shrink-0')}ClassIn 二维码待补</span>`;
       const pendingPrice = t.pendingPrice && !resigned
         ? `<span class="shrink-0 whitespace-nowrap text-[12px] font-semibold text-indigo-700">${esc(pendingPriceText(t.pendingPrice))}</span>`
         : '';
-      const weekScheduleAction = `<button data-action="week-schedule" data-id="${t.id}" class="inline-flex h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg px-1 text-[12px] font-semibold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-700">${icon('calendar-days', 'h-3 w-3 shrink-0')}周排期</button>`;
-      const editAction = canEdit
-        ? `<button data-action="edit-teacher" data-id="${t.id}" ${state.online === 'off' ? 'disabled' : ''} class="inline-flex h-7 shrink-0 items-center rounded-lg border border-indigo-200 bg-indigo-50/80 px-2 text-[12px] font-bold text-indigo-700 transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">${pendingTeacher ? '去完善' : '编辑'}</button>`
-        : '';
-      const viewAction = `<button data-action="open-teacher" data-id="${t.id}" class="inline-flex h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg px-1 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">查看档案${icon('chevron-right', 'h-3.5 w-3.5 shrink-0')}</button>`;
+      const weekScheduleAction = `<a href="${esc(teacherWeekScheduleUrl(t))}" data-action="week-schedule" data-id="${t.id}" class="inline-flex h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg px-1 text-[12px] font-semibold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-700">${icon('calendar-days', 'h-3 w-3 shrink-0')}周排期</a>`;
+      const viewAction = `<button type="button" data-action="open-teacher" data-id="${t.id}" class="inline-flex h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg px-1 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900">查看档案${icon('chevron-right', 'h-3.5 w-3.5 shrink-0')}</button>`;
       return `<article data-action="open-teacher" data-id="${t.id}" role="button" tabindex="0" class="flex h-full cursor-pointer flex-col rounded-2xl p-3 transition active:scale-[0.995] ${resigned ? 'border border-dashed border-slate-400 bg-slate-50/60 opacity-60' : 'border border-slate-300 bg-slate-50/70'}">
         <div class="flex items-center gap-2.5">
           ${avatar(t, 'h-10 w-10', 'text-[14px]')}
@@ -1470,7 +1502,6 @@
             </span>
             <div class="flex min-w-0 shrink-0 items-center gap-0.5">
               ${weekScheduleAction}
-              ${editAction}
               ${viewAction}
             </div>
           </div>
@@ -1669,7 +1700,7 @@
               </div>
               <div class="mt-2 space-y-1">
                 <div class="break-words rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px] font-medium leading-relaxed text-slate-600"><span class="font-bold text-slate-700">变更前</span> · ${esc(e.before)}</div>
-                <div class="text-center text-[12px] font-bold text-slate-400">↓</div>
+                <div class="text-center text-[12px] font-bold text-slate-500">↓</div>
                 <div class="break-words rounded-lg border border-indigo-100 bg-indigo-50/60 px-2 py-1.5 text-[12px] font-medium leading-relaxed text-indigo-900"><span class="font-bold text-indigo-700">变更后</span> · ${esc(e.after)}</div>
               </div>
               <div class="mt-1.5 text-right font-mono text-[12px] font-medium text-slate-500">${esc(e.at)}</div>
@@ -2157,23 +2188,22 @@
                   <p class="text-[12px] font-medium leading-relaxed text-slate-600">仅负责班长可编辑人事档案；你可以查看教学档案、查周排期并协调临时代课。</p>
                 </div>`))}
 
-        <section class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
-          <a href="m1b_teacher_parent.html?role=${state.role}&page=availability&teacher_id=${t.id}" target="_blank" rel="noopener" class="flex items-center justify-between border-b border-slate-100 px-3.5 py-3">
-            <span class="flex items-center gap-2.5 text-[14px] font-semibold text-slate-800">${icon('clock', 'h-4 w-4 text-slate-500')}⏰ 常规可约时段</span>
-            ${icon('chevron-right', 'h-4 w-4 text-slate-300')}
-          </a>
-          <a href="m1b_teacher_parent.html" target="_blank" rel="noopener" class="flex items-center justify-between border-b border-slate-100 px-3.5 py-3">
-            <span class="flex items-center gap-2.5 text-[14px] font-semibold text-slate-800">${icon('external-link', 'h-4 w-4 text-slate-500')}家长端预览</span>
-            ${icon('chevron-right', 'h-4 w-4 text-slate-300')}
-          </a>
-          <button data-action="toast" data-message="已打开该老师当周排期" class="flex w-full items-center justify-between border-b border-slate-100 px-3.5 py-3">
-            <span class="flex items-center gap-2.5 text-[14px] font-semibold text-slate-800">${icon('calendar-days', 'h-4 w-4 text-slate-500')}查周排期</span>
-            ${icon('chevron-right', 'h-4 w-4 text-slate-300')}
-          </button>
-          <button data-action="toast" data-message="已打开临时代课调配，可查看全域老师空闲时段" class="flex w-full items-center justify-between px-3.5 py-3">
-            <span class="flex items-center gap-2.5 text-[14px] font-semibold text-slate-800">${icon('repeat-2', 'h-4 w-4 text-slate-500')}临时代课调配</span>
-            ${icon('chevron-right', 'h-4 w-4 text-slate-300')}
-          </button>
+        <section class="space-y-2">
+          <div class="px-1 text-[12px] font-bold uppercase tracking-wider text-slate-500">快捷操作与排班入口</div>
+          <div class="overflow-hidden rounded-2xl border border-slate-300 bg-slate-50/70">
+            <a href="m1b_teacher_parent.html?role=${state.role}&page=availability&teacher_id=${t.id}" target="_blank" rel="noopener" class="flex items-center justify-between border-b border-slate-100 px-3.5 py-3 transition hover:bg-slate-100/70">
+              <span class="flex items-center gap-2.5 text-[14px] font-semibold text-slate-800">${icon('clock', 'h-4 w-4 text-slate-500')}⏰ 常规可约时段</span>
+              ${icon('chevron-right', 'h-4 w-4 text-slate-500')}
+            </a>
+            <a href="${esc(teacherWeekScheduleUrl(t))}" data-action="week-schedule" data-id="${t.id}" class="flex w-full items-center justify-between border-b border-slate-100 px-3.5 py-3 text-left transition hover:bg-slate-100/70">
+              <span class="flex items-center gap-2.5 text-[14px] font-semibold text-slate-800">${icon('calendar-days', 'h-4 w-4 text-indigo-600')}📅 查周排期</span>
+              ${icon('chevron-right', 'h-4 w-4 text-slate-500')}
+            </a>
+            <a href="m1b_teacher_parent.html?role=parent&teacher_id=${t.id}" target="_blank" rel="noopener" class="flex items-center justify-between px-3.5 py-3 transition hover:bg-slate-100/70">
+              <span class="flex items-center gap-2.5 text-[14px] font-semibold text-slate-800">${icon('external-link', 'h-4 w-4 text-slate-500')}家长端预览</span>
+              ${icon('chevron-right', 'h-4 w-4 text-slate-500')}
+            </a>
+          </div>
         </section>
       </div>`;
     }
@@ -4141,7 +4171,7 @@
       }
       if (action === 'back-teachers') {
         state.page = 'teachers';
-        state.navTab = 'ops';
+        if (state.role !== 'admin' || state.navTab !== 'settings') state.navTab = 'ops';
         state.overlay = null;
         state.playingVideo = false;
         return renderAll();
@@ -4149,7 +4179,7 @@
       if (action === 'open-teacher') {
         state.activeTeacherId = el.dataset.id;
         state.page = 'teacherDetail';
-        state.navTab = 'ops';
+        if (state.role !== 'admin' || state.navTab !== 'settings') state.navTab = 'ops';
         state.introLang = 'zh';
         state.playingVideo = false;
         state.overlay = null;
@@ -4252,8 +4282,12 @@
         return renderAll();
       }
       if (action === 'week-schedule') {
+        e.stopPropagation();
+        if (el.tagName === 'A') return;
         const t = teacherById(el.dataset.id);
-        return showToast(t ? `已打开 ${t.name} 的 7 色全周排期` : '老师不存在');
+        if (!t) return showToast('老师不存在');
+        window.location.href = teacherWeekScheduleUrl(t);
+        return;
       }
       if (action === 'open-photo') {
         const t = teacherById(state.activeTeacherId);

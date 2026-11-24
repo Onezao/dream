@@ -1191,7 +1191,7 @@
             <div class="rounded-lg bg-white px-2.5 py-2">
               <div class="flex items-center justify-between gap-1">
                 <span class="text-[12px] font-medium text-slate-600">${isParent ? '经办班长' : '资金持有方'}</span>
-                ${isParent ? `<button data-action="open-wechat-qr" data-holder="${esc(o.holder)}" class="inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 hover:underline">${icon('qr-code', 'h-3 w-3')}微信二维码</button>` : ''}
+                ${isParent && o.holder !== '平台' ? `<button data-action="open-wechat-qr" data-holder="${esc(o.holder)}" class="inline-flex items-center gap-0.5 text-[12px] font-semibold text-indigo-600 hover:underline">${icon('qr-code', 'h-3 w-3')}微信二维码</button>` : ''}
               </div>
               <div class="mt-0.5 truncate text-[14px] font-semibold text-slate-900">${esc(holderLabel(o.holder))}</div>
             </div>
@@ -1330,10 +1330,10 @@
             <button data-action="open-voucher" data-id="${o.id}" ${state.online === 'off' || (o.voucherCount || 0) >= 5 ? 'disabled' : ''} class="h-11 flex-1 rounded-xl bg-indigo-600 text-[14px] font-semibold text-white disabled:opacity-40">上传付款凭证</button>
           </div>
           <div class="flex gap-2">
-            <button data-action="open-wechat-qr" data-holder="${esc(o.holder)}" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">班长微信二维码</button>
+            ${o.holder !== '平台' ? `<button data-action="open-wechat-qr" data-holder="${esc(o.holder)}" class="h-11 flex-1 rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">班长微信二维码</button>` : ''}
             <button data-action="open-decline" data-id="${o.id}" ${state.online === 'off' ? 'disabled' : ''} class="h-11 flex-1 rounded-xl border border-rose-200 bg-rose-50 text-[14px] font-semibold text-rose-700 disabled:opacity-40">暂不续费</button>
           </div>
-        </div>` : isParent ? `<button data-action="open-wechat-qr" data-holder="${esc(o.holder)}" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">预览负责班长微信二维码</button>` : ''}
+        </div>` : (isParent && o.holder !== '平台') ? `<button data-action="open-wechat-qr" data-holder="${esc(o.holder)}" class="h-11 w-full rounded-xl border border-slate-300 bg-white text-[14px] font-semibold text-slate-800">预览负责班长微信二维码</button>` : ''}
 
         ${!isParent ? (readOnly
           ? `<div class="flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-2 text-center text-[14px] font-medium leading-[1.35] text-slate-600" data-role="readonly-actions">仅查看 · 资金持有人 ${esc(holderLabel(o.holder))}，仅资金持有人或管理员可操作</div>`
@@ -1539,7 +1539,7 @@
                     <label for="createLessons" class="mb-1 block text-[14px] font-semibold text-slate-700">整班课次数 <span class="text-rose-500">*</span></label>
                     <input id="createLessons" type="number" min="1" value="${esc(f.lessons)}" class="${inputCls} font-bold">
                     <p id="createLessonTip" class="mt-1 ${Number(f.lessons) % 4 !== 0 && Number(f.lessons) > 0 ? '' : 'hidden'} text-[12px] font-medium text-amber-700">建议为 4 的倍数（四周一轮），不影响提交</p>
-                    <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">单节待上交费用与老师单节课酬均按开单时刻 M1C 当前生效并锁定的最新值带出：确认收款后写入 TS 快照，后续老师调价不影响本单。</p>
+                    <p class="mt-1 text-[12px] font-medium leading-relaxed text-slate-600">单节待上交积分按开单时刻 M1C 当前生效并锁定的最新值带出：确认收款后写入 TS 快照，后续调价不影响本单。</p>
                   </div>
                 </div>`
                 : `<div class="space-y-2">
@@ -1590,7 +1590,7 @@
                   <label class="mt-2 flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white text-[12px] font-semibold text-slate-600">${icon('upload', 'h-4 w-4 text-slate-500')}选择 JPG/PNG/PDF（≤10MB）<input id="createVoucherInput" type="file" accept="image/jpeg,image/png,application/pdf" multiple class="hidden"></label>
                   <div class="mt-1.5 space-y-1">${f.vouchers.map((v, i) => `<div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[12px]"><span class="truncate">${esc(v.name)}</span><button data-action="remove-voucher" data-index="${i}" class="shrink-0 font-semibold text-rose-600">移除</button></div>`).join('')}</div>
                 </div>
-                <p class="text-[12px] font-medium leading-relaxed text-slate-600">${small ? '小班课由主理人直接录入待上交总积分（录入多少上交多少），资金持有人锁定为小班主理人，对家长端不可见；老师单节课酬按开单时刻 M1C 当前锁定值写入快照。' : trial ? '试课待认领档案仅支持 1v1 课次，总节数 1～20 节，严格按所选价位计价并禁止强制改价；“平台公共待认领占位”不建立真实登录账号，家长认领后全部历史试课单自动归集家长账号。' : '1v1 课次支持 1～N 条价位明细（同一价位不可重复），选填意向老师可自动带出当前价位；非 4 的倍数仅弱提醒。'}</p>
+                <p class="text-[12px] font-medium leading-relaxed text-slate-600">${small ? '小班课由主理人直接录入待上交总积分（录入多少上交多少），资金持有人锁定为小班主理人，对家长端不可见；单节待上交积分按开单时刻 M1C 当前锁定值写入快照。' : trial ? '试课待认领档案仅支持 1v1 课次，总节数 1～20 节，严格按所选价位计价并禁止强制改价；“平台公共待认领占位”不建立真实登录账号，家长认领后全部历史试课单自动归集家长账号。' : '1v1 课次支持 1～N 条价位明细（同一价位不可重复），选填意向老师可自动带出当前价位；非 4 的倍数仅弱提醒。'}</p>
                 ${f.error ? `<div id="createError" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-medium text-rose-700">${esc(f.error)}</div>` : ''}
               </section>
             </div>
@@ -1736,7 +1736,7 @@
                 ${reasonText ? `<p class="mt-1.5 rounded-lg bg-white px-2.5 py-2 text-[12px] font-medium leading-relaxed text-slate-700">${esc(reasonText)}${priceShift !== 0 ? ` 单节${priceShift > 0 ? '上调' : '下调'} ${Math.abs(priceShift)} 积分。` : ''}</p>` : ''}
                 <div class="mt-2 grid gap-2">
                   ${timeAdjustBlocked
-                    ? `<div class="space-y-1" data-role="time-adjust-blocked"><button type="button" disabled aria-disabled="true" class="flex h-11 w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-semibold text-slate-400">${icon('lock', 'h-4 w-4')}在课表上调整时段</button><p class="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[12px] font-semibold leading-relaxed text-rose-700">非本人负责老师，请联系该老师现负责班长或管理员调整</p></div>`
+                    ? `<div class="space-y-1" data-role="time-adjust-blocked"><button type="button" disabled aria-disabled="true" class="flex h-11 w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 text-[14px] font-semibold text-slate-500">${icon('lock', 'h-4 w-4')}在课表上调整时段</button><p class="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[12px] font-semibold leading-relaxed text-rose-700">非本人负责老师，请联系该老师现负责班长或管理员调整</p></div>`
                     : `<a href="${m3aHref}" target="_blank" rel="noopener" class="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-white text-[14px] font-semibold text-indigo-700 transition hover:bg-indigo-50">${icon('calendar-days', 'h-4 w-4')}在课表上调整时段</a>`}
                   ${o.orderType !== 'small_group' ? `<button type="button" data-action="toast" data-message="请从下方选择老师，再进入课表复选未来 4 周时段（演示）" class="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-white text-[14px] font-semibold text-indigo-700 transition hover:bg-indigo-50">${icon('search', 'h-4 w-4')}更换老师并选时段</button>` : ''}
                 </div>
@@ -1746,7 +1746,7 @@
                     const owned = isTeacherOwnedByMonitor(t);
                     const disabled = state.role === 'monitor' && !owned;
                     const selected = (e.teacherId || o.teacherId) === t.id;
-                    return `<button type="button" data-action="pick-edit-teacher" data-teacher="${t.id}" ${disabled ? 'disabled' : ''} class="rounded-lg border px-2 py-1.5 text-left text-[12px] font-semibold transition ${selected ? 'border-indigo-500 bg-indigo-50/70 text-indigo-950 ring-1 ring-indigo-500' : disabled ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}"><span class="block truncate">${esc(t.name)}</span><span class="mt-0.5 block truncate text-[12px] font-medium ${disabled ? 'text-slate-400' : 'text-slate-500'}">${t.priceTier}积分/节 · 负责 ${esc(teacherOwnerName(t))}${disabled ? '（非本人）' : ''}</span></button>`;
+                    return `<button type="button" data-action="pick-edit-teacher" data-teacher="${t.id}" ${disabled ? 'disabled' : ''} class="rounded-lg border px-2 py-1.5 text-left text-[12px] font-semibold transition ${selected ? 'border-indigo-500 bg-indigo-50/70 text-indigo-950 ring-1 ring-indigo-500' : disabled ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}"><span class="block truncate">${esc(t.name)}</span><span class="mt-0.5 block truncate text-[12px] font-medium text-slate-500">${t.priceTier}积分/节 · 负责 ${esc(teacherOwnerName(t))}${disabled ? '（非本人）' : ''}</span></button>`;
                   }).join('')}</div>
                 </div>` : ''}
               </section>
@@ -2201,6 +2201,7 @@
       const paid = Number(e.paid);
       if (!Number.isInteger(lessons) || lessons <= 0) { e.error = '课次数必须为正整数'; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); return; }
       if (lessons % 4 !== 0) { e.error = '续费课次数须为 4 的倍数（4 周固定时段）'; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); return; }
+      if (e.draft && Number(e.draft.selectedCount || 0) > lessons) { e.error = `新购买节数（${lessons} 节）少于课表草稿已选格数（${e.draft.selectedCount} 节），请上调购买节数或返回课表删减多余格子`; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); return; }
       if (!Number.isInteger(paid) || paid <= 0) { e.error = '实收积分必须为正整数'; $('overlay').innerHTML = renderOverlay(); if (window.lucide) lucide.createIcons(); return; }
       const newTeacher = editTeacherInfo(o, e);
       const teacherChanged = newTeacher.id !== o.teacherId || !!e.draft;
