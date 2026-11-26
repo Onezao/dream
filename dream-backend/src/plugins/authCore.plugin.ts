@@ -11,6 +11,13 @@ import {
 import { CaptchaProvider, JwtTokenProvider, type JwtConfig } from '@topeetop/security-core';
 import { EnvSecureConf } from '@topeetop/env-secure-conf';
 import {
+  DbPollerManager,
+  NotificationManager,
+  SseHub,
+  createNotificationFastifyPlugin,
+  createNotificationManager,
+} from '@topeetop/notification-core';
+import {
   AuthController,
   AuthService,
   PolicyController,
@@ -23,7 +30,6 @@ import {
   createJwksFastifyPlugin,
 } from '@topeetop/auth-core';
 import type { AppConfig } from '../config/env.config.js';
-
 import crypto from 'crypto';
 
 function normalizePem(value: string): string {
@@ -51,6 +57,107 @@ function decryptSecretIfNeeded(rawValue?: string): string | undefined {
     return normalizePem(trimmed);
   }
   return normalizePem(EnvSecureConf.decrypt(trimmed, masterKey));
+}
+
+export interface NotificationInfrastructure {
+  notificationManager: NotificationManager;
+  pollerManager: DbPollerManager;
+  sseHub: SseHub;
+}
+
+/**
+ * 构建 NotificationManager（含 TaskRelay + Brevo 邮件与 notification.messages 入库能力）及 SSE 基础设施
+ */
+export function createNotificationInfrastructure(
+  config: AppConfig,
+  jwtProvider: JwtTokenProvider,
+  options?: { enableEmailProvider?: boolean }
+): NotificationInfrastructure {
+  const logger = LoggerFactory.create('notification-core');
+  const relayBaseUrl = config.TASK_RELAY_ENDPOINT?.trim();
+  const relayPsk = config.TASK_RELAY_TOKEN?.trim();
+  const emailApiKey = config.EMAIL_API_KEY?.trim();
+  const shouldEnableEmail =
+    (options?.enableEmailProvider ?? true) && Boolean(relayBaseUrl && relayPsk && emailApiKey);
+
+  const notificationManager = createNotificationManager(
+    {
+      ...(shouldEnableEmail && relayBaseUrl && relayPsk
+        ? {
+            relay: {
+              baseUrl: relayBaseUrl,
+              psk: relayPsk,
+              enabled: true,
+            },
+            email: {
+              provider: 'brevo',
+              apiKey: emailApiKey,
+              from: config.EMAIL_SENDER_EMAIL,
+              senderEmail: config.EMAIL_SENDER_EMAIL,
+              senderName: config.EMAIL_SENDER_NAME,
+            } as any,
+          }
+        : {}),
+    },
+    (sql: string, params?: unknown[]) => executeQuery(sql, params as any[]),
+    logger
+  );
+
+  const pollerManager = new DbPollerManager();
+  const sseHub = new SseHub(pollerManager, jwtProvider);
+
+  return {
+    notificationManager,
+    pollerManager,
+    sseHub,
+  };
+}
+
+/**
+ * 注册 /api/notification/v1 SSE 推送与 Ticket 签发路由（POST /ticket 走 JwtAuthHook，GET /events 走 ticket 查询参数验签）
+ */
+export async function registerNotificationPlugin(
+  app: FastifyInstance,
+  config: AppConfig,
+  jwtProvider: JwtTokenProvider,
+  options?: { skipPollerInit?: boolean }
+): Promise<NotificationInfrastructure> {
+  const infra = createNotificationInfrastructure(config, jwtProvider);
+
+  if (!options?.skipPollerInit && config.NODE_ENV !== 'test') {
+    infra.pollerManager.init(
+      (sql: string, params?: unknown[]) => executeQuery(sql, params as any[]),
+      { pollIntervalMs: 3000 }
+    );
+    app.addHook('onClose', async () => {
+      infra.pollerManager.stopPolling();
+    });
+  }
+
+  await app.register(
+    async (notificationScope) => {
+      notificationScope.addHook('preHandler', async (request, reply) => {
+        if (request.method === 'POST' && request.url.includes('/ticket')) {
+          await JwtAuthHook(request, reply);
+          const userObj = request.user as Record<string, unknown> | undefined;
+          if (userObj && !userObj.userId && typeof userObj.id === 'string') {
+            userObj.userId = userObj.id;
+          }
+        }
+      });
+
+      await notificationScope.register(
+        createNotificationFastifyPlugin({
+          sseHub: infra.sseHub,
+          jwtProvider,
+          ticketExpiresIn: '10s',
+        })
+      );
+    },
+    { prefix: '/api/notification/v1' }
+  );
+
+  return infra;
 }
 
 /**
@@ -120,7 +227,8 @@ export function decorateJwtContainer(app: FastifyInstance, jwtProvider: JwtToken
  */
 export async function registerAuthCorePlugin(
   app: FastifyInstance,
-  config: AppConfig
+  config: AppConfig,
+  notificationManager?: NotificationManager
 ): Promise<void> {
   const jwtProvider = createJwtProviderFromConfig(config);
   if (!jwtProvider) {
@@ -162,17 +270,31 @@ export async function registerAuthCorePlugin(
       'placeholder',
   });
 
+  const hasTaskRelayEmail = Boolean(
+    config.TASK_RELAY_ENDPOINT && config.TASK_RELAY_TOKEN && config.EMAIL_API_KEY
+  );
+  const activeNotificationManager =
+    notificationManager ??
+    createNotificationInfrastructure(config, jwtProvider, {
+      enableEmailProvider: hasTaskRelayEmail,
+    }).notificationManager;
+
   const notificationAdapter = {
-    sendEmail: async (to: string, subject: string, _html: string) => {
+    sendEmail: async (to: string, subject: string, html: string, text?: string) => {
+      if (hasTaskRelayEmail) {
+        return activeNotificationManager.sendEmail(to, subject, html, text);
+      }
       if (config.NODE_ENV === 'production') {
-        throw new Error('Missing email notification provider configuration');
+        throw new Error(
+          'TASK_RELAY_ENDPOINT, TASK_RELAY_TOKEN, and EMAIL_API_KEY are required for production email delivery'
+        );
       }
       logger.info(`[DEV EMAIL] to=${to} subject=${subject}`);
       return { mocked: true };
     },
     sendSmsVerificationCode: async (to: string, _code: string, _validMins?: number) => {
       if (config.NODE_ENV === 'production') {
-        throw new Error('Missing SMS notification provider configuration');
+        throw new Error('SMS login/verification is disabled in Dream');
       }
       logger.info(`[DEV SMS] to=${to}`);
       return { mocked: true };
@@ -228,7 +350,6 @@ export async function registerAuthCorePlugin(
     authService
   );
 
-  // auth-core 内部使用 Zod v4，需在子作用域配置兼容 issues 的 validatorCompiler
   await app.register(
     async (authScope) => {
       authScope.setValidatorCompiler(({ schema }) => {

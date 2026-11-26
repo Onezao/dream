@@ -6,22 +6,34 @@
 CREATE SCHEMA IF NOT EXISTS dream;
 
 -- -----------------------------------------------------------------------------
--- Module 0A: Admin Accounts & User Preferences (平台管理员白名单与用户偏好)
+-- Module 0A: Admin Accounts, User Preferences & Silent Audit Logs
+-- (平台管理员白名单、用户偏好与后台静默合规操作留痕)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS dream.admin_accounts (
     id VARCHAR(12) PRIMARY KEY,
     account_id VARCHAR(12) NOT NULL,
+    display_name VARCHAR(50) NOT NULL DEFAULT '',
     status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+    is_permanent_primary BOOLEAN NOT NULL DEFAULT FALSE,
     note VARCHAR(128) DEFAULT NULL,
+    granted_by VARCHAR(12) DEFAULT NULL,
+    granted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    revoked_by VARCHAR(12) DEFAULT NULL,
+    revoked_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    CONSTRAINT chk_admin_account_status CHECK (status IN ('ACTIVE', 'DISABLED'))
+    CONSTRAINT chk_admin_account_status CHECK (status IN ('ACTIVE', 'REVOKED')),
+    CONSTRAINT chk_permanent_primary_active CHECK (NOT is_permanent_primary OR (status = 'ACTIVE' AND deleted_at IS NULL))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_admin_accounts_account
 ON dream.admin_accounts (account_id)
 WHERE deleted_at IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_admin_accounts_permanent_primary
+ON dream.admin_accounts (is_permanent_primary)
+WHERE is_permanent_primary = TRUE AND deleted_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS dream.user_preferences (
     id VARCHAR(12) PRIMARY KEY,
@@ -83,7 +95,7 @@ CREATE TABLE IF NOT EXISTS dream.monitor_profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    CONSTRAINT chk_monitor_status CHECK (status IN ('ACTIVE', 'RESIGNED'))
+    CONSTRAINT chk_monitor_status CHECK (status IN ('ACTIVE', 'HANDOVER_FROZEN', 'RESIGNED'))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_monitor_profiles_account 
 ON dream.monitor_profiles (account_id) 
@@ -105,7 +117,7 @@ CREATE TABLE IF NOT EXISTS dream.teacher_profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    CONSTRAINT chk_teacher_status CHECK (status IN ('ACTIVE', 'ON_LEAVE', 'RESIGNED'))
+    CONSTRAINT chk_teacher_status CHECK (status IN ('PENDING_BIND', 'ACTIVE', 'ON_LEAVE', 'RESIGNING', 'RESIGNED'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_teacher_profiles_monitor 
@@ -115,3 +127,25 @@ WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_teacher_profiles_account 
 ON dream.teacher_profiles (account_id) 
 WHERE deleted_at IS NULL AND account_id IS NOT NULL;
+
+-- -----------------------------------------------------------------------------
+-- Module 0A Silent Compliance Audit Logs (后台静默合规留痕表，Append-Only)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS dream.audit_logs (
+    id VARCHAR(12) PRIMARY KEY,
+    actor_account_id VARCHAR(12) NOT NULL,
+    module VARCHAR(32) NOT NULL,
+    action VARCHAR(64) NOT NULL,
+    target_type VARCHAR(32) NOT NULL,
+    target_id VARCHAR(12) NOT NULL,
+    before_state JSONB DEFAULT NULL,
+    after_state JSONB DEFAULT NULL,
+    trace_id VARCHAR(64) DEFAULT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_module_created
+ON dream.audit_logs (module, created_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_target
+ON dream.audit_logs (target_type, target_id, created_at DESC);

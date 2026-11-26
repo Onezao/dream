@@ -66,12 +66,14 @@ function buildLegacySnapshot(accountId: string, roles: string[]): RoleResolution
     accountId,
     primaryRole: effectiveRoles[0],
     effectiveRoles,
-    adminAccount: effectiveRoles.includes('admin') ? { id: 'mock_admin' } : null,
+    adminAccount: effectiveRoles.includes('admin')
+      ? { id: 'mock_admin', displayName: 'Mock Admin', isPermanentPrimary: false }
+      : null,
     monitorProfile: effectiveRoles.includes('monitor')
-      ? { id: 'mock_monitor', displayName: 'Mock Monitor' }
+      ? { id: 'mock_monitor', displayName: 'Mock Monitor', status: 'ACTIVE' }
       : null,
     teacherProfile: effectiveRoles.includes('teacher')
-      ? { id: 'mock_teacher', displayName: 'Mock Teacher' }
+      ? { id: 'mock_teacher', displayName: 'Mock Teacher', status: 'ACTIVE' }
       : null,
   };
 }
@@ -180,6 +182,23 @@ export function requireRole(allowedRoles: string | string[]) {
       throw new ApiError('Forbidden: Insufficient permissions', 403, 'FORBIDDEN');
     }
   };
+}
+
+/**
+ * 永久主管理员高敏硬守卫 (V1.1 新增 · 跨模块复用):
+ * 强制绕过 0-60s 内存缓存直查 dream.admin_accounts 核验 isPermanentPrimary === true && status === 'ACTIVE'
+ */
+export async function requirePermanentMasterAdmin(
+  request: FastifyRequest,
+  _reply: FastifyReply
+): Promise<void> {
+  const user = request.user as AuthUser | undefined;
+  if (!user?.id) {
+    throw new ApiError('Authentication token is required', 401, 'UNAUTHORIZED');
+  }
+
+  const service = getIdentityContextService();
+  await service.verifyPermanentMasterAdminFromDb(user.id);
 }
 
 /**

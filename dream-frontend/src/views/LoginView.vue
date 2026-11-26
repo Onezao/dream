@@ -1,8 +1,8 @@
 <!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
 <template>
-  <div class="flex min-h-screen flex-col bg-slate-900 text-white px-6 pt-8 pb-8">
-    <!-- Top Language Toggle -->
-    <div class="flex justify-end mb-4">
+  <div class="flex min-h-screen flex-col bg-slate-900 text-white px-6 pb-8">
+    <!-- Top Bar (Unified 56-64px height + natural pt-4 spacing below) -->
+    <div class="h-14 sm:h-16 flex items-center justify-end shrink-0">
       <button
         type="button"
         @click="toggleLanguage"
@@ -13,8 +13,8 @@
     </div>
 
     <!-- Header Section -->
-    <div class="mb-8 max-w-md w-full mx-auto">
-      <div class="w-12 h-12 bg-indigo-500/20 border border-indigo-400/30 rounded-2xl flex items-center justify-center mb-4 text-indigo-400 font-black text-xl shadow-lg">
+    <div class="pt-4 mb-8 max-w-md w-full mx-auto">
+      <div class="w-12 h-12 bg-indigo-500/20 border border-indigo-400/30 rounded-2xl flex items-center justify-center mb-4 text-indigo-300 font-black text-xl shadow-lg">
         D
       </div>
       <h1 class="text-3xl font-bold tracking-tight text-white">{{ t('auth.login.title') }}</h1>
@@ -27,7 +27,7 @@
       <div
         v-if="errorBanner"
         role="alert"
-        class="rounded-2xl border border-rose-500/40 bg-rose-950/60 px-4 py-3 text-xs text-rose-200 space-y-1"
+        class="rounded-2xl border border-rose-500/40 bg-rose-950/60 px-4 py-3 text-xs text-rose-200 space-y-1.5"
       >
         <p class="font-semibold text-rose-100">{{ errorBanner.title }}</p>
         <p v-if="errorBanner.guidance" class="text-rose-200/90 leading-relaxed">{{ errorBanner.guidance }}</p>
@@ -35,6 +35,20 @@
           <router-link to="/forgot-password" class="font-semibold text-indigo-300 underline hover:text-indigo-200">
             {{ t('auth.login.forgotLink') }}
           </router-link>
+        </div>
+        <div v-if="errorBanner.showResendActivation" class="pt-1">
+          <button
+            type="button"
+            :disabled="resendCooldown > 0 || resendingActivation"
+            @click="handleResendActivation"
+            class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 text-white font-semibold text-xs transition min-h-[36px]"
+          >
+            {{
+              resendCooldown > 0
+                ? t('auth.login.resendCooldown', { seconds: resendCooldown })
+                : t('auth.login.resendActivation')
+            }}
+          </button>
         </div>
       </div>
 
@@ -52,7 +66,7 @@
           class="!bg-slate-800/80 !rounded-xl border border-slate-700/80 focus-within:border-indigo-500 transition-colors !text-white"
         >
           <template #suffix>
-            <t-icon name="mail" class="text-slate-400" size="18px" />
+            <t-icon name="mail" class="text-slate-300" size="18px" />
           </template>
         </t-input>
         <div v-if="emailError" class="text-rose-400 text-xs px-1">{{ emailError }}</div>
@@ -71,7 +85,7 @@
           class="!bg-slate-800/80 !rounded-xl border border-slate-700/80 focus-within:border-indigo-500 transition-colors !text-white"
         >
           <template #suffix>
-            <t-icon name="lock-on" class="text-slate-400" size="18px" />
+            <t-icon name="lock-on" class="text-slate-300" size="18px" />
           </template>
         </t-input>
         <div v-if="passwordError" class="text-rose-400 text-xs px-1">{{ passwordError }}</div>
@@ -144,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted } from 'vue';
+import { computed, reactive, ref, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import {
@@ -155,7 +169,7 @@ import {
   Icon as TIcon,
 } from 'tdesign-mobile-vue';
 import { useAuthStore } from '../stores/auth';
-import { getCaptcha } from '../api/auth';
+import { getCaptcha, sendCode } from '../api/auth';
 import { setLocale } from '../i18n';
 import { extractApiErrorCode, resolveApiErrorMessage } from '../utils/apiError';
 import { isSafeInternalRedirect, isValidEmail } from '../utils/password';
@@ -186,7 +200,11 @@ const errorBanner = ref<{
   title: string;
   guidance?: string;
   showForgotLink?: boolean;
+  showResendActivation?: boolean;
 } | null>(null);
+const resendCooldown = ref(0);
+const resendingActivation = ref(false);
+let resendTimer: ReturnType<typeof setInterval> | null = null;
 
 const isSvgCaptcha = computed(() => captchaImage.value.trim().startsWith('<svg'));
 const captchaImageSrc = computed(() => {
@@ -229,6 +247,7 @@ function buildErrorBanner(error: unknown): {
   title: string;
   guidance?: string;
   showForgotLink?: boolean;
+  showResendActivation?: boolean;
 } {
   const errCode = extractApiErrorCode(error);
   const errData = (error as { response?: { data?: unknown } })?.response?.data;
@@ -249,6 +268,7 @@ function buildErrorBanner(error: unknown): {
       return {
         title: t('errors.ACCOUNT_NOT_CONFIRMED'),
         guidance: t('auth.login.notConfirmedGuidance'),
+        showResendActivation: true,
       };
     case 'INVALID_CREDENTIALS':
       formData.password = '';
@@ -319,7 +339,43 @@ async function onSubmit() {
   }
 }
 
+async function handleResendActivation() {
+  if (resendingActivation.value || resendCooldown.value > 0) return;
+  if (!validateEmail()) return;
+
+  resendingActivation.value = true;
+  try {
+    await sendCode({
+      receiver: formData.email.trim(),
+      channel: 'email',
+      scenario: 'signup',
+    });
+    Toast({ message: t('auth.login.activationResent'), theme: 'success' });
+    resendCooldown.value = 60;
+    if (resendTimer) clearInterval(resendTimer);
+    resendTimer = setInterval(() => {
+      resendCooldown.value -= 1;
+      if (resendCooldown.value <= 0 && resendTimer) {
+        clearInterval(resendTimer);
+        resendTimer = null;
+      }
+    }, 1000);
+  } catch (error: unknown) {
+    const errData = (error as { response?: { data?: unknown } })?.response?.data;
+    Toast({
+      message: resolveApiErrorMessage(errData, undefined, t('common.failed')),
+      theme: 'error',
+    });
+  } finally {
+    resendingActivation.value = false;
+  }
+}
+
 onMounted(() => {
   authStore.fetchSystemConfig();
+});
+
+onUnmounted(() => {
+  if (resendTimer) clearInterval(resendTimer);
 });
 </script>

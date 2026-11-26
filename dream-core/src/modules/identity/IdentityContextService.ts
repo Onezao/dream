@@ -1,7 +1,7 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
 import { ApiError } from '@topeetop/shared-core';
-import { AdminAccountMapper } from '../../db/AdminAccountMapper.js';
+import { AdminAccountMapper, AdminAccountMinimal } from '../../db/AdminAccountMapper.js';
 import { MonitorProfileMapper } from '../../db/MonitorProfileMapper.js';
 import { TeacherProfileMapper } from '../../db/TeacherProfileMapper.js';
 import { StudentProfileMapper } from '../../db/StudentProfileMapper.js';
@@ -12,6 +12,7 @@ import {
   MeContextDto,
   RoleResolutionSnapshot,
   UpdatePreferencesSchema,
+  maskEmailAddress,
 } from './identity.types.js';
 
 export interface IdentityContextServiceDeps {
@@ -45,7 +46,7 @@ export class IdentityContextService {
   }
 
   /**
-   * 主动清空内存中的角色目录缓存（用于管理员/班长/教师绑定关系变更后强制刷新）
+   * Invalidates the in-memory minute-boundary role directory cache after admin/monitor/teacher changes.
    */
   invalidateRoleDirectoryCache(): void {
     this.cacheEpoch += 1;
@@ -54,7 +55,7 @@ export class IdentityContextService {
   }
 
   /**
-   * 获取或按整点分钟边界刷新 0-60s 角色目录缓存 (Serverless-safe, 无定时器, 单飞并发锁)
+   * Gets or refreshes the 0-60s minute-boundary role directory cache (serverless-safe single-flight).
    */
   private async getOrRefreshDirectory(): Promise<CachedRoleDirectory> {
     const currentMinute = Math.floor(this.now() / 60_000);
@@ -79,13 +80,21 @@ export class IdentityContextService {
 
         const adminByAccountId = new Map<
           string,
-          { id: string; accountId: string; status: string }
+          {
+            id: string;
+            accountId: string;
+            displayName: string;
+            status: 'ACTIVE' | 'REVOKED';
+            isPermanentPrimary: boolean;
+          }
         >();
         for (const admin of admins) {
           adminByAccountId.set(admin.accountId, {
             id: admin.id,
             accountId: admin.accountId,
+            displayName: admin.displayName,
             status: admin.status,
+            isPermanentPrimary: admin.isPermanentPrimary,
           });
         }
 
@@ -139,7 +148,8 @@ export class IdentityContextService {
   }
 
   /**
-   * 从 0-60s 整点分钟目录缓存中解析账号的四大业务角色与主角色优先级 (admin > monitor > teacher > parent)
+   * Resolves effective business roles from the minute-boundary cache with priority:
+   * admin > monitor > teacher > parent.
    */
   async resolveRolesFromCache(accountId: string): Promise<RoleResolutionSnapshot> {
     const directory = await this.getOrRefreshDirectory();
@@ -166,14 +176,40 @@ export class IdentityContextService {
       accountId,
       primaryRole,
       effectiveRoles,
-      adminAccount: admin ? { id: admin.id } : null,
-      monitorProfile: monitor ? { id: monitor.id, displayName: monitor.displayName } : null,
-      teacherProfile: teacher ? { id: teacher.id, displayName: teacher.displayName } : null,
+      adminAccount: admin
+        ? {
+            id: admin.id,
+            displayName: admin.displayName,
+            isPermanentPrimary: admin.isPermanentPrimary,
+          }
+        : null,
+      monitorProfile: monitor
+        ? { id: monitor.id, displayName: monitor.displayName, status: monitor.status }
+        : null,
+      teacherProfile: teacher
+        ? { id: teacher.id, displayName: teacher.displayName, status: teacher.status }
+        : null,
     };
   }
 
   /**
-   * 聚合当前登录账号完整上下文（四角色解析 + 学员档案列表 + X-Profile-Id 归属校验 + 用户偏好兜底）
+   * High-risk guard helper: bypasses in-memory cache and queries DB directly to confirm
+   * the caller is currently the active permanent primary master admin.
+   */
+  async verifyPermanentMasterAdminFromDb(accountId: string): Promise<AdminAccountMinimal> {
+    const admin = await this.adminAccountMapper.findActiveByAccountId(accountId);
+    if (!admin || !admin.isPermanentPrimary || admin.status !== 'ACTIVE') {
+      throw new ApiError(
+        'Forbidden: Permanent primary master admin required',
+        403,
+        'PERMANENT_MASTER_ADMIN_REQUIRED'
+      );
+    }
+    return admin;
+  }
+
+  /**
+   * Resolves complete identity context for `/me/context` (roles + masked email + owned student profiles + preferences).
    */
   async resolveContext(
     accountId: string,
@@ -207,7 +243,7 @@ export class IdentityContextService {
 
     return {
       ...roleSnapshot,
-      email,
+      emailMasked: maskEmailAddress(email),
       studentProfiles: studentProfiles.map((profile) => ({
         id: profile.id,
         nickname: profile.nickname,
@@ -219,7 +255,7 @@ export class IdentityContextService {
   }
 
   /**
-   * 校验并更新用户语言与时区偏好
+   * Validates and persists locale / timezone preferences.
    */
   async updatePreferences(accountId: string, rawInput: unknown): Promise<UserPreferenceRecord> {
     const parsed = UpdatePreferencesSchema.safeParse(rawInput);

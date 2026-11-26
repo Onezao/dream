@@ -2,3 +2,6 @@
 
 export * from './identity.types.js';
 export * from './IdentityContextService.js';
+export * from './AdminGovernanceService.js';
+export * from './AccountLifecycleService.js';
+export * from './AvatarUploadService.js';

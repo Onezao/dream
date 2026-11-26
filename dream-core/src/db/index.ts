@@ -2,6 +2,7 @@
 
 export * from './BaseMapper.js';
 export * from './AdminAccountMapper.js';
+export * from './AuditLogMapper.js';
 export * from './UserPreferenceMapper.js';
 export * from './StudentProfileMapper.js';
 export * from './MonitorProfileMapper.js';

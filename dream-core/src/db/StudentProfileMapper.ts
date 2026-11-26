@@ -195,6 +195,23 @@ export class StudentProfileMapper extends BaseMapper<StudentProfileRow> {
   }
 
   /**
+   * 统计家长名下处于正式在读 (status = 'ACTIVE') 且未软删除的档案数量 (用于账号注销清零防线)
+   */
+  async countOfficialActiveByAccountId(
+    accountId: string,
+    client?: PoolClient
+  ): Promise<number> {
+    const sql = `
+      SELECT COUNT(*)::int AS total
+      FROM ${this.fullTableName}
+      WHERE account_id = $1 AND status = 'ACTIVE' AND deleted_at IS NULL;
+    `;
+
+    const row = await this.executeQuerySingle<{ total: number }>(sql, [accountId], client);
+    return row?.total ? Number(row.total) : 0;
+  }
+
+  /**
    * 更新学员档案 (IDOR 强隔离: 必须同时匹配 id 与 accountId 且未删除)
    */
   async update(

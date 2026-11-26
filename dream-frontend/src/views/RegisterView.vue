@@ -1,8 +1,8 @@
 <!-- (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. -->
 <template>
-  <div class="flex min-h-screen flex-col bg-slate-900 text-white px-6 pt-8 pb-8">
-    <!-- Top Language Toggle -->
-    <div class="flex justify-end mb-4">
+  <div class="flex min-h-screen flex-col bg-slate-900 text-white px-6 pb-8">
+    <!-- Unified 56-64px Top Bar -->
+    <div class="h-14 sm:h-16 flex items-center justify-end shrink-0">
       <button
         type="button"
         @click="toggleLanguage"
@@ -13,7 +13,7 @@
     </div>
 
     <!-- Header Section -->
-    <div class="mb-6 max-w-md w-full mx-auto">
+    <div class="pt-4 mb-6 max-w-md w-full mx-auto">
       <h1 class="text-3xl font-bold tracking-tight text-white mb-2">{{ t('auth.register.title') }}</h1>
       <p class="text-sm text-slate-300">{{ t('auth.register.subtitle') }}</p>
     </div>

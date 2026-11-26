@@ -9,6 +9,7 @@ declare module 'vue-router' {
     public?: boolean;
     requiresAuth?: boolean;
     allowedRoles?: BusinessRole[];
+    activeTab?: string;
   }
 }
 
@@ -24,7 +25,10 @@ export async function authBeforeEach(
     return;
   }
 
-  if (authStore.isLoggedIn && (to.name === 'login' || to.name === 'register')) {
+  if (
+    authStore.isLoggedIn &&
+    (to.name === 'login' || to.name === 'register' || to.name === 'signup')
+  ) {
     next({ name: 'home' });
     return;
   }

@@ -34,7 +34,7 @@
           {{ authStore.userInfo?.nickname || authStore.userInfo?.username || t('auth.profile.defaultUser') }}
         </h2>
         <p class="text-xs text-gray-600 truncate">
-          {{ authStore.userInfo?.email || authStore.dreamContext?.email || t('auth.profile.unbound') }}
+          {{ authStore.emailMasked || maskedCurrentEmail }}
         </p>
       </div>
     </div>
@@ -184,31 +184,54 @@
         </div>
       </button>
 
-      <!-- Email Edit (Two-Step Verification) -->
-      <button
-        type="button"
+      <!-- Admin Governance Entry (Shown exclusively when effectiveRoles includes admin) -->
+      <router-link
+        v-if="authStore.hasAnyRole(['admin'])"
+        to="/admin/admins"
+        class="w-full px-5 py-4 flex justify-between items-center hover:bg-amber-50/50 transition-colors text-left min-h-[52px]"
+      >
+        <div>
+          <p class="text-sm font-semibold text-amber-900">{{ t('adminGovernance.entryTitle') }}</p>
+          <p class="text-xs text-amber-800/80 mt-0.5">{{ t('adminGovernance.entryDesc') }}</p>
+        </div>
+        <t-icon name="chevron-right" size="16px" class="text-amber-700" />
+      </router-link>
+
+      <!-- Email Edit (Independent Secondary Page) -->
+      <router-link
+        to="/account/change-email"
         class="w-full px-5 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors text-left min-h-[52px]"
-        @click="openEdit('email')"
       >
         <span class="text-sm font-medium text-gray-800">{{ t('auth.profile.changeEmail') }}</span>
         <div class="flex items-center text-gray-500 space-x-1">
-          <span class="text-xs text-gray-600">{{ currentAccountEmail || t('auth.profile.unbound') }}</span>
+          <span class="text-xs text-gray-600">{{ authStore.emailMasked || maskedCurrentEmail }}</span>
           <t-icon name="chevron-right" size="16px" />
         </div>
-      </button>
+      </router-link>
 
-      <!-- Change Password -->
-      <button
-        type="button"
+      <!-- Change Password (Independent Secondary Page) -->
+      <router-link
+        to="/account/change-password"
         class="w-full px-5 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors text-left min-h-[52px]"
-        @click="openEdit('password')"
       >
         <span class="text-sm font-medium text-gray-800">{{ t('auth.profile.changePassword') }}</span>
         <div class="flex items-center text-gray-500 space-x-1">
           <span class="text-xs text-gray-600">{{ t('auth.profile.passwordHint') }}</span>
           <t-icon name="chevron-right" size="16px" />
         </div>
-      </button>
+      </router-link>
+
+      <!-- Account Security & Deactivation Center -->
+      <router-link
+        to="/account/security"
+        class="w-full px-5 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors text-left min-h-[52px]"
+      >
+        <span class="text-sm font-medium text-gray-800">{{ t('accountSecurity.securityCenterTitle') }}</span>
+        <div class="flex items-center text-gray-500 space-x-1">
+          <span class="text-xs text-gray-600">{{ t('accountSecurity.deactivateTitle') }}</span>
+          <t-icon name="chevron-right" size="16px" />
+        </div>
+      </router-link>
 
       <!-- Language Preference -->
       <div class="px-5 py-4 flex justify-between items-center gap-3 min-h-[52px]">
@@ -290,14 +313,32 @@
           />
         </div>
 
-        <!-- Avatar Edit -->
-        <div v-if="editPopup.type === 'avatar'" class="space-y-3">
-          <label class="text-xs text-gray-600 font-medium">{{ t('auth.profile.avatarUrlLabel') }}</label>
-          <input
-            v-model="editForm.avatar"
-            placeholder="https://example.com/avatar.png"
-            class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+        <!-- Avatar Edit (Browser 1:1 WebP Crop + S3 Presigned PUT Upload) -->
+        <div v-if="editPopup.type === 'avatar'" class="space-y-4">
+          <div class="flex items-center gap-4">
+            <label
+              for="account-avatar-file"
+              class="h-11 px-4 rounded-xl border border-teal-600 text-teal-700 text-xs font-semibold hover:bg-teal-50 cursor-pointer inline-flex items-center min-h-[44px]"
+            >
+              {{ uploadingAvatar ? t('common.loading') : t('profile.modal.choosePhoto') }}
+              <input
+                id="account-avatar-file"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="hidden"
+                @change="handleAvatarFilePicked"
+              />
+            </label>
+            <span class="text-xs text-gray-600">{{ t('profile.modal.avatarHint') }}</span>
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs text-gray-600 font-medium">{{ t('auth.profile.avatarUrlLabel') }}</label>
+            <input
+              v-model="editForm.avatar"
+              placeholder="https://st.topee.top/..."
+              class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
         </div>
 
         <!-- Email Change Flow (Step 1 & 2) -->
@@ -476,7 +517,10 @@ import {
   changeEmail,
   updateUser,
   updateMePreferences,
+  requestAvatarUploadUrl,
 } from '../api/auth';
+import { uploadFileToPresignedUrl } from '../api/file';
+import { cropImageToSquareWebp } from '../utils/avatarCrop';
 import { setLocale, type SupportedLocale } from '../i18n';
 import { extractApiErrorCode, resolveApiErrorMessage } from '../utils/apiError';
 import { clearL3Snapshots } from '../utils/l3Cache';
@@ -500,6 +544,42 @@ const maskedCurrentEmail = computed(() =>
 const saving = ref(false);
 const updatingLocale = ref(false);
 const clearingCache = ref(false);
+const uploadingAvatar = ref(false);
+
+async function handleAvatarFilePicked(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file || uploadingAvatar.value) return;
+
+  uploadingAvatar.value = true;
+  try {
+    const webpBlob = await cropImageToSquareWebp(file);
+    const res = await requestAvatarUploadUrl({
+      contentType: 'image/webp',
+      fileSizeBytes: webpBlob.size,
+    });
+    const presigned = res.data;
+    if (!presigned?.uploadUrl || !presigned.publicUrl) {
+      throw new Error('Failed to request upload URL');
+    }
+    await uploadFileToPresignedUrl(presigned.uploadUrl, webpBlob, 'image/webp');
+    editForm.avatar = presigned.publicUrl;
+    Toast({ message: t('profile.modal.avatarSuccess'), theme: 'success' });
+  } catch (error: unknown) {
+    const errData = (error as { response?: { data?: unknown } })?.response?.data;
+    Toast({
+      message: resolveApiErrorMessage(
+        errData,
+        undefined,
+        error instanceof Error ? error.message : t('common.failed')
+      ),
+      theme: 'error',
+    });
+  } finally {
+    uploadingAvatar.value = false;
+    input.value = '';
+  }
+}
 
 const editPopup = reactive({
   visible: false,

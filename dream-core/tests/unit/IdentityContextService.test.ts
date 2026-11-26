@@ -11,7 +11,9 @@ import {
 import { IdentityContextService } from '../../src/modules/identity/index.js';
 
 describe('IdentityContextService (Unit Tests)', () => {
-  let mockAdminMapper: jest.Mocked<Pick<AdminAccountMapper, 'findAllActiveMinimal'>>;
+  let mockAdminMapper: jest.Mocked<
+    Pick<AdminAccountMapper, 'findAllActiveMinimal' | 'findActiveByAccountId'>
+  >;
   let mockMonitorMapper: jest.Mocked<Pick<MonitorProfileMapper, 'findAllActiveMinimal'>>;
   let mockTeacherMapper: jest.Mocked<Pick<TeacherProfileMapper, 'findAllActiveMinimal'>>;
   let mockStudentMapper: jest.Mocked<Pick<StudentProfileMapper, 'findActiveByAccountId'>>;
@@ -27,6 +29,7 @@ describe('IdentityContextService (Unit Tests)', () => {
 
     mockAdminMapper = {
       findAllActiveMinimal: jest.fn().mockResolvedValue([]),
+      findActiveByAccountId: jest.fn().mockResolvedValue(null),
     };
     mockMonitorMapper = {
       findAllActiveMinimal: jest.fn().mockResolvedValue([]),
@@ -65,7 +68,7 @@ describe('IdentityContextService (Unit Tests)', () => {
 
       expect(ctx).toEqual({
         accountId: 'accParent0001',
-        email: 'parent@topee.top',
+        emailMasked: 'pa***@topee.top',
         primaryRole: 'parent',
         effectiveRoles: ['parent'],
         adminAccount: null,
@@ -90,7 +93,11 @@ describe('IdentityContextService (Unit Tests)', () => {
 
       expect(ctx.primaryRole).toBe('teacher');
       expect(ctx.effectiveRoles).toEqual(['teacher', 'parent']);
-      expect(ctx.teacherProfile).toEqual({ id: 'tch123456789', displayName: 'Sarah' });
+      expect(ctx.teacherProfile).toEqual({
+        id: 'tch123456789',
+        displayName: 'Sarah',
+        status: 'ACTIVE',
+      });
       expect(ctx.adminAccount).toBeNull();
       expect(ctx.monitorProfile).toBeNull();
       expect(ctx.preferences).toEqual({
@@ -108,7 +115,11 @@ describe('IdentityContextService (Unit Tests)', () => {
 
       expect(ctx.primaryRole).toBe('monitor');
       expect(ctx.effectiveRoles).toEqual(['monitor', 'parent']);
-      expect(ctx.monitorProfile).toEqual({ id: 'mon123456789', displayName: 'Monitor Lin' });
+      expect(ctx.monitorProfile).toEqual({
+        id: 'mon123456789',
+        displayName: 'Monitor Lin',
+        status: 'ACTIVE',
+      });
       expect(ctx.preferences).toEqual({
         locale: 'zh-CN',
         timezone: 'Asia/Shanghai',
@@ -117,14 +128,24 @@ describe('IdentityContextService (Unit Tests)', () => {
 
     it('should resolve admin role with zh-CN default locale', async () => {
       mockAdminMapper.findAllActiveMinimal.mockResolvedValueOnce([
-        { id: 'adm123456789', accountId: 'accAdmin0001', status: 'ACTIVE' },
+        {
+          id: 'adm123456789',
+          accountId: 'accAdmin0001',
+          displayName: 'Platform Owner',
+          status: 'ACTIVE',
+          isPermanentPrimary: true,
+        },
       ]);
 
       const ctx = await service.resolveContext('accAdmin0001', 'admin@topee.top');
 
       expect(ctx.primaryRole).toBe('admin');
       expect(ctx.effectiveRoles).toEqual(['admin', 'parent']);
-      expect(ctx.adminAccount).toEqual({ id: 'adm123456789' });
+      expect(ctx.adminAccount).toEqual({
+        id: 'adm123456789',
+        displayName: 'Platform Owner',
+        isPermanentPrimary: true,
+      });
       expect(ctx.preferences).toEqual({
         locale: 'zh-CN',
         timezone: 'Asia/Shanghai',
@@ -164,12 +185,22 @@ describe('IdentityContextService (Unit Tests)', () => {
 
       expect(snapshot.primaryRole).toBe('monitor');
       expect(snapshot.effectiveRoles).toEqual(['monitor', 'parent']);
-      expect(snapshot.monitorProfile).toEqual({ id: 'mon123456789', displayName: 'Monitor Chen' });
+      expect(snapshot.monitorProfile).toEqual({
+        id: 'mon123456789',
+        displayName: 'Monitor Chen',
+        status: 'ACTIVE',
+      });
     });
 
     it('should prioritize admin > monitor > teacher > parent when account holds multiple roles', async () => {
       mockAdminMapper.findAllActiveMinimal.mockResolvedValueOnce([
-        { id: 'adm123456789', accountId: 'accSuper0001', status: 'ACTIVE' },
+        {
+          id: 'adm123456789',
+          accountId: 'accSuper0001',
+          displayName: 'Super Ops',
+          status: 'ACTIVE',
+          isPermanentPrimary: false,
+        },
       ]);
       mockMonitorMapper.findAllActiveMinimal.mockResolvedValueOnce([
         { id: 'mon123456789', accountId: 'accSuper0001', displayName: 'Monitor Super', status: 'ACTIVE' },
@@ -182,9 +213,21 @@ describe('IdentityContextService (Unit Tests)', () => {
 
       expect(snapshot.primaryRole).toBe('admin');
       expect(snapshot.effectiveRoles).toEqual(['admin', 'monitor', 'teacher', 'parent']);
-      expect(snapshot.adminAccount).toEqual({ id: 'adm123456789' });
-      expect(snapshot.monitorProfile).toEqual({ id: 'mon123456789', displayName: 'Monitor Super' });
-      expect(snapshot.teacherProfile).toEqual({ id: 'tch123456789', displayName: 'Teacher Super' });
+      expect(snapshot.adminAccount).toEqual({
+        id: 'adm123456789',
+        displayName: 'Super Ops',
+        isPermanentPrimary: false,
+      });
+      expect(snapshot.monitorProfile).toEqual({
+        id: 'mon123456789',
+        displayName: 'Monitor Super',
+        status: 'ACTIVE',
+      });
+      expect(snapshot.teacherProfile).toEqual({
+        id: 'tch123456789',
+        displayName: 'Teacher Super',
+        status: 'ACTIVE',
+      });
     });
 
     it('should prioritize monitor > teacher > parent when account is both monitor and teacher', async () => {
@@ -210,7 +253,13 @@ describe('IdentityContextService (Unit Tests)', () => {
       currentTimeMs = 60_000 * 100 + 5_000; // :05.000
 
       mockAdminMapper.findAllActiveMinimal.mockResolvedValue([
-        { id: 'adm000000001', accountId: 'acc001', status: 'ACTIVE' },
+        {
+          id: 'adm000000001',
+          accountId: 'acc001',
+          displayName: 'Admin 1',
+          status: 'ACTIVE',
+          isPermanentPrimary: false,
+        },
       ]);
 
       const first = await service.resolveRolesFromCache('acc001');
@@ -266,7 +315,15 @@ describe('IdentityContextService (Unit Tests)', () => {
     it('should deduplicate concurrent refreshes at :00 using single-flight lock', async () => {
       currentTimeMs = 120_000;
 
-      let resolveAdmins!: (val: Array<{ id: string; accountId: string; status: 'ACTIVE' }>) => void;
+      let resolveAdmins!: (
+        val: Array<{
+          id: string;
+          accountId: string;
+          displayName: string;
+          status: 'ACTIVE';
+          isPermanentPrimary: boolean;
+        }>
+      ) => void;
       mockAdminMapper.findAllActiveMinimal.mockImplementationOnce(
         () =>
           new Promise((resolve) => {
@@ -286,7 +343,15 @@ describe('IdentityContextService (Unit Tests)', () => {
 
       // Allow microtasks to kick off the single-flight query
       await Promise.resolve();
-      resolveAdmins([{ id: 'adm1', accountId: 'acc1', status: 'ACTIVE' }]);
+      resolveAdmins([
+        {
+          id: 'adm1',
+          accountId: 'acc1',
+          displayName: 'Admin 1',
+          status: 'ACTIVE',
+          isPermanentPrimary: false,
+        },
+      ]);
 
       const results = await pending;
       expect(results[0].primaryRole).toBe('admin');
@@ -418,6 +483,42 @@ describe('IdentityContextService (Unit Tests)', () => {
       });
 
       expect(mockPreferenceMapper.upsertPreference).not.toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================================================
+  // 9. verifyPermanentMasterAdminFromDb (bypass cache)
+  // ===========================================================================
+  describe('verifyPermanentMasterAdminFromDb', () => {
+    it('should query DB directly and allow active permanent primary admin', async () => {
+      mockAdminMapper.findActiveByAccountId.mockResolvedValueOnce({
+        id: 'admPrimary001',
+        accountId: 'accMaster0001',
+        displayName: 'Owner',
+        status: 'ACTIVE',
+        isPermanentPrimary: true,
+      });
+
+      const res = await service.verifyPermanentMasterAdminFromDb('accMaster0001');
+      expect(res.isPermanentPrimary).toBe(true);
+      expect(mockAdminMapper.findActiveByAccountId).toHaveBeenCalledWith('accMaster0001');
+    });
+
+    it('should reject ordinary admin with 403 PERMANENT_MASTER_ADMIN_REQUIRED', async () => {
+      mockAdminMapper.findActiveByAccountId.mockResolvedValueOnce({
+        id: 'admOrdinary01',
+        accountId: 'accOrdinary01',
+        displayName: 'Ops',
+        status: 'ACTIVE',
+        isPermanentPrimary: false,
+      });
+
+      await expect(
+        service.verifyPermanentMasterAdminFromDb('accOrdinary01')
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        errorCode: 'PERMANENT_MASTER_ADMIN_REQUIRED',
+      });
     });
   });
 });

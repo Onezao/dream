@@ -131,14 +131,14 @@ export class TeacherProfileMapper extends BaseMapper<TeacherProfileRow> {
   }
 
   /**
-   * 查询所有已绑定账号且处于 ACTIVE 或 ON_LEAVE 状态的教师最小身份列表
+   * 查询所有已绑定账号且处于 ACTIVE / ON_LEAVE / RESIGNING 状态的教师最小身份列表
    */
   async findAllActiveMinimal(client?: PoolClient): Promise<TeacherProfileMinimal[]> {
     const sql = `
       SELECT id, account_id, display_name, status
       FROM ${this.fullTableName}
       WHERE account_id IS NOT NULL
-        AND status IN ('ACTIVE', 'ON_LEAVE')
+        AND status IN ('ACTIVE', 'ON_LEAVE', 'RESIGNING')
         AND deleted_at IS NULL
       ORDER BY created_at ASC;
     `;
@@ -150,6 +150,23 @@ export class TeacherProfileMapper extends BaseMapper<TeacherProfileRow> {
       displayName: row.display_name,
       status: row.status,
     }));
+  }
+
+  /**
+   * 校验账号名下是否存在阻塞注销的老师档案 (ACTIVE / ON_LEAVE / RESIGNING)
+   */
+  async hasBlockingByAccountId(accountId: string, client?: PoolClient): Promise<boolean> {
+    const sql = `
+      SELECT 1
+      FROM ${this.fullTableName}
+      WHERE account_id = $1
+        AND status IN ('ACTIVE', 'ON_LEAVE', 'RESIGNING')
+        AND deleted_at IS NULL
+      LIMIT 1;
+    `;
+
+    const row = await this.executeQuerySingle<QueryResultRow>(sql, [accountId], client);
+    return Boolean(row);
   }
 
   /**

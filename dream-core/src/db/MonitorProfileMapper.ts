@@ -114,13 +114,13 @@ export class MonitorProfileMapper extends BaseMapper<MonitorProfileRow> {
   }
 
   /**
-   * 查询所有处于 ACTIVE 状态且未软删除的班长最小身份列表
+   * 查询所有处于 ACTIVE 或 HANDOVER_FROZEN 状态且未软删除的班长最小身份列表
    */
   async findAllActiveMinimal(client?: PoolClient): Promise<MonitorProfileMinimal[]> {
     const sql = `
       SELECT id, account_id, display_name, status
       FROM ${this.fullTableName}
-      WHERE status = 'ACTIVE' AND deleted_at IS NULL
+      WHERE status IN ('ACTIVE', 'HANDOVER_FROZEN') AND deleted_at IS NULL
       ORDER BY created_at ASC;
     `;
 
@@ -131,6 +131,23 @@ export class MonitorProfileMapper extends BaseMapper<MonitorProfileRow> {
       displayName: row.display_name,
       status: row.status,
     }));
+  }
+
+  /**
+   * 校验账号名下是否存在阻塞注销的班长档案 (ACTIVE 或 HANDOVER_FROZEN)
+   */
+  async hasBlockingByAccountId(accountId: string, client?: PoolClient): Promise<boolean> {
+    const sql = `
+      SELECT 1
+      FROM ${this.fullTableName}
+      WHERE account_id = $1
+        AND status IN ('ACTIVE', 'HANDOVER_FROZEN')
+        AND deleted_at IS NULL
+      LIMIT 1;
+    `;
+
+    const row = await this.executeQuerySingle<QueryResultRow>(sql, [accountId], client);
+    return Boolean(row);
   }
 
   /**

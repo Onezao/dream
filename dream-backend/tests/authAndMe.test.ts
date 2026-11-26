@@ -16,6 +16,7 @@ import { buildApp } from '../src/app.js';
 import { resetConfigCache } from '../src/config/env.config.js';
 import {
   requireRole,
+  requirePermanentMasterAdmin,
   verifyActiveAccount,
   resetIdentityContextService,
 } from '../src/middlewares/auth.middleware.js';
@@ -31,13 +32,13 @@ describe('Auth Middleware, JWKS & /me/* Routes Integration Tests', () => {
     primaryRole: 'monitor',
     effectiveRoles: ['monitor', 'parent'],
     adminAccount: null,
-    monitorProfile: { id: 'mon123456789', displayName: 'Monitor Alice' },
+    monitorProfile: { id: 'mon123456789', displayName: 'Monitor Alice', status: 'ACTIVE' },
     teacherProfile: null,
   };
 
   const sampleMeContext: MeContextDto = {
     ...sampleRoleSnapshot,
-    email: 'alice@topee.top',
+    emailMasked: 'al***@topee.top',
     studentProfiles: [
       { id: 'stu123456789', nickname: 'AliceZ12', avatarKey: null },
     ],
@@ -56,6 +57,7 @@ describe('Auth Middleware, JWKS & /me/* Routes Integration Tests', () => {
       resolveContext: jest.fn(),
       updatePreferences: jest.fn(),
       invalidateRoleDirectoryCache: jest.fn(),
+      verifyPermanentMasterAdminFromDb: jest.fn(),
     } as unknown as jest.Mocked<IdentityContextService>;
 
     app = await buildApp({
@@ -264,6 +266,23 @@ describe('Auth Middleware, JWKS & /me/* Routes Integration Tests', () => {
         statusCode: 401,
         errorCode: 'UNAUTHORIZED',
       });
+    });
+
+    it('requirePermanentMasterAdmin should invoke verifyPermanentMasterAdminFromDb', async () => {
+      mockIdentityService.verifyPermanentMasterAdminFromDb.mockResolvedValueOnce({
+        id: 'adm001',
+        accountId,
+        displayName: 'Master',
+        status: 'ACTIVE',
+        isPermanentPrimary: true,
+      });
+
+      const req = {
+        user: { id: accountId, email: 'alice@topee.top', roles: ['admin'] },
+      } as unknown as FastifyRequest;
+
+      await expect(requirePermanentMasterAdmin(req, {} as FastifyReply)).resolves.toBeUndefined();
+      expect(mockIdentityService.verifyPermanentMasterAdminFromDb).toHaveBeenCalledWith(accountId);
     });
   });
 

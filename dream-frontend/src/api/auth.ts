@@ -1,20 +1,59 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
 import { resolveApiErrorMessage } from '../utils/apiError';
+import { clearAccountL3Snapshots, clearL3Snapshots } from '../utils/l3Cache';
 
 export type BusinessRole = 'admin' | 'monitor' | 'teacher' | 'parent';
 
 export interface DreamContext {
   accountId?: string;
+  emailMasked?: string;
   email?: string;
   primaryRole: BusinessRole;
   effectiveRoles: BusinessRole[];
-  adminAccount: { id: string } | null;
-  monitorProfile: { id: string; displayName: string } | null;
-  teacherProfile: { id: string; displayName: string } | null;
+  adminAccount: { id: string; displayName?: string; isPermanentPrimary?: boolean } | null;
+  monitorProfile: { id: string; displayName: string; status?: string } | null;
+  teacherProfile: { id: string; displayName: string; status?: string } | null;
   studentProfiles: Array<{ id: string; nickname: string; avatarKey: string | null }>;
   preferences: { locale: 'zh-CN' | 'en-US'; timezone: string };
   currentStudentProfileId?: string;
+}
+
+export interface AdminAccountItem {
+  id: string;
+  accountId: string;
+  displayName: string;
+  emailMasked: string;
+  isPermanentPrimary: boolean;
+  status: 'ACTIVE' | 'REVOKED';
+  coRoles: Array<'monitor' | 'teacher' | 'parent'>;
+  grantedByName: string | null;
+  grantedAt: string;
+  revokedByName: string | null;
+  revokedAt: string | null;
+}
+
+export interface AdminListResult {
+  canManage: boolean;
+  items: AdminAccountItem[];
+}
+
+export interface AdminLookupResult {
+  accountId: string;
+  emailMasked: string;
+  accountStatus: 'ACTIVE' | 'UNVERIFIED' | 'LOCKED' | 'BANNED' | 'DEACTIVATED';
+  isEligibleToGrant: boolean;
+  currentAdminStatus: 'NONE' | 'ACTIVE' | 'REVOKED';
+  currentAdminId: string | null;
+  currentDisplayName: string | null;
+  coRoles: Array<'monitor' | 'teacher' | 'parent'>;
+}
+
+export interface AvatarUploadUrlResult {
+  uploadUrl: string;
+  key: string;
+  publicUrl: string;
+  expiresInSeconds: number;
 }
 
 export type SendCodeScenario =
@@ -93,7 +132,22 @@ export function clearAuthStorage(): void {
 }
 
 export function clearAuthAndRedirect(): void {
+  let accountId: string | undefined;
+  try {
+    const rawContext = getStorageItem('dream_context');
+    if (rawContext) {
+      const parsed = JSON.parse(rawContext) as { accountId?: string };
+      accountId = parsed.accountId;
+    }
+  } catch {
+    // ignore JSON parse error
+  }
   clearAuthStorage();
+  if (accountId) {
+    void clearAccountL3Snapshots(accountId);
+  } else {
+    void clearL3Snapshots();
+  }
   if (typeof window !== 'undefined' && window.location && window.location.pathname !== '/login') {
     const redirect = encodeURIComponent(`${window.location.pathname}${window.location.search || ''}`);
     window.location.href = `/login?redirect=${redirect}`;
@@ -231,6 +285,14 @@ export async function request<T = any>(
       },
       true
     );
+  }
+
+  if (
+    response.status === 403 &&
+    (data?.code === 'ACCOUNT_BANNED' || data?.errorCode === 'ACCOUNT_BANNED')
+  ) {
+    clearAuthAndRedirect();
+    throw createApiError(data, response.status);
   }
 
   if (!response.ok) {
@@ -389,5 +451,79 @@ export function updateMePreferences(data: {
   return request('/api/dream/v1/me/preferences', {
     method: 'PUT',
     body: JSON.stringify(data),
+  });
+}
+
+// 14. Request Avatar S3 WebP Presigned Upload URL
+export function requestAvatarUploadUrl(data: {
+  contentType: 'image/webp';
+  fileSizeBytes: number;
+}): Promise<ApiResponse<AvatarUploadUrlResult>> {
+  return request('/api/dream/v1/me/avatar/upload-url', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// 15. Self-Service Account Deactivation
+export function deactivateAccount(data: {
+  confirmEmail: string;
+}): Promise<ApiResponse<{ deactivated: boolean }>> {
+  return request('/api/dream/v1/me/deactivate', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// 16. Admin Roster & Governance APIs
+export function listAdmins(): Promise<ApiResponse<AdminListResult>> {
+  return request('/api/dream/v1/admin/admins', {
+    method: 'GET',
+  });
+}
+
+export function lookupAdminCandidate(email: string): Promise<ApiResponse<AdminLookupResult>> {
+  return request('/api/dream/v1/admin/admins/lookup', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function grantAdmin(data: {
+  email: string;
+  displayName: string;
+  confirmText: string;
+}): Promise<ApiResponse<AdminAccountItem>> {
+  return request('/api/dream/v1/admin/admins', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateAdminDisplayName(
+  id: string,
+  displayName: string
+): Promise<ApiResponse<AdminAccountItem>> {
+  return request(`/api/dream/v1/admin/admins/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ displayName }),
+  });
+}
+
+export function revokeAdmin(
+  id: string,
+  confirmText: string
+): Promise<ApiResponse<AdminAccountItem>> {
+  return request(`/api/dream/v1/admin/admins/${encodeURIComponent(id)}/revoke`, {
+    method: 'POST',
+    body: JSON.stringify({ confirmText }),
+  });
+}
+
+// 17. Issue SSE Notification Ticket
+export function issueSseTicket(): Promise<ApiResponse<{ ticket: string }>> {
+  return request('/api/notification/v1/ticket', {
+    method: 'POST',
+    body: JSON.stringify({}),
   });
 }

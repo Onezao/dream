@@ -3,21 +3,34 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import {
+  AccountLifecycleService,
+  AvatarUploadService,
+  DeactivateAccountSchema,
   IdentityContextService,
+  RequestAvatarUploadUrlSchema,
   UpdatePreferencesSchema,
 } from '@topeetop/dream-core';
-import { authenticateAndResolveProfile } from '../middlewares/auth.middleware.js';
+import {
+  authenticateAndResolveProfile,
+  verifyActiveAccount,
+} from '../middlewares/auth.middleware.js';
 import { MeController } from '../controllers/MeController.js';
 
 export interface MeRouteOptions {
   service?: IdentityContextService;
+  accountLifecycleService?: AccountLifecycleService;
+  avatarUploadService?: AvatarUploadService;
 }
 
 export const meRoutes: FastifyPluginAsync<MeRouteOptions> = async (
   fastify,
   options
 ): Promise<void> => {
-  const controller = new MeController(options?.service);
+  const controller = new MeController({
+    identityService: options?.service,
+    accountLifecycleService: options?.accountLifecycleService,
+    avatarUploadService: options?.avatarUploadService,
+  });
   const server = fastify.withTypeProvider<ZodTypeProvider>();
 
   server.addHook('preHandler', authenticateAndResolveProfile);
@@ -32,5 +45,26 @@ export const meRoutes: FastifyPluginAsync<MeRouteOptions> = async (
       },
     },
     controller.updatePreferences
+  );
+
+  server.post(
+    '/me/avatar/upload-url',
+    {
+      schema: {
+        body: RequestAvatarUploadUrlSchema,
+      },
+    },
+    controller.requestAvatarUploadUrl
+  );
+
+  server.post(
+    '/me/deactivate',
+    {
+      preHandler: [verifyActiveAccount],
+      schema: {
+        body: DeactivateAccountSchema,
+      },
+    },
+    controller.deactivateAccount
   );
 };

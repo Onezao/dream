@@ -95,7 +95,7 @@ describe('Router Guard (authBeforeEach)', () => {
       preferences: { locale: 'zh-CN', timezone: 'Asia/Shanghai' },
     });
 
-    for (const routeName of ['login', 'register'] as const) {
+    for (const routeName of ['login', 'register', 'signup'] as const) {
       const next = jest.fn() as unknown as NavigationGuardNext;
       const to = createMockRoute({
         path: `/${routeName}`,
@@ -208,5 +208,31 @@ describe('Router Guard (authBeforeEach)', () => {
     await authBeforeEach(to, createMockRoute(), next);
 
     expect(next).toHaveBeenCalledWith();
+  });
+
+  it('8. blocks non-admin from /admin/admins and allows active admin', async () => {
+    mockStorage['access_token'] = 'valid-token';
+    mockStorage['dream_context'] = JSON.stringify({
+      primaryRole: 'monitor',
+      effectiveRoles: ['monitor', 'parent'],
+      adminAccount: null,
+      monitorProfile: { id: 'mon_1', displayName: 'Ms. Wang' },
+      teacherProfile: null,
+      studentProfiles: [],
+      preferences: { locale: 'zh-CN', timezone: 'Asia/Shanghai' },
+    });
+
+    const nextBlocked = jest.fn() as unknown as NavigationGuardNext;
+    await authBeforeEach(
+      createMockRoute({
+        path: '/admin/admins',
+        name: 'admin-admins',
+        fullPath: '/admin/admins',
+        meta: { requiresAuth: true, allowedRoles: ['admin'], activeTab: 'profile' },
+      }),
+      createMockRoute(),
+      nextBlocked
+    );
+    expect(nextBlocked).toHaveBeenCalledWith({ name: 'home' });
   });
 });

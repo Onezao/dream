@@ -2,11 +2,11 @@
 -- Idempotent Development Seed Data for dream schema (PostgreSQL)
 -- Maps existing tauth.users accounts into Dream's 4 business role tables (admin / monitor / teacher / parent)
 
--- 1. 管理员白名单 (admin_accounts)
-INSERT INTO dream.admin_accounts (id, account_id, status, note)
+-- 1. 管理员白名单 (admin_accounts: 含全平台唯一永久主管理员 + 兼任普通管理员)
+INSERT INTO dream.admin_accounts (id, account_id, display_name, status, is_permanent_primary, note, granted_by)
 VALUES
-    ('admDev000001', '89753001', 'ACTIVE', 'Superadmin seed account'),
-    ('admDev000002', 'IZ3VGJCTN6DA', 'ACTIVE', 'Three-in-one Admin + Monitor + Parent seed')
+    ('admDev000001', '89753001', 'Master Admin', 'ACTIVE', TRUE, 'Permanent primary master admin seed account', NULL),
+    ('admDev000002', 'IZ3VGJCTN6DA', 'Leo (Ops)', 'ACTIVE', FALSE, 'Three-in-one Admin + Monitor + Parent seed', '89753001')
 ON CONFLICT (account_id) WHERE deleted_at IS NULL DO NOTHING;
 
 -- 2. 班长档案 (monitor_profiles)

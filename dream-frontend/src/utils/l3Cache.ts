@@ -3,10 +3,20 @@
 const DB_NAME = 'dream_pwa_l3_db';
 const STORE_NAME = 'snapshots';
 const DB_VERSION = 1;
+const STORAGE_PREFIX = 'dream_l3_';
 
 interface CacheEnvelope<T> {
   data: T;
   cachedAt: number;
+}
+
+export function buildL3PartitionKey(
+  accountId: string | undefined | null,
+  roleScope: string,
+  storeKey: string
+): string {
+  const safeAccount = accountId?.trim() || 'anon';
+  return `${safeAccount}::${roleScope}::${storeKey}`;
 }
 
 function openDatabase(): Promise<IDBDatabase | null> {
@@ -39,6 +49,29 @@ function openDatabase(): Promise<IDBDatabase | null> {
 }
 
 /**
+ * 写入 L3 IndexedDB 分区快照 ([accountId, roleScope, storeKey])
+ */
+export async function setPartitionedL3Snapshot<T>(
+  accountId: string | undefined | null,
+  roleScope: string,
+  storeKey: string,
+  data: T
+): Promise<void> {
+  return setL3Snapshot(buildL3PartitionKey(accountId, roleScope, storeKey), data);
+}
+
+/**
+ * 读取 L3 IndexedDB 分区快照 ([accountId, roleScope, storeKey])
+ */
+export async function getPartitionedL3Snapshot<T>(
+  accountId: string | undefined | null,
+  roleScope: string,
+  storeKey: string
+): Promise<T | null> {
+  return getL3Snapshot<T>(buildL3PartitionKey(accountId, roleScope, storeKey));
+}
+
+/**
  * 写入 L3 IndexedDB 快照
  */
 export async function setL3Snapshot<T>(key: string, data: T): Promise<void> {
@@ -49,11 +82,12 @@ export async function setL3Snapshot<T>(key: string, data: T): Promise<void> {
 
   const db = await openDatabase();
   if (!db) {
-    // 降级使用 localStorage
     try {
-      localStorage.setItem(`dream_l3_${key}`, JSON.stringify(envelope));
+      if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+        localStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(envelope));
+      }
     } catch {
-      // ignore
+      // ignore storage errors
     }
     return;
   }
@@ -78,7 +112,10 @@ export async function getL3Snapshot<T>(key: string): Promise<T | null> {
   const db = await openDatabase();
   if (!db) {
     try {
-      const raw = localStorage.getItem(`dream_l3_${key}`);
+      if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') {
+        return null;
+      }
+      const raw = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as CacheEnvelope<T>;
       return parsed.data ?? null;
@@ -108,15 +145,65 @@ export async function getL3Snapshot<T>(key: string): Promise<T | null> {
 }
 
 /**
- * 清空 L3 非认证本地业务缓存（严禁删除登录凭据与语言设置）
+ * 清空指定账号名下的全部 L3 分区缓存（用于退出登录或账号切换隔离）
  */
-export async function clearL3Snapshots(): Promise<void> {
+export async function clearAccountL3Snapshots(accountId?: string | null): Promise<void> {
+  const targetPrefix = accountId ? `${accountId}::` : '';
+  if (!targetPrefix) {
+    return clearL3Snapshots();
+  }
+
   try {
-    if (typeof localStorage !== 'undefined') {
+    if (typeof localStorage !== 'undefined' && typeof localStorage.key === 'function') {
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('dream_l3_')) {
+        if (key && key.startsWith(`${STORAGE_PREFIX}${targetPrefix}`)) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const key of keysToRemove) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // ignore storage access errors
+  }
+
+  const db = await openDatabase();
+  if (!db) return;
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAllKeys();
+      req.onsuccess = () => {
+        const allKeys = req.result || [];
+        for (const rawKey of allKeys) {
+          if (typeof rawKey === 'string' && rawKey.startsWith(targetPrefix)) {
+            store.delete(rawKey);
+          }
+        }
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}
+
+/**
+ * 清空 L3 非认证本地业务缓存（严禁删除登录凭据 L2 与语言设置 dream_locale）
+ */
+export async function clearL3Snapshots(): Promise<void> {
+  try {
+    if (typeof localStorage !== 'undefined' && typeof localStorage.key === 'function') {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(STORAGE_PREFIX)) {
           keysToRemove.push(key);
         }
       }

@@ -56,7 +56,7 @@
                   </span>
                 </div>
                 <div class="text-xs text-slate-500 mt-0.5">
-                  真实姓名: {{ profileStore.activeProfile?.realName }} · 档案ID: <span class="font-mono text-slate-400">{{ profileStore.activeProfile?.id }}</span>
+                  真实姓名: {{ profileStore.activeProfile?.realName }} · 档案ID: <span class="font-mono text-slate-600">{{ profileStore.activeProfile?.id }}</span>
                 </div>
               </div>
             </div>
@@ -82,7 +82,7 @@
               完整日历 &rarr;
             </span>
           </div>
-          <div class="py-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-100">
+          <div class="py-6 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-100">
             本周暂无已排课次，快去约课吧
           </div>
         </div>

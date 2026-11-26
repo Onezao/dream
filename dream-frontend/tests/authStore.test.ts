@@ -21,6 +21,8 @@ jest.mock('../src/api/auth', () => {
     updateMePreferences: jest.fn(),
     verifyCurrentEmail: jest.fn(),
     changeEmail: jest.fn(),
+    deactivateAccount: jest.fn(),
+    issueSseTicket: jest.fn(),
     clearAuthStorage: actual.clearAuthStorage,
     clearAuthAndRedirect: actual.clearAuthAndRedirect,
   };
@@ -229,6 +231,35 @@ describe('Auth Store Controls & Lifecycle (M0A Context & Role Aggregation)', () 
     expect(store.token).toBe('');
     expect(store.dreamContext).toBeNull();
     expect(mockStorage['access_token']).toBeUndefined();
+    expect(mockStorage['dream_locale']).toBe('zh-CN');
+  });
+
+  it('11. should expose isPermanentPrimary, emailMasked, and deactivateAccount cleanly', async () => {
+    (authApi.deactivateAccount as jest.Mock).mockResolvedValue({ data: { deactivated: true } });
+    mockStorage['access_token'] = 'active-token';
+    mockStorage['dream_locale'] = 'zh-CN';
+
+    const store = useAuthStore();
+    store.token = 'active-token';
+    store.dreamContext = {
+      accountId: 'acc_master',
+      emailMasked: 'ow***@topee.top',
+      primaryRole: 'admin',
+      effectiveRoles: ['admin', 'parent'],
+      adminAccount: { id: 'adm_001', displayName: 'Master', isPermanentPrimary: true },
+      monitorProfile: null,
+      teacherProfile: null,
+      studentProfiles: [],
+      preferences: { locale: 'zh-CN', timezone: 'Asia/Shanghai' },
+    };
+
+    expect(store.isPermanentPrimary).toBe(true);
+    expect(store.emailMasked).toBe('ow***@topee.top');
+
+    await store.deactivateAccount('owner@topee.top');
+    expect(authApi.deactivateAccount).toHaveBeenCalledWith({ confirmEmail: 'owner@topee.top' });
+    expect(store.isLoggedIn).toBe(false);
+    expect(store.dreamContext).toBeNull();
     expect(mockStorage['dream_locale']).toBe('zh-CN');
   });
 });

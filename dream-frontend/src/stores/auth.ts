@@ -11,11 +11,15 @@ import {
   updateUser as apiUpdateUser,
   logout as apiLogout,
   getMeContext as apiGetMeContext,
+  deactivateAccount as apiDeactivateAccount,
+  issueSseTicket as apiIssueSseTicket,
   clearAuthStorage,
   type BusinessRole,
   type DreamContext,
 } from '../api/auth';
 import { setLocale } from '../i18n';
+import { clearAccountL3Snapshots } from '../utils/l3Cache';
+import { useWorkspaceStore } from './workspace';
 
 export type { BusinessRole, DreamContext };
 
@@ -68,6 +72,14 @@ export const useAuthStore = defineStore('auth', () => {
   const primaryRole = computed<BusinessRole>(
     () => dreamContext.value?.primaryRole ?? 'parent'
   );
+  const isPermanentPrimary = computed<boolean>(
+    () => Boolean(dreamContext.value?.adminAccount?.isPermanentPrimary)
+  );
+  const emailMasked = computed<string>(
+    () => dreamContext.value?.emailMasked ?? ''
+  );
+
+  let sseSource: EventSource | null = null;
 
   function hasAnyRole(roles: BusinessRole[]): boolean {
     return roles.some((role) => effectiveRoles.value.includes(role));
@@ -122,6 +134,11 @@ export const useAuthStore = defineStore('auth', () => {
       const ctx = ((res as { data?: DreamContext })?.data ?? res) as DreamContext | null;
       if (ctx && Array.isArray(ctx.effectiveRoles)) {
         setDreamContext(ctx);
+        try {
+          useWorkspaceStore().switchWorkspace(ctx.primaryRole);
+        } catch {
+          // ignore if workspace store unavailable in isolated test
+        }
         if (ctx.preferences?.locale === 'zh-CN' || ctx.preferences?.locale === 'en-US') {
           setLocale(ctx.preferences.locale);
         }
@@ -235,7 +252,63 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function disconnectRoleInvalidationStream() {
+    if (sseSource) {
+      sseSource.close();
+      sseSource = null;
+    }
+  }
+
+  async function connectRoleInvalidationStream(
+    onRoleDowngraded?: (nextPrimaryRole: BusinessRole) => void
+  ) {
+    if (
+      !token.value ||
+      typeof EventSource === 'undefined' ||
+      typeof apiIssueSseTicket !== 'function'
+    ) {
+      return;
+    }
+    disconnectRoleInvalidationStream();
+    try {
+      const res = await apiIssueSseTicket();
+      const ticket = res.data?.ticket;
+      if (!ticket) return;
+
+      const source = new EventSource(`/api/notification/v1/events?ticket=${encodeURIComponent(ticket)}`);
+      source.addEventListener('message', async (evt) => {
+        try {
+          const parsed = JSON.parse((evt as MessageEvent<string>).data) as { type?: string };
+          if (parsed.type === 'ROLE_CONTEXT_INVALIDATED') {
+            const nextCtx = await fetchDreamContext();
+            if (nextCtx && onRoleDowngraded) {
+              onRoleDowngraded(nextCtx.primaryRole);
+            }
+          }
+        } catch {
+          // ignore non-json keepalive messages
+        }
+      });
+      sseSource = source;
+    } catch {
+      // ignore non-fatal SSE connection failures
+    }
+  }
+
+  async function deactivateAccount(confirmEmail: string) {
+    await apiDeactivateAccount({ confirmEmail });
+    const accountId = dreamContext.value?.accountId || userInfo.value?.id;
+    disconnectRoleInvalidationStream();
+    token.value = '';
+    userInfo.value = null;
+    dreamContext.value = null;
+    clearAuthStorage();
+    await clearAccountL3Snapshots(accountId);
+  }
+
   async function logout() {
+    const accountId = dreamContext.value?.accountId || userInfo.value?.id;
+    disconnectRoleInvalidationStream();
     try {
       await apiLogout().catch(() => {});
     } finally {
@@ -243,6 +316,7 @@ export const useAuthStore = defineStore('auth', () => {
       userInfo.value = null;
       dreamContext.value = null;
       clearAuthStorage();
+      await clearAccountL3Snapshots(accountId);
     }
   }
 
@@ -254,6 +328,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     effectiveRoles,
     primaryRole,
+    isPermanentPrimary,
+    emailMasked,
     hasAnyRole,
     login,
     register,
@@ -262,6 +338,9 @@ export const useAuthStore = defineStore('auth', () => {
     fetchAuthUser,
     fetchDreamContext,
     updateProfile,
+    deactivateAccount,
+    connectRoleInvalidationStream,
+    disconnectRoleInvalidationStream,
     logout,
   };
 });

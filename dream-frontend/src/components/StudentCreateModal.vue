@@ -21,7 +21,7 @@
         <button
           type="button"
           @click="handleClose"
-          class="w-11 h-11 -mr-2 rounded-xl grid place-items-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition min-w-[44px] min-h-[44px]"
+          class="w-11 h-11 -mr-2 rounded-xl grid place-items-center text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition min-w-[44px] min-h-[44px]"
           :aria-label="t('common.close')"
         >
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -44,7 +44,7 @@
               class="w-full h-full object-cover"
               alt="Avatar"
             />
-            <div v-else class="flex flex-col items-center justify-center text-slate-400">
+            <div v-else class="flex flex-col items-center justify-center text-slate-500">
               <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   stroke-linecap="round"
@@ -104,7 +104,7 @@
               maxlength="24"
               :disabled="isEditMode"
               :placeholder="t('profile.modal.englishNamePlaceholder')"
-              class="w-full h-11 px-3.5 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm bg-white disabled:bg-slate-100 disabled:text-slate-400 transition"
+              class="w-full h-11 px-3.5 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm bg-white disabled:bg-slate-100 disabled:text-slate-500 transition"
               @input="onNicknameInput"
             />
           </div>
@@ -119,7 +119,7 @@
               maxlength="1"
               :disabled="isEditMode"
               :placeholder="t('profile.modal.surnameInitialPlaceholder')"
-              class="w-full h-11 px-2 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm text-center uppercase font-bold bg-white disabled:bg-slate-100 disabled:text-slate-400 transition"
+              class="w-full h-11 px-2 rounded-xl border border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none text-sm text-center uppercase font-bold bg-white disabled:bg-slate-100 disabled:text-slate-500 transition"
               @input="onInitialInput"
             />
           </div>
@@ -144,8 +144,8 @@
         <div class="rounded-xl bg-slate-50 border border-slate-200/80 p-3.5 space-y-1">
           <div class="flex items-center justify-between text-xs text-slate-500">
             <span>{{ t('profile.modal.previewTitle') }}</span>
-            <span class="text-[11px] text-slate-400 flex items-center gap-1">
-              <svg class="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span class="text-[11px] text-slate-500 flex items-center gap-1">
+              <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               {{ t('profile.modal.previewSubtitle') }}
@@ -162,7 +162,7 @@
           <!-- Availability & Validation Feedback -->
           <div class="text-xs min-h-[22px] flex items-center gap-1.5 pt-0.5">
             <template v-if="!canPreview">
-              <span class="text-slate-400">{{ t('profile.modal.fillPrompt') }}</span>
+              <span class="text-slate-500">{{ t('profile.modal.fillPrompt') }}</span>
             </template>
             <template v-else-if="!isNicknameRegexValid">
               <span class="text-rose-600 font-medium">{{ t('profile.modal.invalidFormat') }}</span>
@@ -199,7 +199,7 @@
         <div>
           <label for="student-suffix" class="block text-xs font-semibold text-slate-700 mb-1.5">
             {{ t('profile.modal.suffix') }}
-            <span class="font-normal text-slate-400">{{ t('profile.modal.suffixOptional') }}</span>
+            <span class="font-normal text-slate-500">{{ t('profile.modal.suffixOptional') }}</span>
           </label>
           <input
             id="student-suffix"
@@ -269,7 +269,7 @@
           type="button"
           :disabled="isSubmitDisabled"
           @click="handleSubmit"
-          class="flex-[2] h-11 rounded-xl bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 min-h-[44px]"
+          class="flex-[2] h-11 rounded-xl bg-teal-600 text-white text-sm font-medium hover:bg-teal-700 disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 min-h-[44px]"
         >
           <svg v-if="submitting" class="animate-spin w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

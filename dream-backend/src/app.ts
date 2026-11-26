@@ -1,27 +1,42 @@
 /** (c) 2024-2026 Topee (https://topee.top). All rights reserved. Proprietary and confidential. */
 
+import crypto from 'node:crypto';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from 'fastify-type-provider-zod';
 import { ApiError, initializeDatabase, closePool } from '@topeetop/shared-core';
-import { IdentityContextService } from '@topeetop/dream-core';
-import { loadConfig } from './config/env.config.js';
+import { maskPII, telemetryContext } from '@topeetop/telemetry-core';
+import type { NotificationManager } from '@topeetop/notification-core';
+import {
+  AccountLifecycleService,
+  AdminGovernanceService,
+  AvatarUploadService,
+  IdentityContextService,
+} from '@topeetop/dream-core';
+import { loadConfig, loadConfigAsync } from './config/env.config.js';
 import { setIdentityContextService } from './middlewares/auth.middleware.js';
+import { NotificationRoleInvalidationNotifier } from './adapters/roleInvalidation.notifier.js';
 import {
   createJwtProviderFromConfig,
   decorateJwtContainer,
   registerAuthCorePlugin,
+  registerNotificationPlugin,
 } from './plugins/authCore.plugin.js';
 import { meRoutes } from './routes/me.routes.js';
+import { adminRoutes } from './routes/admin.routes.js';
 
 export interface BuildAppOptions {
   identityService?: IdentityContextService;
+  adminGovernanceService?: AdminGovernanceService;
+  accountLifecycleService?: AccountLifecycleService;
+  avatarUploadService?: AvatarUploadService;
   mountAuthPlugin?: boolean;
+  mountNotificationPlugin?: boolean;
   skipDbInit?: boolean;
 }
 
 export async function buildApp(options?: BuildAppOptions) {
-  const config = loadConfig();
+  const config = await loadConfigAsync();
 
   // 1. 初始化数据库连接池 (委托至 @topeetop/shared-core，单 Schema dream)
   if (!options?.skipDbInit && config.NODE_ENV !== 'test') {
@@ -45,14 +60,25 @@ export async function buildApp(options?: BuildAppOptions) {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  // 3. 注册全局插件 (CORS 等)
+  // 透传 W3C / 请求级 x-trace-id 至 @topeetop/telemetry-core AsyncLocalStorage
+  app.addHook('onRequest', (request, reply, done) => {
+    const incomingTrace = request.headers['x-trace-id'];
+    const traceId =
+      typeof incomingTrace === 'string' && incomingTrace.trim()
+        ? incomingTrace.trim()
+        : crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    reply.header('x-trace-id', traceId);
+    telemetryContext.run({ traceId }, done);
+  });
+
+  // 4. 注册全局插件 (CORS 等)
   await app.register(cors, {
     origin: config.CORS_ORIGIN,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Profile-Id', 'X-Account-Id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Profile-Id', 'X-Account-Id', 'X-Trace-Id'],
   });
 
-  // 4. 全局健康检查接口
+  // 5. 全局健康检查接口
   app.get('/health', async () => {
     return {
       status: 'ok',
@@ -61,7 +87,7 @@ export async function buildApp(options?: BuildAppOptions) {
     };
   });
 
-  // 5. 全局异常拦截器 (统合 ApiError 标准格式，必须在路由注册前挂载以使插件上下文继承)
+  // 6. 全局异常拦截器 (统合 ApiError 标准格式 + maskPII 脱敏日志)
   app.setErrorHandler((error, _request, reply) => {
     if (ApiError.isApiError(error) || error instanceof ApiError) {
       const apiErr = error as ApiError;
@@ -81,7 +107,7 @@ export async function buildApp(options?: BuildAppOptions) {
       });
     }
 
-    app.log.error(error);
+    app.log.error(maskPII({ message: (error as Error)?.message, name: (error as Error)?.name }));
     return reply.status(500).send({
       error: 'Internal Server Error',
       code: 'INTERNAL_ERROR',
@@ -89,24 +115,46 @@ export async function buildApp(options?: BuildAppOptions) {
     });
   });
 
-  // 6. 挂载 @topeetop/auth-core 认证与 JWKS 插件 (或独立验签公钥容器)
+  // 7. 挂载 @topeetop/notification-core SSE 插件与 @topeetop/auth-core 认证/JWKS 插件
+  const jwtProvider = createJwtProviderFromConfig(config);
+  let notificationManager: NotificationManager | null = null;
+
+  const shouldMountNotification =
+    options?.mountNotificationPlugin ?? (Boolean(jwtProvider) && !options?.skipDbInit);
+  if (shouldMountNotification && jwtProvider) {
+    const infra = await registerNotificationPlugin(app, config, jwtProvider, {
+      skipPollerInit: options?.skipDbInit || config.NODE_ENV === 'test',
+    });
+    notificationManager = infra.notificationManager;
+  }
+
   const shouldMountAuthPlugin =
     options?.mountAuthPlugin ??
     (config.MOUNT_AUTH_PLUGIN && config.NODE_ENV !== 'test' && !options?.skipDbInit);
 
   if (shouldMountAuthPlugin) {
-    await registerAuthCorePlugin(app, config);
-  } else {
-    const jwtProvider = createJwtProviderFromConfig(config);
-    if (jwtProvider) {
-      decorateJwtContainer(app, jwtProvider);
-    }
+    await registerAuthCorePlugin(app, config, notificationManager ?? undefined);
+  } else if (jwtProvider) {
+    decorateJwtContainer(app, jwtProvider);
   }
 
-  // 7. 挂载业务路由
+  const roleInvalidationNotifier = new NotificationRoleInvalidationNotifier(
+    () => notificationManager
+  );
+
+  // 8. 挂载业务路由
   await app.register(meRoutes, {
     prefix: '/api/dream/v1',
     service: options?.identityService,
+    accountLifecycleService: options?.accountLifecycleService,
+    avatarUploadService: options?.avatarUploadService,
+  });
+
+  await app.register(adminRoutes, {
+    prefix: '/api/dream/v1',
+    adminGovernanceService: options?.adminGovernanceService,
+    identityService: options?.identityService,
+    roleInvalidationNotifier,
   });
 
   return app;

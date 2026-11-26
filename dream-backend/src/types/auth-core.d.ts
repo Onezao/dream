@@ -9,6 +9,18 @@ declare module '@topeetop/auth-core' {
     executeQuery: (query: unknown, params?: unknown[]) => Promise<any[]>;
   }
 
+  export class UserProvider {
+    constructor(deps: { executeQuery: (query: string, params?: unknown[]) => Promise<any[]> });
+    findUserById(id: string): Promise<any[]>;
+    findUserByEmailOrPhone(params: { email?: string; phone?: string }): Promise<any[]>;
+    softDeleteUser(id: string): Promise<any[]>;
+  }
+
+  export class SessionProvider {
+    constructor(deps: { executeQuery: (query: string, params?: unknown[]) => Promise<any[]> });
+    deleteSessionsByUserId(userId: string): Promise<any[]>;
+  }
+
   export class SystemConfigService {
     constructor(deps: { db: AuthDbAdapter });
   }
